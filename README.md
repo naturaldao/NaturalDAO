@@ -6,6 +6,7 @@ NaturalDAO is a decentralized autonomous organization built on the consensus Pro
 
 ## 相关论文
 [Proof of Love: The Consensus of AI and Next Civilization](https://github.com/DAism2019/Proof-of-Love)
+
 [爱的证明：治理 AI 和人类文明的共识机制](https://github.com/DAism2019/Proof-of-Love/tree/main/chinese)
 
 # 任务分配
