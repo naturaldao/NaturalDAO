@@ -4,25 +4,7 @@ NaturalDAO is a decentralized autonomous organization built on the consensus Pro
 # 自然道
 自然道是一个建立在“爱的证明”共识之上，并由区块链和人工智能两大核心技术驱动的去中心化自治组织。它是富爱文明的治理与应用层。
 
-# 任务记录
-
-## 爱语整理
-DD
-
-Hanna258
-
-## 翻译
-
-
-## 开发规划
-DD
-
-## 开发软件与服务器管理
-ganyuanmen
-
-## 开发研究
-Wenbobobo
-
-w609641894
+# 任务分配
+[任务分配](https://github.com/naturaldao/NaturalDAO/discussions/1)
 
 
