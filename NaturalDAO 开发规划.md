@@ -758,7 +758,7 @@ PAI-人类协同对齐机制：
 
 NaturalDAO 是一个超大型的工程。它的主要构成为：公链 + 爱的证明治理共识层 + 智能合约 + 大语言模型 + AI Agent。
 
-![image](naturaldao.png)
+![image](image/naturaldao.png)
 
 *预言机的作用，是把终端执行的情况和结果反馈到Agent，以对执行的过程进行监控，并通过执行结果的分析，优化或废除对应的Skill。终端执行的情况和结果都会被记录到PoL记忆库里。*
 ## Part 1. 公链工程
