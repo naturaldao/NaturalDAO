@@ -4,6 +4,11 @@ NaturalDAO is a decentralized autonomous organization built on the consensus Pro
 Its main components are: a public blockchain with smart contracts, a Proof-of-Love governance consensus layer, large language model, and AI Agents.
 
 # 自然道
+
+👇例会：[周四晚9点腾讯会议](https://meeting.tencent.com/dm/zooAfdZQWaRI)
+
+👉 518-6991-2590
+
 自然道是一个建立在“爱的证明”共识之上，并由区块链和人工智能两大核心技术驱动的去中心化自治组织。它是富爱文明的治理与应用层。
 
 它的主要构成为：公链 + 爱的证明治理共识层 + 智能合约 + 大语言模型 + AI Agent。
