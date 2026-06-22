@@ -13,7 +13,11 @@ Its main components are: a public blockchain with smart contracts, a Proof-of-Lo
 
 它的主要构成为：公链 + 爱的证明治理共识层 + 智能合约 + 大语言模型 + AI Agents&Skills。
 
-## 相关论文
+## Foundamental Theory（基础理论）
+
+[爱的证明](https://github.com/naturaldao/NaturalDAO/pol)
+
+## Paper（相关论文）
 [Proof of Love: The Consensus of AI and Next Civilization](https://github.com/DAism2019/Proof-of-Love)
 
 [爱的证明：治理 AI 和人类文明的共识机制](https://github.com/DAism2019/Proof-of-Love/tree/main/chinese)
