@@ -16,3 +16,7 @@ Version 1.0b.2
 7. [富爱文明生产公共化协议](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/7.%20%E5%AF%8C%E7%88%B1%E6%96%87%E6%98%8E%E7%94%9F%E4%BA%A7%E5%85%AC%E5%85%B1%E5%8C%96%E5%8D%8F%E8%AE%AE.md)
 8. [人类公共福利的治理协议](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/8.%20%E4%BA%BA%E7%B1%BB%E5%85%AC%E5%85%B1%E7%A6%8F%E5%88%A9%E7%9A%84%E6%B2%BB%E7%90%86%E5%8D%8F%E8%AE%AE.md)
 9. [总结](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/9.%20%E6%80%BB%E7%BB%93.md)
+
+# 发布处列表
+
+[知乎：https://www.zhihu.com/pin/2054928606829270259](https://www.zhihu.com/pin/2054928606829270259)
