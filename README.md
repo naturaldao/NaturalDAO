@@ -13,6 +13,10 @@ Its main components are: a public blockchain with smart contracts, a Proof-of-Lo
 
 它的主要构成为：公链 + 爱的证明治理共识层 + 智能合约 + 大语言模型 + AI Agents&Skills。
 
+# 自然道开发规划 Version 0.1
+
+https://github.com/naturaldao/NaturalDAO/blob/main/NaturalDAO%E5%BC%80%E5%8F%91%E8%A7%84%E5%88%92.md
+
 ## Foundamental Theory（基础理论）
 
 [爱的证明](https://github.com/naturaldao/NaturalDAO/tree/main/PoL)
