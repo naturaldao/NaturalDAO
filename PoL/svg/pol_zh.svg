@@ -1,0 +1,67 @@
+<svg  version="1.1"  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 1851 1668" style="enable-background:new" xml:space="preserve">
+			<style type="text/css">
+				.st0{enable-background:new;}.st1{fill:#E6E6E6;} .st2{fill:#D44117;}	.st3{fill:#F2A438;}	.st4{fill:#6BB427;}	.st5{fill:#5775B1;}
+				.sufb{font-size:15em;text-anchor:middle;stroke:#D44117;text-shadow:-9px -5px 9px #FFFF00;}@keyframes stroke{100% {stroke-dashoffset:-400;}}
+			</style>
+			<g id="250s">
+				<use href="#50s" x="-3" y="0" class="st1" />
+					<g id="50s">
+						<ellipse cx="892" cy="273" rx="24" ry="21" />
+						<path d="m842.623,341.692l9.293,-0.866c2.271,-48.358 77.098,-47.683 78.402,1.042c4.025,0.418 2.359,0.228 9.314,1.088c0.852,-61.579 -96.926,-63.751 -97.009,-1.264z" />
+						<ellipse cx="891" cy="330" rx="28" ry="38" />
+						<rect x="876" y="350" width="9" height="63.5" />
+						<rect x="896" y="350" width="9" height="63.5" />
+					</g>
+			</g>
+			<use href="#50s" class="st2" />
+			<use href="#250s" x="70" y="0" class="st2" />
+			<use href="#250s" x="-150" y="-760" transform="rotate(45)" class="st5" />
+			<use href="#250s" x="-154" y="-540" transform="rotate(28)" class="st3" />
+			<use href="#250s" x="-222" y="-368" transform="rotate(14)" class="st4" />
+			<use href="#250s" x="-328" y="-236" transform="rotate(2)" class="st5" />
+			<use href="#250s" x="-466" y="-124" transform="rotate(-11)" class="st2" />
+			<use href="#250s" x="-625" y="-40" transform="rotate(-25)" class="st3" />
+			<use href="#250s" x="-794" y="0" transform="rotate(-38)" class="st4" />
+			<use href="#250s" x="-976" y="-1" transform="rotate(-52)" class="st5" />
+			<use href="#250s" x="-1175" y="-60" transform="rotate(-70)" class="st2" />
+			<use href="#250s" x="-1314" y="-130" transform="rotate(-80)" class="st3" />
+			<use href="#250s" x="-1446" y="-216" transform="rotate(-90)" class="st4" />
+			<use href="#250s" x="-1554" y="-318" transform="rotate(-100)" class="st5" />
+			<use href="#250s" x="-1642" y="-464" transform="rotate(-112)" class="st2" />
+			<use href="#250s" x="-1726" y="-550" transform="rotate(-118)" class="st3" />
+			<use href="#250s" x="-1790" y="-654" transform="rotate(-125)" class="st4" />
+			<use href="#250s" x="-1854" y="-740" transform="rotate(-130)" class="st5" />
+			<use href="#250s" x="-1916" y="-831" transform="rotate(-135)" class="st2" />
+			<use href="#250s" x="-2014" y="-837" transform="rotate(-135)" class="st3" />
+			<use href="#250s" x="-2107" y="-858" transform="rotate(-136)" class="st4" />
+			<use href="#250s" x="-2174" y="-924" transform="rotate(-139)" class="st5" />
+			<use href="#250s" x="-2253" y="-975" transform="rotate(-141)" class="st2" />
+			<use href="#250s" x="-2340" y="-1002" transform="rotate(-142)" class="st3" />
+			<use href="#250s" x="-2414" y="-1058" transform="rotate(-144)" class="st4" />
+			<use href="#250s" x="-896" y="-2148" transform="rotate(148)" class="st2" />
+			<use href="#250s" x="-2427" y="-1220" transform="rotate(-150)" class="st5" />
+			<use href="#250s" x="-732" y="-2144" transform="rotate(140)" class="st3" />
+			<use href="#250s" x="-830" y="-2144" transform="rotate(140)" class="st4" />
+			<use href="#250s" x="-866" y="-2144" transform="rotate(138)" class="st5" />
+			<use href="#250s" x="-970" y="-2144" transform="rotate(138)" class="st2" />
+			<use href="#250s" x="-1068" y="-2144" transform="rotate(138)" class="st3" />
+			<use href="#250s" x="-1038" y="-2152" transform="rotate(134)" class="st4" />
+			<use href="#250s" x="-1072" y="-2154" transform="rotate(132)" class="st5" />
+			<use href="#250s" x="-1050" y="-2164" transform="rotate(128)" class="st2" />
+			<use href="#250s" x="-988" y="-2176" transform="rotate(123)" class="st3" />
+			<use href="#250s" x="-990" y="-2178" transform="rotate(120)" class="st4" />
+			<use href="#250s" x="-862" y="-2182" transform="rotate(113)" class="st5" />
+			<use href="#250s" x="-610" y="-2150" transform="rotate(102)" class="st2" />
+			<use href="#250s" x="-400" y="-2084" transform="rotate(92)" class="st3" />
+			<use href="#250s" x="-90" y="-1926" transform="rotate(78)" class="st4" />
+			<use href="#250s" x="128" y="-1734" transform="rotate(66)" class="st5" />
+			<use href="#250s" x="374" y="-1416" transform="rotate(50)" class="st2" />
+			<use href="#250s" x="528" y="-1040" transform="rotate(34)" class="st3" />
+			<use href="#250s" x="546" y="-746" transform="rotate(22)" class="st4" />
+			<use href="#250s" x="494" y="-524" transform="rotate(13)" class="st5" />
+			<use href="#250s" x="404" y="-262" transform="rotate(2)" class="st2" />
+			<use href="#250s" x="236" y="78" transform="rotate(-14)" class="st3" />
+			<use href="#250s" x="8" y="325" transform="rotate(-28)" class="st4" />
+			<use href="#250s" x="-292" y="524" transform="rotate(-43)" class="st5" />
+			<text x="50%" y="50%" class="sufb"><a target="_blank" href="https://github.com/naturaldao/NaturalDAO/tree/main/PoL" fill="#D44117" >爱的证明</a></text>
+		</svg>
