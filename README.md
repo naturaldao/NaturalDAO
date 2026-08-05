@@ -30,4 +30,4 @@ https://github.com/naturaldao/NaturalDAO/blob/main/NaturalDAO%E5%BC%80%E5%8F%91%
 [任务分配](https://github.com/naturaldao/NaturalDAO/discussions/1)
 
 # ⚖️ 许可证
-本项目遵循 CC0 
+本项目遵循 CC0-1.0 license
