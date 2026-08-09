@@ -5,7 +5,7 @@ Its main components are: a public blockchain with smart contracts, a Proof-of-Lo
 
 # 自然道
 
-👇例会：[周四晚9点腾讯会议](https://meeting.tencent.com/dm/zooAfdZQWaRI)
+👇例会：[每周二和每周四15:00-16:00 腾讯会议](https://meeting.tencent.com/dm/zooAfdZQWaRI)
 
 👉 518-6991-2590
 
