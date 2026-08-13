@@ -19,7 +19,7 @@ https://github.com/naturaldao/NaturalDAO/blob/main/NaturalDAO%E5%BC%80%E5%8F%91%
 
 ## Foundamental Theory（基础理论）
 
-[爱的证明](https://github.com/naturaldao/NaturalDAO/tree/main/PoL)
+[爱的证明 version 1.0 RC2](https://github.com/naturaldao/NaturalDAO/tree/main/PoL)
 
 ## Paper（相关论文）
 [Proof of Love: The Consensus of AI and Next Civilization](https://github.com/DAism2019/Proof-of-Love)
