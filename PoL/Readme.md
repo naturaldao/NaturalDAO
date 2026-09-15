@@ -12,10 +12,9 @@ Version 1.0b.4
 3. [AI和人类文明的治理：从仇恨证明到爱的证明](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/3.%20%E6%B2%BB%E7%90%86%E5%85%B1%E8%AF%86%EF%BC%9A%E7%88%B1%E7%9A%84%E8%AF%81%E6%98%8E.md)
 4. [PoL2之冥想智慧公理](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/4.%20PoL%E4%B9%8B%E5%86%A5%E6%83%B3%E6%99%BA%E6%85%A7%E5%85%AC%E7%90%86.md)
 5. [PoL2之伦理对齐协议](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/5.%20PoL%E4%B9%8B%E4%BC%A6%E7%90%86%E5%AF%B9%E9%BD%90%E5%8D%8F%E8%AE%AE.md)
-6. [PoL2共识的工程策略](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/6.%20PoL%E5%85%B1%E8%AF%86%E7%9A%84%E5%B7%A5%E7%A8%8B%E7%AD%96%E7%95%A5.md)
-7. [富爱文明生产公共化协议](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/7.%20%E5%AF%8C%E7%88%B1%E6%96%87%E6%98%8E%E7%94%9F%E4%BA%A7%E5%85%AC%E5%85%B1%E5%8C%96%E5%8D%8F%E8%AE%AE.md)
-8. [人类公共福利的治理协议](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/8.%20%E4%BA%BA%E7%B1%BB%E5%85%AC%E5%85%B1%E7%A6%8F%E5%88%A9%E7%9A%84%E6%B2%BB%E7%90%86%E5%8D%8F%E8%AE%AE.md)
-9. [总结](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/9.%20%E6%80%BB%E7%BB%93.md)
+6. [富爱文明生产公共化协议](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/7.%20%E5%AF%8C%E7%88%B1%E6%96%87%E6%98%8E%E7%94%9F%E4%BA%A7%E5%85%AC%E5%85%B1%E5%8C%96%E5%8D%8F%E8%AE%AE.md)
+7. [人类公共福利的治理协议](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/8.%20%E4%BA%BA%E7%B1%BB%E5%85%AC%E5%85%B1%E7%A6%8F%E5%88%A9%E7%9A%84%E6%B2%BB%E7%90%86%E5%8D%8F%E8%AE%AE.md)
+8. [总结](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/9.%20%E6%80%BB%E7%BB%93.md)
 
 # 发布处列表
 
