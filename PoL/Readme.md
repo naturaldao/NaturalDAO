@@ -1,6 +1,6 @@
 # 爱2证明：下一个人类文明的共识
 
-Version 1.0b.4
+Version 1.0
 
 自然道的基础理论叫爱2证明（Proof of Love2, PoL2），最早以爱的证明（Proof of Love, PoL）为名发布于论文[《爱的证明：治理 AI 和人类文明的共识机制》](https://github.com/DAism2019/Proof-of-Love)里。这篇论文内容太长，因此我们将爱2证明（Proof of Love2, PoL2）的理论部分提取出来，并更新到这里。
 
