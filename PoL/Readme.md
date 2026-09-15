@@ -4,7 +4,7 @@ Version 1.0b.4
 
 自然道的基础理论叫爱2证明（Proof of Love2, PoL2），最早以爱的证明（Proof of Love, PoL）为名发布于论文[《爱的证明：治理 AI 和人类文明的共识机制》](https://github.com/DAism2019/Proof-of-Love)里。这篇论文内容太长，因此我们将爱2证明（Proof of Love2, PoL2）的理论部分提取出来，并更新到这里。
 
-# 爱的2证明（Proof of Love2, PoL2）完整理论
+# 爱2证明（Proof of Love2, PoL2）完整理论
 
 0. [前言](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/0.%20%E5%89%8D%E8%A8%80.md)
 1. [爱、恨、文明、野蛮、爱的证明、仇恨证明、富仇文明与富爱文明](https://github.com/naturaldao/NaturalDAO/blob/main/PoL/1.%20%E7%88%B1%E3%80%81%E6%81%A8%E3%80%81%E6%96%87%E6%98%8E%E3%80%81%E9%87%8E%E8%9B%AE%E3%80%81%E7%88%B1%E7%9A%84%E8%AF%81%E6%98%8E%E3%80%81%E4%BB%87%E6%81%A8%E8%AF%81%E6%98%8E%E3%80%81%E5%AF%8C%E4%BB%87%E6%96%87%E6%98%8E%E4%B8%8E%E5%AF%8C%E7%88%B1%E6%96%87%E6%98%8E.md)
