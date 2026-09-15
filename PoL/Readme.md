@@ -19,3 +19,30 @@ Version 1.0b.4
 # 发布处列表
 
 [知乎：https://www.zhihu.com/pin/2054928606829270259](https://www.zhihu.com/pin/2054928606829270259)
+
+# 协作者和讨论用大模型说明
+
+### 原创框架协作者
+
+「爱2证明」（Proof of Love2）共识机制及其核心术语体系——包括爱2、恨2、爱2的联结（Love2 Connection）、伦理对齐协议（EAP）等——由以下协作者原创提出：
+
+**DD周朝晖**
+
+意见反馈: DerekDAism@qq.com
+
+### 贡献者
+
+以下成员对本资料的理论框架与论证、整理或编排作出了实质性贡献：
+
+· Aranna
+· Hannah陈思诗
+· Queena
+· Shenton
+· 陈昌春
+· 甘元闷
+· KK子淇
+· 甘雅静
+
+### **讨论选用的大语言模型**
+
+Gemini、DeepSeek、ChatGPT、Kimi、智谱、千问等等
