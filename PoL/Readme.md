@@ -34,14 +34,7 @@ Version 1.0
 
 以下成员对本资料的理论框架与论证、整理或编排作出了实质性贡献：
 
-· Aranna
-· Hannah陈思诗
-· Queena
-· 鄢申涛Shenton
-· 陈昌春
-· 甘元闷
-· KK子淇
-· 甘雅静
+Aranna、Hannah陈思诗、Queena、鄢申涛Shenton、陈昌春、甘元闷、KK子淇
 
 ### **讨论选用的大语言模型**
 
