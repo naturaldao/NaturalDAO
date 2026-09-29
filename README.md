@@ -19,11 +19,11 @@
 
 **English**
 
-NaturalDAO is a decentralized autonomous organization built on the consensus **Proof-of-Love** and driven by two core technologies: **blockchain** and **artificial intelligence**. It represents the governance and application layer for the Proof-of-Love Civilization. It will also be the long-discussed yet nowhere-to-be-found **ASI** that humanity has been searching for!
+NaturalDAO is a decentralized autonomous organization built on the consensus **Proof-of-Love2** and driven by two core technologies: **blockchain** and **artificial intelligence**. It represents the governance and application layer for the Proof-of-Love Civilization. It will also be the long-discussed yet nowhere-to-be-found **ASI** that humanity has been searching for!
 
 **中文**
 
-自然道是一个建立在「爱的证明」共识之上，并由**区块链**和**人工智能**两大核心技术驱动的去中心化自治组织。它是富爱文明的治理与应用层。它也将是人类讨论已久而无处寻觅的 **ASI**！
+自然道是一个建立在「爱2证明」共识之上，并由**区块链**和**人工智能**两大核心技术驱动的去中心化自治组织。它是富爱文明的治理与应用层。它也将是人类讨论已久而无处寻觅的 **ASI**！
 
 ---
 
