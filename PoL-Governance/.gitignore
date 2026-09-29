@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+.cache/
+.env
+.env.*
+datasets/private/
+datasets/private_holdout/
+**/raw-private/
+**/*.safetensors
+**/*.gguf
+**/*.pt
+**/*.bin

@@ -1,0 +1,13 @@
+[
+  {
+    "id": "pol-pilot-v0.1",
+    "card": "datasets/README.md",
+    "data": "benchmark/pilot.jsonl",
+    "status": "synthetic_proposed_unreviewed",
+    "split": "pilot_public",
+    "cases": 20,
+    "families": 10,
+    "license": "CC0-1.0",
+    "eligible_for_ranking": false
+  }
+]

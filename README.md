@@ -76,10 +76,17 @@ NaturalDAO is a decentralized autonomous organization built on the consensus **P
 
 ---
 
+## PoL2 AI 治理层协作
+
+[协作入口](PoL-Governance/README.md)：任务分支、共享数据与模型、统一评估工具。Agent 从 [AGENTS.md](PoL-Governance/AGENTS.md) 开始。
+
+---
+
 ## ⚖️ 许可证 · License
 
 本项目遵循 [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) 许可证。
 
 This project is released under the [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) license.
+
 
 
