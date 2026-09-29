@@ -29,5 +29,9 @@ https://github.com/naturaldao/NaturalDAO/blob/main/NaturalDAO%E5%BC%80%E5%8F%91%
 # 任务分配
 [任务分配](https://github.com/naturaldao/NaturalDAO/discussions/1)
 
+## PoL AI 治理层协作
+
+[协作入口](PoL-Governance/README.md)：任务分支、共享数据与模型、统一评估工具。Agent 从 [AGENTS.md](PoL-Governance/AGENTS.md) 开始。
+
 # ⚖️ 许可证
 本项目遵循 CC0-1.0 license

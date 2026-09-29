@@ -1,0 +1,6 @@
+[
+  {"id":"shieldstral-3b","card":"models/CATALOG.md","url":"https://huggingface.co/mistralai/Shieldstral-1.0-3B","status":"candidate_not_tested"},
+  {"id":"kev","card":"models/CATALOG.md","url":"https://github.com/jaredpalmer/kev","status":"adapter_tested_model_not_run"},
+  {"id":"intern-decision","card":"models/CATALOG.md","url":"https://github.com/InternLM/Intern-Decision","status":"candidate_not_tested"},
+  {"id":"laya-multilingual","card":"models/CATALOG.md","url":"https://huggingface.co/convaiinnovations/laya-multilingual","status":"conditional_candidate_not_tested"}
+]
