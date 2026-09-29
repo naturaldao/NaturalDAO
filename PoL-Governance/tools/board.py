@@ -22,7 +22,20 @@ def fields(text):
     def get(label):
         match = re.search(r'^- ' + re.escape(label) + r'：[ \t]*(.*)$', text, re.MULTILINE)
         return match.group(1).strip() if match else ''
-    return {'owner': get('领取人'), 'status': get('状态')}
+    owner, agent, status = get('领取人'), get('Agent'), get('状态')
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if line.strip() == '| 领取人 / Agent | 状态 / 最近进展（Agent 更新） |' and i + 2 < len(lines):
+            cells = [cell.strip() for cell in lines[i + 2].strip().strip('|').split('|')]
+            if len(cells) == 2:
+                identity, status = cells
+                owner, separator, agent = identity.partition(' / ')
+                if not separator:
+                    agent = ''
+            break
+    return {'owner': owner.strip(), 'agent': agent.strip(), 'status': status,
+            'updated_at': get('更新时间'), 'next': get('下一步'),
+            'blocker': get('阻塞 / 需要谁帮助')}
 
 
 def git(repo, *args):
