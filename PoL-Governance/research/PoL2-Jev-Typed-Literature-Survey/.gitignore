@@ -1,0 +1,7 @@
+# PDFs under the arXiv default licence may not be redistributed; keep them local only.
+papers/_local/
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+Thumbs.db

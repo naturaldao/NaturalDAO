@@ -10,6 +10,7 @@
 | MODEL-02 | 自选模型适配与控制遗忘（可多队） | models/；results/ |
 | EVAL-01 | 正式 benchmark、通用及主流安全对照 | benchmark/；results/ |
 | APP-01 | 插件接入、试运行与端到端验证 | integrations/ |
+| LIT-01 | Jev 类型化决策模型文献综述，对照 PoL2 治理条款 | research/PoL2-Jev-Typed-Literature-Survey/ |
 
 DATA-01 可由两名独立标注者分别领取后缀 A/B，完成前不互看标签。MODEL-02 用模型名后缀区分实验。模型调研、数据准备、接口开发可并行；不同数据版本的结果分开比较。
 

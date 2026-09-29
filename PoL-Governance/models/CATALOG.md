@@ -31,4 +31,4 @@
 
 一条新记录回答：模型/版本、许可、本地运行条件、适配代码、中文/PoL 证据、速度测试条件、已知失败和来源日期。区分作者宣称、独立复现与本工程实测；找不到就写未知。
 
-详细调研可用 [research prompt](../prompts/model-research.md)。阶段性报告与相反证据都欢迎合并。
+详细调研可用 [research prompt](../research/model-research-example.md)。阶段性报告与相反证据都欢迎合并。

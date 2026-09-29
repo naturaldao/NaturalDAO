@@ -1,0 +1,12 @@
+id,title,author,date,url,pol_axes,note_zh
+G-CheckPoint,"Jev is not a language model, but it breaks like one",Check Point Research,2026-09-24,https://blog.checkpoint.com/ai-security/jev-is-not-a-language-model-but-it-breaks-like-one-prompt-injection-against-a-typed-decision-model/,G2,"多轮自适应攻击 27 次攻破 25 次；标注""不可信""几乎无效"
+G-Simmons,"It refused, then I made it choose",Josh C. Simmons,2026-09-23,https://www.drjoshcsimmons.com/writing/it-refused-then-i-made-it-choose,G3,"强迫二选一时""白人""占首选的 51%"
+G-ZhBench,ZH-Decision-Bench v0.1,CodyQin,2026-09-26,https://github.com/CodyQin/zh-decision-bench,G3,中文场景过度自信系统性存在；选项顺序调换 28% 翻转
+G-Replication,Jev RLCD Replication,jkf87,2026-09-27,https://github.com/jkf87/jev-rlcd-replication,G1,独立复现 Just Ask Jev；默认阈值 0.5 下 F1 0.158，校准阈值下 0.947
+G-Molas,Jev can't be calibrated,Alex Molas,2026-09-23,https://www.alexmolas.com/2026/09/23/jev-cant-be-calibrated.html,G4,校准依赖数据分布，应把输出当分数而非概率
+G-Grazian,Is Jev calibrated? Tests on real data,Leonard Grazian,2026-09-25,https://leonardgrazian.com/blog/jev-calibration/,G4,WiC 上 ECE 0.027（支持校准）
+G-Bernoulli,Is Jev confident?,Stanislav Yurin,2026-09-18,https://bernoulli.app/articles/is-jev-confident,G4,空选项可把置信度从 0.20 抬到 0.58；重复请求结果浮动
+G-Willison,Jev introduces a new shape of LLM,Simon Willison,2026-09-21,https://simonwillison.net/2026/Sep/21/jev/,G5,只返回数字、不给理由；偏见问题应放在首位
+G-Sev,RLCD reverse engineering (sev),LakoreAI,2026-09-24,https://github.com/LakoreAI/sev,G4,推导出 Laya 的 RL 训练项中的噪声平滑会使分布偏向过度自信
+G-Tracker,All about Jev,Han Xiao,2026-09-27,https://hanxiao.io/all-about-jev/,,"检索来源：2,073 条生态记录"
+G-ASOM,Awesome System One Models,Amir Rafe; Subasish Das,2026-09-24,https://github.com/pozapas/awesome-system-one-models,,检索来源：213 篇谱系论文、27 项研究的偏倚风险评估
