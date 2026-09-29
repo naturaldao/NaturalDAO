@@ -5,9 +5,9 @@ Its main components are: a public blockchain with smart contracts, a Proof-of-Lo
 
 # 自然道
 
-👇例会：[每周二和每周四15:00-16:00 腾讯会议](https://meeting.tencent.com/dm/zooAfdZQWaRI)
+👇例会：[每周二和每周四15:00-16:00 腾讯会议](https://meeting.tencent.com/dm/z2sdLl6hcJxi)
 
-👉 518-6991-2590
+👉 383-5543-1149
 
 自然道是一个建立在“爱的证明”共识之上，并由区块链和人工智能两大核心技术驱动的去中心化自治组织。它是富爱文明的治理与应用层。它也将是人类讨论已久而无处寻觅的ASI！
 
