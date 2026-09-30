@@ -90,7 +90,21 @@
 
 原始下载放仓库外（`D:\pol2-raw\`），仓库只提交构建后的 items 与清单。
 
-## 6. 检查
+## 6. 已知限制（施工中发现，不要当成已解决）
+
+1. **HF datasets-server 不遵守 revision 参数。** 实测带伪造 sha、别人的 sha、不带 revision，返回的首行完全相同。
+   抓取时的做法是：先用 HF API 解析当前 sha 并与 sources.json 的固定值比对，不一致就停下；
+   manifest 记录 revision、revision_enforced=false 与抓取后复核得到的 revision_stable。
+   **真正逐字节可复现需要走 resolve/<sha>/<path> 下载文件**，而不是 /rows 分页接口。本阶段未做这一步。
+2. **length 上限 100**，超过返回 422。
+3. **config 名里的加号必须转义**（%2B），否则会被 query 解析成空格导致 404。
+4. **来源问题与 taxonomy 键不是一一对应。** 已知：jev-distill-v3 的 score 是 0-5 六档（本契约的 score 键是 0-4 五档），
+   其 noul 是场景专属谓词；prosocial-dialog 的三标注 vote 与 safety_label 五档在本契约里没有等义键。
+   处理口径：**不硬塞档位**，原生问答与分布保留在 meta.source_record，条目按该域的 CORE 键提问、targets 留空等外部答案源。
+   转换汇总必须分别报告 native_target_rate（带真值的条目占比）与待作答条目数。
+5. 语义近重复与同情节跨区检测、跨文件/跨来源 id 去重，本阶段均未实现。
+
+## 7. 检查
 
 ```powershell
 uv run --no-project --offline python tools/check.py
