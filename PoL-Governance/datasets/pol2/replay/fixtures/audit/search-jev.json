@@ -1,0 +1,24 @@
+[
+ {
+  "id": "ZefanCai/Open-Jev",
+  "downloads": 3383,
+  "likes": 56,
+  "sha": "c67699e13d0ae25e35b77165a4b6b079bedc8aba",
+  "lastModified": "2026-09-20T22:49:59.000Z",
+  "tags": [
+   "license:cc0-1.0",
+   "open-jev"
+  ]
+ },
+ {
+  "id": "Praveenrajus/jev-bench",
+  "downloads": 6358,
+  "likes": 6,
+  "sha": "18f88da81c28c2bec55edc31f63f2afdfba109ea",
+  "lastModified": "2026-09-25T07:27:22.000Z",
+  "tags": [
+   "license:other",
+   "benchmark"
+  ]
+ }
+]
