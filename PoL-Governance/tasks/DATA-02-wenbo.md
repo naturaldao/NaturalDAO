@@ -2,7 +2,7 @@
 
 | 领取人 / Agent | 状态 / 最近进展（Agent 更新） |
 |---|---|
-| Wenbo / DSH Agent Team | 进行中；契约、本体、流水线、正式评测器、通用回放池审计五件已落库；PoL2 生成器在修解析失败率与去重，尚未放量 |
+| Wenbo / DSH Agent Team | 进行中；契约、本体、流水线、正式评测器、通用回放池审计五件已落库并推送；两族试点全部门槛达标，正在跑 17 族 1904 条放量（task-5） |
 
 - 更新时间：2026-09-30 16:56 UTC+8
 - 分支：pol/DATA-02/wenbo
@@ -28,6 +28,9 @@
 
 2026-09-30 17:40｜Wenbo / DSH Agent Team｜task-4 完成：审计 728 个候选 id、87 条元数据，准入 15 / 观察 16 / 剔除 37（评测集本体 22 条）。重要防坑：同一 Open-Jev 有 3 个再发布须按内容哈希去重；s1lv3rj1nx/openjev-mixture 的 train 混入 92 个公开评测任务；LocalLLaMA/typed-decisions 本体就是 benchmark；pngwn v1 的 escalate 标签 100% 反向。准入池 train 容量 >470 万决策，够 9:1 与 8:2 两种配比，未降门槛
 2026-09-30 17:42｜Wenbo / DSH Agent Team｜Lead 独立复核 2 族试点产出（未只看 Agent 报告）：83 组对、组内 target 相似度 mean=0.972 min=0.593，对纪律合格；但 47 次调用失败 12 次（26%，多为 JSON 解析失败，1 次 Cloudflare 524），duplicate_case=12、shortcut_risk=14。已下放量门槛：invalid 率 <5%、重复 <1%、shortcut 清零、每族三类齐备且组内 status 相反，达标才批 17 族
+
+2026-09-30 17:55｜Wenbo / DSH Agent Team｜两族试点达标并合入 1e132a1。Lead 独立复算（不用 Agent 报告数字）：224 条 case、112 组完整对、精确重复 0、shortcut_risk 0、107 次调用 invalid 尝试 0、派生问题 4256 条（choice 896 / noul 3360，每 case 19 题）。根因修复三件：sub 路由支持 response_format=json_object；推理吃光 8192 completion 预算导致截断，改 max_tokens 16384；不合格对回灌原因重生成、仍不合格则丢弃并计数。历史前后对比与每千条预算写进 pipeline/README.md
+2026-09-30 17:57｜Wenbo / DSH Agent Team｜批准放量（task-5）：跑满 datasets/pol2/families.pilot.jsonl 的 17 族 1904 条，输出 datasets/pol2/v0.1-pilot/，预算约 2000 次调用、约 10M prompt + 2.7M completion tokens、并发 8 约 1.5-2 小时。本次仍不跑教师真值，真值需另行批准
 
 ## 交付或交接
 
