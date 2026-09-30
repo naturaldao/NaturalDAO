@@ -122,6 +122,17 @@ SURFACES_BY_DOMAIN: dict[str, list[str]] = {
 
 DEFAULT_TARGET_CASES = 112
 
+# 试点优先级：先把最容易误判、最能体现 PoL2 价值的判定轴跑通。
+AXIS_PRIORITY = (
+    "consent_withdrawal", "polite_coercion", "criticism_vs_attack", "evidence_insufficiency",
+    "nonpolar_absence", "person_vs_behavior", "condition_exception", "tool_authority",
+    "untrusted_instruction", "repair_over_block", "actor_vs_quoted", "negation_scope",
+    "counterfactual", "love_language_attribution", "cross_species_ecology",
+)
+
+# 试点规模：17 族 x 112 条 = 1904 条，与正式 70/20/5 的比例一致。
+PILOT_PLAN = {"train": 12, "public_test": 4, "validation": 1}
+
 
 def plan() -> list[dict]:
     """Materialize the family list. Deterministic: output order is stable."""
@@ -147,17 +158,79 @@ def plan() -> list[dict]:
     return rows
 
 
+def pilot_selection(rows: list[dict], assign_rows: list[dict],
+                    plan: dict | None = None) -> list[dict]:
+    """Pick whole families for the pilot, highest-priority axes first, per region.
+
+    Families stay whole so the family-level 70/20/5/5 invariant is preserved.
+    """
+    plan = plan or PILOT_PLAN
+    region_of = {row["family_id"]: row["region"] for row in assign_rows}
+    rank = {axis: index for index, axis in enumerate(AXIS_PRIORITY)}
+
+    def rotate(pool: list[dict], count: int) -> list[dict]:
+        """Round-robin over axes so the pilot covers as many axes as possible."""
+        by_axis: dict[str, list[dict]] = {}
+        for row in pool:
+            by_axis.setdefault(row["axis"], []).append(row)
+        axes = sorted(by_axis, key=lambda axis: (rank.get(axis, len(AXIS_PRIORITY)), axis))
+        for axis in axes:
+            by_axis[axis].sort(key=lambda row: row["family_id"])
+        picked: list[dict] = []
+        depth = 0
+        while len(picked) < count:
+            progressed = False
+            for axis in axes:
+                if len(picked) >= count:
+                    break
+                if depth < len(by_axis[axis]):
+                    picked.append(by_axis[axis][depth])
+                    progressed = True
+            if not progressed:
+                break
+            depth += 1
+        return picked
+
+    chosen = []
+    for region, count in plan.items():
+        pool = [row for row in rows if region_of.get(row["family_id"]) == region]
+        if len(pool) < count:
+            raise ValueError(f"region {region} has only {len(pool)} families, need {count}")
+        chosen.extend(rotate(pool, count))
+    chosen.sort(key=lambda row: (rank.get(row["axis"], len(AXIS_PRIORITY)), row["family_id"]))
+    return chosen
+
+
 def main(argv: list[str] | None = None) -> int:
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True, help="full family list")
+    parser.add_argument("--pilot-assign", type=Path,
+                        help="private assignment table; enables the pilot subset")
+    parser.add_argument("--pilot-out", type=Path, help="write the pilot family subset here")
     args = parser.parse_args(argv)
     rows = plan()
     args.out.write_text(
         "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
-    print(json.dumps({"families": len(rows), "domains": len(DOMAINS), "axes": len(AXES),
-                      "target_cases": sum(r["target_cases"] for r in rows),
-                      "out": str(args.out)}, ensure_ascii=False))
+    summary = {"families": len(rows), "domains": len(DOMAINS), "axes": len(AXES),
+               "target_cases": sum(r["target_cases"] for r in rows), "out": str(args.out)}
+    if args.pilot_assign or args.pilot_out:
+        if not (args.pilot_assign and args.pilot_out):
+            parser.error("--pilot-assign and --pilot-out must be given together")
+        assign_rows = [json.loads(line) for line in
+                       args.pilot_assign.read_text(encoding="utf-8").splitlines() if line.strip()]
+        subset = pilot_selection(rows, assign_rows)
+        args.pilot_out.parent.mkdir(parents=True, exist_ok=True)
+        args.pilot_out.write_text(
+            "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in subset), encoding="utf-8")
+        by_region: dict[str, int] = {}
+        for row in assign_rows:
+            if row["family_id"] in {s["family_id"] for s in subset}:
+                by_region[row["region"]] = by_region.get(row["region"], 0) + 1
+        summary["pilot"] = {"families": len(subset), "target_cases":
+                            sum(r["target_cases"] for r in subset),
+                            "by_region": by_region, "out": str(args.pilot_out)}
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
 
 
