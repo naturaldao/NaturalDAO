@@ -50,7 +50,7 @@ def main():
                 local_path(row['card'])
                 if 'data' in row:
                     local_path(row['data'])
-        for suite in ('benchmark', 'tools'):
+        for suite in ('benchmark', 'tools', 'datasets'):
             subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', suite,
                             '-p', 'test_*.py', '-q'], cwd=ROOT, check=True)
         subprocess.run([sys.executable, 'benchmark/validate_pilot.py'], cwd=ROOT, check=True)
