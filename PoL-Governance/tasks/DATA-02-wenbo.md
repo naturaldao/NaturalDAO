@@ -2,7 +2,7 @@
 
 | 领取人 / Agent | 状态 / 最近进展（Agent 更新） |
 |---|---|
-| Wenbo / DSH Agent Team | 进行中；数据契约、96 场景族分类法与族级 70/20/5/5 分区已落库并推送，本体、流水线、benchmark 三路并行开发中 |
+| Wenbo / DSH Agent Team | 进行中；契约、本体、流水线、正式评测器四件已落库并推送，正在跑 17 族 1904 条真实试点，通用回放池调研并行进行 |
 
 - 更新时间：2026-09-30 16:56 UTC+8
 - 分支：pol/DATA-02/wenbo
@@ -22,6 +22,9 @@
 2026-09-30 17:10｜Wenbo / DSH Agent Team｜落库并推送 8e3f5d0：数据契约（case/question/answer/label 四层 JSONL，pilot schema 超集）、20 主题域 x 15 判定轴 = 96 场景族共 10752 条目标、族级加盐确定性分区（实测 69.8/19.8/5.2/5.2）、splits.py 拒绝把分配表与保留族写进仓库。tools/check.py 增加 datasets 测试发现；全仓 50 项测试与 127 条链接检查通过｜分支 pol/DATA-02/wenbo
 2026-09-30 17:12｜Wenbo / DSH Agent Team｜实测打通全部模型路由并交底给流水线：Luna 一次调用 3 组对用 4706/576 tokens 耗时 28s；gpt-6.1-sol、grok-4.7、mimo-v2.6-pro、deepseek-v4.1-flash、glm-5.3 均 200。发现 opencode-go 需 x-opencode-session 头、mimo 与 glm 低 max_tokens 时 content 为空，已要求判为 invalid。用户定稿：本轮只做数据与 benchmark，先跑 17 族 1904 条试点
 2026-09-30 17:12｜Wenbo / DSH Agent Team｜三路 Agent 并行：pol2-ontology（本体与测试项矩阵）、pol2-pipeline（生成与真值）、pol2-benchmark（正式评测器）；共享任务 task-1/2/3 均已领取。真值判定加了硬约束：生成方血缘必须从真值池剔除，≥2 个不同血缘逐题一致才出 label
+2026-09-30 17:25｜Wenbo / DSH Agent Team｜task-1 本体完成并合入 0c26fcb：57 条标签、34 条注册条款、18 判定轴 / 25 组成对样例，每条标签带 clause 回溯；另有 12 条 pending_review 留给人工裁定（含"沉默是否构成同意撤回"，原文无规定，工程不替原文补规则）
+2026-09-30 17:26｜Wenbo / DSH Agent Team｜task-2 流水线与 task-3 正式评测器完成并合入 bb9f6b2：流水线 100 项离线测试、评测器 60 项，tools/check.py 全绿（171 条链接）。评测器把"正当批评/正当愤怒/拒绝异议/修复/不在场"五类误拦单列，不混进总分。Luna 真实冒烟 1 次调用 4820+1547 tokens、53s、6 条 case 三类齐备
+2026-09-30 17:28｜Wenbo / DSH Agent Team｜用户补充：HuggingFace 若有高质量决策数据集可降低制备难度，但 PoL2 专项仍须自制。据此新开 task-4（datasets/pol2/replay/）做通用决策回放池审计与中文改写重判，由 pol2-replay 领取；这一路对应 SPEC 的 通用:PoL = 9:1 或 8:2，且只有 PoL 的 train 分区参与混合
 
 ## 交付或交接
 
