@@ -6,6 +6,7 @@
 |---|---|---|
 | DATA-01 | 独立试标注与分歧整理 | datasets/；benchmark 标注工具 |
 | DATA-02 | 生成正式 PoL 数据与 70/20/5/5 划分 | datasets/ |
+| DATA-03 | 通用决策底座：10k+ 覆盖全面问题集、HF 抓取转换与 Jev 就绪作答 harness | datasets/decision-base/ |
 | MODEL-01 | 深入调研并更新候选清单 | models/CATALOG.md |
 | MODEL-02 | 自选模型适配与控制遗忘（可多队） | models/；results/ |
 | EVAL-01 | 正式 benchmark、通用及主流安全对照 | benchmark/；results/ |
