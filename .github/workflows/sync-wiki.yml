@@ -1,0 +1,56 @@
+name: Sync PoL to Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "PoL/**"
+      - "PoLEn/**"
+      - ".github/scripts/sync_wiki.py"
+      - ".github/workflows/sync-wiki.yml"
+  workflow_dispatch:
+
+# 同一时间只跑一个，避免两次 push 同时写 wiki 冲突
+concurrency:
+  group: sync-wiki
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+
+      - name: Checkout wiki repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+          # 默认用内置 GITHUB_TOKEN；若 push 被拒，建一个有 repo 权限的 PAT，
+          # 存为仓库 Secret：WIKI_TOKEN，这一行会自动改用它
+          token: ${{ secrets.WIKI_TOKEN || github.token }}
+
+      - name: Build wiki pages
+        run: |
+          python3 .github/scripts/sync_wiki.py \
+            --main . \
+            --wiki wiki \
+            --repo "$GITHUB_REPOSITORY" \
+            --branch "${{ github.event.repository.default_branch }}"
+
+      - name: Commit and push
+        working-directory: wiki
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+          else
+            git commit -m "Sync from ${GITHUB_SHA::7}"
+            git push origin HEAD
+          fi
