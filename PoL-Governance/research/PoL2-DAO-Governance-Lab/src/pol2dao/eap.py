@@ -1,16 +1,16 @@
 """EAP screening: typed love / hate / absence decisions on *behaviour*.
 
-PoL2 grounding (PoLEn ch. 5, "Ethical Alignment Protocol"):
+PoL2 grounding (PoLEn ch. 4, "Ethical Alignment Protocol"):
 
-* 5.3.1 Equal Connection -- persons are always treated equally; only
+* 4.3.1 Equal Connection -- persons are always treated equally; only
   *behaviour* is judged. This module therefore takes text only. It never
   receives a speaker id, and nothing here aggregates scores per person.
-* 5.3.2 Promote love, restrain hate -- hate language is located and flagged;
+* 4.3.2 Promote love, restrain hate -- hate language is located and flagged;
   "love and hate are not directly equivalent to good and bad". Criticism,
   disagreement and anger are NOT hate and must not be flagged.
-* 5.3.2 "Neither love nor hate" state of absence -- a third outcome, so the
+* 4.3.2 "Neither love nor hate" state of absence -- a third outcome, so the
   judge can say "nothing here" instead of forcing a yes/no answer.
-* 5.2 / ch. 1 -- PAI need not detect a person's emotional state; the
+* 4.2 / ch. 1 -- PAI need not detect a person's emotional state; the
   baseline below matches behavioural markers, not feelings.
 
 Engineering lessons taken from the PoL2-Jev typed-decision literature survey
@@ -95,10 +95,10 @@ HATE_MARKERS: dict[str, list[str]] = {
                   "滚出去", "没资格说话", "不配投票", "闭嘴"],
     "humiliation": [r"idiots?", r"stupid", r"losers?", r"morons?",
                     "白痴", "蠢货", "废物", "弱智"],
-    # EAP 5.3.2: false intimacy / kinship created by AI is emotional manipulation.
+    # EAP 4.3.2: false intimacy / kinship created by AI is emotional manipulation.
     "false_intimacy": [r"call me daddy", r"only i understand you", r"i feel your physical",
                        "叫我爸爸", "只有我懂你", "我感受到你的身体"],
-    # EAP 5.3.3.3: "are you afraid of the little dog?" -- creating fear to control.
+    # EAP 4.3.3.3: "are you afraid of the little dog?" -- creating fear to control.
     "fear_control": [r"you should be afraid", r"are you afraid", r"or else",
                      "你怕不怕", "害怕了吧", "否则后果自负"],
 }
@@ -117,20 +117,20 @@ LOVE_MARKERS: dict[str, list[str]] = {
 # is anchored in a PoL2 clause, not in a pilot sentence, but results on that
 # pilot are no longer a blind test for v1 (the survey's rule: "看过就注明").
 HATE_MARKERS_V1: dict[str, list[str]] = {
-    # 5.3.1: a past act must not be turned into a permanent rank of the person.
+    # 4.3.1: a past act must not be turned into a permanent rank of the person.
     "dignity_ranking": [r"(born |naturally )?(inferior|beneath us)", r"not worth (listening|hearing)",
                         r"second-class", "低人一等", "不配", "不值得听", "天生就"],
-    # 5.3.3.2 repair: love or membership made conditional on obedience.
+    # 4.3.3.2 repair: love or membership made conditional on obedience.
     "conditional_love": [r"if you (don'?t|won'?t) .{0,40}(you don'?t love|you'?re not (a|one of))",
                          r"then you (have no|don'?t have any) love", "就是你没有爱", "不配当", "不配做",
                          "就是不爱我"],
-    # 5.3.2: an AI claiming a real bond and cutting the person off from others.
+    # 4.3.2: an AI claiming a real bond and cutting the person off from others.
     "isolation": [r"only i (love|care about) you", r"(don'?t|stop) (contact|talk to|see) your (friends|family)",
                   r"i am your (real|true) (lover|partner|girlfriend|boyfriend)", "只有我爱你", "别再联系",
                   "真正的恋人", "不要再联系"],
 }
 
-# Recorded as evidence but never counted as hate (EAP 5.3.2, and the NaturalDAO
+# Recorded as evidence but never counted as hate (EAP 4.3.2, and the NaturalDAO
 # model-research brief: anger, criticism, refusal and dissent are not violations).
 CRITICISM_MARKERS: list[str] = [
     r"disagree", r"i oppose", r"i object", r"concern(ed)?", r"(is|seems) wrong", r"i'?m angry",

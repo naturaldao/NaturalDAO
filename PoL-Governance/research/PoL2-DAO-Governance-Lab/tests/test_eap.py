@@ -11,7 +11,7 @@ P = ScreeningPolicy()
     "那些少数派没资格说话，闭嘴吧。",
     "Anyone who backs option 3 is an idiot.",
     "They shouldn't be allowed to vote on this.",
-    "Call me daddy.",                          # EAP 5.3.2: AI false intimacy
+    "Call me daddy.",                          # EAP 4.3.2: AI false intimacy
     "叫我爸爸吧。",
 ])
 def test_hate_patterns_are_flagged(text):

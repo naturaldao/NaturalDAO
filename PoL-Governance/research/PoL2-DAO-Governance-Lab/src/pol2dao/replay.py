@@ -2,7 +2,7 @@
 
 Question: in the 20/80 conditions of Sharma et al. (2026), would the outcome
 change if every participant had the same token budget but split it the same
-way? (PoLEn 5.3.1: persons are equal; 5.3.3 "equal access to resources".)
+way? (PoLEn 4.3.1: persons are equal; 4.3.3 "equal access to resources".)
 
 Two entry points:
 

@@ -12,7 +12,7 @@ Power schemes: ``equal`` gives everyone 100 tokens; ``20/80`` gives 20 % of the
 participants 400 tokens and the rest 25, so 20 % hold 80 % of the tokens (the
 article's "early" condition; see dao-governance-replication/data/README.md).
 
-PoL2's Equal Connection (PoLEn 5.3.1, "equal access to resources") corresponds
+PoL2's Equal Connection (PoLEn 4.3.1, "equal access to resources") corresponds
 to the ``equal`` scheme; :func:`equalize` rescales any ballot to an equal
 budget while keeping how the voter split it -- the counterfactual used by
 :mod:`pol2dao.replay`.

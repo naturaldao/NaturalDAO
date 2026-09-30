@@ -1,8 +1,8 @@
 """Deliberation with PAI-guaranteed equal speaking rights.
 
-PoL2 grounding (PoLEn 5.3.3, "Core requirements for PAI to implement Equal
+PoL2 grounding (PoLEn 4.3.3, "Core requirements for PAI to implement Equal
 Connection"): "PAI ensures strict turn-taking in speaking, not monopolizing the
-dialogue", and 5.3.3.2 "real-time hate-language identification and correction
+dialogue", and 4.3.3.2 "real-time hate-language identification and correction
 suggestions". Flagged messages stay on record with a repair prompt; the
 speaker's right to speak is never removed (persons equal, behaviour judged).
 """

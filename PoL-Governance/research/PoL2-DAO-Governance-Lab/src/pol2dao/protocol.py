@@ -210,8 +210,8 @@ class GovernanceSession:
                 f"option {t.winner + 1} ('{self.proposal.options[t.winner]}') leads with share "
                 f"{t.shares[t.winner]:.3f}",
             ],
-            "ethical_foundations": ["PoLEn 5.3.1 Equal Connection",
-                                    "PoLEn 5.3.2 Promote love, restrain hate",
+            "ethical_foundations": ["PoLEn 4.3.1 Equal Connection",
+                                    "PoLEn 4.3.2 Promote love, restrain hate",
                                     "PoLEn 7 Art. 4-5 transparency, verifiable decision chain",
                                     "PoLEn 7 Art. 9 right to question, obligation to explain"],
         })
