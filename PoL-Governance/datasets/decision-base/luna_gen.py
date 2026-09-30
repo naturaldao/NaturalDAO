@@ -16,6 +16,16 @@
 * opencode-go（备用）：POST https://opencode.ai/zen/go/v1/chat/completions，
   Bearer $OPENCODE_GO_API_KEY + header x-opencode-session: <UUID>，model deepseek-v4.1-flash。
 
+实测偏差（2026-09-30 真机冒烟 --limit 5；换教师模型或路由时必须重新确认一次）
+----------------------------------------------------------------------------
+* gpt-6-luna 把问题的原语字段写成 "type"，而不是契约 2.1 的 "kind"（10/10 个 item 命中）。
+  提示词里已写死「禁止用 type 代替 kind」，但不要指望模型每次都守规矩：
+  luna_clean.py 会把 type / primitive / question_type 归一到 kind，并记 kind_alias_normalized。
+* 同批 2 个 target 的 probs 之和为 1.07 / 1.14（超出 0.02 重归一阈值）：按「宁可不写也不写
+  非法值」丢弃 probs、保留 answer，并留痕 probs_dropped_probs_sum_invalid。
+* 新模型接入流程：先 --dry-run 看提示，再 --live --limit 5 冒烟，然后 luna_clean.py 看
+  rejects_by_code / warnings_by_code，确认字段名、选项、量程与 taxonomy.py 一致后再谈放量。
+
 典型用法
 --------
     # 1) 看提示（离线）
