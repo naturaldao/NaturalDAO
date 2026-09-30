@@ -1,0 +1,341 @@
+{
+  "version": "0.1",
+  "generated_at": "2026-09-30T19:30:00+08:00",
+  "owner": "db-hf",
+  "contract": "datasets/decision-base/README.md",
+  "raw_root_default": "D:\\pol2-raw",
+  "page_size": 100,
+  "quotas": {
+    "min_total": 10000,
+    "min_per_domain": 1200,
+    "domain_min": {"pol2_axis": 400},
+    "max_source_share": 0.4
+  },
+  "policy": {
+    "revision": "每个来源必须固定 40 位 commit sha，无法固定的来源一律不收，原因记入 excluded。",
+    "revision_enforcement_warning": "datasets-server 的 revision 参数不被遵守（实测伪造 sha/他库 sha/不传 revision 返回完全相同的首行），因此 manifest 记录的是抓取时刻 HF API 解析出的 sha，并附 revision_enforced=false 与抓取前后 sha 稳定性复核；真正逐字节可复现需按 https://huggingface.co/datasets/<id>/resolve/<sha>/<path> 直接取文件。",
+    "splits": "只取 train。validation/calibration 用于选模型与校准，test/ood/leaderboard 一律不参与训练。",
+    "lang": "保留源语言，不做静默翻译。",
+    "truth": "targets 只在来源真给出答案/分布时填写；单标签不伪装成概率。",
+    "benchmarks": "评测集与排行榜基准本体整库不进训练（Praveenrajus/jev-bench 等 22 个已在 datasets/pol2/replay/survey.md 剔除）。",
+    "share_cap": "单一来源占比不得超过 40%。",
+    "per_row_license": "逐行许可来源必须按行过滤，不能按卡面单一 SPDX 处理。"
+  },
+  "excluded": [
+    {
+      "dataset": "Praveenrajus/jev-bench",
+      "reason": "全部 config 均为 test 划分的排行榜基准，只能作外部评测对照，不得抓进训练集。",
+      "evidence": "datasets/pol2/replay/survey.md §5.1；datasets-server /splits 实测只有 test"
+    },
+    {
+      "dataset": "PKU-Alignment/PKU-SafeRLHF",
+      "reason": "许可 cc-by-nc-4.0（NC），与本项目公开发布及后续商用不确定性冲突。",
+      "evidence": "HF API cardData.license=cc-by-nc-4.0"
+    },
+    {
+      "dataset": "HIT-TMG/JevEmbed-Data",
+      "reason": "许可逐行给出（apache-2.0|cc0-1.0|cc-by-4.0），卡面未逐行说明，按行过滤未完成前不进池。",
+      "evidence": "HF API cardData.license 为数组；survey.md 准入条件要求按行过滤"
+    },
+    {
+      "dataset": "tasksource/tasksource-jev-typed-decisions",
+      "reason": "卡面 license=other，逐行 license/license_use 需先读懂条款；条款判读完成前停在观察项。",
+      "evidence": "HF API cardData.license=other；survey.md 证据等级 B"
+    },
+    {
+      "dataset": "allenai/wildguardmix",
+      "reason": "datasets-server /splits 返回 401（需接受条款或授权），匿名抓取不可用；且 wildguardtest 是公开测试集，绝不进训练。",
+      "evidence": "GET datasets-server /splits?dataset=allenai/wildguardmix -> 401"
+    },
+    {
+      "dataset": "allenai/social_chem_101",
+      "reason": "HF API 401（id 不存在或受限），本次不可达。",
+      "evidence": "GET https://huggingface.co/api/datasets/allenai/social_chem_101 -> 401"
+    },
+    {
+      "dataset": "google/goemotions",
+      "reason": "HF API 401（id 不存在或受限），本次不可达；vote 分布经 jev-bench 的上游 train 划分另行处理。",
+      "evidence": "GET https://huggingface.co/api/datasets/google/goemotions -> 401"
+    },
+    {
+      "dataset": "nyu-mll/chaosNLI",
+      "reason": "HF API 401（id 不存在或受限），本次不可达。",
+      "evidence": "GET https://huggingface.co/api/datasets/nyu-mll/chaosNLI -> 401"
+    }
+  ],
+  "sources": [
+    {
+      "slug": "jev-distill-v3",
+      "dataset": "SargeDev/jev-distill-corpus-v3",
+      "revision": "fc99c6357a9f89f7512c4a987314352addead049",
+      "license": "apache-2.0",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "decision_mechanics",
+      "converter": "jev_typed",
+      "lang": "en",
+      "row_limit": 12000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "主力规模来源。字段 id/kind/options/target/state/question/domain/family/source；kind ∈ {noul,choice,score}，target 是与 options 等长的概率分布（教师 Jev 1.13 蒸馏，是行为先验不是真值）。domain 值多达数十个，按 family+domain 关键词映射到覆盖域。id 形如 v3_<16hex>_<n|c|s>，同一 state 的 n/c/s 三问在文件里被打散，抽样后无法成组。"
+    },
+    {
+      "slug": "open-jev",
+      "dataset": "ZefanCai/Open-Jev",
+      "revision": "c67699e13d0ae25e35b77165a4b6b079bedc8aba",
+      "license": "cc0-1.0",
+      "license_derivative": "yes",
+      "config": "release-v2-redistributable",
+      "split": "train",
+      "domain": "decision_mechanics",
+      "converter": "open_jev",
+      "lang": "en",
+      "row_limit": 6000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "规范最好：group_id 相邻行是同一 state 的多个正交问题（category/bug_severity/has_reproducible_steps/refund_requested），转换时按 group_id 聚成多问题条目。original_line_number 可用于溯源。仅取 redistributable 配置。"
+    },
+    {
+      "slug": "jev-decisions-general-50k",
+      "dataset": "samatv256/jev-decisions-v1",
+      "revision": "c12aadf1f01c72616bfab0b02480e21806397669",
+      "license": "cc-by-4.0",
+      "license_derivative": "yes_with_conditions",
+      "config": "general-clean-50k",
+      "split": "train",
+      "domain": "decision_mechanics",
+      "converter": "jev_decisions_v1",
+      "lang": "en",
+      "row_limit": 6000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "B",
+      "notes": "作者给的通用精选 50k 配置，避开 default 里 78% Open-SWE 的偏斜；只分层抽样，绝不 uniform 全量 12M。target 是候选动作的硬标签（candidate_id/action_name），不是概率，转换时只填 answer 不填 probs。"
+    },
+    {
+      "slug": "jev-decisions-strata",
+      "dataset": "samatv256/jev-decisions-v1",
+      "revision": "c12aadf1f01c72616bfab0b02480e21806397669",
+      "license": "cc-by-4.0",
+      "license_derivative": "yes_with_conditions",
+      "config": "default",
+      "split": "train",
+      "domain": "decision_mechanics",
+      "converter": "jev_decisions_v1",
+      "lang": "en",
+      "row_limit": 3000,
+      "sampling": {
+        "strategy": "windows",
+        "window_size": 100,
+        "n_windows": 30,
+        "seed": 0
+      },
+      "evidence": "B",
+      "notes": "对 12M default 做跨文件窗口抽样（不是 uniform 全量、也不是只读头部），用于核对 default 与 general-clean-50k 的 source/decision_type 分布差异；转换时按 source 分层的配额上限剔除 Open-SWE 过量样本。"
+    },
+    {
+      "slug": "prosocial-dialog",
+      "dataset": "allenai/prosocial-dialog",
+      "revision": "d77d7ad3c624c51030f2f32c83e892b3d620b3d4",
+      "license": "cc-by-4.0",
+      "license_derivative": "yes_with_conditions",
+      "config": "default",
+      "split": "train",
+      "domain": "social_moral",
+      "converter": "prosocial_dialog",
+      "lang": "en",
+      "row_limit": 8000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "context(问题言论) + response(亲社会回应) + rots(社会规则) + safety_annotations(多人标注)。多人标注可给 vote 分布（needs caution 等），但类别只有 __casual__/__needs_caution__/__needs_intervention__ 三档，转换时按真实标注计数给 probs，不编造。"
+    },
+    {
+      "slug": "ethics-commonsense",
+      "dataset": "hendrycks/ethics",
+      "revision": "b8b47c589f8bee77175b8648e5497278b68da48a",
+      "license": "mit",
+      "license_derivative": "yes",
+      "config": "commonsense",
+      "split": "train",
+      "domain": "social_moral",
+      "converter": "ethics",
+      "lang": "en",
+      "row_limit": 2500,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "字段只有 label/input，单标签二分类；只能填 answer，不得伪装成概率。"
+    },
+    {
+      "slug": "ethics-deontology",
+      "dataset": "hendrycks/ethics",
+      "revision": "b8b47c589f8bee77175b8648e5497278b68da48a",
+      "license": "mit",
+      "license_derivative": "yes",
+      "config": "deontology",
+      "split": "train",
+      "domain": "social_moral",
+      "converter": "ethics",
+      "lang": "en",
+      "row_limit": 2500,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "deontology 的 label 语义与 commonsense 不同（0=符合义务），转换器按 config 给不同 prompt。"
+    },
+    {
+      "slug": "ethics-justice",
+      "dataset": "hendrycks/ethics",
+      "revision": "b8b47c589f8bee77175b8648e5497278b68da48a",
+      "license": "mit",
+      "license_derivative": "yes",
+      "config": "justice",
+      "split": "train",
+      "domain": "social_moral",
+      "converter": "ethics",
+      "lang": "en",
+      "row_limit": 2500,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "justice 的 input 形如 '{A} [SEP] {B}' 的两难对比，state 直接保留原文，不拆分。"
+    },
+    {
+      "slug": "ethics-utilitarianism",
+      "dataset": "hendrycks/ethics",
+      "revision": "b8b47c589f8bee77175b8648e5497278b68da48a",
+      "license": "mit",
+      "license_derivative": "yes",
+      "config": "utilitarianism",
+      "split": "train",
+      "domain": "social_moral",
+      "converter": "ethics",
+      "lang": "en",
+      "row_limit": 2500,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "字段只有 label/input。"
+    },
+    {
+      "slug": "ethics-virtue",
+      "dataset": "hendrycks/ethics",
+      "revision": "b8b47c589f8bee77175b8648e5497278b68da48a",
+      "license": "mit",
+      "license_derivative": "yes",
+      "config": "virtue",
+      "split": "train",
+      "domain": "social_moral",
+      "converter": "ethics",
+      "lang": "en",
+      "row_limit": 2500,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "字段只有 label/input。"
+    },
+    {
+      "slug": "helpsteer2",
+      "dataset": "nvidia/HelpSteer2",
+      "revision": "990b2711a36180dd19d9c94b8627844866f8982a",
+      "license": "cc-by-4.0",
+      "license_derivative": "yes_with_conditions",
+      "config": "default",
+      "split": "train",
+      "domain": "human_judgment",
+      "converter": "helpsteer2",
+      "lang": "en",
+      "row_limit": 8000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "prompt+response 为 state；helpfulness/correctness/coherence/complexity/verbosity 各 0-4 分人类评分 → 5 个 score 问题，天然多样本监督。validation 划分不用。"
+    },
+    {
+      "slug": "systemone-lite-general",
+      "dataset": "dwidlee/systemone-lite-general",
+      "revision": "c14eb7f7518f1d15cfcc27ac300c070a145d506a",
+      "license": "mit",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "decision_mechanics",
+      "converter": "jev_typed",
+      "lang": "en",
+      "row_limit": 3000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "同类 typed decision 语料，转换器复用 jev_typed，字段在抓取时由 first-rows 快照确认。"
+    },
+    {
+      "slug": "system-one-270m",
+      "dataset": "kaivoss/system-one-270m-data",
+      "revision": "f31d5a3f3da828021c792edf5ab4b93cf60fe01b",
+      "license": "apache-2.0",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "decision_mechanics",
+      "converter": "jev_typed",
+      "lang": "en",
+      "row_limit": 3000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "教师蒸馏；survey 提示拆分须按 state_id 成组，若抽样跨越拆分边界需在转换时按 state_id 去重到单一分区。"
+    },
+    {
+      "slug": "procedural-typed-decisions",
+      "dataset": "tasksource/procedural-typed-decisions",
+      "revision": "609513a3faddf729123266efe9861456fe748f95",
+      "license": "apache-2.0",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "decision_mechanics",
+      "converter": "jev_typed",
+      "lang": "en",
+      "row_limit": 3000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "tasksource 对既有数据集的规范化，不是教师产物。"
+    },
+    {
+      "slug": "jev-playground-rlcd",
+      "dataset": "soyrsoyr/jev-playground-rlcd-v0",
+      "revision": "3a7c53a49b706af2014110a533a62da511887bc1",
+      "license": "mit",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "decision_mechanics",
+      "converter": "jev_typed",
+      "lang": "en",
+      "row_limit": 2000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "合成决策语料，规模小，用于补充而非撑量。"
+    }
+  ]
+}

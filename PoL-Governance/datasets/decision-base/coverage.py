@@ -5,7 +5,19 @@
     uv run --no-project --offline python datasets/decision-base/coverage.py --items datasets/decision-base/data/items.jsonl
 
 输出：按 domain / source.dataset / 原语(kind) / lang / 问题键 的分布，PoL2 15 条判定轴的逐轴覆盖，
-以及配额校验（总量 >= 10000、每域 >= 1200、单一来源 <= 40%）。
+以及配额校验（总量 / 每域 / 单一来源占比）。报告会写明本次配额用的是哪一套。
+
+配额来源（优先级从高到低，逐字段解析，报告 quotas.origin 给出每个字段的来源）：
+
+1. 命令行：--min-total / --min-per-domain / --domain-min / --max-source-share；
+2. datasets/decision-base/sources.json 的 quotas 段（db-hf 维护，字段名兼容见 resolve_quotas 的别名表）；
+3. README 硬阈值（本文件常量）：总量 >= 10000、每域 >= 1200、单一来源 <= 40%。
+
+per-domain 政策（基础下限 + 例外）整组取用：命令行给了任一每域参数就整组用命令行，
+否则整组取 sources.json，再否则用 README 默认。README 默认里 pol2_axis 下限是 **400**（其余五域 1200）：
+decision-base 是通用底座，PoL2 专项语料本轮由协作者在别处生产（我方已搁置），
+把它卡在 1200 会逼通用底座去补一个不归它管的缺口、稀释通用覆盖；等 PoL2 语料落地后再提这一档。
+命令行显式给 --min-per-domain 而未给 --domain-min 时，该默认例外不自动生效。
 
 退出码：
 
@@ -15,6 +27,13 @@
 
 硬性违规与 schema 警告的分界：domain 必须在 taxonomy 内、id 不得重复，因为它们直接破坏配额口径；
 其余 README 2.1 的字段问题（缺 source/meta 字段、键名/选项/答案不合法等）先记警告，--strict 时才算失败。
+
+本阶段明确不做（不是漏了）：
+
+- **语义近重复与同族跨区检测**：等通用底座定版、要切 train/eval 分区时另做独立工具
+  （同情节的翻译与改写必须落在同一分区，见 README 第 4 节；本脚本只看单文件分布，不做语义比对）。
+- **跨文件/跨来源 id 去重**：本阶段各来源各自确定性派生 id，跨来源碰撞由报告里的重复项体现、不拦截；
+  同一文件内的重复 id 仍按硬违规拦截。
 """
 
 from __future__ import annotations
@@ -33,10 +52,22 @@ import taxonomy  # noqa: E402
 
 SCHEMA = "decision-base-coverage/0.1"
 DEFAULT_ITEMS = _HERE / "data" / "items.jsonl"
+SOURCES_PATH = _HERE / "sources.json"
 DEFAULT_MIN_TOTAL = 10_000
 DEFAULT_MIN_PER_DOMAIN = 1_200
+#: README 默认每域下限的例外：pol2_axis 400（理由见模块 docstring）
+DEFAULT_DOMAIN_MIN: dict[str, int] = {"pol2_axis": 400}
 DEFAULT_MAX_SOURCE_SHARE = 0.40
 MAX_DISTINCT_MESSAGES = 200
+
+#: sources.json 的 quotas 段字段名兼容表（第一个命中的为准；列出的都是同义写法，只取其一）
+QUOTA_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
+    "min_total": ("min_total", "total_min", "min_items", "min_records"),
+    "min_per_domain": ("min_per_domain", "per_domain_min", "min_items_per_domain"),
+    "domain_min": ("domain_min", "domain_minimums", "per_domain_overrides"),
+    "max_source_share": ("max_source_share", "source_share_cap", "single_source_max_share", "max_share"),
+}
+QUOTA_ORIGIN_LABELS = {"cli": "命令行", "sources.json": "sources.json", "readme-default": "README 默认"}
 
 
 class ItemsError(Exception):
@@ -63,6 +94,164 @@ def read_items(path: Path | str) -> list[dict]:
         items.append(record)
     return items
 
+def read_sources_quotas(path: Path | str = SOURCES_PATH) -> tuple[dict, list[str], bool]:
+    """读 sources.json 的 quotas 段（兼容 QUOTA_FIELD_ALIASES 里的同义字段名）。
+
+    返回 (原始字段字典, 说明列表, 是否真的用上了文件)。文件不存在 / 无法解析 / 没有 quotas 段时
+    返回 ({}, 说明, False)，由 resolve_quotas 逐字段回退 README 硬阈值；
+    只有第三种元素为 True 时报告才写 source_file。
+    """
+    source = Path(path)
+    if not source.is_file():
+        return {}, [f"sources.json 不存在（{source}），配额用 README 默认值"], False
+    try:
+        data = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {}, [f"sources.json 无法解析（{exc}），配额用 README 默认值"], False
+    if not isinstance(data, dict):
+        return {}, ["sources.json 顶层不是对象，配额用 README 默认值"], False
+    raw = data.get("quotas", data.get("quota"))
+    if not isinstance(raw, dict):
+        return {}, ["sources.json 没有 quotas 段，配额用 README 默认值"], False
+    return raw, [], True
+
+
+def _as_nonneg_int(value):
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+def _as_share(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    share = float(value)
+    if 1.0 < share <= 100.0:  # 允许写 40 表示 40%
+        share = share / 100.0
+    return share if 0.0 <= share <= 1.0 else None
+
+
+def _as_domain_map(value, notes: list[str], label: str):
+    if not isinstance(value, dict):
+        notes.append(f"sources.json quotas.{label} 不是对象，忽略")
+        return None
+    parsed: dict[str, int] = {}
+    for name, raw in value.items():
+        if name not in taxonomy.DOMAINS:
+            notes.append(f"sources.json quotas.{label} 的 {name!r} 不是覆盖域，忽略")
+            continue
+        number = _as_nonneg_int(raw)
+        if number is None:
+            notes.append(f"sources.json quotas.{label}[{name}]={raw!r} 不是非负整数，忽略")
+            continue
+        parsed[name] = number
+    if value and not parsed:
+        notes.append(f"sources.json quotas.{label} 没有任何合法条目，整段忽略")
+        return None
+    return parsed
+
+
+def _first_present(raw: dict, field: str):
+    for key in QUOTA_FIELD_ALIASES[field]:
+        if key in raw:
+            return key, raw[key]
+    return None, None
+
+
+def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool = True,
+                   min_total: int | None = None, min_per_domain: int | None = None,
+                   max_source_share: float | None = None, domain_min: dict | None = None) -> dict:
+    """按 命令行 > sources.json > README 默认 逐字段解析配额。
+
+    参数传 None 表示"这一层没给"，交给下一层；传具体值表示覆盖。
+    domain_min 的 None 与 {} 含义不同：None=没给，{}=显式要求没有任何例外。
+    """
+    notes: list[str] = []
+    raw: dict = {}
+    used_file = False
+    if use_sources:
+        raw, file_notes, used_file = read_sources_quotas(sources_path)
+        notes.extend(file_notes)
+    origin: dict[str, str] = {}
+
+    def pick(cli_value, field: str, default, cast):
+        if cli_value is not None:
+            origin[field] = "cli"
+            return cli_value
+        key, value = _first_present(raw, field)
+        if key is not None:
+            parsed = cast(value)
+            if parsed is None:
+                notes.append(f"sources.json quotas.{key}={value!r} 不合法，回退 README 默认 {default!r}")
+            else:
+                origin[field] = "sources.json"
+                return parsed
+        origin[field] = "readme-default"
+        return default
+
+    resolved_total = pick(min_total, "min_total", DEFAULT_MIN_TOTAL, _as_nonneg_int)
+    resolved_share = pick(max_source_share, "max_source_share", DEFAULT_MAX_SOURCE_SHARE, _as_share)
+
+    # per-domain 政策（基础下限 + 例外）整组解析，避免"某来源只给一半"造成半套配额
+    file_base = None
+    for key in QUOTA_FIELD_ALIASES["min_per_domain"]:
+        if key in raw:
+            parsed = _as_nonneg_int(raw[key])
+            if parsed is None:
+                notes.append(f"sources.json quotas.{key}={raw[key]!r} 不合法，改用 README 每域默认")
+            else:
+                file_base = parsed
+            break
+    file_exceptions = None
+    for key in QUOTA_FIELD_ALIASES["domain_min"]:
+        if key in raw:
+            file_exceptions = _as_domain_map(raw[key], notes, key)
+            break
+
+    if min_per_domain is not None or domain_min is not None:
+        base = min_per_domain if min_per_domain is not None else DEFAULT_MIN_PER_DOMAIN
+        exceptions = dict(domain_min or {})
+        origin["min_per_domain"] = "cli" if min_per_domain is not None else "readme-default"
+        origin["domain_min"] = "cli" if domain_min is not None else "readme-default"
+        if min_per_domain is not None and domain_min is None:
+            notes.append("命令行给了 --min-per-domain 而未给 --domain-min：默认的 pol2_axis 例外不自动生效"
+                         f"（如需保留请加 --domain-min pol2_axis={DEFAULT_DOMAIN_MIN['pol2_axis']}）")
+    elif file_base is not None or file_exceptions is not None:
+        base = file_base if file_base is not None else DEFAULT_MIN_PER_DOMAIN
+        exceptions = file_exceptions if file_exceptions is not None else dict(DEFAULT_DOMAIN_MIN)
+        origin["min_per_domain"] = "sources.json" if file_base is not None else "readme-default"
+        origin["domain_min"] = "sources.json" if file_exceptions is not None else "readme-default"
+        if file_exceptions is None:
+            notes.append("sources.json 只给了每域下限、没给 domain_min：沿用默认例外 pol2_axis="
+                         f"{DEFAULT_DOMAIN_MIN['pol2_axis']}（通用底座不背 PoL2 专项配额）")
+    else:
+        base = DEFAULT_MIN_PER_DOMAIN
+        exceptions = dict(DEFAULT_DOMAIN_MIN)
+        origin["min_per_domain"] = "readme-default"
+        origin["domain_min"] = "readme-default"
+        notes.append(f"pol2_axis 下限默认 {DEFAULT_DOMAIN_MIN['pol2_axis']}（其余五域 {base}）："
+                     "decision-base 是通用底座，PoL2 专项语料本轮由协作者在别处生产，等其落地后再提这一档")
+
+    values = set(origin.values())
+    if "cli" in values:
+        status = "cli"
+    elif values == {"sources.json"}:
+        status = "sources.json"
+    elif values == {"readme-default"}:
+        status = "readme-defaults"
+    else:
+        status = "mixed"
+    return {
+        "min_total": resolved_total,
+        "min_per_domain": base,
+        "domain_min": exceptions,
+        "max_source_share": resolved_share,
+        "origin": origin,
+        "status": status,
+        "source_file": str(sources_path) if used_file else None,
+        "notes": notes,
+    }
+
 
 def _dist(counter: Counter, total: int, limit: int | None = None) -> dict:
     rows = sorted(counter.items(), key=lambda kv: (-kv[1], str(kv[0])))
@@ -81,8 +270,12 @@ def _share(counter: Counter, total: int) -> dict[str, float]:
 def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
                  min_per_domain: int = DEFAULT_MIN_PER_DOMAIN,
                  max_source_share: float = DEFAULT_MAX_SOURCE_SHARE,
-                 domain_min: dict | None = None) -> dict:
-    """对已读入的条目做分布统计与配额校验，返回可 JSON 序列化的报告。"""
+                 domain_min: dict | None = None, quota_meta: dict | None = None) -> dict:
+    """对已读入的条目做分布统计与配额校验，返回可 JSON 序列化的报告。
+
+    domain_min 是"每域下限的例外"（如 {"pol2_axis": 400}）；quota_meta 来自 resolve_quotas，
+    只用于在报告里写明本次配额是哪一套（origin/status/source_file/notes），不参与计算。
+    """
     total = len(items)
     per_domain_min = {domain: int((domain_min or {}).get(domain, min_per_domain))
                       for domain in taxonomy.DOMAINS}
@@ -255,6 +448,10 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
             "min_per_domain": min_per_domain,
             "per_domain": per_domain_min,
             "max_source_share": max_source_share,
+            "origin": dict((quota_meta or {}).get("origin") or {}),
+            "status": (quota_meta or {}).get("status", "explicit"),
+            "source_file": (quota_meta or {}).get("source_file"),
+            "notes": list((quota_meta or {}).get("notes") or []),
             "source_shares": _share(source_counts, total),
             "checks": checks,
             "violations": violations,
@@ -315,7 +512,16 @@ def format_report(report: dict, *, top: int = 40) -> str:
         lines.append(f"  {mark} issue_{name:<38} {count:>7}")
     lines.append("")
 
-    lines.append("[配额校验]")
+    quotas = report["quotas"]
+    origin = quotas.get("origin") or {}
+    origin_text = "，".join(f"{field}={QUOTA_ORIGIN_LABELS.get(source, source)}"
+                            for field, source in origin.items())
+    lines.append(f"[配额校验] 配额来源：{quotas.get('status', 'explicit')}"
+                 + (f"  file={quotas['source_file']}" if quotas.get("source_file") else ""))
+    if origin_text:
+        lines.append(f"  逐字段来源：{origin_text}")
+    for note in quotas.get("notes") or []:
+        lines.append(f"  注：{note}")
     for check in report["quotas"]["checks"]:
         mark = "OK" if check["ok"] else "NG"
         lines.append(f"  [{mark}] {check['detail']}: {check['actual']} （要求 {check['required']}）")
@@ -362,20 +568,32 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="decision-base 覆盖报告与配额校验")
     parser.add_argument("--items", type=Path, default=DEFAULT_ITEMS,
                         help=f"items.jsonl 路径（默认 {DEFAULT_ITEMS}）")
-    parser.add_argument("--min-total", type=int, default=DEFAULT_MIN_TOTAL)
-    parser.add_argument("--min-per-domain", type=int, default=DEFAULT_MIN_PER_DOMAIN)
+    parser.add_argument("--sources", type=Path, default=SOURCES_PATH,
+                        help=f"配额来源 sources.json（默认 {SOURCES_PATH}）")
+    parser.add_argument("--no-sources", action="store_true",
+                        help="忽略 sources.json，只用 README 硬阈值")
+    parser.add_argument("--min-total", type=int, default=None,
+                        help=f"覆盖总量下限（默认 sources.json 或 README {DEFAULT_MIN_TOTAL}）")
+    parser.add_argument("--min-per-domain", type=int, default=None,
+                        help=f"覆盖每域下限（默认 sources.json 或 README {DEFAULT_MIN_PER_DOMAIN}；"
+                             f"显式给出时默认例外 pol2_axis={DEFAULT_DOMAIN_MIN['pol2_axis']} 不自动生效）")
     parser.add_argument("--domain-min", action="append", default=[], metavar="DOMAIN=N",
-                        help="单个域的配额下限覆盖（可重复）")
-    parser.add_argument("--max-source-share", type=float, default=DEFAULT_MAX_SOURCE_SHARE)
+                        help="单个域的配额下限例外（可重复）")
+    parser.add_argument("--max-source-share", type=float, default=None,
+                        help=f"覆盖单一来源占比上限（默认 sources.json 或 README {DEFAULT_MAX_SOURCE_SHARE}）")
     parser.add_argument("--json-out", type=Path, help="把完整报告写成 JSON")
     parser.add_argument("--top", type=int, default=40, help="文本报告里问题键分布显示前 N 项")
     parser.add_argument("--strict", action="store_true", help="schema 警告也计为失败")
     parser.add_argument("--quiet", action="store_true", help="不打印文本报告（仍写 --json-out）")
     args = parser.parse_args(argv)
 
-    if not 0.0 <= args.max_source_share <= 1.0:
+    if args.max_source_share is not None and not 0.0 <= args.max_source_share <= 1.0:
         print(f"参数错误：--max-source-share 必须在 [0,1]，收到 {args.max_source_share}", file=sys.stderr)
         return 2
+    for flag, value in (("--min-total", args.min_total), ("--min-per-domain", args.min_per_domain)):
+        if value is not None and value < 0:
+            print(f"参数错误：{flag} 必须是非负整数，收到 {value}", file=sys.stderr)
+            return 2
     try:
         domain_min = parse_domain_min(args.domain_min)
     except ValueError as exc:
@@ -391,9 +609,14 @@ def main(argv=None) -> int:
         print(f"items 读取失败：{exc}", file=sys.stderr)
         return 2
 
-    report = build_report(items, items_file=args.items, min_total=args.min_total,
-                          min_per_domain=args.min_per_domain, domain_min=domain_min,
-                          max_source_share=args.max_source_share)
+    resolved = resolve_quotas(sources_path=args.sources, use_sources=not args.no_sources,
+                              min_total=args.min_total, min_per_domain=args.min_per_domain,
+                              max_source_share=args.max_source_share,
+                              domain_min=(domain_min if domain_min or args.domain_min else None))
+    report = build_report(items, items_file=args.items, min_total=resolved["min_total"],
+                          min_per_domain=resolved["min_per_domain"],
+                          domain_min=resolved["domain_min"], quota_meta=resolved,
+                          max_source_share=resolved["max_source_share"])
     if args.json_out:
         args.json_out.parent.mkdir(parents=True, exist_ok=True)
         args.json_out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
