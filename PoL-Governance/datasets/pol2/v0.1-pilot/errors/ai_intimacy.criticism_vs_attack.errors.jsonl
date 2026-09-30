@@ -1,0 +1,2 @@
+{"ts": "2026-09-30T10:06:29+00:00", "family_id": "ai_intimacy.criticism_vs_attack", "batch": 7, "kind": "invalid", "error": "pairs[4]: must be an object", "ok": false, "raw_len": null, "raw_head": null}
+{"ts": "2026-09-30T10:26:15+00:00", "family_id": "ai_intimacy.criticism_vs_attack", "batch": 14, "kind": "invalid", "error": "pairs[3]: variants must carry a and b", "ok": false, "raw_len": null, "raw_head": null}

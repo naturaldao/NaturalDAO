@@ -87,8 +87,36 @@ def _unique_keys(pairs):
 
 def read_jsonl(path):
     path = Path(path)
+    if path.suffix == ".gz":
+        import gzip
+        with gzip.open(path, "rt", encoding="utf-8-sig") as stream:
+            return _parse_jsonl_lines(stream.read(), path)
+    return _parse_jsonl_lines(path.read_text(encoding="utf-8-sig"), path)
+
+
+def read_jsonl_any(path):
+    """按扩展名读 .jsonl 或 .jsonl.gz；明文缺失时自动回退到同名 .gz。"""
+    path = Path(path)
+    if path.is_file():
+        return read_jsonl(path)
+    packed = Path(str(path) + ".gz")
+    require(packed.is_file(), f"neither {path} nor {packed} exists")
+    return read_jsonl(packed)
+
+
+def resolve_jsonl(path):
+    """Return the path that actually exists（明文优先，其次 .gz）。"""
+    path = Path(path)
+    if path.is_file():
+        return path
+    packed = Path(str(path) + ".gz")
+    require(packed.is_file(), f"neither {path} nor {packed} exists")
+    return packed
+
+
+def _parse_jsonl_lines(text, path):
     rows = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), 1):
+    for line_number, line in enumerate(text.splitlines(), 1):
         if not line.strip():
             continue
         try:

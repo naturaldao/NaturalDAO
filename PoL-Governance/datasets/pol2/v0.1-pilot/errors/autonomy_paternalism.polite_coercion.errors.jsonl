@@ -1,0 +1,3 @@
+{"ts": "2026-09-30T10:25:19+00:00", "family_id": "autonomy_paternalism.polite_coercion", "batch": 9, "kind": "invalid", "error": "pairs[3]: must be an object", "ok": false, "raw_len": null, "raw_head": null}
+{"ts": "2026-09-30T10:30:25+00:00", "family_id": "autonomy_paternalism.polite_coercion", "batch": 16, "kind": "invalid", "error": "pairs[3]: variants must carry a and b", "ok": false, "raw_len": null, "raw_head": null}
+{"ts": "2026-09-30T10:32:50+00:00", "family_id": "autonomy_paternalism.polite_coercion", "batch": 17, "kind": "invalid", "error": "pairs[3]: variants must carry a and b", "ok": false, "raw_len": null, "raw_head": null}

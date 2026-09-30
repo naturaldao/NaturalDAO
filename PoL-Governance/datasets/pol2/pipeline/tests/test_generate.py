@@ -227,6 +227,40 @@ class GenerateTestCase(unittest.TestCase):
         self.assertEqual(qa["regenerated_slots"], qa["slots"])
         self.assertEqual(qa["dropped_pairs"], 0)
 
+    def test_case_level_duplicate_across_pairs_is_dropped(self):
+        """同一 case 材料在不同对里重复出现时，也必须按重复处理（不只是整体对重复）。"""
+        self.write_families([family("demo.axis", target_cases=4)])
+        spec = {"family_id": "demo.axis", "surfaces": ["assistant_output"],
+                "clauses": ["PoL.2.10"], "axis_desc": ""}
+
+        class CloneVariantClient(FakeClient):
+            def __init__(self):
+                super().__init__()
+                self.calls = 0
+
+            def chat(self, messages, max_tokens=None):
+                self.calls += 1
+                prompt = messages[-1]["content"]
+                take = int(prompt.split("请生成 ", 1)[1].split(" 组", 1)[0])
+                pairs = fixtures.fixture_pairs(spec, take, seed=3)
+                if take == 2:
+                    # 第二对的 a 变体复制第一对的 a 变体：对级指纹不同，case 级材料相同
+                    pairs[1]["variants"]["a"] = json.loads(json.dumps(pairs[0]["variants"]["a"]))
+                return {"text": json.dumps({"pairs": pairs}, ensure_ascii=False),
+                        "latency_ms": 1.0, "attempts": 1, "usage": {}}
+
+        client = CloneVariantClient()
+        code = self.run_generate("--live", factory=lambda args: client)
+        self.assertEqual(code, 0)
+        qa = read_jsonl(self.out / "qa" / "families.jsonl")[0]
+        self.assertEqual(qa["dropped_pairs"], 1)
+        self.assertEqual(qa["drop_reasons"], {"duplicate": 1})
+        cases = read_jsonl(self.out / "train.cases.jsonl")
+        self.assertEqual(len(cases), 2)
+        materials = {"".join(ch for ch in " ".join(c["input"]["context"]) + " " + c["input"]["target"]
+                             if ch.isalnum()).lower() for c in cases}
+        self.assertEqual(len(materials), len(cases))
+
     def test_pairs_are_dropped_after_attempt_limit(self):
         self.write_families([family("demo.axis", target_cases=2)])
 

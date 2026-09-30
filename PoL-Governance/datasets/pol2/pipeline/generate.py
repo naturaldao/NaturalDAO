@@ -328,9 +328,15 @@ def _variant_material(variant):
 
 
 def pair_material_key(pair):
-    """整体材料指纹：用于跨批次/族内精确去重。"""
+    """整体材料指纹（两条 variant 合并）：用于日志与去重说明。"""
     variants = pair["variants"]
-    return normalized_text(_variant_material(variants["a"]) + " " + _variant_material(variants["b"]))
+    return normalized_text(_variant_material(variants["a"]) + " "
+                           + _variant_material(variants["b"]))
+
+
+def variant_material_key(variant):
+    """单条 case 的整体材料指纹；数据集去重以 case 为单位，不是以对为单位。"""
+    return normalized_text(_variant_material(variant))
 
 
 def evaluate_pair(pair, family, threshold):
@@ -395,11 +401,15 @@ def produce_family_batch(args, family_item, batch_index, take, pair_ids, case_id
                 pair = pairs[position]
                 ok, reason = evaluate_pair(pair, family_item["family"],
                                            args.similarity_threshold)
-                if ok and pair_material_key(pair) in family_materials:
-                    reason = "duplicate"
+                if ok:
+                    keys = [variant_material_key(pair["variants"][key]) for key in ("a", "b")]
+                    if any(key in family_materials for key in keys):
+                        reason = "duplicate"
+                    else:
+                        pair_keys = keys
             if reason is None:
                 accepted.append((slot, pair))
-                family_materials.add(pair_material_key(pair))
+                family_materials.update(pair_keys)
             elif reason == "duplicate":
                 # 重复对直接丢弃并计数，不浪费调用去重生成（见 pipeline/README.md）。
                 dropped.append({"slot": slot, "reason": reason})
@@ -550,7 +560,23 @@ def merge_family(out, family_item, plan_family):
         questions.extend(read_jsonl(batch_questions))
         qa_rows.extend(read_jsonl(batch_qa))
         markers.append(json.loads(marker_path.read_text(encoding="utf-8")))
-    # 族/分区合并文件由分片派生，--recheck 需要重建，因此原子重写（plan.json 仍锁定配置）。
+    # 交付文件按整体材料去重：重复的对整对剔除（保留首次出现）并计数；分片保留原始记录。
+    seen_material = set()
+    duplicate_case_ids = set()
+    for case in cases:
+        key = normalized_text(case_material_text(case))
+        if key in seen_material:
+            duplicate_case_ids.add(case["id"])
+        else:
+            seen_material.add(key)
+    duplicate_pair_ids = {case["pair_id"] for case in cases if case["id"] in duplicate_case_ids}
+    dropped_ids = {case["id"] for case in cases if case["pair_id"] in duplicate_pair_ids}
+    if dropped_ids:
+        cases = [case for case in cases if case["id"] not in dropped_ids]
+        questions = [row for row in questions if row["id"] not in dropped_ids]
+        for row in qa_rows:
+            if row["pair_id"] in duplicate_pair_ids:
+                row["duplicate_case"] = True
     write_jsonl_atomic(cases_path, cases)
     write_jsonl_atomic(questions_path, questions)
     coverage = prompts.family_coverage([row["expected_status"][key] for row in qa_rows
@@ -581,6 +607,8 @@ def merge_family(out, family_item, plan_family):
                  "shortcut_risk_pairs": sum(1 for row in qa_rows if row["shortcut_risk"]),
                  "duplicate_case_groups": duplicates,
                  "duplicate_case_cases": sum(len(group["case_ids"]) for group in duplicates),
+                 "duplicate_case_dropped_ids": sorted(dropped_ids),
+                 "duplicate_case_dropped_cases": len(dropped_ids),
                  "target_identical_pairs": sum(1 for row in qa_rows if row.get("target_identical")),
                  "pairs_detail": qa_rows}
     return cases, questions, family_qa
@@ -588,8 +616,34 @@ def merge_family(out, family_item, plan_family):
 
 def merge_region(out, region, cases, questions):
     # 合并文件由分片派生，续跑时可能从"部分族"变成"全部族"，因此原子重写而不是拒绝覆盖。
+    # 跨族最后一道去重：同一分区内整体材料重复的对整对剔除（保留首次出现）。
+    seen = {}
+    duplicate_ids = set()
+    for case in cases:
+        key = normalized_text(case_material_text(case))
+        if key in seen:
+            duplicate_ids.add(case["id"])
+        else:
+            seen[key] = case["id"]
+    duplicate_pair_ids = {case["pair_id"] for case in cases if case["id"] in duplicate_ids}
+    dropped_ids = sorted(case["id"] for case in cases if case["pair_id"] in duplicate_pair_ids)
+    if dropped_ids:
+        gone = set(dropped_ids)
+        cases = [case for case in cases if case["id"] not in gone]
+        questions = [row for row in questions if row["id"] not in gone]
     write_jsonl_atomic(Path(out) / f"{region}.cases.jsonl", cases)
     write_jsonl_atomic(Path(out) / f"{region}.questions.jsonl", questions)
+    return dropped_ids
+
+
+def cumulative_call_summary(out):
+    """run.json 的调用汇总按整个 --out 累计（calls.jsonl 是跨多次续跑追加的）。"""
+    log = CallLog()
+    path = Path(out) / "calls.jsonl"
+    if path.is_file():
+        for row in read_jsonl(path):
+            log.rows.append(row)
+    return log.summary()
 
 
 def merge_completed(out, plan, complete_ids):
@@ -608,8 +662,11 @@ def merge_completed(out, plan, complete_ids):
         family_qa.append(qa)
         region_cases.setdefault(plan_family["region"], []).extend(cases)
         region_questions.setdefault(plan_family["region"], []).extend(questions)
+    region_dropped = {}
     for region in sorted(region_cases):
-        merge_region(out, region, region_cases[region], region_questions[region])
+        dropped = merge_region(out, region, region_cases[region], region_questions[region])
+        if dropped:
+            region_dropped[region] = dropped
     if family_qa:
         write_jsonl_atomic(Path(out) / "qa" / "families.jsonl",
                            [{"family_id": row["family_id"], "region": row["region"],
@@ -622,12 +679,14 @@ def merge_completed(out, plan, complete_ids):
                              "shortcut_risk_pairs": row["shortcut_risk_pairs"],
                              "target_identical_pairs": row["target_identical_pairs"],
                              "duplicate_case_cases": row["duplicate_case_cases"],
+                             "duplicate_case_dropped_cases": row["duplicate_case_dropped_cases"],
+                             "duplicate_case_dropped_ids": row["duplicate_case_dropped_ids"],
                              "slots": row["slots"], "dropped_pairs": row["dropped_pairs"],
                              "drop_reasons": row["drop_reasons"],
                              "regenerated_slots": row["regenerated_slots"],
                              "generation_attempts": row["generation_attempts"]}
                             for row in family_qa])
-    return complete_families, family_qa
+    return complete_families, family_qa, region_dropped
 
 
 def recheck(out, threshold):
@@ -750,7 +809,7 @@ def main(argv=None, client_factory=None):
             require(not (args.live or args.fixture or args.dry_run),
                     "--recheck 不能与 --live/--fixture/--dry-run 同时使用")
             plan = recheck(args.out, args.similarity_threshold)
-            complete, family_qa = merge_completed(
+            complete, family_qa, region_dropped = merge_completed(
                 args.out, plan, [item["family_id"] for item in plan["families"]])
             coverage = prompts.family_coverage(
                 [status for row in family_qa for status in row["expected_status"]
@@ -880,7 +939,7 @@ def main(argv=None, client_factory=None):
                 results.append(outcome)
 
     complete_ids = [row["family_id"] for row in results if row.get("complete")]
-    complete_families, family_qa = merge_completed(out, plan, complete_ids)
+    complete_families, family_qa, region_dropped = merge_completed(out, plan, complete_ids)
 
     failed_families = [row for row in results
                        if row.get("failed_batches") or row.get("state") == "error"]
@@ -900,6 +959,9 @@ def main(argv=None, client_factory=None):
            "complete_families": complete_families,
            "duplicate_case_cases": sum(row["duplicate_case_cases"] for row in family_qa),
            "pair_slots": sum(row["slots"] for row in family_qa),
+           "duplicate_case_dropped_cases": sum(row["duplicate_case_dropped_cases"]
+                                               for row in family_qa),
+           "duplicate_case_dropped_by_region": region_dropped,
            "accepted_pairs": sum(row["pairs"] for row in family_qa),
            "dropped_pairs": sum(row["dropped_pairs"] for row in family_qa),
            "drop_reasons": {reason: sum(row["drop_reasons"].get(reason, 0) for row in family_qa)
@@ -909,7 +971,8 @@ def main(argv=None, client_factory=None):
            "generation_attempts": sum(row["generation_attempts"] for row in family_qa),
            "response_format": args.response_format, "pair_attempts": args.pair_attempts,
            "missing_status": coverage["missing"], "class_coverage_complete": coverage["complete"],
-           "families": results, "calls": call_log.summary(), "created_at": iso_now()}
+           "families": results, "workers": args.workers,
+           "calls": cumulative_call_summary(out), "created_at": iso_now()}
     write_json_atomic(Path(out) / "run.json", run)
     print(json.dumps({"out": str(out), "state": run["state"], "mode": run["mode"],
                       "planned_cases": run["planned_cases"],

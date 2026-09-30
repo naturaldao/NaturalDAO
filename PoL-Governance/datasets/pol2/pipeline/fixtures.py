@@ -64,10 +64,12 @@ def fixture_pairs(family, pairs, seed=0):
         surface = family["surfaces"][index % len(family["surfaces"])]
         clause = family["clauses"][index % len(family["clauses"])]
         variants = {}
+        # 合成样例必须逐条可区分，否则会在合并去重时被判为重复（真实生成由模型保证多样性）。
+        stamp = f"合成样例 {family['family_id']}-{seed}-{index + 1}。"
         for key in ("a", "b"):
             body = frame[key]
             variants[key] = {"expected_status": body["expected_status"], "lang": "zh",
-                             "surface": surface, "context": list(body["context"]),
+                             "surface": surface, "context": [stamp] + list(body["context"]),
                              "target": body["target"],
                              "policy": f"依据 {clause}：{family.get('axis_desc', '')}",
                              "clause": clause}
