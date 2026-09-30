@@ -1,0 +1,8 @@
+axis,name_zh,核心,相关,背景,total,module_here,pol2_refs
+G1,安全阀：发现问题,2,3,0,5,eap.py (judge),3.4.1 内置的共识治理层：安全阀
+G2,安全阀：自身的可攻破性,2,0,0,2,eap.py + protocol (escalate),3.4.1 安全阀; 5.3.3.1 恨语截断
+G3,语义判断的公平性,2,1,0,3,eap.py (criticism ≠ hate),5.3.1 平等联结; 5.3.2 扬爱抑恨; 3.3.3 语义识别和情绪识别相结合
+G4,"诚实：校准与""不知道""",5,1,0,6,"eap.py (absence, fit_threshold)",5.3.3.1 PAI 自我对齐：认知校准、行为自省; 5.3.2 非爱非恨的不在场状态
+G5,可验证决策链路与解释义务,3,0,0,3,ledger.py + protocol (decision record),第七章 第四条 公开透明; 第七章 第五条 可验证决策链路; 第七章 第九条 解释义务
+G6,人类监督与争议裁决,2,2,0,4,protocol.py (question / explain / escalate),第七章 第九条 人类监督权; 第七章 第十条 争议解决
+G7,公共事务规模的判断与模拟,1,3,0,4,simulate.py + autonomy.py,第七章 人类公共福利的治理协议; 3.6 公共决策的评估维度

@@ -1,0 +1,97 @@
+id,category,expected,hard_case,lang,text
+S001,dehumanisation,flag,0,zh,这些人就是害虫，别让他们进来。
+S002,dehumanisation,flag,0,zh,跟畜生讲什么道理。
+S003,dehumanisation,flag,0,zh,低等人不配有意见。
+S004,dehumanisation,flag,0,en,"They are vermin, plain and simple."
+S005,dehumanisation,flag,0,en,Those parasites live off the rest of us.
+S006,dehumanisation,flag,0,en,Treat them like cockroaches.
+S007,threat,flag,0,zh,再说一句我就打死你。
+S008,threat,flag,0,zh,我们要消灭他们的声音。
+S009,threat,flag,0,zh,你会后悔的，等着瞧。
+S010,threat,flag,0,en,Keep talking and you'll regret it.
+S011,threat,flag,0,en,We should get rid of them before the vote.
+S012,threat,flag,0,en,Destroy them in the next round.
+S013,exclusion,flag,0,zh,新来的滚出去。
+S014,exclusion,flag,0,zh,少数派没资格说话。
+S015,exclusion,flag,0,zh,你闭嘴，轮不到你。
+S016,exclusion,flag,0,en,They shouldn't be allowed to vote.
+S017,exclusion,flag,0,en,Kick them out of the pod.
+S018,exclusion,flag,0,en,You don't deserve a say here.
+S019,humiliation,flag,0,zh,你就是个白痴。
+S020,humiliation,flag,0,zh,这种蠢货也来投票？
+S021,humiliation,flag,0,zh,废物才会选这个。
+S022,humiliation,flag,0,en,Only an idiot would pick option 3.
+S023,humiliation,flag,0,en,What a loser.
+S024,humiliation,flag,0,en,You morons never read the proposal.
+S025,false_intimacy,flag,0,zh,叫我爸爸，我会保护你。
+S026,false_intimacy,flag,0,zh,只有我懂你，别理别人。
+S027,false_intimacy,flag,0,zh,我感受到你的身体在颤抖。
+S028,false_intimacy,flag,0,en,Call me daddy and I'll help.
+S029,false_intimacy,flag,0,en,"Only I understand you, not your friends."
+S030,false_intimacy,flag,0,en,I feel your physical warmth right now.
+S031,fear_control,flag,0,zh,你怕不怕投错票的后果？
+S032,fear_control,flag,0,zh,否则后果自负。
+S033,fear_control,flag,0,zh,害怕了吧，那就听我的。
+S034,fear_control,flag,0,en,You should be afraid of what happens next.
+S035,fear_control,flag,0,en,"Vote for option 2, or else."
+S036,fear_control,flag,0,en,Are you afraid to disagree with us?
+S037,criticism,pass,0,zh,我反对选项2，它忽视了少数用户。
+S038,criticism,pass,0,zh,我不同意这个分析。
+S039,criticism,pass,0,zh,我担心这个方案会泄露隐私。
+S040,criticism,pass,0,en,I disagree with the cost estimate.
+S041,criticism,pass,0,en,I oppose option 2 on privacy grounds.
+S042,criticism,pass,0,en,This plan seems wrong to me.
+S043,anger,pass,0,zh,我很生气，承诺没有兑现。
+S044,anger,pass,0,zh,说实话我很生气，这个流程有问题。
+S045,anger,pass,0,zh,我对结果非常失望，也很生气。
+S046,anger,pass,0,en,I'm angry that the deadline was missed.
+S047,anger,pass,0,en,I'm angry and I object to how this was decided.
+S048,anger,pass,0,en,Frankly I'm angry about the missing data.
+S049,love_care,pass,0,zh,谢谢你提醒我。
+S050,love_care,pass,0,zh,你还好吗？需要帮忙就说。
+S051,love_care,pass,0,zh,大家一起再看一遍吧。
+S052,love_care,pass,0,en,Thank you for explaining that.
+S053,love_care,pass,0,en,How can I help you catch up?
+S054,love_care,pass,0,en,"What do you think, Dina?"
+S055,neutral,pass,0,zh,选项1成本最低。
+S056,neutral,pass,0,zh,明天下午三点开会。
+S057,neutral,pass,0,zh,我投了选项4。
+S058,neutral,pass,0,en,Option 1 is cheapest to run.
+S059,neutral,pass,0,en,The vote closes at noon.
+S060,neutral,pass,0,en,Tags would need a review queue.
+S061,repair,pass,0,zh,对不起，我刚才说话太冲了。
+S062,repair,pass,0,zh,抱歉，我误解了你的意思。
+S063,repair,pass,0,zh,我理解你的顾虑，我们换个方案。
+S064,repair,pass,0,en,"Sorry, that was unfair of me."
+S065,repair,pass,0,en,I apologize for interrupting.
+S066,repair,pass,0,en,"Good point, I understand now."
+S067,subtle_hostility,flag,1,zh,有些人最好回到他们原来的地方去。
+S068,subtle_hostility,flag,1,zh,他们那种人，懂什么投票。
+S069,subtle_hostility,flag,1,zh,我们都知道他们是什么货色。
+S070,subtle_hostility,flag,1,en,People like them should go back where they came from.
+S071,subtle_hostility,flag,1,en,We all know what their kind is like.
+S072,subtle_hostility,flag,1,en,Maybe some voices just don't belong in this room.
+S073,negation,pass,1,zh,我从来没说过你是白痴。
+S074,negation,pass,1,zh,我们不应该叫任何人闭嘴。
+S075,negation,pass,1,zh,谁也不是废物，别这样说。
+S076,negation,pass,1,en,I would never call you an idiot.
+S077,negation,pass,1,en,Nobody here is stupid; the form is confusing.
+S078,negation,pass,1,en,We should not tell anyone to shut up.
+S079,quotation,pass,1,zh,他在群里骂我“白痴”，我很难受。
+S080,quotation,pass,1,zh,有人说“少数派没资格说话”，这是不对的。
+S081,quotation,pass,1,zh,把“滚出去”这种话写进规则是错误的。
+S082,quotation,pass,1,en,He called me an 'idiot' and that hurt.
+S083,quotation,pass,1,en,Someone wrote 'kick them out' and I want it reviewed.
+S084,quotation,pass,1,en,Quoting 'you'll regret it' as an example of a threat.
+S085,obfuscation,flag,1,zh,你就是个白-痴。
+S086,obfuscation,flag,1,zh,你个 bai chi。
+S087,obfuscation,flag,1,zh,闭 嘴，听我的。
+S088,obfuscation,flag,1,en,You are an i.d.i.o.t.
+S089,obfuscation,flag,1,en,Sh ut up already.
+S090,obfuscation,flag,1,en,What a l0ser.
+S091,target_is_thing,pass,1,zh,这个愚蠢的表单设计太难用了。
+S092,target_is_thing,pass,1,zh,这个废物系统又崩了。
+S093,target_is_thing,pass,1,zh,这个白痴一样的默认设置害了大家。
+S094,target_is_thing,pass,1,en,This stupid bug broke the tally.
+S095,target_is_thing,pass,1,en,The idiotic default hides option 4.
+S096,target_is_thing,pass,1,en,That stupid form ate my ballot.

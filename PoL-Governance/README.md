@@ -13,6 +13,7 @@
 | 提交训练与评估结果 | [results](results/README.md) |
 | 深入调研模型 | [Research Agent Prompt](research/model-research-example.md) |
 | 查 Jev 类模型的研究证据 | [文献综述](research/PoL2-Jev-Typed-Literature-Survey/README.md)（37 篇论文，对照 PoL2 条款） |
+| 看 PoL2 条款如何落到 DAO 投票与审议 | [治理机制实验室](research/PoL2-DAO-Governance-Lab/README.md)（14 个实验，含公开试例评测） |
 
 **已有**：20 条公开合成试例、盲输入导出、双人标注/分歧工具、诊断评估器、Kev 本地适配器、41 项自动化测试（benchmark 34 + board 7）。
 **待完成**：独立标注、正式数据、真实训练与模型评测、插件。现有建议标签不是金标准。
