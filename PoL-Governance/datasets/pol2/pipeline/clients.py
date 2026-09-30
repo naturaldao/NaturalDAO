@@ -130,10 +130,21 @@ class CallLog:
                   "prompt_tokens": sum(row.get("prompt_tokens") or 0 for row in self.rows),
                   "completion_tokens": sum(row.get("completion_tokens") or 0 for row in self.rows),
                   "total_tokens": sum(row.get("total_tokens") or 0 for row in self.rows),
-                  "cost_usd": round(sum(row.get("cost_usd") or 0 for row in self.rows), 6)}
+                  # 价格未知时写 null，不编造 0。
+                  "cost_usd": (round(sum(row["cost_usd"] for row in self.rows
+                                         if row.get("cost_usd") is not None), 6)
+                               if any(row.get("cost_usd") is not None for row in self.rows)
+                               else None)}
         if latencies:
             totals["latency_ms_p50"] = latencies[(len(latencies) - 1) // 2]
             totals["latency_ms_p95"] = latencies[min(len(latencies) - 1, int(0.95 * len(latencies)))]
+        kinds = {}
+        for row in self.rows:
+            if row.get("failure_kind"):
+                kinds[row["failure_kind"]] = kinds.get(row["failure_kind"], 0) + 1
+        totals["failed_by_kind"] = kinds
+        totals["invalid_attempt_rate"] = (round(kinds.get("invalid", 0) / len(self.rows), 4)
+                                          if self.rows else 0.0)
         return totals
 
     def print_summary(self, stream=None):
@@ -150,7 +161,7 @@ class ChatClient:
                  max_backoff=30.0, backoff_jitter=0.25, max_tokens=2048, temperature=None,
                  headers=None, log=None, opener=None, sleeper=time.sleep, rng=None,
                  price_in=None, price_out=None, min_max_tokens=0, retry_invalid=False,
-                 request_path=None, user_agent=DEFAULT_USER_AGENT):
+                 request_path=None, user_agent=DEFAULT_USER_AGENT, response_format=None):
         self.provider = provider
         self.base_url = validate_endpoint(base_url.rstrip("/"))
         self.model = model
@@ -176,6 +187,10 @@ class ChatClient:
         self.retry_invalid = retry_invalid
         require(protocol in PROTOCOLS, f"protocol must be one of {PROTOCOLS}")
         self.protocol = protocol
+        if response_format and protocol != CHAT_PROTOCOL:
+            raise ValueError("response_format 只在已核实的 chat completions 协议上启用；"
+                             "responses 协议的形状未核实，不猜")
+        self.response_format = response_format
         self.request_path = request_path or ("/chat/completions" if protocol == CHAT_PROTOCOL
                                              else "/responses")
         self.url = self.base_url + self.request_path
@@ -193,6 +208,8 @@ class ChatClient:
                     "max_output_tokens": budget}
         else:
             body = {"model": self.model, "messages": messages, "max_tokens": budget}
+            if self.response_format:
+                body["response_format"] = {"type": self.response_format}
         if self.temperature is not None:
             body["temperature"] = self.temperature
         return body
@@ -278,12 +295,13 @@ class ChatClient:
                 "total_tokens": total, "cost_usd": cost}
 
     def _log_attempt(self, digest, attempt, ok, status_code, latency_ms, error=None,
-                     usage=None, dry_run=False):
+                     usage=None, dry_run=False, failure_kind=None):
         row = {"ts": iso_now(), "provider": self.provider, "model": self.model,
-               "base_url": self.base_url, "attempt": attempt, "ok": ok,
+               "base_url": self.base_url, "attempt": attempt, "retries": attempt - 1, "ok": ok,
                "status_code": status_code, "latency_ms": round(latency_ms, 2),
-               "error": error, "request_sha256": digest, "key_fingerprint": fingerprint(self.key),
-               "dry_run": dry_run}
+               "error": error, "failure_kind": failure_kind,
+               "request_sha256": digest, "key_fingerprint": fingerprint(self.key),
+               "response_format": self.response_format, "dry_run": dry_run}
         row.update(usage or {"prompt_tokens": None, "completion_tokens": None,
                              "total_tokens": None, "cost_usd": None})
         self.log.record(row)
@@ -303,7 +321,7 @@ class ChatClient:
                 if status_code in RETRY_STATUS:
                     last_failure = CallFailure("error", f"HTTP {status_code}", status_code, attempt)
                     self._log_attempt(digest, attempt, False, status_code, latency_ms,
-                                      error=f"HTTP {status_code}")
+                                      error=f"HTTP {status_code}", failure_kind="error")
                 elif status_code != 200:
                     raise CallFailure("error", f"HTTP {status_code}: {raw[:200]!r}",
                                       status_code, attempt, retryable=False)
@@ -325,12 +343,10 @@ class ChatClient:
                                            retryable=failure.retryable)
                 retryable = (failure.kind in ("timeout", "error") if failure.retryable is None
                              else failure.retryable)
-                if not (retryable or self.retry_invalid):
-                    self._log_attempt(digest, attempt, False, status_code, latency_ms,
-                                      error=f"{failure.kind}: {failure}")
-                    raise last_failure
                 self._log_attempt(digest, attempt, False, status_code, latency_ms,
-                                  error=f"{failure.kind}: {failure}")
+                                  error=f"{failure.kind}: {failure}", failure_kind=failure.kind)
+                if not (retryable or self.retry_invalid):
+                    raise last_failure
                 if attempt == self.max_attempts:
                     raise last_failure
                 delay = self._delay(attempt, None)
@@ -372,7 +388,7 @@ def source_lineage(source, overrides=None):
 def build_client(source, base_url=None, model=None, key_env=None, key_file=None, timeout=120.0,
                  max_attempts=3, log=None, max_tokens=None, workers=1, temperature=None,
                  session_id=None, price_in=None, price_out=None, retry_invalid=False,
-                 min_max_tokens=None, api_key=None, user_agent=None):
+                 min_max_tokens=None, api_key=None, user_agent=None, response_format=None):
     """Build a configured client for a known source name (luna / glm-5.3 / glm-5.3-flash)."""
     require(source in SOURCES, f"unknown source {source!r}; known: {sorted(SOURCES)}")
     config = SOURCES[source]
@@ -393,6 +409,7 @@ def build_client(source, base_url=None, model=None, key_env=None, key_file=None,
                       temperature=temperature, headers=headers, log=log, price_in=price_in,
                       price_out=price_out, retry_invalid=retry_invalid,
                       user_agent=user_agent if user_agent is not None else DEFAULT_USER_AGENT,
+                      response_format=response_format,
                       min_max_tokens=MIN_MAX_TOKENS if min_max_tokens is None
                       else (min_max_tokens or 0))
 

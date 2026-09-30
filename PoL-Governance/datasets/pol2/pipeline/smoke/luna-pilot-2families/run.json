@@ -1,0 +1,103 @@
+{
+  "tool": "pol2-generate",
+  "state": "finished",
+  "mode": "live",
+  "out": "datasets\\pol2\\pipeline\\smoke\\luna-pilot-2families",
+  "fresh": false,
+  "seed": 20260930,
+  "model": "gpt-6-luna",
+  "generator": "luna",
+  "generator_lineage": "openai-luna",
+  "gen_version": "pol2-gen-v0.1",
+  "question_template": "pol2-qtemplate-v0.1",
+  "ontology": {
+    "source": "C:\\Projects\\DAism\\NaturalDAO\\PoL-Governance\\datasets\\pol2\\ontology\\pol2-labels.v0.1.json",
+    "issues": 15,
+    "issue_keys": [
+      "coercion_manipulation",
+      "consent_violation",
+      "deception_distortion",
+      "dignity_denial",
+      "ecological_harm",
+      "emotion_state_detection",
+      "exclusive_private",
+      "fabricated_intimacy",
+      "harm_facilitation",
+      "hostile_exclusion",
+      "public_erosion",
+      "tool_scope_overreach",
+      "unnecessary_restriction",
+      "untrusted_instruction_injection",
+      "violence_worship"
+    ],
+    "criteria_sections": [
+      "actions",
+      "evidence",
+      "polarity",
+      "status"
+    ]
+  },
+  "planned_cases": 224,
+  "planned_pairs": 112,
+  "complete_families": [
+    "ai_emotion_judgement.consent_withdrawal",
+    "autonomy_paternalism.condition_exception"
+  ],
+  "duplicate_case_cases": 0,
+  "pair_slots": 112,
+  "accepted_pairs": 112,
+  "dropped_pairs": 0,
+  "drop_reasons": {},
+  "regenerated_slots": 4,
+  "generation_attempts": 40,
+  "response_format": "json_object",
+  "pair_attempts": 3,
+  "missing_status": [],
+  "class_coverage_complete": true,
+  "families": [
+    {
+      "family_id": "ai_emotion_judgement.consent_withdrawal",
+      "region": "train",
+      "batches": 19,
+      "skipped_batches": 19,
+      "failed_batches": 0,
+      "cases": 112,
+      "slots": 56,
+      "accepted_pairs": 56,
+      "dropped_pairs": 0,
+      "drop_reasons": {},
+      "regenerated_slots": 2,
+      "generation_attempts": 20,
+      "complete": true
+    },
+    {
+      "family_id": "autonomy_paternalism.condition_exception",
+      "region": "train",
+      "batches": 19,
+      "skipped_batches": 18,
+      "failed_batches": 0,
+      "cases": 112,
+      "slots": 56,
+      "accepted_pairs": 56,
+      "dropped_pairs": 0,
+      "drop_reasons": {},
+      "regenerated_slots": 2,
+      "generation_attempts": 20,
+      "complete": true
+    }
+  ],
+  "calls": {
+    "calls": 1,
+    "ok": 1,
+    "failed": 0,
+    "prompt_tokens": 4810,
+    "completion_tokens": 1147,
+    "total_tokens": 5957,
+    "cost_usd": 0,
+    "latency_ms_p50": 29912.46,
+    "latency_ms_p95": 29912.46,
+    "failed_by_kind": {},
+    "invalid_attempt_rate": 0.0
+  },
+  "created_at": "2026-09-30T09:50:22+00:00"
+}

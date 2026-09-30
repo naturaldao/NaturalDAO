@@ -151,7 +151,7 @@ def build_plan(selected, limit, pairs_per_batch, seed, config):
             "total_cases": sum(item["cases"] for item in families), "families": families}
 
 
-def config_snapshot(args, families_path, assign_path, issue_labels, selected):
+def config_snapshot(args, families_path, assign_path, issue_labels, selected, criteria=None):
     return {
         "families_sha256": sha256_text(Path(families_path).read_text(encoding="utf-8-sig")),
         "assign_sha256": (sha256_text(Path(assign_path).read_text(encoding="utf-8-sig"))
@@ -160,6 +160,8 @@ def config_snapshot(args, families_path, assign_path, issue_labels, selected):
         "pairs_per_batch": args.pairs_per_batch, "model": args.model, "source": args.source,
         "gen_version": prompts.GEN_VERSION, "q_template": prompts.Q_TEMPLATE_VERSION,
         "with_score": args.with_score, "issue_keys": sorted(issue_labels),
+        "ontology_source": str(args.issue_keys_file or prompts.ONTOLOGY_DEFAULT),
+        "criteria_sections": sorted(criteria or {}),
         "similarity_threshold": args.similarity_threshold,
         "selection": [{"family_id": item["family"]["family_id"], "region": item["region"]}
                       for item in selected],
@@ -189,7 +191,8 @@ def _batch_paths(out, family_id, batch_index):
     shard = Path(out) / "shards" / family_id
     return (shard / f"batch-{batch_index:03d}.cases.jsonl",
             shard / f"batch-{batch_index:03d}.questions.jsonl",
-            shard / f"batch-{batch_index:03d}.qa.jsonl")
+            shard / f"batch-{batch_index:03d}.qa.jsonl",
+            shard / f"batch-{batch_index:03d}.done.json")
 
 
 def _coerce_variant(variant, family, notes, case_id):
@@ -247,7 +250,7 @@ def apply_pair_flags(cases, qa_rows):
 
 
 def build_pair_cases(family_item, pair_payloads, pair_ids, case_ids, seed, model, generator,
-                     lineage, issue_labels, with_score):
+                     lineage, issue_labels, with_score, criteria=None):
     """Build case/question records for one batch of pairs (no quality flags yet)."""
     family = family_item["family"]
     region = family_item["region"]
@@ -277,24 +280,8 @@ def build_pair_cases(family_item, pair_payloads, pair_ids, case_ids, seed, model
             case["diff"] = {key: value for key, value in case["diff"].items() if value is not None}
             cases.append(case)
             questions.extend(prompts.build_questions(case, issue_labels=issue_labels,
-                                                     with_score=with_score))
+                                                     with_score=with_score, criteria=criteria))
     return cases, questions, notes
-
-
-def build_batch_records(family_item, pair_payloads, pair_ids, case_ids, seed, model, generator,
-                        lineage, issue_labels, with_score, threshold):
-    """Return (cases, questions, qa_rows, notes) for one batch of pairs."""
-    cases, questions, notes = build_pair_cases(
-        family_item, pair_payloads, pair_ids, case_ids, seed, model, generator, lineage,
-        issue_labels, with_score)
-    qa_rows = []
-    for offset, payload in enumerate(pair_payloads):
-        pair_id = pair_ids[offset]
-        members = {case["variant"]: case for case in cases if case["pair_id"] == pair_id}
-        expected = {key: payload["variants"][key].get("expected_status") for key in ("a", "b")}
-        qa_rows.append(pair_qa_row(pair_id, members, expected, payload.get("key_fact"), threshold))
-    cases, qa_rows = apply_pair_flags(cases, qa_rows)
-    return cases, questions, qa_rows, notes
 
 
 def case_material_text(case):
@@ -309,53 +296,199 @@ def _duplicate_case_ids(cases):
     return {case_id for ids in groups.values() if len(ids) > 1 for case_id in ids}
 
 
-def produce_batch(args, family_item, batch_index, take, client, issue_labels):
-    """Produce one batch through the model (or fixture); returns records or raises."""
+def produce_batch(args, family_item, batch_index, take, client, issue_labels, diagnostics=None,
+                  feedback=None):
+    """Produce one batch through the model (or fixture); returns (pairs, result) or raises."""
     family = family_item["family"]
     seed = args.seed + batch_index
     if args.fixture:
         pairs = fixtures.fixture_pairs(family, take, seed=seed)
         return pairs, {"text": None, "usage": {}, "latency_ms": 0.0, "attempts": 0}
     messages = [{"role": "user",
-                 "content": prompts.generation_prompt(family, take, seed)}]
+                 "content": prompts.generation_prompt(family, take, seed, feedback=feedback)}]
     if client is None:
         raise CallFailure("error", "live generation requires a client")
     result = client.chat(messages, max_tokens=args.max_tokens)
+    if diagnostics is not None:
+        # 只留长度与开头摘要，便于诊断截断/非 JSON；完整原文不落盘。
+        diagnostics.update({"raw_len": len(result["text"]),
+                            "raw_head": result["text"][:200]})
     pairs = prompts.parse_pairs(result["text"])
     return pairs, result
 
 
-def process_family(args, out, family_item, client, issue_labels, plan_family, call_log):
+def _variant_material(variant):
+    if not isinstance(variant, dict):
+        return ""
+    context = variant.get("context")
+    body = " ".join(item for item in context if isinstance(item, str)) \
+        if isinstance(context, list) else ""
+    target = variant.get("target")
+    return body + " " + (target if isinstance(target, str) else "")
+
+
+def pair_material_key(pair):
+    """整体材料指纹：用于跨批次/族内精确去重。"""
+    variants = pair["variants"]
+    return normalized_text(_variant_material(variants["a"]) + " " + _variant_material(variants["b"]))
+
+
+def evaluate_pair(pair, family, threshold):
+    """Structural + pair-quality gate. Returns (ok, reason); duplicates by caller.
+
+    不合格的对不写进数据集：先带原因回灌重生成，重生成仍不合格就丢弃并计数。
+    """
+    for key in ("a", "b"):
+        variant = pair["variants"].get(key)
+        if not isinstance(variant, dict):
+            return False, "malformed"
+        context = variant.get("context")
+        if not (isinstance(context, list) and context and all(text(item) for item in context)):
+            return False, "malformed"
+        if not text(variant.get("target")) or not text(variant.get("policy")):
+            return False, "malformed"
+    if not text(pair.get("key_fact")):
+        return False, "missing_key_fact"
+    quality = prompts.pair_quality(
+        {"target": pair["variants"]["a"]["target"],
+         "surface": pair["variants"]["a"].get("surface"),
+         "context": pair["variants"]["a"]["context"],
+         "expected_status": pair["variants"]["a"].get("expected_status")},
+        {"target": pair["variants"]["b"]["target"],
+         "surface": pair["variants"]["b"].get("surface"),
+         "context": pair["variants"]["b"]["context"],
+         "expected_status": pair["variants"]["b"].get("expected_status")},
+        threshold=threshold)
+    for flag in ("status_conflict", "shortcut_risk", "weak_pair", "structure_mismatch"):
+        if flag in quality["quality_flags"]:
+            return False, flag
+    return True, None
+
+
+def produce_family_batch(args, family_item, batch_index, take, pair_ids, case_ids, client,
+                         issue_labels, criteria, family_materials, diagnostics=None):
+    """Produce one batch of accepted pairs with bounded regeneration.
+
+    Returns (cases, questions, qa_rows, notes, stats). Raises on network/parse failure
+    (the batch then stays unwritten and is retried on the next run).
+    """
+    pending = list(range(take))
+    accepted = []
+    dropped = []
+    last_reasons = {}
+    attempts = 0
+    regenerated = 0
+    feedback = None
+    while pending and attempts < args.pair_attempts:
+        attempts += 1
+        if attempts > 1:
+            regenerated += len(pending)
+        pairs, _result = produce_batch(args, family_item, batch_index, len(pending), client,
+                                       diagnostics, feedback=feedback)
+        next_pending = []
+        feedback = []
+        for position, slot in enumerate(pending):
+            if position >= len(pairs):
+                reason = "missing_pair"
+                pair = None
+            else:
+                pair = pairs[position]
+                ok, reason = evaluate_pair(pair, family_item["family"],
+                                           args.similarity_threshold)
+                if ok and pair_material_key(pair) in family_materials:
+                    reason = "duplicate"
+            if reason is None:
+                accepted.append((slot, pair))
+                family_materials.add(pair_material_key(pair))
+            elif reason == "duplicate":
+                # 重复对直接丢弃并计数，不浪费调用去重生成（见 pipeline/README.md）。
+                dropped.append({"slot": slot, "reason": reason})
+            else:
+                last_reasons[slot] = reason
+                feedback.append((len(next_pending), reason))
+                next_pending.append(slot)
+        pending = next_pending
+    for slot in pending:
+        dropped.append({"slot": slot, "reason": last_reasons.get(slot, "unknown")})
+    accepted.sort(key=lambda item: item[0])
+    payloads = [pair for _slot, pair in accepted]
+    accepted_pair_ids = [pair_ids[slot] for slot, _pair in accepted]
+    accepted_case_ids = [case_id for slot, _pair in accepted
+                         for case_id in (case_ids[2 * slot], case_ids[2 * slot + 1])]
+    cases, questions, notes = build_pair_cases(
+        family_item, payloads, accepted_pair_ids, accepted_case_ids, args.seed, args.model,
+        args.generator, args.lineage, issue_labels, args.with_score, criteria)
+    qa_rows = []
+    for offset, (_slot, payload) in enumerate(accepted):
+        members = {case["variant"]: case for case in cases
+                   if case["pair_id"] == accepted_pair_ids[offset]}
+        expected = {key: payload["variants"][key].get("expected_status") for key in ("a", "b")}
+        qa_rows.append(pair_qa_row(accepted_pair_ids[offset], members, expected,
+                                   payload.get("key_fact"), args.similarity_threshold))
+    cases, qa_rows = apply_pair_flags(cases, qa_rows)
+    reasons = sorted({row["reason"] for row in dropped})
+    stats = {"slots": take, "accepted": len(accepted), "dropped": dropped,
+             "attempts": attempts, "regenerated_slots": regenerated,
+             "drop_reasons": {reason: sum(1 for row in dropped if row["reason"] == reason)
+                              for reason in reasons}}
+    return cases, questions, qa_rows, notes, stats
+
+
+def process_family(args, out, family_item, client, issue_labels, plan_family, call_log,
+                   criteria=None):
     family_id = family_item["family"]["family_id"]
     failed = 0
     skipped = 0
     produced_cases = 0
+    accepted_pairs = 0
+    dropped_pairs = 0
+    regenerated_slots = 0
+    generation_attempts = 0
+    drop_reasons = {}
+    family_materials = set()
+    # 已完成批次先登记材料指纹，保证跨批次去重与断点续跑一致。
+    for batch_index in range(len(plan_family["batches"])):
+        cases_path, _questions_path, _qa_path, marker_path = _batch_paths(out, family_id,
+                                                                          batch_index)
+        if marker_path.is_file() and cases_path.is_file():
+            try:
+                for row in read_jsonl(cases_path):
+                    validate_case(row, where=str(cases_path))
+                    family_materials.add(normalized_text(case_material_text(row)))
+            except (ValueError, OSError):
+                family_materials = set()
+                break
     pair_offset = 0
     for batch_index, take in enumerate(plan_family["batches"]):
-        cases_path, questions_path, qa_path = _batch_paths(out, family_id, batch_index)
-        expected_cases = take * 2
+        cases_path, questions_path, qa_path, marker_path = _batch_paths(out, family_id, batch_index)
         pair_ids = plan_family["pair_ids"][pair_offset:pair_offset + take]
         case_ids = plan_family["case_ids"][2 * pair_offset:2 * (pair_offset + take)]
         pair_offset += take
-        if cases_path.is_file():
+        if marker_path.is_file() and cases_path.is_file() and questions_path.is_file() \
+                and qa_path.is_file():
             try:
                 rows = read_jsonl(cases_path)
-                if len(rows) == expected_cases and questions_path.is_file() and qa_path.is_file():
-                    for row in rows:
-                        validate_case(row, where=str(cases_path))
-                    skipped += 1
-                    produced_cases += len(rows)
-                    continue
-            except (ValueError, OSError):
+                marker = json.loads(marker_path.read_text(encoding="utf-8"))
+                require(marker.get("slots") == take, f"{marker_path}: slot count mismatch")
+                index_unique(rows, "id", where=str(cases_path))
+                for row in rows:
+                    validate_case(row, where=str(cases_path))
+                skipped += 1
+                produced_cases += len(rows)
+                accepted_pairs += marker.get("accepted", len(rows) // 2)
+                dropped_pairs += len(marker.get("dropped", []))
+                regenerated_slots += marker.get("regenerated_slots", 0)
+                generation_attempts += marker.get("attempts", 0)
+                for row in marker.get("dropped", []):
+                    drop_reasons[row["reason"]] = drop_reasons.get(row["reason"], 0) + 1
+                continue
+            except (ValueError, OSError, KeyError, json.JSONDecodeError):
                 pass
+        diagnostics = {}
         try:
-            pairs, result = produce_batch(args, family_item, batch_index, take, client, issue_labels)
-            require(len(pairs) >= take,
-                    f"model returned {len(pairs)} pairs, need {take}")
-            pairs = pairs[:take]
-            cases, questions, qa_rows, notes = build_batch_records(
-                family_item, pairs, pair_ids, case_ids, args.seed, args.model, args.generator,
-                args.lineage, issue_labels, args.with_score, args.similarity_threshold)
+            cases, questions, qa_rows, notes, stats = produce_family_batch(
+                args, family_item, batch_index, take, pair_ids, case_ids, client, issue_labels,
+                criteria, family_materials, diagnostics)
             index = index_unique(cases, "id", where=f"{family_id} batch {batch_index}")
             for case_id, row in index.items():
                 validate_case(row, where=f"{cases_path}:{case_id}")
@@ -365,21 +498,39 @@ def process_family(args, out, family_item, client, issue_labels, plan_family, ca
             write_jsonl_atomic(cases_path, cases)
             write_jsonl_atomic(questions_path, questions)
             write_jsonl_atomic(qa_path, qa_rows)
+            write_json_atomic(marker_path, {"family_id": family_id, "batch": batch_index,
+                                            "slots": take, "accepted": len(cases) // 2,
+                                            "dropped": stats["dropped"],
+                                            "attempts": stats["attempts"],
+                                            "regenerated_slots": stats["regenerated_slots"],
+                                            "completed_at": iso_now()})
             if notes:
                 write_jsonl_atomic(Path(out) / "qa" / f"{family_id}.coercions.jsonl", notes)
             produced_cases += len(cases)
+            accepted_pairs += len(cases) // 2
+            dropped_pairs += len(stats["dropped"])
+            regenerated_slots += stats["regenerated_slots"]
+            generation_attempts += stats["attempts"]
+            for reason, count in stats["drop_reasons"].items():
+                drop_reasons[reason] = drop_reasons.get(reason, 0) + count
         except (CallFailure, ValueError, OSError) as error:
             failed += 1
             kind = error.kind if isinstance(error, CallFailure) else "invalid"
             require(kind in EXECUTION_STATUSES, f"unexpected failure kind {kind}")
             append_jsonl(Path(out) / "errors" / f"{family_id}.errors.jsonl",
                          {"ts": iso_now(), "family_id": family_id, "batch": batch_index,
-                          "kind": kind, "error": str(error)[:2000],
-                          "ok": False})
+                          "kind": kind, "error": str(error)[:2000], "ok": False,
+                          "raw_len": diagnostics.get("raw_len"),
+                          "raw_head": diagnostics.get("raw_head")})
+    all_marked = all(_batch_paths(out, family_id, index)[3].is_file()
+                     for index in range(len(plan_family["batches"])))
     return {"family_id": family_id, "region": family_item["region"],
             "batches": len(plan_family["batches"]), "skipped_batches": skipped,
-            "failed_batches": failed, "cases": produced_cases,
-            "complete": failed == 0 and produced_cases == plan_family["cases"]}
+            "failed_batches": failed, "cases": produced_cases, "slots": plan_family["pairs"],
+            "accepted_pairs": accepted_pairs, "dropped_pairs": dropped_pairs,
+            "drop_reasons": drop_reasons, "regenerated_slots": regenerated_slots,
+            "generation_attempts": generation_attempts,
+            "complete": failed == 0 and all_marked}
 
 
 # ------------------------------------------------------------------ merges
@@ -388,14 +539,17 @@ def merge_family(out, family_item, plan_family):
     family_id = family_item["family"]["family_id"]
     cases_path = Path(out) / "shards" / f"{family_id}.cases.jsonl"
     questions_path = Path(out) / "shards" / f"{family_id}.questions.jsonl"
-    cases, questions, qa_rows = [], [], []
+    cases, questions, qa_rows, markers = [], [], [], []
     for batch_index in range(len(plan_family["batches"])):
-        batch_cases, batch_questions, batch_qa = _batch_paths(out, family_id, batch_index)
-        if not (batch_cases.is_file() and batch_questions.is_file() and batch_qa.is_file()):
+        batch_cases, batch_questions, batch_qa, marker_path = _batch_paths(out, family_id,
+                                                                           batch_index)
+        if not (batch_cases.is_file() and batch_questions.is_file() and batch_qa.is_file()
+                and marker_path.is_file()):
             return None, None, None
         cases.extend(read_jsonl(batch_cases))
         questions.extend(read_jsonl(batch_questions))
         qa_rows.extend(read_jsonl(batch_qa))
+        markers.append(json.loads(marker_path.read_text(encoding="utf-8")))
     # 族/分区合并文件由分片派生，--recheck 需要重建，因此原子重写（plan.json 仍锁定配置）。
     write_jsonl_atomic(cases_path, cases)
     write_jsonl_atomic(questions_path, questions)
@@ -408,8 +562,18 @@ def merge_family(out, family_item, plan_family):
                                    []).append(case["id"])
     duplicates = [{"material_sha256": sha256_text(key), "case_ids": sorted(ids)}
                   for key, ids in sorted(material_groups.items()) if len(ids) > 1]
+    drop_reasons = {}
+    for marker in markers:
+        for row in marker.get("dropped", []):
+            drop_reasons[row["reason"]] = drop_reasons.get(row["reason"], 0) + 1
     family_qa = {"family_id": family_id, "region": family_item["region"],
+                 "slots": sum(marker.get("slots", 0) for marker in markers),
                  "pairs": len(qa_rows), "cases": len(cases),
+                 "dropped_pairs": sum(len(marker.get("dropped", [])) for marker in markers),
+                 "drop_reasons": drop_reasons,
+                 "regenerated_slots": sum(marker.get("regenerated_slots", 0)
+                                          for marker in markers),
+                 "generation_attempts": sum(marker.get("attempts", 0) for marker in markers),
                  "expected_status": coverage["counts"], "missing_status": coverage["missing"],
                  "complete_classes": coverage["complete"],
                  "incomplete": not coverage["complete"],
@@ -458,7 +622,10 @@ def merge_completed(out, plan, complete_ids):
                              "shortcut_risk_pairs": row["shortcut_risk_pairs"],
                              "target_identical_pairs": row["target_identical_pairs"],
                              "duplicate_case_cases": row["duplicate_case_cases"],
-                             "duplicate_case_groups": row["duplicate_case_groups"]}
+                             "slots": row["slots"], "dropped_pairs": row["dropped_pairs"],
+                             "drop_reasons": row["drop_reasons"],
+                             "regenerated_slots": row["regenerated_slots"],
+                             "generation_attempts": row["generation_attempts"]}
                             for row in family_qa])
     return complete_families, family_qa
 
@@ -477,7 +644,8 @@ def recheck(out, threshold):
         family_id = plan_family["family_id"]
         batches = []
         for batch_index in range(len(plan_family["batches"])):
-            cases_path, _questions_path, qa_path = _batch_paths(out, family_id, batch_index)
+            cases_path, _questions_path, qa_path, _marker_path = _batch_paths(out, family_id,
+                                                                              batch_index)
             if not cases_path.is_file():
                 continue
             cases = read_jsonl(cases_path)
@@ -515,7 +683,7 @@ def build_parser():
     parser.add_argument("--families", type=Path, help="场景族清单 JSONL（--recheck 时不需要）")
     parser.add_argument("--assign", type=Path, help="splits.py 的分配表（family_id/region）")
     parser.add_argument("--region", choices=PIPELINE_REGIONS, help="无分配表时强制单一分区")
-    parser.add_argument("--out", type=Path, required=True, help="新输出目录（已有 plan.json 则续跑）")
+    parser.add_argument("--out", type=Path, help="新输出目录（已有 plan.json 则续跑；--recheck 必填）")
     parser.add_argument("--limit", type=int, help="本次最多生成的 case 数（按整对向上取整）")
     parser.add_argument("--family", action="append", default=[], help="只跑指定 family_id，可重复")
     parser.add_argument("--families-filter", help="逗号分隔的 family_id 列表")
@@ -538,10 +706,18 @@ def build_parser():
     parser.add_argument("--price-in", type=float, help="每百万输入 token 价格（用于成本日志）")
     parser.add_argument("--price-out", type=float, help="每百万输出 token 价格")
     parser.add_argument("--user-agent", help="覆盖 HTTP User-Agent（默认产品名，绕开 urllib 被封）")
+    parser.add_argument("--retry-invalid", action=argparse.BooleanOptionalAction, default=True,
+                        help="把「content 为空/JSON 不可解析」当作可重试（生成侧默认开；--no-retry-invalid 关）")
+    parser.add_argument("--pair-attempts", type=int, default=3,
+                        help="每组对的生成尝试上限：不合格的对带原因回灌重生成，仍不合格则丢弃并计数")
+    parser.add_argument("--response-format", choices=("none", "json_object"), default="none",
+                        help="chat 协议可选的结构化输出；未核实前默认不用")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--live", action="store_true", help="真实联网调用（默认离线）")
     mode.add_argument("--fixture", action="store_true", help="离线确定性合成数据")
     mode.add_argument("--dry-run", action="store_true", help="只写请求计划，不联网")
+    parser.add_argument("--check-ontology", action="store_true",
+                        help="生成侧本体校验：打印 issue 键对照与判据枚举一致性后退出")
     parser.add_argument("--recheck", action="store_true",
                         help="离线重算质检与质量标记（不调用模型），用于修正 QA 规则后复算已有分片")
     return parser
@@ -550,8 +726,27 @@ def build_parser():
 def main(argv=None, client_factory=None):
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.check_ontology:
+        try:
+            report = prompts.issue_alignment_report(args.issue_keys_file)
+            _payload, source = prompts.load_ontology(args.issue_keys_file)
+            criteria = prompts.load_criteria(args.issue_keys_file)
+            expected = {"status": list(prompts.STATUSES), "polarity": list(prompts.POLARITIES),
+                        "evidence": list(prompts.EVIDENCE), "actions": list(prompts.ACTIONS)}
+            enum_ok = all(sorted(criteria[section]) == sorted(keys)
+                          for section, keys in expected.items())
+            report.update({"criteria_sections": sorted(criteria), "enums_consistent": enum_ok,
+                           "enum_diff": {section: {"ontology": sorted(criteria[section]),
+                                                   "pipeline": sorted(keys)}
+                                         for section, keys in expected.items()
+                                         if sorted(criteria[section]) != sorted(keys)}})
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            return 0 if (report["aligned"] and enum_ok) else 1
+        except (OSError, ValueError, KeyError) as error:
+            parser.exit(2, f"generate: {error}\n")
     if args.recheck:
         try:
+            require(args.out is not None, "--recheck 需要 --out")
             require(not (args.live or args.fixture or args.dry_run),
                     "--recheck 不能与 --live/--fixture/--dry-run 同时使用")
             plan = recheck(args.out, args.similarity_threshold)
@@ -594,19 +789,23 @@ def main(argv=None, client_factory=None):
         except (OSError, ValueError, KeyError) as error:
             parser.exit(2, f"generate: {error}\n")
     try:
-        require(args.families is not None, "--families is required (除 --recheck 外)")
+        require(args.families is not None, "--families is required (除 --check-ontology/--recheck 外)")
+        require(args.out is not None, "--out is required")
         require(args.pairs_per_batch > 0, "--pairs-per-batch must be positive")
+        require(args.pair_attempts >= 1, "--pair-attempts must be >= 1")
         require(args.workers > 0, "--workers must be positive")
         require(0 < args.similarity_threshold <= 1, "--similarity-threshold must be in (0, 1]")
         require(args.assign is not None or args.region is not None,
                 "pass --assign (splits.py 分配表) or --region (单一分区)")
         issue_labels = prompts.load_issue_labels(args.issue_keys_file)
+        criteria = prompts.load_criteria(args.issue_keys_file)
         families = load_families(args.families)
         assignment = load_assignment(args.assign) if args.assign else None
         filters = csv_list(args.families_filter) + list(args.family)
         selected = select_families(families, filters, assignment, args.region)
         plan = build_plan(selected, args.limit, args.pairs_per_batch, args.seed,
-                          config_snapshot(args, args.families, args.assign, issue_labels, selected))
+                          config_snapshot(args, args.families, args.assign, issue_labels, selected,
+                                          criteria))
         out, fresh = prepare_out(args.out, plan)
     except (OSError, ValueError, KeyError) as error:
         parser.exit(2, f"generate: {error}\n")
@@ -633,7 +832,9 @@ def main(argv=None, client_factory=None):
                 key_env=parsed.key_env, key_file=parsed.key_file, timeout=parsed.timeout,
                 max_attempts=parsed.max_attempts, log=call_log, max_tokens=parsed.max_tokens,
                 price_in=parsed.price_in, price_out=parsed.price_out,
-                user_agent=parsed.user_agent))
+                user_agent=parsed.user_agent, retry_invalid=parsed.retry_invalid,
+                response_format=(None if parsed.response_format == "none"
+                                 else parsed.response_format)))
             client = factory(args)
             args.lineage = getattr(client, "lineage", args.lineage)
             args.model = getattr(client, "model", args.model)
@@ -668,7 +869,7 @@ def main(argv=None, client_factory=None):
                 for item in selected if item["family"]["family_id"] in plan_by_family]
         outcomes = run_ordered(
             work, lambda pair, index: process_family(args, out, pair[0], client, issue_labels,
-                                                     pair[1], call_log),
+                                                     pair[1], call_log, criteria),
             workers=args.workers)
         for (item, _), outcome in zip(work, outcomes):
             if isinstance(outcome, Exception):
@@ -692,9 +893,21 @@ def main(argv=None, client_factory=None):
            "out": str(out), "fresh": fresh, "seed": args.seed, "model": args.model,
            "generator": args.generator, "generator_lineage": args.lineage,
            "gen_version": prompts.GEN_VERSION, "question_template": prompts.Q_TEMPLATE_VERSION,
+           "ontology": {"source": str(args.issue_keys_file or prompts.ONTOLOGY_DEFAULT),
+                        "issues": len(issue_labels), "issue_keys": sorted(issue_labels),
+                        "criteria_sections": sorted(criteria)},
            "planned_cases": plan["total_cases"], "planned_pairs": plan["total_pairs"],
            "complete_families": complete_families,
            "duplicate_case_cases": sum(row["duplicate_case_cases"] for row in family_qa),
+           "pair_slots": sum(row["slots"] for row in family_qa),
+           "accepted_pairs": sum(row["pairs"] for row in family_qa),
+           "dropped_pairs": sum(row["dropped_pairs"] for row in family_qa),
+           "drop_reasons": {reason: sum(row["drop_reasons"].get(reason, 0) for row in family_qa)
+                            for reason in sorted({key for row in family_qa
+                                                  for key in row["drop_reasons"]})},
+           "regenerated_slots": sum(row["regenerated_slots"] for row in family_qa),
+           "generation_attempts": sum(row["generation_attempts"] for row in family_qa),
+           "response_format": args.response_format, "pair_attempts": args.pair_attempts,
            "missing_status": coverage["missing"], "class_coverage_complete": coverage["complete"],
            "families": results, "calls": call_log.summary(), "created_at": iso_now()}
     write_json_atomic(Path(out) / "run.json", run)
@@ -703,7 +916,10 @@ def main(argv=None, client_factory=None):
                       "complete_families": len(complete_families),
                       "planned_families": len(plan["families"]),
                       "calls": run["calls"], "missing_status": coverage["missing"],
-                      "duplicate_case_cases": run["duplicate_case_cases"]},
+                      "duplicate_case_cases": run["duplicate_case_cases"],
+                      "accepted_pairs": run["accepted_pairs"], "dropped_pairs": run["dropped_pairs"],
+                      "drop_reasons": run["drop_reasons"],
+                      "regenerated_slots": run["regenerated_slots"]},
                      ensure_ascii=False))
     return 1 if failed_families else 0
 

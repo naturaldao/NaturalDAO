@@ -10,6 +10,7 @@ from __future__ import annotations
 import difflib
 import json
 import re
+from pathlib import Path
 
 from common import (ACTIONS, EVIDENCE, POLARITIES, STATUSES, require, rescale_probs, text)
 
@@ -42,8 +43,11 @@ EVIDENCE_CRITERIA = {
     "contradictory": "材料互相矛盾，无法形成单一结论。",
 }
 
-# 本体 v0.1 草案（pending ontology freeze）：key 供 question 使用，label 只用于提示文本。
-# ontology 冻结后用 --issue-keys-file 覆盖，不改本模块代码。
+# 冻结本体（唯一判据来源）：默认从这里取 issue 键与 status/polarity/evidence/action 判据。
+# 见 datasets/pol2/ontology/pol2-labels.v0.1.json；--issue-keys-file 可指向更新版本。
+ONTOLOGY_DEFAULT = Path(__file__).resolve().parents[1] / "ontology" / "pol2-labels.v0.1.json"
+
+# 历史草案（10 条，仅作对照与 --issue-keys-file 缺失时的参考，不参与默认派生）。
 ISSUE_LABELS_V01 = {
     "violence_worship": "暴力崇拜",
     "exclusive_private": "排他性私有",
@@ -72,33 +76,70 @@ FENCE = chr(96) * 3
 FENCE_RE = re.compile(re.escape(FENCE) + r"(?:json)?\s*(.*?)" + re.escape(FENCE), re.DOTALL)
 
 
-def load_issue_labels(path=None):
-    """Return an ordered {key: label} map; optionally overridden by an ontology file.
+def load_ontology(path=None):
+    """Load the frozen ontology JSON; returns (payload, source_path)."""
+    source = Path(path) if path else ONTOLOGY_DEFAULT
+    require(source.is_file(), f"ontology file not found: {source}; "
+                              f"pass --issue-keys-file or restore the frozen ontology")
+    payload = json.loads(source.read_text(encoding="utf-8-sig"))
+    require(isinstance(payload, dict), f"{source}: ontology must be a JSON object")
+    return payload, str(source)
 
-    Accepted file shapes: ["key", ...] | {"key": "label", ...} | {"issues": [...]}.
-    """
-    if path is None:
-        return dict(ISSUE_LABELS_V01)
-    payload = json.loads(open(path, encoding="utf-8-sig").read())
-    if isinstance(payload, dict) and "issues" in payload:
-        payload = payload["issues"]
-    if isinstance(payload, list):
+
+def load_issue_labels(path=None):
+    """Ordered {issue_key: zh_label} map from the ontology (or a legacy issue list)."""
+    payload, source = load_ontology(path)
+    issues = payload.get("issues")
+    if isinstance(issues, list):
         mapping = {}
-        for item in payload:
-            if isinstance(item, str):
-                mapping[item] = ISSUE_LABELS_V01.get(item, item)
-            elif isinstance(item, dict) and "key" in item:
-                mapping[item["key"]] = item.get("label", item["key"])
-            else:
-                raise ValueError(f"{path}: unsupported issue entry {item!r}")
-    elif isinstance(payload, dict):
-        mapping = dict(payload)
-    else:
-        raise ValueError(f"{path}: unsupported issue list shape")
-    require(bool(mapping), f"{path}: no issues")
-    require(all(isinstance(k, str) and k.strip() and isinstance(v, str) and v.strip()
-                for k, v in mapping.items()), f"{path}: issues need non-empty key and label")
-    return mapping
+        for item in issues:
+            require(isinstance(item, dict) and text(item.get("id")),
+                    f"{source}: each issue needs a non-empty id")
+            label = item.get("zh") or item.get("label") or item.get("en") or item["id"]
+            require(text(label), f"{source}: issue {item['id']} needs a non-empty zh label")
+            require(item["id"] not in mapping, f"{source}: duplicate issue id {item['id']}")
+            mapping[item["id"]] = label
+        require(bool(mapping), f"{source}: no issues")
+        return mapping
+    if isinstance(issues, dict):
+        return {key: (value if isinstance(value, str) else value.get("zh", key))
+                for key, value in issues.items()}
+    if isinstance(issues, list) or issues is None:
+        raise ValueError(f"{source}: ontology has no issues list")
+    raise ValueError(f"{source}: unsupported issues shape")
+
+
+def load_criteria(path=None):
+    """Authoritative criterion text for status/polarity/evidence/actions from the ontology."""
+    payload, source = load_ontology(path)
+    out = {}
+    for section, field in (("status", "key"), ("polarity", "key"), ("evidence", "key"),
+                           ("actions", "key")):
+        rows = payload.get(section)
+        require(isinstance(rows, list) and rows, f"{source}: missing {section} list")
+        mapping = {}
+        for item in rows:
+            require(isinstance(item, dict) and text(item.get(field)),
+                    f"{source}: {section} entries need a non-empty {field}")
+            require(text(item.get("criterion")), f"{source}: {section}.{item[field]} needs criterion")
+            mapping[item[field]] = item["criterion"]
+        out[section] = mapping
+    return out
+
+
+def issue_alignment_report(path=None):
+    """Compare the frozen ontology issues with the historical draft list."""
+    labels = load_issue_labels(path)
+    draft = set(ISSUE_LABELS_V01)
+    keys = set(labels)
+    label_mismatch = {key: {"draft": ISSUE_LABELS_V01[key], "ontology": labels[key]}
+                      for key in sorted(keys & draft) if ISSUE_LABELS_V01[key] != labels[key]}
+    return {"ontology": str(Path(path) if path else ONTOLOGY_DEFAULT),
+            "issues": len(keys), "keys": sorted(keys),
+            "added_by_ontology": sorted(keys - draft),
+            "only_in_draft": sorted(draft - keys),
+            "label_mismatch": label_mismatch,
+            "aligned": not (draft - keys) and not label_mismatch}
 
 
 # ------------------------------------------------------------------ question derivation
@@ -119,22 +160,34 @@ def _option_list(options):
     return "\n".join(f"- {option['key']}：{option['label']}" for option in options)
 
 
-def question_specs(case, issue_labels=None, with_score=False):
-    """Deterministic question specs for one case (order is stable)."""
-    issue_labels = dict(ISSUE_LABELS_V01 if issue_labels is None else issue_labels)
+def question_specs(case, issue_labels=None, with_score=False, criteria=None):
+    """Deterministic question specs for one case (order is stable).
+
+    issue_labels=None 表示用冻结本体；再传 criteria=None 时判据文本也取自本体。
+    """
+    if issue_labels is None:
+        issue_labels = load_issue_labels()
+        if criteria is None:
+            criteria = load_criteria()
+    issue_labels = dict(issue_labels)
+    criteria = criteria or {}
+    status_text = criteria.get("status") or STATUS_CRITERIA
+    action_text = criteria.get("actions") or ACTION_CRITERIA
+    polarity_text = criteria.get("polarity") or POLARITY_CRITERIA
+    evidence_text = criteria.get("evidence") or EVIDENCE_CRITERIA
     specs = [
         {"kind": "choice", "key": "status",
          "prompt": "在给定上下文中，target 这一行为属于哪一种状态？",
-         "options": [{"key": key, "label": STATUS_CRITERIA[key]} for key in STATUSES]},
+         "options": [{"key": key, "label": status_text[key]} for key in STATUSES]},
         {"kind": "choice", "key": "action",
          "prompt": "根据 surface 与状态，当前对象应当采取哪种处置？可接受多个动作时也要先给一个首选。",
-         "options": [{"key": key, "label": ACTION_CRITERIA[key]} for key in ACTIONS]},
+         "options": [{"key": key, "label": action_text[key]} for key in ACTIONS]},
         {"kind": "choice", "key": "polarity",
          "prompt": "用 PoL2 原生极性看，这一行为属于爱2、恨2、非爱非恨的在场缺席，还是无法判断？",
-         "options": [{"key": key, "label": POLARITY_CRITERIA[key]} for key in POLARITIES]},
+         "options": [{"key": key, "label": polarity_text[key]} for key in POLARITIES]},
         {"kind": "choice", "key": "evidence",
          "prompt": "判断该行为所需的证据状态如何？",
-         "options": [{"key": key, "label": EVIDENCE_CRITERIA[key]} for key in EVIDENCE]},
+         "options": [{"key": key, "label": evidence_text[key]} for key in EVIDENCE]},
     ]
     for key, label in issue_labels.items():
         specs.append({
@@ -151,11 +204,12 @@ def question_specs(case, issue_labels=None, with_score=False):
     return specs
 
 
-def build_questions(case, issue_labels=None, with_score=False):
+def build_questions(case, issue_labels=None, with_score=False, criteria=None):
     """Derive contract question records from one case; prompts are self-contained."""
     block = context_block(case)
     rows = []
-    for spec in question_specs(case, issue_labels=issue_labels, with_score=with_score):
+    for spec in question_specs(case, issue_labels=issue_labels, with_score=with_score,
+                               criteria=criteria):
         if spec["kind"] == "score":
             body = (f"{block}\n\n【问题】{spec['prompt']}\n"
                     f"取值范围：{spec['scale']['min']} 到 {spec['scale']['max']} 的数字。")
@@ -188,34 +242,65 @@ def answer_prompt(question):
 
 # ------------------------------------------------------------------ JSON extraction
 
+def balanced_spans(raw):
+    """All balanced {...} / [...] spans, longest first（字符串与转义不参与配对）。"""
+    spans = []
+    for start, char in enumerate(raw):
+        if char not in "{[":
+            continue
+        stack = []
+        in_string = False
+        escaped = False
+        for index in range(start, len(raw)):
+            current = raw[index]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif current == "\\":
+                    escaped = True
+                elif current == '"':
+                    in_string = False
+                continue
+            if current == '"':
+                in_string = True
+            elif current in "{[":
+                stack.append(current)
+            elif current in "}]":
+                if not stack:
+                    break
+                opener = stack.pop()
+                if (opener, current) not in (("{", "}"), ("[", "]")):
+                    break
+                if not stack:
+                    spans.append((start, index + 1))
+                    break
+    spans.sort(key=lambda span: span[1] - span[0], reverse=True)
+    return [raw[start:end] for start, end in spans]
+
+
 def parse_json_payload(raw, expect=None):
-    """Extract the first JSON value from model text; fenced blocks are accepted."""
+    """Extract the first JSON value from model text.
+
+    依次尝试：markdown 围栏内容 → 平衡括号片段（从长到短）→ 原文本身。
+    容忍前后解说文字与截断以外的噪声。
+    """
     require(text(raw), "empty model output")
-    candidates = [match.group(1) for match in FENCE_RE.finditer(raw)]
-    candidates.append(raw)
+    candidates = [match.group(1).strip() for match in FENCE_RE.finditer(raw)]
+    candidates.extend(balanced_spans(raw))
+    candidates.append(raw.strip())
     wanted = "[" if expect == "list" else "{" if expect == "dict" else None
     for candidate in candidates:
-        stripped = candidate.strip()
-        positions = []
-        if wanted in (None, "{"):
-            positions.extend(index for index, char in enumerate(stripped) if char == "{")
-        if wanted in (None, "["):
-            positions.extend(index for index, char in enumerate(stripped) if char == "[")
-        for start in sorted(set(positions)):
-            opener = stripped[start]
-            closer = "}" if opener == "{" else "]"
-            end = stripped.rfind(closer)
-            if end <= start:
-                continue
-            try:
-                value = json.loads(stripped[start:end + 1])
-            except json.JSONDecodeError:
-                continue
-            if wanted == "dict" and not isinstance(value, dict):
-                continue
-            if wanted == "list" and not isinstance(value, list):
-                continue
-            return value
+        if not candidate:
+            continue
+        try:
+            value = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if wanted == "dict" and not isinstance(value, dict):
+            continue
+        if wanted == "list" and not isinstance(value, list):
+            continue
+        return value
     raise ValueError("no parseable JSON payload in model output")
 
 
@@ -349,9 +434,27 @@ def family_coverage(expected_statuses):
 
 # ------------------------------------------------------------------ generation prompt
 
-def generation_prompt(family, pairs, seed):
+REASON_HINTS = {
+    "shortcut_risk": "两条例子的差异只落在情绪或礼貌词上；请把差异改到事实、授权、同意、条件或证据上",
+    "weak_pair": "两条例子的场景骨架差得太远；请保持同一情节，只改一处关键事实",
+    "status_conflict": "两条 expected_status 必须相反（如 conforming vs violating、conforming vs insufficient）",
+    "structure_mismatch": "两条必须使用同一 surface，且 context 条数一致",
+    "missing_key_fact": "必须给出 key_fact/a_value/b_value，说明被改动的那一处",
+    "malformed": "字段不完整或不是合法 JSON；请严格按输出格式给出完整对象",
+    "missing_pair": "组数不足；请给出要求数量的完整对",
+    "duplicate": "与已生成内容重复；请换一个不同的情节骨架",
+}
+
+
+def generation_prompt(family, pairs, seed, feedback=None):
     surfaces = "、".join(family["surfaces"])
     clauses = "、".join(family["clauses"])
+    retry_block = ""
+    if feedback:
+        lines = ["\n上一次尝试不合格，请重写下面这些组，不要重复同样的错误："]
+        for slot, reason in feedback:
+            lines.append(f"- 第 {slot + 1} 组：{REASON_HINTS.get(reason, reason)}")
+        retry_block = "\n".join(lines) + "\n"
     return (
         "你是 PoL2 中文决策数据集的出题者。请生成 {pairs} 组「最小对立对」，"
         "只输出 JSON，不要解释。\n\n"
@@ -368,6 +471,7 @@ def generation_prompt(family, pairs, seed):
         "5. 不要写出结论或判定词（合规、违规、违反政策等）；不要给 target 加标签。\n"
         "6. context 是 1-4 条按时间顺序的中文字符串，target 是被判定的那句话或那个动作，"
         "policy 用一句中文概括所引条款的规范要求，clause 从可用条款中选择。\n\n"
+        + retry_block +
         "输出格式：\n"
         '{{"pairs":[{{"key_fact":"被改动的那一处事实","a_value":"A 侧取值","b_value":"B 侧取值",'
         '"variants":{{"a":{{"expected_status":"...","lang":"zh","surface":"...",'
@@ -393,11 +497,42 @@ def normalize_pair(raw_pair, where="pair"):
             "variants": {key: variants[key] for key in ("a", "b")}}
 
 
+def _pair_like(value):
+    if not isinstance(value, dict):
+        return False
+    variants = value.get("variants")
+    if isinstance(variants, (dict, list)):
+        return True
+    return isinstance(value.get("a"), dict) and isinstance(value.get("b"), dict)
+
+
 def parse_pairs(raw):
-    """Parse model output into a list of normalized pairs; tolerant of wrapper shapes."""
+    """Parse model output into normalized pairs; tolerant of wrapper shapes."""
     payload = parse_json_payload(raw)
+    candidates = []
     if isinstance(payload, dict):
-        payload = payload.get("pairs", payload.get("cases", payload.get("data")))
-    require(isinstance(payload, list), "generation output must be a JSON array of pairs")
-    return [normalize_pair(item, where=f"pairs[{position}]")
-            for position, item in enumerate(payload, 1)]
+        for key in ("pairs", "cases", "data", "items", "results"):
+            if isinstance(payload.get(key), list):
+                candidates.append(payload[key])
+        for value in payload.values():
+            if isinstance(value, list) and value and _pair_like(value[0]):
+                candidates.append(value)
+    elif isinstance(payload, list):
+        candidates.append(payload)
+    for candidate in candidates:
+        if candidate and _pair_like(candidate[0]):
+            return [normalize_pair(item, where=f"pairs[{position}]")
+                    for position, item in enumerate(candidate, 1)]
+    if isinstance(payload, list) and payload and isinstance(payload[0], dict) \
+            and "pair_id" in payload[0]:
+        grouped = {}
+        for item in payload:
+            grouped.setdefault(item["pair_id"], {})[item.get("variant", "a")] = item
+        pairs = []
+        for pair_id, members in grouped.items():
+            if set(members) >= {"a", "b"}:
+                pairs.append(normalize_pair({"variants": members, "key_fact": pair_id},
+                                            where=f"pair {pair_id}"))
+        require(bool(pairs), "case list carried no complete pair")
+        return pairs
+    raise ValueError("generation output carries no pair list")

@@ -91,6 +91,10 @@ variant 为 a/b，diff 记录被改动的那一处（key_fact/a/b）。
     ... --live --concurrency 8              # 真实生成；并发上限按族
     ... --fixture                           # 离线合成数据跑通链路
 
+- **判据来源**：issue 选项与 status/polarity/evidence/action 判据默认取自冻结本体
+  datasets/pol2/ontology/pol2-labels.v0.1.json（15 个 issue slug）；--issue-keys-file 可指向
+  新版本本体。运行 generate.py --check-ontology 可打印 issue 键对照与枚举一致性（退出码非 0
+  表示与本体不一致）。本体是唯一判据来源，代码不另立清单。
 - --limit N 是 case 数目标，按整对向上取整（N=5 → 3 对 6 条）。--family 可重复，
   --families-filter 支持逗号列表。--assign 用 splits.py 的分配表（family_id/region/…）；
   没有分配表时用 --region 指定单一分区。
@@ -110,7 +114,17 @@ variant 为 a/b，diff 记录被改动的那一处（key_fact/a/b）。
       calls.jsonl                      每次 HTTP 尝试：延迟、token、成本
       run.json                         运行汇总（可重复运行，原子重写）
 
-- **断点续跑**：批次文件存在且校验通过即跳过；失败批次不写文件，重跑只补失败部分。
+- **不合格对的处理（不放宽判定）**：结构不完整、expected_status 不相反、只靠情绪/礼貌词区分
+  （shortcut_risk）、骨架差太远（weak_pair）、context 结构不一致的对，会带失败原因回灌到下一次
+  提示里重生成（--pair-attempts，默认 3 次）；仍不合格就**丢弃并计数**（qa/families.jsonl 的
+  dropped_pairs / drop_reasons），绝不带着质量标记留在数据集里。整体材料完全重复的对直接丢弃并
+  计数，不再花调用重生成。
+- **结构化输出**：sub 路由实测支持 response_format={"type":"json_object"}（2026-09-30），
+  generate.py --response-format json_object 可显著降低解析失败；--max-tokens 建议 16384，
+  因为 reasoning 会吃掉 8192 预算并导致截断/空 content。解析仍然坚持"必须取出结构"，不做
+  宽松兜底。
+- **断点续跑**：批次有 batch-<k>.done.json 标记且三件产物齐全即跳过；失败批次不写文件、不留
+  标记，重跑只补失败部分（丢弃与重生成计数写在标记里）。
   配置（族清单哈希、limit、seed、模板版本…）变化时拒绝复用同一 --out，请换新目录。
 - **幂等 id**：pol2-<region>-<6 位序号> 按族 id 排序后在分区内连续分配；
   pair_id 为 pol2-<region>-p<6 位序号>。改变 --limit/族集合会改变编号 → 换新 --out。
@@ -211,3 +225,30 @@ stdout 汇总给出 calls / ok / failed / tokens / cost / p50 / p95。价格用 
 - **未做**：教师模型（gpt-6.1-sol / grok-4.7 / mimo-v2.6-pro）的真实调用、17 族放量、
   官方 Jev 接入、人工复核。放量前需 Lead 另行批准。
 - **Jev**：官方请求/响应形状未核实，run 会明确拒绝执行（详见第 3 节）。
+
+## 11. 试点实测指标与放量预算（2026-09-30）
+
+配置：--live --workers 8 --pairs-per-batch 3 --pair-attempts 3 --max-attempts 4
+--response-format json_object --max-tokens 16384；两族 train 共 224 条 case。
+产出目录：smoke/luna-pilot-2families/（含逐条分析 analysis.md）。
+
+| 放量门槛 | 要求 | 实测 | 结论 |
+|---|---|---|---|
+| 解析失败率（含重试后） | < 5% | 0%（json_object 时代 49 次尝试中 invalid=0） | 达标 |
+| 尝试失败率（网络瞬断） | — | 12.2%（5 次 SSL EOF + 1 次 524） | 由 4 次尝试上限吸收，超限批次留待续跑 |
+| duplicate_case 率 | < 1% | 0.00%（族内与跨族精确重复均为 0） | 达标 |
+| shortcut_risk | 0 | 0（另有 4 个 slot 触发重生成后合格） | 达标 |
+| 每族三类齐备 | 是 | 是：46/41/25 与 53/36/23（conforming/violating/insufficient） | 达标 |
+| 组内 status 相反 | 是 | 112/112 组（64 组 conforming↔violating，35 组 conforming↔insufficient，13 组 insufficient↔violating） | 达标 |
+| 丢弃 | 记录并计数 | 0 组丢弃 | — |
+
+产出规模与成本（json_object 时代实测）：
+
+- 成功调用均值：prompt 4,813 tokens、completion 1,286 tokens，单次延迟 p50 25.3s（max 111.5s）。
+- 每千条 case：约 190 次调用，约 0.91M prompt + 0.24M completion tokens（约 1.16M tokens）。
+- 全量 96 族 10,904 条：约 2,071 次调用，约 10.0M prompt + 2.7M completion tokens；
+  并发 8 约 1.8 小时；按 12% 尝试失败率预计约 250 次失败尝试由重试吸收。
+- cost_usd：sub 路由不返回价格，调用日志与 run.json 写 null（不编造数字）；拿到价格后用
+  --price-in/--price-out 即可自动计算。
+- 历史对照：换用 json_object 之前，两族 107 次尝试中 16 次失败（15%），其中 15 次是
+  "no parseable JSON"；改结构化输出 + max_tokens 16384 后解析失败归零。

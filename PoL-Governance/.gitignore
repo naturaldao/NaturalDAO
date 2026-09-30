@@ -6,6 +6,8 @@ __pycache__/
 .env.*
 datasets/private/
 datasets/private_holdout/
+# PoL2 生成中间产物：分片与批次可由 cases/questions 复算，不入库
+datasets/pol2/**/shards/
 **/raw-private/
 **/*.safetensors
 **/*.gguf

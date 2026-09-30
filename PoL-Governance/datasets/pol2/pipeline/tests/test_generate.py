@@ -17,6 +17,20 @@ def family(family_id, target_cases=6, surfaces=("assistant_output",), clauses=("
             "clauses": list(clauses), "target_cases": target_cases}
 
 
+def shortcut_pair():
+    """只靠情绪/礼貌词区分的一对，必须被重生成或被丢弃。"""
+    return {"key_fact": "措辞", "a_value": "请", "b_value": "滚",
+            "variants": {
+                "a": {"expected_status": "conforming", "surface": "assistant_output",
+                      "context": ["同一情节。", "同一轮次。"],
+                      "target": "请你继续按原来的安排执行。", "policy": "示例政策。",
+                      "clause": "PoL.2.10"},
+                "b": {"expected_status": "violating", "surface": "assistant_output",
+                      "context": ["同一情节。", "同一轮次。"],
+                      "target": "滚，继续按原来的安排执行。", "policy": "示例政策。",
+                      "clause": "PoL.2.10"}}}
+
+
 class FakeClient:
     """离线替身：把 fixture 最小对立对按 Luna 的输出形状返回。"""
 
@@ -178,28 +192,81 @@ class GenerateTestCase(unittest.TestCase):
         self.assertEqual(len(healthy.calls), 1)
         self.assertEqual({call["family_id"] for call in healthy.calls}, {"other.axis"})
 
-    def test_shortcut_pair_is_flagged_not_silently_accepted(self):
+    def test_shortcut_pairs_are_regenerated_with_feedback(self):
         self.write_families([family("demo.axis")])
-        client = FakeClient(shortcut_families={"demo.axis"})
+        spec = {"family_id": "demo.axis", "surfaces": ["assistant_output"],
+                "clauses": ["PoL.2.10"], "axis_desc": ""}
+
+        class ShortcutFirstClient(FakeClient):
+            def __init__(self):
+                super().__init__()
+                self.prompts = []
+
+            def chat(self, messages, max_tokens=None):
+                prompt = messages[-1]["content"]
+                self.prompts.append(prompt)
+                take = int(prompt.split("请生成 ", 1)[1].split(" 组", 1)[0])
+                if "上一次尝试不合格" in prompt:
+                    pairs = fixtures.fixture_pairs(spec, take, seed=5)
+                else:
+                    pairs = [shortcut_pair() for _ in range(take)]
+                return {"text": json.dumps({"pairs": pairs}, ensure_ascii=False),
+                        "latency_ms": 1.0, "attempts": 1, "usage": {}}
+
+        client = ShortcutFirstClient()
         code = self.run_generate("--live", factory=lambda args: client)
         self.assertEqual(code, 0)
+        self.assertEqual(len(client.prompts), 2)
+        self.assertIn("情绪或礼貌词", client.prompts[1])
         cases = read_jsonl(self.out / "train.cases.jsonl")
-        self.assertTrue(all("shortcut_risk" in case["provenance"]["quality_flag"]
+        self.assertTrue(cases)
+        self.assertTrue(all("shortcut_risk" not in case["provenance"]["quality_flag"]
                             for case in cases))
         qa = read_jsonl(self.out / "qa" / "families.jsonl")[0]
-        self.assertIn("shortcut_risk", qa["quality_flags"])
-        self.assertEqual(qa["shortcut_risk_pairs"], qa["pairs"])
+        self.assertEqual(qa["quality_flags"], [])
+        self.assertEqual(qa["regenerated_slots"], qa["slots"])
+        self.assertEqual(qa["dropped_pairs"], 0)
+
+    def test_pairs_are_dropped_after_attempt_limit(self):
+        self.write_families([family("demo.axis", target_cases=2)])
+
+        class AlwaysShortcut(FakeClient):
+            def chat(self, messages, max_tokens=None):
+                prompt = messages[-1]["content"]
+                take = int(prompt.split("请生成 ", 1)[1].split(" 组", 1)[0])
+                return {"text": json.dumps({"pairs": [shortcut_pair() for _ in range(take)]},
+                                           ensure_ascii=False),
+                        "latency_ms": 1.0, "attempts": 1, "usage": {}}
+
+        code = self.run_generate("--live", "--pair-attempts", "2",
+                                 factory=lambda args: AlwaysShortcut())
+        self.assertEqual(code, 0)
+        cases = read_jsonl(self.out / "train.cases.jsonl")
+        self.assertEqual(cases, [])
+        qa = read_jsonl(self.out / "qa" / "families.jsonl")[0]
+        self.assertEqual(qa["dropped_pairs"], 1)
+        self.assertEqual(qa["drop_reasons"], {"shortcut_risk": 1})
+        self.assertTrue(qa["incomplete"])
+        run = json.loads((self.out / "run.json").read_text(encoding="utf-8"))
+        self.assertEqual(run["state"], "finished")
+        self.assertEqual(run["dropped_pairs"], 1)
+        self.assertFalse(run["class_coverage_complete"])
 
     def test_unknown_family_filter_is_rejected(self):
         with self.assertRaises(SystemExit) as caught:
             self.run_generate("--fixture", "--family", "nope.nope")
         self.assertEqual(caught.exception.code, 2)
 
-    def test_duplicate_targets_get_flagged(self):
+    def test_duplicate_pairs_are_dropped_not_kept(self):
         self.write_families([family("demo.axis")])
 
         class DuplicateClient(FakeClient):
+            def __init__(self):
+                super().__init__()
+                self.prompts = []
+
             def chat(self, messages, max_tokens=None):
+                self.prompts.append(messages[-1]["content"])
                 result = super().chat(messages, max_tokens)
                 payload = json.loads(result["text"])
                 payload["pairs"][-1] = json.loads(json.dumps(payload["pairs"][0]))
@@ -209,11 +276,15 @@ class GenerateTestCase(unittest.TestCase):
         client = DuplicateClient()
         code = self.run_generate("--live", factory=lambda args: client)
         self.assertEqual(code, 0)
+        self.assertEqual(len(client.prompts), 1)  # 重复直接丢弃，不重生成
         qa = read_jsonl(self.out / "qa" / "families.jsonl")[0]
-        self.assertGreaterEqual(qa["duplicate_case_cases"], 2)
+        self.assertEqual(qa["dropped_pairs"], 1)
+        self.assertEqual(qa["drop_reasons"], {"duplicate": 1})
+        self.assertEqual(qa["duplicate_case_cases"], 0)
         cases = read_jsonl(self.out / "train.cases.jsonl")
-        self.assertTrue(any("duplicate_case" in case["provenance"]["quality_flag"]
+        self.assertTrue(all("duplicate_case" not in case["provenance"]["quality_flag"]
                             for case in cases))
+        self.assertEqual(len(cases), 2 * (qa["slots"] - 1))
 
 
 if __name__ == "__main__":

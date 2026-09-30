@@ -121,6 +121,8 @@ def build_parser():
     parser.add_argument("--price-in", type=float)
     parser.add_argument("--price-out", type=float)
     parser.add_argument("--user-agent", help="覆盖 HTTP User-Agent")
+    parser.add_argument("--retry-invalid", action="store_true",
+                        help="把空 content / 解析失败当作可重试（默认关：真值调用保守）")
     parser.add_argument("--save-raw", action="store_true",
                         help="把原始响应写进 raw（仅在许可允许公开时使用）")
     parser.add_argument("--fixture-disagreement-rate", type=float, default=0.0)
@@ -172,7 +174,7 @@ def main(argv=None, client_factory=None):
                 key_env=parsed.key_env, key_file=parsed.key_file, timeout=parsed.timeout,
                 max_attempts=parsed.max_attempts, log=call_log, max_tokens=parsed.max_tokens,
                 price_in=parsed.price_in, price_out=parsed.price_out,
-                user_agent=parsed.user_agent))
+                user_agent=parsed.user_agent, retry_invalid=parsed.retry_invalid))
             client = factory(args)
             args.model = getattr(client, "model", args.model)
         except (OSError, ValueError) as error:

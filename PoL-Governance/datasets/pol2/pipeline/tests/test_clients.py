@@ -112,6 +112,17 @@ class RetryTests(unittest.TestCase):
         client, _, _ = make_client([(200, payload.encode("utf-8"), {})])
         self.assertEqual(client.chat([{"role": "user", "content": "hi"}])["text"], "推理结果")
 
+    def test_invalid_can_be_retried_when_asked(self):
+        empty = json.dumps({"choices": [{"message": {"content": "", "reasoning_content": ""}}]})
+        client, log, slept = make_client([(200, empty.encode("utf-8"), {}),
+                                          (200, body("recovered"), {})], retry_invalid=True)
+        self.assertEqual(client.chat([{"role": "user", "content": "hi"}])["text"], "recovered")
+        self.assertEqual([row["ok"] for row in log.rows], [False, True])
+        self.assertEqual(log.rows[0]["failure_kind"], "invalid")
+        self.assertEqual(log.rows[1]["retries"], 1)
+        self.assertEqual(log.summary()["failed_by_kind"], {"invalid": 1})
+        self.assertEqual(log.summary()["invalid_attempt_rate"], 0.5)
+
     def test_key_never_appears_in_log_or_summary(self):
         client, log, _ = make_client([(200, body("done"), {})])
         client.chat([{"role": "user", "content": "hi"}])
@@ -126,6 +137,9 @@ class RetryTests(unittest.TestCase):
         client.chat([{"role": "user", "content": "hi"}])
         self.assertAlmostEqual(log.rows[0]["cost_usd"], (1000 * 1.0 + 500 * 2.0) / 1e6)
         self.assertAlmostEqual(log.summary()["cost_usd"], 0.002)
+        unpriced, unpriced_log, _ = make_client([(200, body("done"), {})])
+        unpriced.chat([{"role": "user", "content": "hi"}])
+        self.assertIsNone(unpriced_log.summary()["cost_usd"])  # 价格未知写 null，不编造 0
 
 
 class ProtocolTests(unittest.TestCase):

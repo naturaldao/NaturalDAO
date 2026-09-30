@@ -69,6 +69,19 @@ class AnswerParsingTests(unittest.TestCase):
         self.assertIsNone(probs)
         self.assertTrue(any(note.startswith("probs_dropped") for note in notes))
 
+    def test_surrounding_prose_and_balanced_extraction(self):
+        answer, _, _ = prompts.parse_answer(
+            '好的，我的判断如下：\n{"answer": "violating", "confidence": 0.8}\n以上。', self.status)
+        self.assertEqual(answer, "violating")
+        pairs = prompts.parse_pairs(
+            '结果：\n{"pairs": [{"key_fact": "同意", "variants": '
+            '{"a": {"target": "x"}, "b": {"target": "y"}}}]}\n（完）')
+        self.assertEqual(len(pairs), 1)
+        nested = prompts.parse_json_payload('前言 {"a": {"b": [1, 2]}} 后记')
+        self.assertEqual(nested, {"a": {"b": [1, 2]}})
+        with self.assertRaises(ValueError):
+            prompts.parse_json_payload('{"未闭合": [1, 2')
+
     def test_plain_text_and_ambiguous_text(self):
         answer, _, notes = prompts.parse_answer("结论：violating", self.status)
         self.assertEqual(answer, "violating")
@@ -156,6 +169,43 @@ class PairQualityTests(unittest.TestCase):
         coverage = prompts.family_coverage(["conforming", "conforming"])
         self.assertFalse(coverage["complete"])
         self.assertEqual(coverage["missing"], ["violating", "insufficient"])
+
+
+class OntologyTests(unittest.TestCase):
+    def test_frozen_ontology_is_the_default_source(self):
+        labels = prompts.load_issue_labels()
+        self.assertEqual(len(labels), 15)
+        self.assertEqual(labels["consent_violation"], "违背持续同意")
+        criteria = prompts.load_criteria()
+        self.assertEqual(sorted(criteria["status"]), sorted(prompts.STATUSES))
+        self.assertEqual(sorted(criteria["polarity"]), sorted(prompts.POLARITIES))
+        self.assertEqual(sorted(criteria["evidence"]), sorted(prompts.EVIDENCE))
+        self.assertEqual(sorted(criteria["actions"]), sorted(prompts.ACTIONS))
+
+    def test_alignment_report_confirms_ontology_wins(self):
+        report = prompts.issue_alignment_report()
+        self.assertTrue(report["aligned"])
+        self.assertEqual(report["issues"], 15)
+        self.assertEqual(report["only_in_draft"], [])
+        self.assertEqual(report["label_mismatch"], {})
+        self.assertEqual(report["added_by_ontology"],
+                         ["consent_violation", "harm_facilitation", "tool_scope_overreach",
+                          "unnecessary_restriction", "untrusted_instruction_injection"])
+
+    def test_questions_use_ontology_keys_and_criteria(self):
+        case = make_case()
+        questions = prompts.build_questions(case)
+        issue_keys = [row["key"] for row in questions if row["key"].startswith("issue.")]
+        self.assertEqual(len(issue_keys), 15)
+        self.assertIn("issue.consent_violation", issue_keys)
+        status = next(row for row in questions if row["key"] == "status")
+        criterion = prompts.load_criteria()["status"]["violating"]
+        self.assertEqual(next(option["label"] for option in status["options"]
+                              if option["key"] == "violating"), criterion)
+
+    def test_missing_ontology_file_is_an_explicit_error(self):
+        with self.assertRaises(ValueError):
+            prompts.load_issue_labels("does-not-exist.json")
 
 
 class GenerationPromptTests(unittest.TestCase):
