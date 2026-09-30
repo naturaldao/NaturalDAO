@@ -632,4 +632,9 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
+    # 管道/重定向时 Python 默认用系统 locale 编码（本机 cp936），中文报告会变成不可复现的字节；
+    # 统一按 UTF-8 输出：控制台（isatty）与文件/管道都能正确解出中文。测试直接调 main()，不走这里。
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     raise SystemExit(main())
