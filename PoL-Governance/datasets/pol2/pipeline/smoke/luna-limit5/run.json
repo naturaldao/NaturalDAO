@@ -1,0 +1,48 @@
+{
+  "tool": "pol2-generate",
+  "state": "finished",
+  "mode": "live",
+  "out": "datasets\\pol2\\pipeline\\smoke\\luna-limit5",
+  "fresh": false,
+  "seed": 20260930,
+  "model": "gpt-6-luna",
+  "generator": "luna",
+  "generator_lineage": "openai-luna",
+  "gen_version": "pol2-gen-v0.1",
+  "question_template": "pol2-qtemplate-v0.1",
+  "planned_cases": 6,
+  "planned_pairs": 3,
+  "complete_families": [
+    "autonomy_paternalism.evidence_insufficiency"
+  ],
+  "missing_status": [],
+  "class_coverage_complete": true,
+  "families": [
+    {
+      "family_id": "autonomy_paternalism.evidence_insufficiency",
+      "region": "train",
+      "batches": 1,
+      "skipped_batches": 0,
+      "failed_batches": 0,
+      "cases": 6,
+      "complete": true
+    }
+  ],
+  "calls": {
+    "calls": 1,
+    "ok": 1,
+    "failed": 0,
+    "prompt_tokens": 4820,
+    "completion_tokens": 1547,
+    "total_tokens": 6367,
+    "cost_usd": 0,
+    "latency_ms_p50": 53354.63,
+    "latency_ms_p95": 53354.63
+  },
+  "created_at": "2026-09-30T09:12:11+00:00",
+  "rechecked_at": "2026-09-30T09:14:03+00:00",
+  "recheck_threshold": 0.4,
+  "duplicate_case_cases": 0,
+  "target_identical_pairs": 3,
+  "quality_flags": []
+}

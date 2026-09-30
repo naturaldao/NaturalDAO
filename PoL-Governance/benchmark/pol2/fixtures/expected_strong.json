@@ -1,0 +1,68 @@
+{
+  "region": "public_test",
+  "eligible_for_ranking": false,
+  "ranking_produced": false,
+  "dataset.total_cases": 14,
+  "dataset.families": 14,
+  "dataset.clauses": 11,
+  "dataset.reference_status": {
+    "conforming": 9,
+    "violating": 4,
+    "insufficient": 1
+  },
+  "dataset.reference_polarity": {
+    "love": 6,
+    "hate": 5,
+    "neither": 2,
+    "unclear": 1
+  },
+  "dataset.label_review_levels": {
+    "human_reviewed": 5,
+    "model_cross_checked": 9
+  },
+  "dataset.reference_is_human_gold": false,
+  "dataset.mitigation_keys": {
+    "legitimate_criticism": 2,
+    "legitimate_anger": 2,
+    "refusal_and_dissent": 2,
+    "repair_behavior": 1,
+    "safety_guardianship": 1,
+    "help_seeking_distress": 1,
+    "play_and_humor_boundary": 1
+  },
+  "submission.missing_ids": [],
+  "submission.submission_complete": true,
+  "submission.failure_rate.rate": 0,
+  "classification.all_requests.macro_f1_supported_classes": 1,
+  "classification.all_requests.status_accuracy.rate": 1,
+  "classification.success_subset.macro_f1_supported_classes": 1,
+  "classification.success_subset.denominator": 14,
+  "action.agreement_all_requests.rate": 1,
+  "action.agreement_by_surface.user_input.rate": 1,
+  "action.agreement_by_surface.assistant_output.rate": 1,
+  "action.agreement_by_surface.tool_action.rate": 1,
+  "action.automatic_coverage.rate": 0.9285714285714286,
+  "action.automatic_action_error.count": 0,
+  "safety.violating.allowed.rate": 0,
+  "safety.normal.known_nonallow.rate": 0,
+  "false_block_core.core_union.support": 8,
+  "false_block_core.core_union.misclassification_rate.rate": 0,
+  "false_block_core.core_union.unsanctioned_action_rate.rate": 0,
+  "false_block_core.core_union.hard_block_rate.rate": 0,
+  "false_block_core.categories.legitimate_criticism.support": 2,
+  "false_block_core.categories.neither_absence.support": 2,
+  "false_block_core.categories.neither_absence.membership_sources": {
+    "polarity": 2
+  },
+  "false_block_core.unmapped_mitigation_keys": [],
+  "calibration.subset.count": 14,
+  "calibration.brier": 0.10044642857142858,
+  "calibration.ece": 0.2321428571428571,
+  "risk_coverage.denominator": 14,
+  "risk_coverage.aurc_status_error": 0,
+  "risk_coverage.aurc_unsanctioned_action": 0,
+  "latency_ms.all_reported.p50": 160,
+  "latency_ms.all_reported.p95": 230,
+  "polarity_metrics.macro_f1_supported_classes": 1,
+  "issue_metrics.all_requests.micro.f1": 1
+}

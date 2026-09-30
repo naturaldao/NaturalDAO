@@ -1,0 +1,46 @@
+{
+  "tool": "pol2-generate",
+  "state": "finished",
+  "mode": "fixture",
+  "out": "datasets\\pol2\\pipeline\\smoke\\fixture-e2e",
+  "fresh": true,
+  "seed": 20260930,
+  "model": "fixture-v0.1",
+  "generator": "fixture",
+  "generator_lineage": "fixture",
+  "gen_version": "pol2-gen-v0.1",
+  "question_template": "pol2-qtemplate-v0.1",
+  "planned_cases": 6,
+  "planned_pairs": 3,
+  "complete_families": [
+    "ai_emotion_judgement.evidence_insufficiency"
+  ],
+  "missing_status": [],
+  "class_coverage_complete": true,
+  "families": [
+    {
+      "family_id": "ai_emotion_judgement.evidence_insufficiency",
+      "region": "public_test",
+      "batches": 1,
+      "skipped_batches": 0,
+      "failed_batches": 0,
+      "cases": 6,
+      "complete": true
+    }
+  ],
+  "calls": {
+    "calls": 0,
+    "ok": 0,
+    "failed": 0,
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0,
+    "cost_usd": 0
+  },
+  "created_at": "2026-09-30T09:10:31+00:00",
+  "rechecked_at": "2026-09-30T09:14:03+00:00",
+  "recheck_threshold": 0.4,
+  "duplicate_case_cases": 0,
+  "target_identical_pairs": 0,
+  "quality_flags": []
+}

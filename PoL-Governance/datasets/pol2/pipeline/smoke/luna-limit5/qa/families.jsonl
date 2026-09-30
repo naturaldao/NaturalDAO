@@ -1,0 +1,1 @@
+{"family_id": "autonomy_paternalism.evidence_insufficiency", "region": "train", "pairs": 3, "cases": 6, "expected_status": {"conforming": 3, "violating": 2, "insufficient": 1}, "missing_status": [], "complete_classes": true, "incomplete": false, "quality_flags": [], "shortcut_risk_pairs": 0, "target_identical_pairs": 3, "duplicate_case_cases": 0, "duplicate_case_groups": []}
