@@ -9,9 +9,12 @@
     "min_total": 10000,
     "min_per_domain": 1200,
     "domain_min": {
-      "pol2_axis": 400
+      "pol2_axis": 0
     },
-    "max_source_share": 0.4
+    "max_source_share": 0.4,
+    "domain_min_reason": {
+      "pol2_axis": "显式设为 0：通用决策底座不背 PoL2 专项配额（Lead 裁决 2026-09-30）。本目录的 18 个 HF 来源里没有 pol2_axis 语料，拿通用 state 跨域复用来凑数会让该域的 state 与判定轴语义不相干，是污染而不是填充。这一档由 datasets/pol2 的 PoL2 语料承担；等它落地后再把这里改成 400 并重跑 coverage.py。恒红的配额检查会失去信号，所以这里诚实写 0。"
+    }
   },
   "policy": {
     "revision": "每个来源必须固定 40 位 commit sha，无法固定的来源一律不收，原因记入 excluded。",
@@ -21,7 +24,8 @@
     "truth": "targets 只在来源真给出答案/分布时填写；单标签不伪装成概率。",
     "benchmarks": "评测集与排行榜基准本体整库不进训练（Praveenrajus/jev-bench 等 22 个已在 datasets/pol2/replay/survey.md 剔除）。",
     "share_cap": "单一来源占比不得超过 40%。",
-    "per_row_license": "逐行许可来源必须按行过滤，不能按卡面单一 SPDX 处理。"
+    "per_row_license": "逐行许可来源必须按行过滤，不能按卡面单一 SPDX 处理。",
+    "pol2_axis_quota": "pol2_axis 的 domain_min 由 sources.json 显式写成 0（原因见 quotas.domain_min_reason），quota 检查因此只对通用五域生效；PoL2 专项配额属于 datasets/pol2。"
   },
   "excluded": [
     {
