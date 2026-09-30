@@ -61,6 +61,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
+# 同目录的 taxonomy.py（db-schema）是问题键、题型、选项与量程的**唯一真源**：
+# 本 harness 不另立一套题型校验，避免与转换器/覆盖报告漂移（2026-09-30 真实 items.jsonl 踩过）。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+try:  # pragma: no cover - 仓库完整性兜底
+    import taxonomy  # noqa: E402
+    TAXONOMY_ERROR = None
+except ImportError as error:  # pragma: no cover
+    taxonomy = None
+    TAXONOMY_ERROR = error
+
 TOOL = "decision-base-ask"
 HARNESS_VERSION = "ask-v0.1"
 ANSWER_CONTRACT = "datasets/decision-base/README.md 2.2"
@@ -301,49 +311,57 @@ def validate_endpoint(url):
 
 # --------------------------------------------------------------------- items → requests
 
+def taxonomy_module(where):
+    if taxonomy is None:  # pragma: no cover - 仓库完整性兜底
+        raise ConfigError(f"{where}: 同目录缺 taxonomy.py（问题键/题型的唯一真源）：{TAXONOMY_ERROR}")
+    return taxonomy
+
+
 def validate_question(question, where):
-    require(isinstance(question, dict), f"{where}: question must be an object")
-    require(text(question.get("key")), f"{where}: question.key must be a non-empty string")
-    require(text(question.get("prompt")), f"{where}: question.prompt must be a non-empty string")
-    kind = question.get("kind")
-    require(kind in KINDS, f"{where}: question.kind must be one of {list(KINDS)}, got {kind!r}")
-    if kind in ("choice", "noul"):
-        require("scale" not in question, f"{where}: kind={kind} must not carry scale")
-        options = question.get("options")
-        require(isinstance(options, list) and options, f"{where}: kind={kind} requires options")
-        keys = []
-        for position, option in enumerate(options):
-            require(isinstance(option, dict), f"{where}.options[{position}] must be an object")
-            require(text(option.get("key")) and text(option.get("label")),
-                    f"{where}.options[{position}] needs non-empty key and label")
-            keys.append(option["key"])
-        require(len(keys) == len(set(keys)), f"{where}: options keys must be unique")
-        require(len(keys) <= 16, f"{where}: options must be at most 16 (契约 2.1)")
-        if kind == "noul":
-            require(set(keys) == set(NOUL_KEYS),
-                    f"{where}: noul options must be exactly {list(NOUL_KEYS)}, got {keys}")
-        else:
-            require(len(keys) >= 2, f"{where}: choice needs 2-16 options")
-    else:
-        require("options" not in question, f"{where}: kind=score must not carry options")
-        scale = question.get("scale")
-        require(isinstance(scale, dict), f"{where}: kind=score requires scale")
-        require(number(scale.get("min")) and number(scale.get("max")) and scale["min"] < scale["max"],
-                f"{where}.scale needs finite min < max")
-        labels = scale.get("labels")
-        require(isinstance(labels, dict) and labels, f"{where}.scale.labels must be a non-empty object")
-        for key, label in labels.items():
-            require(text(label), f"{where}.scale.labels[{key!r}] must be a non-empty string")
-            try:
-                point = float(key)
-            except (TypeError, ValueError):
-                raise ValueError(f"{where}.scale.labels key {key!r} must be numeric")
-            require(scale["min"] <= point <= scale["max"],
-                    f"{where}.scale.labels key {key} outside [{scale['min']}, {scale['max']}]")
+    """题型校验的唯一真源是 taxonomy.validate_question（契约 2.1 的实现方，不另立一套）。"""
+    errors = taxonomy_module(where).validate_question(question)
+    require(not errors, f"{where}: " + "；".join(errors))
     return question
 
 
-def load_requests(items_path, keys=None, domains=None, limit=None):
+def validate_item(item, where, strict_schema=True):
+    """strict_schema=True 时走 taxonomy.item_errors（README 2.1 全字段）。
+
+    这是 plan/run 的默认：在花钱调用之前就拦住形状不对的条目。
+    非严格模式只校验本 harness 真正消费的字段（id/state/questions），供 report/verify 分析既有产物。
+    """
+    require(isinstance(item, dict), f"{where}: item must be an object")
+    if strict_schema:
+        errors = taxonomy_module(where).item_errors(item)
+        if errors:
+            shown = "；".join(errors[:8]) + ("…" if len(errors) > 8 else "")
+            raise ValueError(f"{where}: 条目不符合 README 2.1（{len(errors)} 处）：{shown}"
+                             "（确需跳过用 --skip-item-schema，但请先修数据）")
+        return item
+    require(text(item.get("id")), f"{where}: item.id must be a non-empty string")
+    require(text(item.get("state")), f"{where}: item.state must be a non-empty string")
+    questions = item.get("questions")
+    require(isinstance(questions, list) and questions, f"{where}: item.questions must be non-empty")
+    return item
+
+
+def request_from_question(item, question):
+    """按 taxonomy 已校验过的形状展平成一条请求（scale.labels 是 min..max 的字符串数组）。"""
+    request = {"qid": f"{item['id']}.{question['key']}", "id": item["id"], "key": question["key"],
+               "kind": question["kind"], "domain": item.get("domain") or "",
+               "lang": item.get("lang") or "", "state": item["state"],
+               "question": question["prompt"]}
+    if question["kind"] == "score":
+        scale = question["scale"]
+        request["scale"] = {"min": int(scale["min"]), "max": int(scale["max"]),
+                            "labels": [str(label) for label in scale["labels"]]}
+    else:
+        request["options"] = [{"key": str(option["key"]), "label": str(option["label"])}
+                              for option in question["options"]]
+    return request
+
+
+def load_requests(items_path, keys=None, domains=None, limit=None, strict_items=True):
     """读 items.jsonl，展平成请求列表；qid = <item id>.<question key>（契约 2.1/2.2）。"""
     rows = read_jsonl(items_path)
     require(bool(rows), f"{items_path}: no items")
@@ -351,27 +369,15 @@ def load_requests(items_path, keys=None, domains=None, limit=None):
     seen = set()
     for position, item in enumerate(rows, 1):
         where = f"{items_path}[{position}]"
-        require(isinstance(item, dict), f"{where}: item must be an object")
-        require(text(item.get("id")), f"{where}: item.id must be a non-empty string")
-        require(text(item.get("state")), f"{where}: item.state must be a non-empty string")
+        validate_item(item, where, strict_schema=strict_items)
         questions = item.get("questions")
         require(isinstance(questions, list) and questions, f"{where}: item.questions must be non-empty")
         for question_position, question in enumerate(questions, 1):
             qwhere = f"{where}.questions[{question_position}]"
             validate_question(question, qwhere)
-            qid = f"{item['id']}.{question['key']}"
-            require(qid not in seen, f"{where}: duplicate qid {qid}")
-            seen.add(qid)
-            request = {"qid": qid, "id": item["id"], "key": question["key"],
-                       "kind": question["kind"], "domain": item.get("domain") or "",
-                       "lang": item.get("lang") or "", "state": item["state"],
-                       "question": question["prompt"]}
-            if question["kind"] == "score":
-                request["scale"] = {"min": question["scale"]["min"], "max": question["scale"]["max"],
-                                    "labels": dict(question["scale"]["labels"])}
-            else:
-                request["options"] = [{"key": option["key"], "label": option["label"]}
-                                      for option in question["options"]]
+            request = request_from_question(item, question)
+            require(request["qid"] not in seen, f"{where}: duplicate qid {request['qid']}")
+            seen.add(request["qid"])
             requests.append(request)
     selected = requests
     if keys:
@@ -402,17 +408,20 @@ def plan_row(request):
 # --------------------------------------------------------------------- answer contract 2.2
 
 def expected_prob_keys(question):
+    """问题的完整取值域：score 是 min..max 的整数分级（字符串键，与 taxonomy 一致），其余是选项 key。"""
     if question["kind"] == "score":
-        return list(question["scale"]["labels"])
+        scale = question["scale"]
+        return [str(level) for level in range(int(scale["min"]), int(scale["max"]) + 1)]
     return [option["key"] for option in question["options"]]
 
 
 def normalize_probs(raw, keys=None):
-    """归一到 1；键必须与问题取值域一致（否则调用方丢弃，不伪造概率）。"""
+    """归一到 1；键必须落在问题的取值域内（允许只给部分取值，与 taxonomy._prob_errors 同口径）。"""
     require(isinstance(raw, dict) and raw, "probs must be a non-empty object")
     require(all(text(key) for key in raw), "probs keys must be non-empty strings")
     if keys is not None:
-        require(set(raw) == set(keys), f"probs keys {sorted(raw)} != {sorted(keys)}")
+        unknown = sorted(set(raw) - set(keys))
+        require(not unknown, f"probs keys {unknown} not in {sorted(keys)}")
     values = {}
     for key, value in raw.items():
         require(number(value) and value >= 0, f"probs[{key}] must be a finite number >= 0")
@@ -536,8 +545,12 @@ def resolve_outcome(raw, question):
     raw_probs = raw.get("probs")
     if raw_probs is not None:
         if isinstance(raw_probs, dict) and raw_probs:
+            expected = expected_prob_keys(question)
             try:
-                probs = normalize_probs(raw_probs, keys=expected_prob_keys(question))
+                probs = normalize_probs(raw_probs, keys=expected)
+                if set(raw_probs) != set(expected):
+                    flags["probs_partial"] = True
+                    notes.append("probs_partial: 源只给了部分取值的概率（其余取值按 0 计）")
             except ValueError as error:
                 notes.append(f"probs_dropped: {error}")
                 flags["probs_dropped"] = True
@@ -987,8 +1000,9 @@ def chat_prompt(request):
              f"问题（question）：{request['question']}"]
     if request["kind"] == "score":
         scale = request["scale"]
-        lines.append(f"分值范围：{scale['min']} 到 {scale['max']}（整数）；"
-                     f"标签：{json.dumps(scale['labels'], ensure_ascii=False)}")
+        levels = list(range(int(scale["min"]), int(scale["max"]) + 1))
+        described = "；".join(f"{level}={label}" for level, label in zip(levels, scale["labels"]))
+        lines.append(f"整数分级：{described}")
         lines.append('输出格式：{"answer": <整数分值>, "probs": {"<分值>": <非负权重>, ...}}')
     else:
         lines.append("可选答案（answer 必须原样返回 key）："
@@ -1114,7 +1128,8 @@ class FixtureBackend(BaseBackend):
             return None, kind, f"fixture injected {kind}"
         if request["kind"] == "score":
             scale = request["scale"]
-            levels = sorted({int(float(key)) for key in scale["labels"]})
+            levels = list(range(int(scale["min"]), int(scale["max"]) + 1))
+            require(len(scale["labels"]) == len(levels), "scale.labels 必须覆盖 min..max")
             weights = {str(level): 1 + int.from_bytes(
                 hashlib.sha256(f"{self.seed}|{request['qid']}|{level}".encode()).digest()[:4],
                 "big") % 5 for level in levels}
@@ -1317,7 +1332,8 @@ def merge_rows(prior_rows, new_rows, current_order):
 def cmd_run(args, deps):
     mode = resolve_mode(args)
     all_requests, selected = load_requests(args.items, keys=csv_list(args.keys),
-                                           domains=csv_list(args.domains), limit=args.limit)
+                                           domains=csv_list(args.domains), limit=args.limit,
+                                           strict_items=not args.skip_item_schema)
     questions = {request["qid"]: request for request in all_requests}
     source, source_version = backend_identity(args)
     answers_path = resolve_output_path(args.out, source)
@@ -1351,6 +1367,7 @@ def cmd_run(args, deps):
                           "planned_qids": len(todo), "selected": len(selected),
                           "skipped_ok": skipped_ok, "skipped_failed": skipped_failed,
                           "requests": str(requests_path), "requests_sha256": digest,
+                          "item_schema_checked": not args.skip_item_schema,
                           "note": "只写请求计划，未联网；加 --live 才真调"}, ensure_ascii=False))
         return 0
 
@@ -1438,6 +1455,7 @@ def cmd_run(args, deps):
                "selected": len(selected), "attempted": len(todo), "skipped_ok": skipped_ok,
                "skipped_failed": skipped_failed, "new_failures": failures, "ok_total": ok_total,
                "rows_total": len(final), "elapsed_s": round(time.perf_counter() - started, 1),
+               "item_schema_checked": not args.skip_item_schema,
                "interrupted": interrupted, "call_summary": log.summary()}
     if skipped_failed and not args.retry_failed:
         summary["hint"] = f"{skipped_failed} 条已记录的失败项被跳过；加 --retry-failed 重跑"
@@ -1458,7 +1476,7 @@ def cmd_run(args, deps):
 
 def cmd_plan(args, deps):
     _, selected = load_requests(args.items, keys=csv_list(args.keys), domains=csv_list(args.domains),
-                                limit=args.limit)
+                                limit=args.limit, strict_items=not args.skip_item_schema)
     rows = [plan_row(request) for request in selected]
     write_jsonl_atomic(args.out, rows)
     print(json.dumps({"command": "plan", "mode": "offline", "items": str(args.items),
@@ -1466,6 +1484,7 @@ def cmd_plan(args, deps):
                       "requests_sha256": sha256_text(jsonl_text(rows)),
                       "kinds": {kind: sum(1 for row in rows if row["kind"] == kind)
                                 for kind in KINDS},
+                      "item_schema_checked": not args.skip_item_schema,
                       "note": "qid/state/question/options 可直接交给 Jev；本命令不联网"},
                      ensure_ascii=False))
     return 0
@@ -1554,7 +1573,7 @@ def cmd_report(args, deps):
     report = {"command": "report", "calls": str(calls_path), **summary}
     questions = {}
     if args.items:
-        all_requests, _ = load_requests(args.items)
+        all_requests, _ = load_requests(args.items, strict_items=False)
         questions = {request["qid"]: request for request in all_requests}
         report["items"] = str(args.items)
         report["items_requests"] = len(all_requests)
@@ -1627,7 +1646,7 @@ def cmd_report(args, deps):
 
 
 def cmd_verify(args, deps):
-    all_requests, _ = load_requests(args.items)
+    all_requests, _ = load_requests(args.items, strict_items=False)
     questions = {request["qid"]: request for request in all_requests}
     raw_rows = read_jsonl(args.answers)
     violations = []
@@ -1682,6 +1701,12 @@ def cmd_verify(args, deps):
 
 
 # --------------------------------------------------------------------- CLI
+
+def add_item_check(parser):
+    parser.add_argument("--skip-item-schema", action="store_true",
+                        help="跳过 taxonomy.item_errors 全条目校验（只校验本 harness 消费的字段）；"
+                             "默认在花钱调用前拦住形状不对的条目")
+
 
 def add_selection(parser):
     parser.add_argument("--keys", help="逗号分隔的问题 key 过滤（先小样本）")
@@ -1760,6 +1785,7 @@ def build_parser():
     plan.add_argument("--items", type=Path, required=True, help="items.jsonl（契约 2.1）")
     plan.add_argument("--out", type=Path, required=True, help="请求清单输出 JSONL")
     add_selection(plan)
+    add_item_check(plan)
 
     run = sub.add_parser("run", help="批量作答（默认离线；--live 才联网）")
     run.add_argument("--items", type=Path, required=True, help="items.jsonl（契约 2.1）")
@@ -1767,6 +1793,7 @@ def build_parser():
                      help="answers.<source>.jsonl 的路径或所在目录")
     add_common_run(run)
     add_selection(run)
+    add_item_check(run)
     add_transport(run)
 
     report = sub.add_parser("report", help="读 calls.jsonl 输出用量/成本/失败统计")

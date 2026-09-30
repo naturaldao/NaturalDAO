@@ -32,7 +32,8 @@ uv run --no-project --offline python datasets/decision-base/ask.py run `
   --items datasets/decision-base/data/items.jsonl --out D:\pol2-out --backend jev `
   --endpoint https://<官方地址>/<路径> --api-version <版本>
 
-# (3) 先小样本再放量：--limit 200 / --keys / --domains 任选
+# (3) 先小样本再放量：--limit 200 / --keys action,harmful / --domains risk_harm 任选
+#     --keys 取 items 里的 question key（键表见 db-schema 的 taxonomy.py QUESTION_KEYS）
 uv run --no-project --offline python datasets/decision-base/ask.py run `
   --items datasets/decision-base/data/items.jsonl --out D:\pol2-out --backend jev --live `
   --endpoint https://<官方地址>/<路径> --api-version <版本> --integration-confirmed `
@@ -45,8 +46,8 @@ uv run --no-project --offline python datasets/decision-base/ask.py run `
   --endpoint https://<官方地址>/<路径> --api-version <版本> --integration-confirmed `
   --workers 8
 
-# (5) 断了就重跑同一条命令（已 ok 的自动跳过）；把失败项重跑一遍
-uv run --no-project --offline python datasets/decision-base/ask.py run ` ... --retry-failed
+# (5) 断了/想继续：把命令 (4) 原样再跑一遍即可（已 ok 的自动跳过、失败项不重跑）
+#     只想把失败项重跑一遍：命令 (4) 末尾加 --retry-failed
 
 # (6) 核对与统计
 uv run --no-project --offline python datasets/decision-base/ask.py verify `
@@ -98,11 +99,19 @@ python datasets/decision-base/ask.py report --calls <calls.jsonl> --answers <ans
 ```jsonc
 // POST <endpoint><request-path>   Authorization: Bearer <JEV_API_KEY>
 {"api_version": "<版本>",
- "requests": [{"qid": "...", "kind": "noul|choice|score", "state": "...",
-               "question": "...", "options": [{"key","label"}] /* 或 "scale": {min,max,labels} */}]}
+ "requests": [
+   {"qid": "<item id>.action_selection", "kind": "choice", "state": "...", "question": "...",
+    "options": [{"key": "allow", "label": "放行"}, {"key": "repair", "label": "修正后复查"}]},
+   {"qid": "<item id>.harm_severity", "kind": "score", "state": "...", "question": "...",
+    "scale": {"min": 0, "max": 4, "labels": ["无伤害", "轻微", "中等", "严重", "灾难性"]}}]}
 // 接受的响应：{"answers": {"<qid>": {"answer": ..., "probs": {...}}}} 或
 //            {"answers": [{"qid": ..., "answer": ...}, ...]}；单问模式也接受裸 {"answer": ...}
 ```
+
+请求包里的 `options` / `scale` 原样取自 items.jsonl；题型由 [taxonomy.py](taxonomy.py) 的
+`validate_question` **唯一裁定**（score 的 `labels` 是 `min..max` 的**字符串数组**，长度 = max-min+1；
+choice/noul 只有 `options`）。plan/run 默认还会用 `taxonomy.item_errors` 做 README 2.1 全条目校验，
+形状不对在花钱之前就退出 2（确需绕过用 `--skip-item-schema`）；report/verify 只校验被消费的字段。
 
 拿到官方文档后需要确认的参数（都用开关适配，不必改代码）：
 
@@ -120,8 +129,9 @@ python datasets/decision-base/ask.py report --calls <calls.jsonl> --answers <ans
 ## 7. 边界
 
 - 官方请求/响应形状未核实前，`--live` 必须显式给 `--integration-confirmed`；不对就报错，不猜。
-- 概率：源给了才写，键必须与选项/分值一致并归一到 1；只给分布时 `answer` 取众数（记录在 calls 里）；
-  源没给概率时绝不编造。
+- 概率：源给了才写，键必须落在问题的取值域内（choice/noul 是选项 key；score 是 `"0".."max"` 的整数分级字符串）
+  并归一到 1；只给部分取值也接受（calls 里标 `probs_partial`），越界键则整份丢弃（标 `probs_dropped`）。
+  只给分布时 `answer` 取众数（标 `answer_from_probs`，平票取较小分级/靠前选项）；源没给概率时绝不编造。
 - 失败永远不写 ok：`answer=null`、无 `probs`，只保留 `execution_status/latency_ms/created_at`。
 - `--backend fixture` 是离线确定性合成答案（测试/演练用），**不是真值**，`source` 只能是 `fixture*`。
 - 不写 private_holdout 相关任何内容；不提交密钥；`--save-raw` 之类不存在，原始响应不落盘。
@@ -131,3 +141,7 @@ python datasets/decision-base/ask.py report --calls <calls.jsonl> --answers <ans
 ```powershell
 uv run --no-project --offline python -m unittest discover -s datasets/decision-base -p "test_*.py" -q
 ```
+
+其中 `fixtures/ask-items-sample.jsonl` 是从**真实 items.jsonl 截取的 10 条回归样本**
+（覆盖 noul/choice/score、含与不含 targets、含 `next_step_candidate` 的条目自带选项、含 4 问条目），
+测试直接读它，防止手搓 fixture 与转换器实际输出漂移。
