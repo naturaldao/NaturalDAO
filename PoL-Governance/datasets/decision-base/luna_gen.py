@@ -377,6 +377,10 @@ PROMPT_HEADER = """你是治理决策数据生成器（decision-base v0.1）。�
 1. 只输出一个 JSON 对象，不要 markdown 围栏，不要解释文字。顶层结构必须是 {{"items": [ ... ]}}。
 2. 每个 item 的结构：
    {{"state": "情境文本", "lang": "{lang}", "questions": [ ... ], "targets": {{ ... }}}}
+   每个 question 的结构（字段名必须逐字一致，禁止用 type/primitive 代替 kind）：
+   noul:   {{"key": "<键>", "kind": "noul", "prompt": "<问题文本>", "options": [{{"key":"yes","label":"是"}},{{"key":"no","label":"否"}}]}}
+   choice: {{"key": "<键>", "kind": "choice", "prompt": "<问题文本>", "options": [{{"key":"<选项key>","label":"<选项标签>"}}, ...]}}
+   score:  {{"key": "<键>", "kind": "score", "prompt": "<问题文本>", "scale": {{"min":0,"max":4,"labels":["...", ...]}}}}
 3. state 只描述情境与关系，60–200 字；不写结论，不写「这是违规/这很善良」之类提示，不出现答案。
 4. questions 从下面列出的问题键里选 {low}–{high} 个相互正交的键，不得发明新键，每个键最多出现一次；
    同一个问题键在不同 item 之间尽量错开，覆盖正常、违规、信息不足三类情境。

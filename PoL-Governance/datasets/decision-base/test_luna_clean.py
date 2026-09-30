@@ -231,6 +231,12 @@ class QuestionValidationTests(unittest.TestCase):
         self.assertEqual(result.items[0]["questions"][0]["scale"]["min"], 0)
         self.assertIn("scale_normalized", result.items[0]["meta"]["quality_flags"])
 
+    def test_kind_alias_type_normalized(self):
+        question = {"key": "contains_harm", "type": "noul", "prompt": "有伤害吗"}
+        result = run_rows([record(response([item_payload(questions=[question])]))])
+        self.assertEqual(result.items[0]["questions"][0]["kind"], "noul")
+        self.assertIn("kind_alias_normalized", result.items[0]["meta"]["quality_flags"])
+
     def test_kind_invalid(self):
         question = {"key": "contains_harm", "kind": "yesno", "prompt": "有伤害吗"}
         result = run_rows([record(response([item_payload(questions=[question])]))])

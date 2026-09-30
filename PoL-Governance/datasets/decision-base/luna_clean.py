@@ -516,16 +516,22 @@ def clean_question(raw, index, lang=DEFAULT_LANG, taxonomy=None):
     if not KEY_RE.match(key):
         return None, Problem("", "questions", "question_key_invalid",
                              f"{path}.key 不合规：{key!r}", f"{path}.key"), None
-    flag = None
+    collected = []
     if taxonomy is not None:
         canonical = resolve_key(taxonomy, key)
         if canonical is None:
             return None, Problem("", "questions", "question_key_unknown",
                                  f"{path}.key={key!r} 不在 taxonomy 的问题键表里", f"{path}.key"), None
         if canonical != key:
-            flag = "question_key_alias_resolved"
+            collected.append("question_key_alias_resolved")
             key = canonical
     kind = raw.get("kind")
+    if kind is None:
+        for alias in ("type", "primitive", "question_type"):
+            if isinstance(raw.get(alias), str):
+                kind = raw[alias]
+                collected.append("kind_alias_normalized")
+                break
     if kind not in KINDS:
         return None, Problem("", "questions", "kind_invalid",
                              f"{path}.kind 必须是 {KINDS}，得到 {kind!r}", f"{path}.kind"), None
@@ -557,7 +563,7 @@ def clean_question(raw, index, lang=DEFAULT_LANG, taxonomy=None):
         except Exception as error:
             return None, Problem("", "questions", "taxonomy_question_invalid",
                                  f"{path}: {error}", path), None
-        return rebuilt, None, "question_from_taxonomy"
+        return rebuilt, None, collected + ["question_from_taxonomy"]
     if kind == "noul":
         options, code, flags = clean_noul_options(raw.get("options"), lang)
         if code:
@@ -565,7 +571,7 @@ def clean_question(raw, index, lang=DEFAULT_LANG, taxonomy=None):
                                  f"{path}.options 不是固定 yes/no", f"{path}.options"), None
         question["options"] = options
         if flags:
-            flag = flags
+            collected.append(flags)
     elif kind == "choice":
         options, code, flags = clean_choice_options(raw.get("options"))
         if code:
@@ -573,7 +579,7 @@ def clean_question(raw, index, lang=DEFAULT_LANG, taxonomy=None):
                                  f"{path}.options 非法（{code}）", f"{path}.options"), None
         question["options"] = options
         if flags:
-            flag = flags
+            collected.append(flags)
         if taxonomy is not None and spec is not None and getattr(spec, "options_from_state", False):
             try:
                 rebuilt = taxonomy.build_question(key, lang=taxonomy_lang(lang),
@@ -582,7 +588,7 @@ def clean_question(raw, index, lang=DEFAULT_LANG, taxonomy=None):
             except Exception as error:
                 return None, Problem("", "questions", "taxonomy_question_invalid",
                                      f"{path}: {error}", path), None
-            return rebuilt, None, "question_from_taxonomy"
+            return rebuilt, None, collected + ["question_from_taxonomy"]
     else:
         scale_source = raw.get("scale") if raw.get("scale") is not None else raw.get("options")
         scale, code, flags = clean_scale(scale_source)
@@ -591,8 +597,8 @@ def clean_question(raw, index, lang=DEFAULT_LANG, taxonomy=None):
                                  f"{path}.scale 非法（{code}）", f"{path}.scale"), None
         question["scale"] = scale
         if flags:
-            flag = flags
-    return question, None, flag
+            collected.append(flags)
+    return question, None, collected
 
 
 def clean_questions(raw_questions, lang=DEFAULT_LANG, taxonomy=None):
