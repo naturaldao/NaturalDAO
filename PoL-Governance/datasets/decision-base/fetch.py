@@ -122,12 +122,15 @@ class Client:
 
 
 def build_plan(strategy: str, total_rows: int, limit: int, *, page_size: int = PAGE_SIZE,
-               window_size: int = PAGE_SIZE, n_windows: int = 0, seed: int = 0):
+               window_size: int = PAGE_SIZE, n_windows: int = 0, seed: int = 0,
+               window_span: int = 0):
     """把抽样策略编译成 [(offset, length), ...]；纯函数，resume 时按同一参数重建。
 
     - head    ：从 0 开始连续取，便于 --limit 小样本与断点续跑。
-    - windows ：在 [0, total) 上均匀开 n_windows 个窗口，跨文件位置取样，
-                用于 12M 级别的 default 配置（不做 uniform 全量，也不只读头部）。
+    - windows ：在 [0, span) 上均匀开 n_windows 个窗口，跨文件位置取样（不做 uniform 全量，
+                也不只读头部）。span 默认是整个分区；对千万行级数据集必须给 window_span：
+                实测 offset=3,000,000 的一次 /rows 要 109 秒、offset=6,000,000 直接连接被断，
+                深 offset 采样不适合走 datasets-server。
     - stride  ：等距单行取样，代价是每行一个请求，只在小样本核对时用。
     """
     if total_rows <= 0:
@@ -145,7 +148,8 @@ def build_plan(strategy: str, total_rows: int, limit: int, *, page_size: int = P
     if strategy == "windows":
         windows = n_windows or max(1, (limit + window_size - 1) // window_size)
         length = max(1, min(window_size, page_size, limit))
-        span = max(1, total_rows - length)
+        reach = min(total_rows, window_span) if window_span else total_rows
+        span = max(1, reach - length)
         starts = sorted({int(round(index * span / max(1, windows - 1))) if windows > 1 else 0
                          for index in range(windows)})
         rng = random.Random(seed)
@@ -261,9 +265,11 @@ def fetch_source(client: Client, source: dict, raw_root: Path, *, limit=None, re
                       page_size=page_size,
                       window_size=int(sampling.get("window_size", page_size)),
                       n_windows=int(sampling.get("n_windows", 0)),
-                      seed=int(sampling.get("seed", 0)))
+                      seed=int(sampling.get("seed", 0)),
+                      window_span=int(sampling.get("window_span", 0)))
     plan_meta = {"strategy": sampling.get("strategy", "head"), "requested_rows": requested,
-                 "num_rows_total": total_rows, "page_size": page_size}
+                 "num_rows_total": total_rows, "page_size": page_size,
+                 "window_span": int(sampling.get("window_span", 0))}
     log(f"[{slug}] 行数 {total_rows}，计划 {len(plan)} 次请求，目标 {requested} 行，"
         f"策略 {plan_meta['strategy']}")
 
@@ -318,6 +324,7 @@ def fetch_source(client: Client, source: dict, raw_root: Path, *, limit=None, re
                 "rows": fetched, "bytes": rows_path.stat().st_size,
                 "sha256": sha256_file(rows_path), "complete": False,
                 "features": feature_names, "fetched_at": utc_now(),
+                **plan_meta,          # 断点续跑要靠这些字段校验计划是否仍然一致
             })
 
     final_sha = client.dataset_metadata(dataset).get("sha")
@@ -338,6 +345,7 @@ def fetch_source(client: Client, source: dict, raw_root: Path, *, limit=None, re
         "domain": source.get("domain"),
         "lang": source.get("lang"),
         "sampling": sampling,
+        **plan_meta,
         "rows": fetched,
         "bytes": rows_path.stat().st_size,
         "sha256": sha256_file(rows_path),
@@ -406,7 +414,8 @@ def plan_for_source(client: Client, source: dict, limit, page_size: int):
     plan = build_plan(str(sampling.get("strategy", "head")), total, target, page_size=page_size,
                       window_size=int(sampling.get("window_size", page_size)),
                       n_windows=int(sampling.get("n_windows", 0)),
-                      seed=int(sampling.get("seed", 0)))
+                      seed=int(sampling.get("seed", 0)),
+                      window_span=int(sampling.get("window_span", 0)))
     return total, plan
 
 

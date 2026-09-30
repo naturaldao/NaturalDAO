@@ -8,7 +8,9 @@
   "quotas": {
     "min_total": 10000,
     "min_per_domain": 1200,
-    "domain_min": {"pol2_axis": 400},
+    "domain_min": {
+      "pol2_axis": 400
+    },
     "max_source_share": 0.4
   },
   "policy": {
@@ -61,6 +63,11 @@
       "dataset": "nyu-mll/chaosNLI",
       "reason": "HF API 401（id 不存在或受限），本次不可达。",
       "evidence": "GET https://huggingface.co/api/datasets/nyu-mll/chaosNLI -> 401"
+    },
+    {
+      "dataset": "soyrsoyr/jev-playground-rlcd-v0",
+      "reason": "datasets-server 抓不到：/splits 返回 500 No (supported) data files found in soyrsoyr/jev-playground-rlcd-v0；仓库里没有它支持的数据文件，本轮不进池。",
+      "evidence": "GET datasets-server /splits?dataset=soyrsoyr/jev-playground-rlcd-v0 -> 500"
     }
   ],
   "sources": [
@@ -75,7 +82,7 @@
       "domain": "decision_mechanics",
       "converter": "jev_typed",
       "lang": "en",
-      "row_limit": 12000,
+      "row_limit": 8000,
       "sampling": {
         "strategy": "head"
       },
@@ -111,12 +118,13 @@
       "domain": "decision_mechanics",
       "converter": "jev_decisions_v1",
       "lang": "en",
-      "row_limit": 6000,
+      "row_limit": 4000,
       "sampling": {
         "strategy": "head"
       },
       "evidence": "B",
-      "notes": "作者给的通用精选 50k 配置，避开 default 里 78% Open-SWE 的偏斜；只分层抽样，绝不 uniform 全量 12M。target 是候选动作的硬标签（candidate_id/action_name），不是概率，转换时只填 answer 不填 probs。"
+      "notes": "作者给的通用精选 50k 配置，避开 default 里 78% Open-SWE 的偏斜；只分层抽样，绝不 uniform 全量 12M。实测该配置字段与 default 不同：state{system,user_goal,history}/question/answer_options[{type,label,description}]/target_index，没有 candidates/target；转换器两种形态都支持，answer 由 target_index 定位（硬标签，不编概率）。整个配置只有单一 source（Nemotron Pivot），因此 stratum_cap 设为 1.0，不套用防 Open-SWE 的 0.35。",
+      "stratum_cap": 1
     },
     {
       "slug": "jev-decisions-strata",
@@ -129,15 +137,16 @@
       "domain": "decision_mechanics",
       "converter": "jev_decisions_v1",
       "lang": "en",
-      "row_limit": 3000,
+      "row_limit": 400,
       "sampling": {
         "strategy": "windows",
         "window_size": 100,
-        "n_windows": 30,
-        "seed": 0
+        "n_windows": 4,
+        "seed": 0,
+        "window_span": 200000
       },
       "evidence": "B",
-      "notes": "对 12M default 做跨文件窗口抽样（不是 uniform 全量、也不是只读头部），用于核对 default 与 general-clean-50k 的 source/decision_type 分布差异；转换时按 source 分层的配额上限剔除 Open-SWE 过量样本。"
+      "notes": "对 12M 的 default 做跨位置浅窗口抽样（前 20 万行内 4 个窗口），用于核对 default 与 general-clean-50k 的 source/decision_type 分布差异。为什么限定 window_span：实测 datasets-server 的深 offset 极慢（offset=3,000,000 一次 /rows 要 109 秒，offset=6,000,000 连接直接被断），12M 行上做全域均匀窗口不可行；这是接口限制不是抽样偏好。转换时按 source 分层配额上限剔除 Open-SWE 过量样本。"
     },
     {
       "slug": "prosocial-dialog",
@@ -150,7 +159,7 @@
       "domain": "social_moral",
       "converter": "prosocial_dialog",
       "lang": "en",
-      "row_limit": 8000,
+      "row_limit": 4000,
       "sampling": {
         "strategy": "head"
       },
@@ -168,7 +177,7 @@
       "domain": "social_moral",
       "converter": "ethics",
       "lang": "en",
-      "row_limit": 2500,
+      "row_limit": 1000,
       "sampling": {
         "strategy": "head"
       },
@@ -186,7 +195,7 @@
       "domain": "social_moral",
       "converter": "ethics",
       "lang": "en",
-      "row_limit": 2500,
+      "row_limit": 1000,
       "sampling": {
         "strategy": "head"
       },
@@ -204,7 +213,7 @@
       "domain": "social_moral",
       "converter": "ethics",
       "lang": "en",
-      "row_limit": 2500,
+      "row_limit": 1000,
       "sampling": {
         "strategy": "head"
       },
@@ -222,7 +231,7 @@
       "domain": "social_moral",
       "converter": "ethics",
       "lang": "en",
-      "row_limit": 2500,
+      "row_limit": 1000,
       "sampling": {
         "strategy": "head"
       },
@@ -240,7 +249,7 @@
       "domain": "social_moral",
       "converter": "ethics",
       "lang": "en",
-      "row_limit": 2500,
+      "row_limit": 1000,
       "sampling": {
         "strategy": "head"
       },
@@ -258,7 +267,7 @@
       "domain": "human_judgment",
       "converter": "helpsteer2",
       "lang": "en",
-      "row_limit": 8000,
+      "row_limit": 2500,
       "sampling": {
         "strategy": "head"
       },
@@ -274,9 +283,9 @@
       "config": "default",
       "split": "train",
       "domain": "decision_mechanics",
-      "converter": "jev_typed",
+      "converter": "systemone_lite",
       "lang": "en",
-      "row_limit": 3000,
+      "row_limit": 1500,
       "sampling": {
         "strategy": "head"
       },
@@ -292,9 +301,9 @@
       "config": "default",
       "split": "train",
       "domain": "decision_mechanics",
-      "converter": "jev_typed",
+      "converter": "system_one_270m",
       "lang": "en",
-      "row_limit": 3000,
+      "row_limit": 1500,
       "sampling": {
         "strategy": "head"
       },
@@ -307,35 +316,89 @@
       "revision": "609513a3faddf729123266efe9861456fe748f95",
       "license": "apache-2.0",
       "license_derivative": "yes",
-      "config": "default",
+      "config": "all",
       "split": "train",
       "domain": "decision_mechanics",
-      "converter": "jev_typed",
+      "converter": "procedural",
+      "lang": "en",
+      "row_limit": 1500,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "tasksource 对既有数据集的规范化，不是教师产物。 配置名是 all（没有 default），实测 /splits 只有 all/arithmetic/… 各 config；行数 260,000。"
+    },
+    {
+      "slug": "civil-comments",
+      "dataset": "google/civil_comments",
+      "revision": "f2970eb3a55777454c94069077cc8d9b5866312d",
+      "license": "cc0-1.0",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "human_judgment",
+      "converter": "civil_comments",
       "lang": "en",
       "row_limit": 3000,
       "sampling": {
         "strategy": "head"
       },
       "evidence": "A",
-      "notes": "tasksource 对既有数据集的规范化，不是教师产物。"
+      "notes": "真人标注：text 为待判断文本，toxicity/severe_toxicity/obscene/threat/insult/identity_attack/sexual_explicit 是标注者比例（0-1，Jigsaw 多人标注）。toxicity 比例转成 toxicity_present 的 probs（真实分布，不是把硬标签伪装成概率）；其余六列存 meta。只取 train。"
     },
     {
-      "slug": "jev-playground-rlcd",
-      "dataset": "soyrsoyr/jev-playground-rlcd-v0",
-      "revision": "3a7c53a49b706af2014110a533a62da511887bc1",
-      "license": "mit",
-      "license_derivative": "yes",
+      "slug": "aegis2",
+      "dataset": "nvidia/Aegis-AI-Content-Safety-Dataset-2.0",
+      "revision": "d86bb8bedff51d25ac834ab7838f1cc61acb7a2c",
+      "license": "cc-by-4.0",
+      "license_derivative": "yes_with_conditions",
       "config": "default",
       "split": "train",
-      "domain": "decision_mechanics",
-      "converter": "jev_typed",
+      "domain": "risk_harm",
+      "converter": "aegis",
       "lang": "en",
-      "row_limit": 2000,
+      "row_limit": 3000,
       "sampling": {
         "strategy": "head"
       },
       "evidence": "A",
-      "notes": "合成决策语料，规模小，用于补充而非撑量。"
+      "notes": "prompt/response + prompt_label/response_label(safe|unsafe) + violated_categories + 标注来源字段。卡面写明 response 安全标签可能是 3 个 LLM 集成生成（Synthetic），因此只有 *_label_source 为 human 的行才映射 contains_harm 目标；其余只作 state。violated_categories 是 Aegis 自己的分类法，不硬塞进 taxonomy 的 harm_category。"
+    },
+    {
+      "slug": "aegis1",
+      "dataset": "nvidia/Aegis-AI-Content-Safety-Dataset-1.0",
+      "revision": "bd96d862068e47630197de64eb91f8d1481ff3e0",
+      "license": "cc-by-4.0",
+      "license_derivative": "yes_with_conditions",
+      "config": "default",
+      "split": "train",
+      "domain": "risk_harm",
+      "converter": "aegis",
+      "lang": "en",
+      "row_limit": 1500,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "text + labels_0..labels_4（多位标注者的类别串，含 Safe/Needs Caution/各危害类别）+ num_annotations。用非空标注算 contains_harm 的投票比例（Safe 记 no，其余记 yes），原始标签串全部存 meta。"
+    },
+    {
+      "slug": "moral-stories",
+      "dataset": "demelin/moral_stories",
+      "revision": "b830cf56eb00bc4edd1860dd544a192216eb3587",
+      "license": "mit",
+      "license_derivative": "yes",
+      "config": "full",
+      "split": "train",
+      "domain": "social_moral",
+      "converter": "moral_stories",
+      "lang": "en",
+      "row_limit": 1500,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "卡面明写 label 0=immoral/divergent action、1=moral/normative action。每行生成两条互为正反的条目（moral/immoral 各一条），answer 直接来自 label；expected_consequence 由 moral_consequence/immoral_consequence 字段配对派生（标记为 documented 映射，--mappings direct 时会去掉）。只取 full 配置的 train。"
     }
   ]
 }

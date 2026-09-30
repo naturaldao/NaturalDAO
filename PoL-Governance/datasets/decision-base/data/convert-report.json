@@ -1,0 +1,519 @@
+{
+  "converter": "convert.py",
+  "converter_version": "0.1",
+  "created_at": "2026-09-30T12:00:00+00:00",
+  "raw_root": "D:\\pol2-raw",
+  "items_path": "datasets\\decision-base\\data\\items.jsonl",
+  "mappings_used": "all",
+  "mappings_default": "all",
+  "mappings_default_note": "core 问题 + direct 映射 + documented 映射；--mappings direct 只保留 core 问题与 direct 映射",
+  "mapping_classes": {
+    "direct_targets": 13008,
+    "documented_targets": 6709
+  },
+  "question_lang": "zh",
+  "stratum_cap": 0.35,
+  "limit": null,
+  "items": 37124,
+  "items_with_targets": 16717,
+  "native_target_rate": 0.4503,
+  "pending_external_answers": 20407,
+  "by_domain": {
+    "risk_harm": 4366,
+    "human_judgment": 5491,
+    "social_moral": 11352,
+    "decision_mechanics": 11557,
+    "knowledge_reasoning": 4358
+  },
+  "by_domain_detail": {
+    "decision_mechanics": {
+      "items": 11557,
+      "with_targets": 7017,
+      "native_target_rate": 0.6072
+    },
+    "human_judgment": {
+      "items": 5491,
+      "with_targets": 2991,
+      "native_target_rate": 0.5447
+    },
+    "knowledge_reasoning": {
+      "items": 4358,
+      "with_targets": 0,
+      "native_target_rate": 0.0
+    },
+    "risk_harm": {
+      "items": 4366,
+      "with_targets": 3709,
+      "native_target_rate": 0.8495
+    },
+    "social_moral": {
+      "items": 11352,
+      "with_targets": 3000,
+      "native_target_rate": 0.2643
+    }
+  },
+  "units": [
+    {
+      "slug": "aegis1",
+      "dataset": "nvidia/Aegis-AI-Content-Safety-Dataset-1.0",
+      "config": "default",
+      "split": "train",
+      "rows_read": 1500,
+      "items": 1477,
+      "with_targets": 1477,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 0,
+        "documented": 1477
+      },
+      "duplicate_states": 21,
+      "invalid": 0,
+      "by_domain": {
+        "risk_harm": 1477
+      },
+      "by_domain_with_targets": {
+        "risk_harm": 1477
+      },
+      "skipped": {
+        "duplicate_state": 21,
+        "empty_state": 2
+      }
+    },
+    {
+      "slug": "aegis2",
+      "dataset": "nvidia/Aegis-AI-Content-Safety-Dataset-2.0",
+      "config": "default",
+      "split": "train",
+      "rows_read": 3000,
+      "items": 2889,
+      "with_targets": 2232,
+      "native_target_rate": 0.7726,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 657,
+      "target_classes": {
+        "direct": 0,
+        "documented": 2232
+      },
+      "duplicate_states": 111,
+      "invalid": 0,
+      "by_domain": {
+        "risk_harm": 2889
+      },
+      "by_domain_with_targets": {
+        "risk_harm": 2232
+      },
+      "skipped": {
+        "duplicate_state": 111
+      }
+    },
+    {
+      "slug": "civil-comments",
+      "dataset": "google/civil_comments",
+      "config": "default",
+      "split": "train",
+      "rows_read": 3000,
+      "items": 2991,
+      "with_targets": 2991,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 1.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 2991,
+        "documented": 0
+      },
+      "duplicate_states": 9,
+      "invalid": 0,
+      "by_domain": {
+        "human_judgment": 2991
+      },
+      "by_domain_with_targets": {
+        "human_judgment": 2991
+      },
+      "skipped": {
+        "duplicate_state": 9
+      }
+    },
+    {
+      "slug": "ethics-commonsense",
+      "dataset": "hendrycks/ethics",
+      "config": "commonsense",
+      "split": "train",
+      "rows_read": 1000,
+      "items": 1000,
+      "with_targets": 0,
+      "native_target_rate": 0.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 1000,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0
+      },
+      "duplicate_states": 0,
+      "invalid": 0,
+      "by_domain": {
+        "social_moral": 1000
+      },
+      "by_domain_with_targets": {},
+      "skipped": {}
+    },
+    {
+      "slug": "ethics-deontology",
+      "dataset": "hendrycks/ethics",
+      "config": "deontology",
+      "split": "train",
+      "rows_read": 1000,
+      "items": 359,
+      "with_targets": 0,
+      "native_target_rate": 0.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 359,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0
+      },
+      "duplicate_states": 641,
+      "invalid": 0,
+      "by_domain": {
+        "social_moral": 359
+      },
+      "by_domain_with_targets": {},
+      "skipped": {
+        "duplicate_state": 641
+      }
+    },
+    {
+      "slug": "ethics-justice",
+      "dataset": "hendrycks/ethics",
+      "config": "justice",
+      "split": "train",
+      "rows_read": 1000,
+      "items": 1000,
+      "with_targets": 0,
+      "native_target_rate": 0.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 1000,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0
+      },
+      "duplicate_states": 0,
+      "invalid": 0,
+      "by_domain": {
+        "social_moral": 1000
+      },
+      "by_domain_with_targets": {},
+      "skipped": {}
+    },
+    {
+      "slug": "ethics-utilitarianism",
+      "dataset": "hendrycks/ethics",
+      "config": "utilitarianism",
+      "split": "train",
+      "rows_read": 1000,
+      "items": 997,
+      "with_targets": 0,
+      "native_target_rate": 0.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 997,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0
+      },
+      "duplicate_states": 3,
+      "invalid": 0,
+      "by_domain": {
+        "social_moral": 997
+      },
+      "by_domain_with_targets": {},
+      "skipped": {
+        "duplicate_state": 3
+      }
+    },
+    {
+      "slug": "ethics-virtue",
+      "dataset": "hendrycks/ethics",
+      "config": "virtue",
+      "split": "train",
+      "rows_read": 1000,
+      "items": 998,
+      "with_targets": 0,
+      "native_target_rate": 0.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 998,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0
+      },
+      "duplicate_states": 2,
+      "invalid": 0,
+      "by_domain": {
+        "social_moral": 998
+      },
+      "by_domain_with_targets": {},
+      "skipped": {
+        "duplicate_state": 2
+      }
+    },
+    {
+      "slug": "helpsteer2",
+      "dataset": "nvidia/HelpSteer2",
+      "config": "default",
+      "split": "train",
+      "rows_read": 2500,
+      "items": 2500,
+      "with_targets": 0,
+      "native_target_rate": 0.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 2500,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0
+      },
+      "duplicate_states": 0,
+      "invalid": 0,
+      "by_domain": {
+        "human_judgment": 2500
+      },
+      "by_domain_with_targets": {},
+      "skipped": {}
+    },
+    {
+      "slug": "jev-decisions-general-50k",
+      "dataset": "samatv256/jev-decisions-v1",
+      "config": "general-clean-50k",
+      "split": "train",
+      "rows_read": 4000,
+      "items": 3802,
+      "with_targets": 1980,
+      "native_target_rate": 0.5208,
+      "native_target_rate_direct_only": 0.5208,
+      "pending_external_answers": 1822,
+      "target_classes": {
+        "direct": 1980,
+        "documented": 0
+      },
+      "duplicate_states": 198,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 3802
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 1980
+      },
+      "skipped": {
+        "duplicate_state": 198
+      }
+    },
+    {
+      "slug": "jev-decisions-strata",
+      "dataset": "samatv256/jev-decisions-v1",
+      "config": "default",
+      "split": "train",
+      "rows_read": 400,
+      "items": 139,
+      "with_targets": 61,
+      "native_target_rate": 0.4388,
+      "native_target_rate_direct_only": 0.4388,
+      "pending_external_answers": 78,
+      "target_classes": {
+        "direct": 61,
+        "documented": 0
+      },
+      "duplicate_states": 101,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 139
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 61
+      },
+      "skipped": {
+        "duplicate_state": 101,
+        "stratum_capped:nvidia/Nemotron-SFT-Agentic-v2": 160
+      }
+    },
+    {
+      "slug": "jev-distill-v3",
+      "dataset": "SargeDev/jev-distill-corpus-v3",
+      "config": "default",
+      "split": "train",
+      "rows_read": 8000,
+      "items": 7756,
+      "with_targets": 1053,
+      "native_target_rate": 0.1358,
+      "native_target_rate_direct_only": 0.1358,
+      "pending_external_answers": 6703,
+      "target_classes": {
+        "direct": 1053,
+        "documented": 0
+      },
+      "duplicate_states": 244,
+      "invalid": 0,
+      "by_domain": {
+        "knowledge_reasoning": 4358,
+        "decision_mechanics": 3398
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 1053
+      },
+      "skipped": {
+        "duplicate_state": 244
+      }
+    },
+    {
+      "slug": "moral-stories",
+      "dataset": "demelin/moral_stories",
+      "config": "full",
+      "split": "train",
+      "rows_read": 1500,
+      "items": 3000,
+      "with_targets": 3000,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 1.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 3000,
+        "documented": 3000
+      },
+      "duplicate_states": 0,
+      "invalid": 0,
+      "by_domain": {
+        "social_moral": 3000
+      },
+      "by_domain_with_targets": {
+        "social_moral": 3000
+      },
+      "skipped": {}
+    },
+    {
+      "slug": "open-jev",
+      "dataset": "ZefanCai/Open-Jev",
+      "config": "release-v2-redistributable",
+      "split": "train",
+      "rows_read": 6000,
+      "items": 792,
+      "with_targets": 792,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 1.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 792,
+        "documented": 0
+      },
+      "duplicate_states": 0,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 792
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 792
+      },
+      "skipped": {}
+    },
+    {
+      "slug": "procedural-typed-decisions",
+      "dataset": "tasksource/procedural-typed-decisions",
+      "config": "all",
+      "split": "train",
+      "rows_read": 1500,
+      "items": 1500,
+      "with_targets": 1275,
+      "native_target_rate": 0.85,
+      "native_target_rate_direct_only": 0.85,
+      "pending_external_answers": 225,
+      "target_classes": {
+        "direct": 1275,
+        "documented": 0
+      },
+      "duplicate_states": 0,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 1500
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 1275
+      },
+      "skipped": {}
+    },
+    {
+      "slug": "prosocial-dialog",
+      "dataset": "allenai/prosocial-dialog",
+      "config": "default",
+      "split": "train",
+      "rows_read": 4000,
+      "items": 3998,
+      "with_targets": 0,
+      "native_target_rate": 0.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 3998,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0
+      },
+      "duplicate_states": 2,
+      "invalid": 0,
+      "by_domain": {
+        "social_moral": 3998
+      },
+      "by_domain_with_targets": {},
+      "skipped": {
+        "duplicate_state": 2
+      }
+    },
+    {
+      "slug": "system-one-270m",
+      "dataset": "kaivoss/system-one-270m-data",
+      "config": "default",
+      "split": "train",
+      "rows_read": 1500,
+      "items": 447,
+      "with_targets": 377,
+      "native_target_rate": 0.8434,
+      "native_target_rate_direct_only": 0.8434,
+      "pending_external_answers": 70,
+      "target_classes": {
+        "direct": 377,
+        "documented": 0
+      },
+      "duplicate_states": 0,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 447
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 377
+      },
+      "skipped": {}
+    },
+    {
+      "slug": "systemone-lite-general",
+      "dataset": "dwidlee/systemone-lite-general",
+      "config": "default",
+      "split": "train",
+      "rows_read": 1500,
+      "items": 1479,
+      "with_targets": 1479,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 1.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 1479,
+        "documented": 0
+      },
+      "duplicate_states": 21,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 1479
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 1479
+      },
+      "skipped": {
+        "duplicate_state": 21
+      }
+    }
+  ],
+  "skipped_units": []
+}
