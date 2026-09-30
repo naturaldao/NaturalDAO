@@ -5,8 +5,8 @@
 | 鄢申涛 Shenton / Claude | 待集成；实验室 0.3.0 迁入 research/，本目录 tools/check.py 与实验室 54 项测试均通过 |
 
 - 更新时间：2026-09-30 18:00 UTC+8
-- 分支：claude/elegant-ritchie-4y7ktd
-- 起点 commit / 依赖分支与 commit：main 30f1ad6；内容来自 https://github.com/shentonyan/pol2-dao-governance （commit 2a98e99）
+- 分支：pol/GOV-01/shenton
+- 起点 commit / 依赖分支与 commit：main bf2636c；内容来自 https://github.com/shentonyan/pol2-dao-governance （commit 2a98e99）
 - 目标与交付路径：`research/PoL2-DAO-Governance-Lab/`
 - 本次改动范围：新增上述目录与本任务页；TASKS.md 增加 GOV-01 一行；README.md 增加实验室入口。未改动 benchmark、datasets、models 与任何现有文件的内容
 - 下一步：团队审阅 PoL2 条款的工程解读（`docs/concept-mapping.md`，标 ❓ 处）；E9 的试例评测结果可作为 EVAL-01 的对照基线
