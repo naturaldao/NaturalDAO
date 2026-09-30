@@ -6,7 +6,7 @@ The foundational theory of NaturalDAO is called Proof of Love2 (PoL2). It was fi
 
 # Table of Contents
 0. [Preface](0.%20Preface.md)
-1. [Love2, Hate2, Proof of Love2, etc.]([1.%20Love2%2C%20Hate2%2C%20Proof%20of%20Love2%2C%20etc.md)
+1. [Love2, Hate2, Proof of Love2, etc.](1.%20Love2%2C%20Hate2%2C%20Proof%20of%20Love2%2C%20etc.md)
 2. [Love2 Languages](2.%20Love2%20Languages.md)
 3. [PoL2 Contemplative Axioms](3.%20PoL2%20Contemplative%20Axioms.md)
 4. [PoL2 Ethical Alignment Protocol](4.%20PoL2%20Ethical%20Alignment%20Protocol.md)
