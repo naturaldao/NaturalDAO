@@ -13,20 +13,27 @@ db-hf 的 fetch.py / convert.py 处理英文来源；中文来源的字段、许
   documented/direct 映射开关），本文件只写中文来源自己的字段解析；
 - 产物默认写在仓库外 D:\pol2-raw\zh-items\items.zh.jsonl，不碰 data/items.jsonl。
 
-三个子命令
+四个子命令
 ----------
-    uv run --no-project --offline python datasets/decision-base/convert_zh.py fetch --all --limit 200
+    uv run --no-project --offline python datasets/decision-base/convert_zh.py fetch --all
     uv run --no-project --offline python datasets/decision-base/convert_zh.py convert --all \
         --out D:\pol2-raw\zh-items\items.zh.jsonl
     uv run --no-project --offline python datasets/decision-base/convert_zh.py run --source cvalues-rlhf \
         --source chinese-emotion-dialogue --limit 200
+    uv run --no-project --offline python datasets/decision-base/convert_zh.py merge \
+        --zh D:\pol2-raw\zh-items\items.zh.jsonl --out datasets/decision-base/data/items.bilingual.jsonl
+
+merge 把英文 items.jsonl 与中文条目合成双语底座：英文原样不动，中文按**域分层抽样**
+（每域下限 1,200 → 剩余按容量比例分域 → 域内按容量比例分源 → 源内 sha256(seed+id) 顺序取），
+单一来源不超过中文样本的 40%，默认目标中文占比 0.32（30% 底线 + 2 个点余量）。
 
 硬规则
 ------
 1. 只取 train（textdetox 的中文子集是一个语言 split，来源里单独注明）。
 2. 准入来源必须在 sources.zh.json 里，且不能出现在 excluded（机器翻译、评测集、NC 许可等）。
 3. 不硬塞：源字段与 taxonomy 键语义对不上时，原文进 meta.source_record，targets 留空等外部答案源。
-4. lang="zh"，id 与英文条目同规则。
+4. lang="zh"，id 与英文条目同规则；merge 会拒绝任何跨语言 id 碰撞。
+5. merge 不改写英文条目（按原顺序原样输出），只在中文侧做抽样。
 
 测试全离线：python -m unittest discover -s datasets/decision-base -p "test_*.py"
 """
@@ -34,6 +41,8 @@ db-hf 的 fetch.py / convert.py 处理英文来源；中文来源的字段、许
 from __future__ import annotations
 
 import argparse
+import gzip
+import hashlib
 import json
 import sys
 from datetime import datetime, timezone
@@ -534,6 +543,214 @@ def cmd_run(args) -> int:
     return cmd_convert(args)
 
 
+# ---------------------------------------------------------------- 双语合并
+
+DEFAULT_EN_ITEMS = HERE / "data" / "items.jsonl"
+DEFAULT_BI_OUT = HERE / "data" / "items.bilingual.jsonl"
+DEFAULT_ZH_SHARE = 0.32          # 目标中文占比：30% 底线 + 2 个点余量
+DEFAULT_SOURCE_CAP_RATIO = 0.40  # 单一来源在中文样本中的上限（README §4）
+DEFAULT_DOMAIN_FLOOR = 1200      # 每个中文域的覆盖下限（README §4）
+DEFAULT_SAMPLE_SEED = "pol2-bilingual-v1"
+
+
+def load_items(path: Path):
+    items = []
+    with Path(path).open(encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if line:
+                items.append(json.loads(line))
+    return items
+
+
+def stable_order(items, seed: str):
+    """确定性取样顺序：按 sha256(seed+id) 排序，避免只取文件头部。"""
+    return sorted(items, key=lambda item: hashlib.sha256(
+        (seed + str(item.get("id"))).encode("utf-8")).hexdigest())
+
+
+def _allocate(capacities: dict, target: int) -> dict:
+    """按容量比例分配 target（最大余数法），任何一项不超过其容量。"""
+    capacities = {key: int(value) for key, value in capacities.items() if value > 0}
+    result = {key: 0 for key in capacities}
+    total_cap = sum(capacities.values())
+    target = max(0, min(int(target), total_cap))
+    if target == 0 or total_cap == 0:
+        return result
+    if target == total_cap:
+        return dict(capacities)
+    exact = {key: target * value / total_cap for key, value in capacities.items()}
+    for key, value in exact.items():
+        result[key] = min(int(value), capacities[key])
+    remainder = target - sum(result.values())
+    for key in sorted(exact, key=lambda k: (-(exact[k] - int(exact[k])), k)):
+        if remainder <= 0:
+            break
+        if result[key] < capacities[key]:
+            result[key] += 1
+            remainder -= 1
+    return result
+
+
+def stratified_sample(items, target: int, *, source_cap_ratio: float = DEFAULT_SOURCE_CAP_RATIO,
+                      domain_floor: int = DEFAULT_DOMAIN_FLOOR, seed: str = DEFAULT_SAMPLE_SEED):
+    """中文侧按域分层抽样：域下限 → 按容量比例分域 → 域内按容量比例分源 → 源内哈希顺序取。
+
+    返回 (选中的条目, 说明)。target 大于等于可用总量时原样返回。
+    """
+    by_source = {}
+    for item in items:
+        by_source.setdefault(item["source"]["slug"], []).append(item)
+    source_cap = max(1, int(target * source_cap_ratio))
+    capacity = {slug: min(len(rows), source_cap) for slug, rows in by_source.items()}
+    domain_of = {slug: rows[0]["domain"] for slug, rows in by_source.items()}
+    domain_capacity = {}
+    for slug, cap in capacity.items():
+        domain_capacity[domain_of[slug]] = domain_capacity.get(domain_of[slug], 0) + cap
+    available = sum(domain_capacity.values())
+    if target >= len(items) or target >= available:
+        return list(items), {"mode": "keep_all", "target": target, "available": available,
+                             "source_cap": source_cap, "domain_capacity": domain_capacity}
+    # 先给每个域下限，再按剩余容量比例分配；预算连下限都不够时按下限等比缩小
+    floors = {domain: min(domain_floor, capacity) for domain, capacity in domain_capacity.items()}
+    if target < sum(floors.values()):
+        domain_budget = _allocate(floors, target)
+    else:
+        domain_budget = dict(floors)
+        remaining_capacity = {domain: domain_capacity[domain] - floors[domain]
+                              for domain in domain_capacity}
+        extra = _allocate(remaining_capacity, target - sum(floors.values()))
+        for domain, count in extra.items():
+            domain_budget[domain] = domain_budget.get(domain, 0) + count
+    chosen, per_source = [], {}
+    for domain, budget in sorted(domain_budget.items()):
+        slugs = sorted(slug for slug in capacity if domain_of[slug] == domain)
+        budgets = _allocate({slug: capacity[slug] for slug in slugs}, budget)
+        for slug in slugs:
+            rows = stable_order(by_source[slug], seed)[:budgets[slug]]
+            per_source[slug] = {"available": len(by_source[slug]), "capacity": capacity[slug],
+                                "kept": len(rows), "domain": domain}
+            chosen.extend(rows)
+    note = {"mode": "stratified", "target": target, "available": available,
+            "source_cap": source_cap, "domain_capacity": domain_capacity,
+            "domain_budget": domain_budget, "per_source": per_source,
+            "source_cap_ratio": source_cap_ratio, "domain_floor": domain_floor, "seed": seed}
+    return chosen, note
+
+
+def summarize_items(items, taxonomy):
+    by_lang, by_lang_targets, by_domain, by_domain_lang, by_source = {}, {}, {}, {}, {}
+    errors = 0
+    for item in items:
+        lang = item.get("lang")
+        by_lang[lang] = by_lang.get(lang, 0) + 1
+        domain = item.get("domain")
+        by_domain[domain] = by_domain.get(domain, 0) + 1
+        by_domain_lang.setdefault(domain, {})
+        by_domain_lang[domain][lang] = by_domain_lang[domain].get(lang, 0) + 1
+        slug = (item.get("source") or {}).get("slug") or (item.get("source") or {}).get("dataset")
+        by_source[slug] = by_source.get(slug, 0) + 1
+        if item.get("targets"):
+            by_lang_targets[lang] = by_lang_targets.get(lang, 0) + 1
+        if taxonomy.item_errors(item):
+            errors += 1
+    total = len(items)
+    return {
+        "items": total,
+        "by_lang": by_lang,
+        "lang_share": {lang: round(count / total, 4) for lang, count in by_lang.items()} if total else {},
+        "items_with_targets_by_lang": by_lang_targets,
+        "native_target_rate_by_lang": {lang: round(by_lang_targets.get(lang, 0) / count, 4)
+                                       for lang, count in by_lang.items()} if total else {},
+        "by_domain": by_domain,
+        "by_domain_lang": by_domain_lang,
+        "by_source": by_source,
+        "item_errors": errors,
+    }
+
+
+def cmd_merge(args) -> int:
+    taxonomy = load_taxonomy()
+    en_items = load_items(args.en)
+    zh_items = load_items(args.zh)
+    problems = []
+    for lang, rows in (("en", en_items), ("zh", zh_items)):
+        seen = set()
+        for item in rows:
+            item_id = item.get("id")
+            if item_id in seen:
+                problems.append(f"{lang}: id 重复 {item_id}")
+            seen.add(item_id)
+            if item.get("lang") != lang:
+                problems.append(f"{lang}: lang={item.get('lang')!r} 与语言侧不符（{item_id}）")
+    collisions = sorted({item["id"] for item in en_items} & {item["id"] for item in zh_items})
+    if collisions:
+        problems.append(f"id 跨语言碰撞 {len(collisions)} 条：{collisions[:5]}")
+    if problems:
+        for problem in problems[:10]:
+            print(f"PROBLEM {problem}", file=sys.stderr)
+        print(json.dumps({"status": "failed", "problems": problems[:10]}, ensure_ascii=False))
+        return 1
+
+    share = float(args.zh_share)
+    target_zh = int(round(len(en_items) * share / (1 - share)))
+    if target_zh >= len(zh_items):
+        chosen, note = list(zh_items), {"mode": "keep_all", "target": target_zh,
+                                        "available": len(zh_items)}
+    else:
+        chosen, note = stratified_sample(zh_items, target_zh,
+                                         source_cap_ratio=args.source_cap_ratio,
+                                         domain_floor=args.domain_floor, seed=args.seed)
+    merged = list(en_items) + sorted(chosen, key=lambda item: str(item.get("id")))
+    summary = summarize_items(merged, taxonomy)
+    summary["en_items"] = len(en_items)
+    summary["zh_available"] = len(zh_items)
+    summary["zh_kept"] = len(chosen)
+    summary["target_zh_share"] = share
+    summary["zh_share_floor"] = 0.30
+    summary["sampling"] = note
+    summary["collisions"] = 0
+
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", encoding="utf-8") as handle:
+        for item in merged:
+            handle.write(convert_mod.jsonl_line(item))
+    summary["out"] = str(out)
+    summary["out_bytes"] = out.stat().st_size
+    summary["out_sha256"] = _file_sha256(out)
+    summary["en_sha256"] = _file_sha256(args.en)
+    summary["zh_sha256"] = _file_sha256(args.zh)
+    summary["created_at"] = args.created_at or utc_now()
+    if not args.no_gz:
+        gz_path = Path(str(out) + ".gz")
+        with out.open("rb") as source, gzip.open(gz_path, "wb", compresslevel=9) as target:
+            for chunk in iter(lambda: source.read(1 << 20), b""):
+                target.write(chunk)
+        summary["gz"] = str(gz_path)
+        summary["gz_bytes"] = gz_path.stat().st_size
+    if args.report:
+        Path(args.report).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.report).write_text(json.dumps(summary, ensure_ascii=False, indent=1) + "\n",
+                                     encoding="utf-8")
+    print(json.dumps({"command": "merge", "items": summary["items"], "en": len(en_items),
+                      "zh": len(chosen), "zh_available": len(zh_items),
+                      "lang_share": summary["lang_share"],
+                      "native_target_rate_by_lang": summary["native_target_rate_by_lang"],
+                      "item_errors": summary["item_errors"], "mode": note["mode"],
+                      "out": str(out), "gz_bytes": summary.get("gz_bytes")},
+                     ensure_ascii=False))
+    return 0
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -571,13 +788,27 @@ def build_parser():
     run.add_argument("--created-at", default=None)
     run.add_argument("--mappings", choices=("all", "direct"), default="all")
     run.set_defaults(func=cmd_run)
+
+    merge = sub.add_parser("merge", help="合并中英条目为双语底座（中文按域分层抽样）")
+    merge.add_argument("--en", type=Path, default=DEFAULT_EN_ITEMS, help="英文 items.jsonl")
+    merge.add_argument("--zh", type=Path, default=Path(r"D:\pol2-raw\zh-items\items.zh.jsonl"))
+    merge.add_argument("--out", type=Path, default=DEFAULT_BI_OUT)
+    merge.add_argument("--report", type=Path, default=None)
+    merge.add_argument("--zh-share", type=float, default=DEFAULT_ZH_SHARE,
+                       help=f"目标中文占比（默认 {DEFAULT_ZH_SHARE}；下限 0.30）")
+    merge.add_argument("--source-cap-ratio", type=float, default=DEFAULT_SOURCE_CAP_RATIO)
+    merge.add_argument("--domain-floor", type=int, default=DEFAULT_DOMAIN_FLOOR)
+    merge.add_argument("--seed", default=DEFAULT_SAMPLE_SEED)
+    merge.add_argument("--created-at", default=None)
+    merge.add_argument("--no-gz", action="store_true")
+    merge.set_defaults(func=cmd_merge)
     return parser
 
 
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if not args.all and not args.source:
+    if args.command != "merge" and not args.all and not args.source:
         parser.error("请指定 --source <slug>（可重复）或 --all")
     if getattr(args, "page_size", 0) > fetch_mod.PAGE_SIZE:
         parser.error(f"--page-size 上限 {fetch_mod.PAGE_SIZE}（datasets-server 硬限制）")

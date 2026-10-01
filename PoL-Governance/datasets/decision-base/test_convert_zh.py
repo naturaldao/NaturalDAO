@@ -255,6 +255,165 @@ class ItemShapeTests(unittest.TestCase):
         self.assertEqual(unit.skipped.get("empty_state"), 1)
 
 
+def make_item(item_id, *, lang, domain, slug, with_targets=True):
+    """造一条最小合法条目（只用于合并/抽样测试，不进任何产物）。"""
+    taxonomy = convert_zh.load_taxonomy()
+    questions = taxonomy.build_questions(domain, lang="zh")
+    item = {
+        "id": item_id, "domain": domain, "lang": lang, "state": f"state-{item_id}",
+        "questions": questions,
+        "source": {"dataset": f"unit/{slug}", "revision": "a" * 40, "config": "default",
+                   "split": "train", "row": 1, "license": "apache-2.0",
+                   "url": "https://huggingface.co/datasets/unit/x", "slug": slug},
+        "meta": {"converter": "convert_zh.py", "converter_version": "0.1",
+                 "created_at": CREATED_AT, "quality_flags": []},
+    }
+    if with_targets:
+        question = questions[0]
+        if question["kind"] == "noul":
+            filler = "yes"
+        elif question["kind"] == "choice":
+            filler = question["options"][0]["key"]
+        else:
+            filler = question["scale"]["min"]
+        item["targets"] = {question["key"]: {"answer": filler}}
+    assert not taxonomy.item_errors(item), taxonomy.item_errors(item)
+    return item
+
+
+class AllocationTests(unittest.TestCase):
+    def test_allocate_is_proportional_and_capped(self):
+        result = convert_zh._allocate({"a": 100, "b": 100, "c": 2}, 102)
+        self.assertEqual(sum(result.values()), 102)
+        self.assertLessEqual(result["c"], 2)
+        self.assertGreater(result["a"], result["c"])
+
+    def test_allocate_returns_capacity_when_target_exceeds_it(self):
+        self.assertEqual(convert_zh._allocate({"a": 3, "b": 4}, 100), {"a": 3, "b": 4})
+
+    def test_stable_order_is_deterministic_and_not_head_only(self):
+        items = [{"id": f"db-x-{i:08d}"} for i in range(20)]
+        first = [item["id"] for item in convert_zh.stable_order(items, "seed")]
+        second = [item["id"] for item in convert_zh.stable_order(list(reversed(items)), "seed")]
+        self.assertEqual(first, second)
+        self.assertNotEqual(first[:5], [item["id"] for item in items[:5]])
+
+    def test_stratified_sample_respects_floor_and_source_cap(self):
+        items = []
+        for slug, domain, count in (("big", "risk_harm", 400), ("mid", "human_judgment", 300),
+                                    ("small", "social_moral", 50)):
+            items.extend(make_item(f"db-{slug}-{index:08d}", lang="zh", domain=domain, slug=slug)
+                         for index in range(count))
+        chosen, note = convert_zh.stratified_sample(items, 200, source_cap_ratio=0.4,
+                                                   domain_floor=30, seed="t")
+        self.assertEqual(note["mode"], "stratified")
+        self.assertEqual(len(chosen), 200)
+        by_slug = {}
+        for item in chosen:
+            by_slug[item["source"]["slug"]] = by_slug.get(item["source"]["slug"], 0) + 1
+        self.assertLessEqual(by_slug["big"], 80)          # 40% 上限
+        self.assertGreaterEqual(by_slug["small"], 30)     # 域下限
+        again, _ = convert_zh.stratified_sample(items, 200, source_cap_ratio=0.4,
+                                                domain_floor=30, seed="t")
+        self.assertEqual([item["id"] for item in chosen], [item["id"] for item in again])
+
+    def test_stratified_sample_keeps_everything_when_target_is_large(self):
+        items = [make_item(f"db-s-{index:08d}", lang="zh", domain="risk_harm", slug="s")
+                 for index in range(10)]
+        chosen, note = convert_zh.stratified_sample(items, 999)
+        self.assertEqual(len(chosen), 10)
+        self.assertEqual(note["mode"], "keep_all")
+
+
+class MergeTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.en = self.root / "items.jsonl"
+        self.zh = self.root / "items.zh.jsonl"
+        en_items = [make_item(f"db-en-{index:08d}", lang="en", domain="decision_mechanics",
+                              slug="en-src") for index in range(40)]
+        zh_items = []
+        for slug, domain, count in (("zh-big", "risk_harm", 60),
+                                    ("zh-mid", "human_judgment", 40),
+                                    ("zh-small", "social_moral", 20)):
+            zh_items.extend(make_item(f"db-{slug}-{index:08d}", lang="zh", domain=domain, slug=slug)
+                            for index in range(count))
+        self.write_jsonl(self.en, en_items)
+        self.write_jsonl(self.zh, zh_items)
+        self.out = self.root / "items.bilingual.jsonl"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    @staticmethod
+    def write_jsonl(path, items):
+        path.write_text("".join(json.dumps(item, ensure_ascii=False) + "\n" for item in items),
+                        encoding="utf-8")
+
+    def merge(self, *extra):
+        return convert_zh.main(["merge", "--en", str(self.en), "--zh", str(self.zh),
+                                "--out", str(self.out), "--no-gz", *extra])
+
+    def test_merge_writes_bilingual_file_with_lang_side_by_side(self):
+        self.assertEqual(self.merge("--zh-share", "0.3"), 0)
+        items = convert_zh.load_items(self.out)
+        self.assertEqual(len(items), 40 + int(round(40 * 0.3 / 0.7)))
+        langs = {item["lang"] for item in items}
+        self.assertEqual(langs, {"en", "zh"})
+        self.assertEqual(len({item["id"] for item in items}), len(items))
+        taxonomy = convert_zh.load_taxonomy()
+        self.assertEqual([item["id"] for item in items if taxonomy.item_errors(item)], [])
+
+    def test_merge_keeps_english_untouched_and_domain_stratified(self):
+        self.assertEqual(self.merge("--zh-share", "0.4", "--domain-floor", "8"), 0)
+        items = convert_zh.load_items(self.out)
+        english = [item for item in items if item["lang"] == "en"]
+        self.assertEqual([item["id"] for item in english],
+                         [item["id"] for item in convert_zh.load_items(self.en)])
+        zh = [item for item in items if item["lang"] == "zh"]
+        domains = {}
+        for item in zh:
+            domains[item["domain"]] = domains.get(item["domain"], 0) + 1
+        self.assertEqual(len(zh), len(items) - len(english))
+        for domain, count in domains.items():
+            self.assertGreaterEqual(count, 8, domain)      # 每个中文域都被保住
+        self.assertLessEqual(max(domains.values()) / len(zh), 0.5)   # 单一来源 40% 上限
+
+    def test_merge_reports_machine_readable_summary(self):
+        report = self.root / "report.json"
+        self.assertEqual(self.merge("--zh-share", "0.3", "--report", str(report)), 0)
+        summary = json.loads(report.read_text(encoding="utf-8"))
+        self.assertEqual(summary["collisions"], 0)
+        self.assertEqual(summary["item_errors"], 0)
+        self.assertEqual(summary["by_lang"]["en"], 40)
+        self.assertAlmostEqual(summary["lang_share"]["zh"], 0.3, places=2)
+        self.assertEqual(summary["sampling"]["mode"], "stratified")
+        self.assertTrue(summary["out_sha256"])
+
+    def test_merge_detects_cross_language_id_collision(self):
+        items = convert_zh.load_items(self.zh)
+        self.write_jsonl(self.en, [make_item(items[0]["id"], lang="en",
+                                             domain="decision_mechanics", slug="en-src")])
+        self.assertEqual(self.merge("--zh-share", "0.3"), 1)
+
+    def test_merge_rejects_wrong_lang_field(self):
+        items = convert_zh.load_items(self.zh)
+        items[0] = dict(items[0], lang="en")
+        self.write_jsonl(self.zh, items)
+        self.assertEqual(self.merge("--zh-share", "0.3"), 1)
+
+    def test_merge_writes_gzip_when_asked(self):
+        code = convert_zh.main(["merge", "--en", str(self.en), "--zh", str(self.zh),
+                                "--out", str(self.out), "--zh-share", "0.3"])
+        self.assertEqual(code, 0)
+        gz = Path(str(self.out) + ".gz")
+        self.assertTrue(gz.is_file())
+        import gzip as gzip_mod
+        with gzip_mod.open(gz, "rt", encoding="utf-8") as handle:
+            self.assertEqual(len([line for line in handle if line.strip()]), 57)
+
+
 class CliTests(unittest.TestCase):
     def test_convert_requires_source_selection(self):
         with self.assertRaises(SystemExit):
