@@ -3,7 +3,23 @@ import argparse
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
+
+
+def configure_stdio():
+    """Write UTF-8 whatever the host console code page is.
+
+    Task pages are free-form text: they may carry characters the console
+    code page cannot represent (a Windows console defaults to cp936 here), and
+    a status line echoed from someone else's page can therefore abort the whole
+    report. Encoding the output ourselves keeps the report readable when
+    redirected and prevents that abort.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, 'reconfigure', None)
+        if reconfigure is not None:
+            reconfigure(encoding='utf-8', errors='replace')
 
 
 def task_location(ref, remote, module):
@@ -44,6 +60,7 @@ def git(repo, *args):
 
 
 def main():
+    configure_stdio()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--remote', default='origin')
     args = parser.parse_args()
@@ -72,6 +89,11 @@ def main():
         print(json.dumps({'source': 'locally_fetched_remote_refs',
                           'refresh': f'git fetch {args.remote}', 'tasks': rows},
                          ensure_ascii=False, indent=2))
+    except UnicodeEncodeError as error:
+        # UnicodeEncodeError is a ValueError, so it must be reported before that
+        # clause or it is misattributed to a Git problem.
+        parser.exit(2, f'Cannot encode the report for this output stream: {error.encoding}. '
+                       f'Redirect to a file or set PYTHONIOENCODING=utf-8.\n')
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(2, f'Cannot read task branches: {type(error).__name__}. Run inside a Git repository and fetch the remote first.\n')
 

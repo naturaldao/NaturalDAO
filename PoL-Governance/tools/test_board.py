@@ -1,5 +1,12 @@
+import io
+import json
+import os
+import subprocess
+import sys
 import unittest
-from board import fields, task_location
+from pathlib import Path
+
+from board import configure_stdio, fields, task_location
 
 
 class BoardTests(unittest.TestCase):
@@ -39,6 +46,50 @@ class BoardTests(unittest.TestCase):
 
     def test_blank_owner_does_not_consume_next_line(self):
         self.assertEqual(fields('- 领取人：\n- 状态：进行中\n')['owner'], '')
+
+
+class StdioTests(unittest.TestCase):
+    """The report must not depend on the host console code page."""
+
+    def test_configure_stdio_switches_to_utf8(self):
+        stream = io.TextIOWrapper(io.BytesIO(), encoding='gbk')
+        original = sys.stdout
+        try:
+            sys.stdout = stream
+            configure_stdio()
+            self.assertEqual(stream.encoding, 'utf-8')
+        finally:
+            sys.stdout = original
+
+    def test_stream_without_reconfigure_is_ignored(self):
+        class Bare:
+            pass
+
+        original = sys.stdout
+        try:
+            sys.stdout = Bare()
+            configure_stdio()
+        finally:
+            sys.stdout = original
+
+
+class CliEncodingTests(unittest.TestCase):
+    def test_report_survives_a_code_page_that_cannot_encode_task_text(self):
+        repo = Path(__file__).resolve().parents[1]
+        refs = subprocess.run(
+            ['git', '-C', str(repo), 'for-each-ref', '--format=%(refname:short)',
+             'refs/remotes/origin/pol/'],
+            capture_output=True, text=True)
+        if refs.returncode != 0 or not refs.stdout.strip():
+            self.skipTest('no fetched origin/pol/* refs to report on')
+        env = dict(os.environ, PYTHONIOENCODING='gbk')
+        result = subprocess.run([sys.executable, str(repo / 'tools' / 'board.py')],
+                                capture_output=True, env=env, cwd=repo)
+        self.assertEqual(result.returncode, 0,
+                         result.stderr.decode('utf-8', 'replace'))
+        report = json.loads(result.stdout.decode('utf-8'))
+        self.assertIn('tasks', report)
+        self.assertTrue(report['tasks'])
 
 
 if __name__ == '__main__':
