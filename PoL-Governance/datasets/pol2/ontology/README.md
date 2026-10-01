@@ -13,7 +13,7 @@
 |---|---|---|
 | [pol2-labels.v0.1.json](pol2-labels.v0.1.json) | 机器可读本体：条款注册表、status/polarity/issues/love_languages/mitigations/evidence/actions/surfaces、旧 pilot 标签对照、待审定清单 | pipeline、benchmark、check 脚本 |
 | [JUDGE.md](JUDGE.md) | 人工判据细则：每条标签的正例、反例、边界例；四条硬规则与判定顺序 | 标注者、教师、复核者 |
-| [test-matrix.md](test-matrix.md) | 18 条轴、25 组成对样例（同情节、只改一处关键事实） | 判据自检、人工校准 |
+| [test-matrix.md](test-matrix.md) | 19 条轴、26 组成对样例（同情节、只改一处关键事实） | 判据自检、人工校准 |
 | [check_ontology.py](check_ontology.py) | 纯标准库自检：本体与矩阵一致性校验，CLI 输出 JSON | CI、`tools/check.py` 之外的本地校验 |
 | [test_ontology.py](test_ontology.py) | 上述自检的 unittest 封装（含编号防复发与源文对齐测试） | `unittest discover` |
 | [clause-remap.md](clause-remap.md) | 旧→新 clause id 映射表：新版章节标题 + 正文短引证据 + 内容状态 + needs_review + 跨目录待改清单 | 复核者、pipeline 迁移 |
@@ -31,7 +31,8 @@
 - **clauses**：34 条条款（PoL.1.1–1.5、PoL.2.1–2.16、PoL.5.4 / 5.4.1 / 5.6、EAP.4.1–4.3.3.3、ENG.1）。**每个标签条目都必须带 `clause`**，指向其中一条，并附一句话判据。
 - **anchor_audit**：审计基线（`origin/main` 的 commit）、新版章号表（0–8 → 文件名）、未编号文档、命名空间→章号、**退役前缀**（EAP.5. / PoL.3.4 / PoL.3.6 / ENG.6.）与旧→新映射。改章节引用前先读它。
 - **legacy_label_map**：pilot 的 7 个待审工程标签 → 原生 issues 的对照，只供读旧数据；新数据一律用原生 issues。
-- **pending_review**：原文未直接规定的分类粒度、阈值或效力（如「沉默是否构成撤回」「工具越权的条款锚点」）。标为待审定的事项**不得**当作已审定结论使用。
+- **pending_review**：**未决**问题——原文未直接规定的分类粒度、阈值或效力（如「沉默是否构成撤回」「工具越权的条款锚点」）。标为待审定的事项**不得**当作已审定结论使用。
+- **adjudications**：**已裁定**问题的结案记录（`status=resolved`、裁定人、日期、上游 ref、结论与理由，`mapped_to` 指向承载它的既有词表条目）。裁定只允许用现有词表承载；确需新标签时走 v0.2 版本化变更 + 迁移，不就地增删。当前 4 条，ref `2e4983a`。
 
 ## 3. 如何被引用
 

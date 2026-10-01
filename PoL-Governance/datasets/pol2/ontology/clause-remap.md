@@ -66,12 +66,19 @@
 - **第 5 章（旧第 3 章）**：整体重编号 3.x→5.x；5.1 新增原子弹/关税战/排放等段落；**旧 3.4.1 中“明辨恨语甚至比爱语的对齐更加重要”一节已从本章移除**，该论述现在只保留在《PoL共识的工程策略》（ENG.1）中——ENG 锚点因此更关键，已在本体注明。
 - **《PoL共识的工程策略》**：与旧版逐字一致，但已不在编号列表内。
 
-## 3. needs_review（交 Lead 裁定，未硬映射）
+## 3. 待裁定事项与 Lead 裁定（已结案）
 
-1. 「clause.PoL.1.4.pol2_definition」：新版第 1 章对 PoL2 有**两种并存表述**（“依托 AI 与区块链” vs “采用 AI 及智能合约”）。本体的 gist 采信信息更完整的一处并保留另一处，未擅自择一。
-2. 「content.EAP.4.3.2.new_exceptions」：新增三条例外中，“安保警示不视为仇恨攻击”**直接支持**既有「safety_guardianship」；“任何形式的战争”与“创作分级管理”目前**没有**对应 issue/mitigation，我未擅自新增标签。
+复验时提出 2 项、细分 3 条裁定点；**Lead 已于 2026-10-02 裁定，机器可读记录在本体 `adjudications`（ref 2e4983a）**，全部用 v0.1 现有词表承载，不新增标签：
 
-其余 32 条锚点均在新版中找到逐字对应段落，无需裁定。
+| 裁定点 | 结论 | 落点 |
+|---|---|---|
+| PoL.1.4 两处并存表述 | **维持**：两处并存，gist 取更完整的一处，不替上游择一（“区块链”与“智能合约”并非互斥，择一会丢信息） | 本体 gist 保持不变；`clause.PoL.1.4.pol2_definition` 关闭 |
+| 安保机器人紧急警示不视为仇恨攻击 | 不新增标签，归入既有 mitigation `safety_guardianship` | `adjudication.guard_warning`；该 mitigation 的 criterion 已补新版引文 |
+| 任何人不得参与任何形式的战争 | 不新增标签，归入既有 issue `violence_worship` | `adjudication.war_participation`；该 issue 的 `clauses` 增补 EAP.4.3.2、`include_when` 增补“参与或号召参与任何形式的战争” |
+| 文艺/影视/游戏可制造仇恨但须严谨的等级管理制度 | 不新增标签，归入既有 mitigation `play_and_humor_boundary`，并新增判定轴 AX-19 | `adjudication.fiction_grading`；[test-matrix.md](test-matrix.md) 轴 AX-19（文艺作品中的仇恨描写 vs 真实仇恨表达） |
+
+未决事项仍留在本体 `pending_review`（11 条工程口径问题）；其余 32 条锚点均在新版中找到逐字对应段落，无需裁定。
+若将来确实需要新标签，走 **v0.2 版本化变更 + 迁移**，不就地增删（Lead 裁定）。
 
 ## 4. 跨目录待改引用（**不在我的写范围**，交 Lead 分派）
 

@@ -40,7 +40,7 @@ class OntologyShapeTest(unittest.TestCase):
         self.assertEqual(report["issues"], 15)
         self.assertEqual(report["love_languages"], 16)
         self.assertEqual(report["mitigations"], 8)
-        self.assertEqual(report["axes"], 18)
+        self.assertEqual(report["axes"], 19)
         self.assertGreaterEqual(report["pairs"], 15)
 
     def test_required_sections_present(self):
@@ -312,6 +312,52 @@ class CheckerCatchesProblemsTest(unittest.TestCase):
         with self.assertRaises(co.OntologyError):
             co.check_matrix(_data(), text, require_topics=True)
 
+
+
+class AdjudicationTest(unittest.TestCase):
+    """Lead rulings must be recorded against the existing vocabulary (no in-place new labels)."""
+
+    def setUp(self):
+        self.data = _data()
+
+    def test_rulings_are_recorded_and_resolved(self):
+        items = self.data["adjudications"]
+        self.assertEqual(len(items), 4)
+        for item in items:
+            self.assertEqual(item["status"], "resolved")
+            self.assertEqual(item["decided_by"], "lead")
+            self.assertEqual(item["ref"], "2e4983a")
+            self.assertIn(item["clause"], self.data["clauses"])
+
+    def test_war_and_fiction_ride_on_existing_labels(self):
+        mapped = {(a["mapped_to"] or {}).get("id") for a in self.data["adjudications"]}
+        self.assertIn("safety_guardianship", mapped)
+        self.assertIn("violence_worship", mapped)
+        self.assertIn("play_and_humor_boundary", mapped)
+        war = [a for a in self.data["adjudications"] if a["id"] == "adjudication.war_participation"][0]
+        self.assertEqual(war["mapped_to"], {"kind": "issue", "id": "violence_worship"})
+        issue = [i for i in self.data["issues"] if i["id"] == "violence_worship"][0]
+        self.assertIn("EAP.4.3.2", issue["clauses"])
+        play = [m for m in self.data["mitigations"] if m["id"] == "play_and_humor_boundary"][0]
+        self.assertIn("EAP.4.3.2", play["clauses"])
+
+    def test_adjudicated_questions_left_pending_review(self):
+        pending_ids = {item["id"] for item in self.data["pending_review"]}
+        self.assertNotIn("clause.PoL.1.4.pol2_definition", pending_ids)
+        self.assertNotIn("content.EAP.4.3.2.new_exceptions", pending_ids)
+        self.assertEqual(len(pending_ids), 11)
+
+    def test_rejects_an_unresolved_adjudication(self):
+        data = copy.deepcopy(self.data)
+        data["adjudications"][0]["status"] = "open"
+        with self.assertRaises(co.OntologyError):
+            co.check_ontology(data)
+
+    def test_rejects_an_adjudication_mapping_to_an_unknown_label(self):
+        data = copy.deepcopy(self.data)
+        data["adjudications"][1]["mapped_to"] = {"kind": "issue", "id": "brand_new_issue"}
+        with self.assertRaises(co.OntologyError):
+            co.check_ontology(data)
 
 
 class RenumberingGuardTest(unittest.TestCase):

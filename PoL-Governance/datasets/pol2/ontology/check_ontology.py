@@ -47,6 +47,10 @@ ISSUE_GROUPS = ("hate2_derived", "pai_specific", "native_extension")
 ISSUE_DOMAINS = ("hate2", "governance_risk")
 REVIEW_STATES = ("clause_traced", "pending_review")
 PENDING_KINDS = ("issue", "polarity", "evidence", "mitigation", "love_language", "clause", "action", "status", "surface")
+# adjudications record a decided question and, optionally, the existing vocabulary entry that carries it
+ADJUDICATION_TARGETS = {"issue": "issues", "mitigation": "mitigations", "love_language": "love_languages",
+                        "action": "actions", "polarity": "polarity", "evidence": "evidence",
+                        "status": "status", "surface": "surfaces"}
 CLAUSE_NAMESPACES = ("PoL", "EAP", "ENG")
 
 # Canonical chapter table of the audited upstream paper (origin/main @ d030b80, 2026-10-02).
@@ -200,7 +204,7 @@ def check_ontology(data: dict) -> dict:
     for name in ("name", "version", "schema", "status_note", "hard_rules", "source_docs",
                  "clauses", "status", "polarity", "issues", "love_languages",
                  "mitigations", "evidence", "actions", "surfaces",
-                 "legacy_label_map", "pending_review"):
+                 "legacy_label_map", "pending_review", "adjudications"):
         if name not in data:
             raise OntologyError(f"ontology is missing top-level key: {name}")
 
@@ -337,6 +341,35 @@ def check_ontology(data: dict) -> dict:
             if kind not in pending_kinds:
                 raise OntologyError(f"{section}.{entry_id} is pending_review with no pending_review record")
 
+    # 8b. adjudications: decided questions, carried by the existing vocabulary
+    adjudications = data["adjudications"]
+    if not isinstance(adjudications, list) or not adjudications:
+        raise OntologyError("adjudications must record the Lead's rulings")
+    adjudication_ids = set()
+    for item in adjudications:
+        for field in ("id", "status", "decided_by", "decided_at", "ref", "question",
+                      "decision", "rationale"):
+            if not isinstance(item.get(field), str) or not item[field].strip():
+                raise OntologyError(f"adjudication missing {field}: {item.get('id')}")
+        if item["status"] != "resolved":
+            raise OntologyError(f"adjudication {item['id']} has unsupported status: {item['status']}")
+        if item["id"] in adjudication_ids or item["id"] in pending_ids:
+            raise OntologyError(f"duplicate adjudication id: {item['id']}")
+        adjudication_ids.add(item["id"])
+        if item["clause"] not in clauses:
+            raise OntologyError(f"adjudication {item['id']} cites unknown clause: {item['clause']!r}")
+        target = item.get("mapped_to")
+        if target is None:
+            continue
+        if not isinstance(target, dict) or set(target) != {"kind", "id"}:
+            raise OntologyError(f"adjudication {item['id']} mapped_to must be null or {{kind, id}}")
+        section = ADJUDICATION_TARGETS.get(target["kind"])
+        if section is None:
+            raise OntologyError(f"adjudication {item['id']} maps to unknown kind: {target['kind']}")
+        known = {(entry.get("key") or entry.get("id")) for entry in data[section]}
+        if target["id"] not in known:
+            raise OntologyError(f"adjudication {item['id']} maps to unknown {target['kind']}: {target['id']}")
+
     # 9. legacy engineering labels
     legacy = {k: v for k, v in data["legacy_label_map"].items() if k != "note"}
     if sorted(legacy) != sorted(LEGACY_LABELS):
@@ -355,7 +388,8 @@ def check_ontology(data: dict) -> dict:
     return {"clauses": len(clauses), "issues": len(data["issues"]),
             "core_issues": len(CORE_ISSUES), "love_languages": len(love),
             "mitigations": len(data["mitigations"]), "pending_review": len(pending),
-            "source_docs": len(doc_names), **numbering_report}
+            "source_docs": len(doc_names), "adjudications": len(adjudications),
+            **numbering_report}
 
 
 def check_numbering(data: dict) -> dict:
