@@ -257,19 +257,33 @@ stdout 汇总给出 calls / ok / failed / tokens / cost / p50 / p95。价格用 
 
 论文重排后旧锚点的迁移由一次性脚本完成，**不重跑任何模型生成**（纯元数据字符串重映射）：
 
-    uv run --no-project --offline python datasets/pol2/pipeline/migrate_anchors.py            # 预演（默认）
+    REM 预演（默认；没有 --dry-run 这个必需开关，写了也等价）
+    uv run --no-project --offline python datasets/pol2/pipeline/migrate_anchors.py
+    REM 真正落盘
     uv run --no-project --offline python datasets/pol2/pipeline/migrate_anchors.py --apply \
         --report datasets/pol2/pipeline/smoke/anchor-migration-report.json
+
+  不加 --apply 就是预演；--dry-run 只是显式同义写法（两者互斥，不能同时给）。
 
 - 映射真源是本体 anchor_audit.renumbering（章级）：EAP.5→EAP.4、PoL.3→PoL.5、ENG.6→ENG.1；
   唯一例外是 ENG.6.1→ENG.1（不会写成 ENG.1.1）。只替换 clause 标识符 token，不碰
   “第 5 章”“3.4 节”这类自然语言叙述；PoL.1.* / PoL.2.* 不变。
 - 幂等：第二次 --apply 的 changed_file_count=0；--dry-run 不落盘。
 - 退出码：0 = 退役前缀只剩下 allowlist 内的防复发常量；1 = 仍有未迁移命中（预演时属正常）。
-- allowlist（保留旧前缀、不计入“未清除”）：ontology/clause-remap.md（历史记录）、
+- allowlist（保留旧前缀、不计入“未清除”，支持 fnmatch 通配）：ontology/clause-remap.md（历史）、
   本体 JSON 的 retired_clause_prefixes 与 renumbering、check_ontology.py 与 test_ontology.py
-  （防复发常量与测试）、ontology/README.md、本脚本与其测试。改写它们会让防复发检查失效。
+  （防复发常量与测试）、ontology/README.md、本脚本与其测试；以及**迁移自身的记录型产物**——
+  本节（pipeline/README.md §12）、smoke/anchor-migration*.json、smoke/policy-review.jsonl、
+  smoke/policy-summary.md。改写记录型产物会把"后人追溯这次重映射的唯一依据"改掉，
+  tests/test_migrate_anchors.py 用两条测试锁死这一点：记录型产物不被改写，且仓库当前状态下
+  默认预演的 changed_file_count 必须为 0（新增任何含旧前缀的产物却忘了加 allowlist，测试立刻失败）。
 - .gz 派生文件（v0.1-pilot/*.questions.jsonl.gz）在明文迁移后用同一内容重建（mtime=0，可复现）。
 - policy 待 Lead 裁定：case 的 input.policy 是条款文本的转述/短引，新版第 1 章与 4.3.2 正文有
   实际改动；脚本把引用这些条款的条目单列进报告（policy_review + smoke/policy-review.jsonl +
   smoke/policy-summary.md），**不自动改写 policy 文本**。
+
+- **已知债务（记录，不改数据）**：v0.1-pilot 的 case.input.policy 是基于**旧版**条款正文写的转述/短引，
+  未包含新版 4.3.2 新增的三条例外（文艺/影视/游戏的等级管理、不得参与任何形式的战争、
+  安保紧急警示不视为仇恨攻击）。本次只迁移锚点字符串，未改写 policy 文本。
+  PoL2 线重启并需要真值时，必须依据新版 clause gist 重新生成 policy 文本（2,184 条 / 732 case，
+  其中 6 条显式引用条款字符串，其余为转述式，明细见 smoke/policy-review.jsonl）。

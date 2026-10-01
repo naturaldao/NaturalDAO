@@ -149,5 +149,53 @@ class RunTests(MigrationTree):
         self.assertEqual(payload["mode"], "apply")
 
 
+class ArtifactAllowlistTests(MigrationTree):
+    """迁移自身的记录型产物必须 allowlist，否则再跑一次会把迁移依据改掉。"""
+
+    def seed_artifacts(self):
+        readme = self.root / "datasets/pol2/pipeline/README.md"
+        readme.parent.mkdir(parents=True, exist_ok=True)
+        readme.write_text("映射：EAP.5.3.2 → EAP.4.3.2；PoL.3.4.1 → PoL.5.4.1。\n",
+                          encoding="utf-8")
+        report = self.root / "datasets/pol2/pipeline/smoke/anchor-migration-report.json"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(json.dumps({"rules": [{"pattern": "EAP\\.5\\.", "replacement": "EAP.4."}],
+                                      "changed": "ENG.6.1 → ENG.1"}, ensure_ascii=False),
+                          encoding="utf-8")
+        return readme, report
+
+    def test_record_artifacts_are_allowlisted_and_never_rewritten(self):
+        readme, report = self.seed_artifacts()
+        before = (readme.read_text(encoding="utf-8"), report.read_text(encoding="utf-8"))
+        result = ma.run(self.root, apply=False)
+        allowed = {row["path"] for row in result["allowlisted_residual"]}
+        self.assertIn("datasets/pol2/pipeline/README.md", allowed)
+        self.assertIn("datasets/pol2/pipeline/smoke/anchor-migration-report.json", allowed)
+        ma.run(self.root, apply=True)
+        self.assertEqual(readme.read_text(encoding="utf-8"), before[0])
+        self.assertEqual(report.read_text(encoding="utf-8"), before[1])
+
+    def test_default_dry_run_is_clean_with_artifacts_present(self):
+        self.seed_artifacts()
+        ma.run(self.root, apply=True)
+        result = ma.run(self.root, apply=False)
+        self.assertEqual(result["changed_file_count"], 0)
+        self.assertEqual(result["hits_after_outside_allowlist"], 0)
+
+
+class RepositoryStateTests(unittest.TestCase):
+    def test_repository_default_dry_run_is_idempotent(self):
+        """仓库当前状态必须是"已迁移"：默认预演 changed_file_count=0、allowlist 外 0。
+
+        这条直接锁死幂等性：将来任何人新增一份字面包含旧前缀的产物（报告/说明/清单）
+        却没有加进 allowlist，这个测试立刻失败。
+        """
+        result = ma.run(ma.ROOT_DEFAULT, apply=False)
+        self.assertEqual(result["changed_file_count"], 0, result["changed_files"][:5])
+        self.assertEqual(result["hits_after_outside_allowlist"], 0,
+                         result["unexpected_files_after"])
+        self.assertEqual(result["unexpected_files_after"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

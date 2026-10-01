@@ -6,20 +6,23 @@ retired_clause_prefixes；逐条复验见 datasets/pol2/ontology/clause-remap.md
 原则：
 - 只替换 **clause 标识符**（EAP.5.x / PoL.3.x / ENG.6.1），不做自然语言替换
   （"第 5 章""3.4 节"这类叙述不匹配，因此不动）。
-- 默认 --dry-run；--apply 才落盘。幂等：再跑一次命中数为 0、文件内容不变。
+- 默认不落盘（不加 --apply 即预演）；并没有 --dry-run 这个必填开关，--dry-run 只是显式同义写法。
+  --apply 才落盘。迁移完成后幂等：再跑 changed_file_count=0、文件内容不变。
 - **不重跑任何模型生成**：这是纯元数据字符串重映射，原地替换。
 - 防复发常量（ontology 的 retired_clause_prefixes / check_ontology.py / test_ontology.py /
   clause-remap.md / 本脚本自身与测试）必须保留旧前缀，列入 allowlist，不改写也不计入"未清除"。
 - generated case 的 input.policy 是条款文本的转述；新版第 1 章与 4.3.2 正文有改动，
   这些条目只进报告交 Lead 裁定，脚本不改写 policy 文本。
 
-    uv run --no-project --offline python datasets/pol2/pipeline/migrate_anchors.py            # 预演
+    uv run --no-project --offline python datasets/pol2/pipeline/migrate_anchors.py
     uv run --no-project --offline python datasets/pol2/pipeline/migrate_anchors.py --apply \
         --report datasets/pol2/pipeline/smoke/anchor-migration-report.json
+（不加 --apply 即预演；--dry-run 与不加 --apply 等价，仅作显式表达。）
 """
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import gzip
 import json
 import re
@@ -51,15 +54,23 @@ RETIRED = (re.compile(r"EAP\.5\."), re.compile(r"PoL\.3\.4"), re.compile(r"PoL\.
 # 内容有实际改动的条款（新版编号）：第 1 章 + 4.3.2 新增三条例外。
 DEFAULT_CHANGED_CLAUSES = ("PoL.1.1", "PoL.1.2", "PoL.1.3", "PoL.1.4", "PoL.1.5", "EAP.4.3.2")
 
-# 允许保留旧前缀的文件（防复发常量与历史记录）：不改写，也不计入未清除。
+# 允许保留旧前缀的文件（防复发常量、历史记录、迁移自身的记录型产物）：
+# 不改写，也不计入"未清除"。支持 fnmatch 通配。
 ALLOWLIST = (
+    # 防复发常量与本体历史
     "datasets/pol2/ontology/clause-remap.md",
     "datasets/pol2/ontology/pol2-labels.v0.1.json",
     "datasets/pol2/ontology/check_ontology.py",
     "datasets/pol2/ontology/test_ontology.py",
     "datasets/pol2/ontology/README.md",
+    # 迁移工具与其测试（规则本身必须写出旧前缀）
     "datasets/pol2/pipeline/migrate_anchors.py",
     "datasets/pol2/pipeline/tests/test_migrate_anchors.py",
+    # 迁移的记录型产物：后人追溯这次重映射的依据，故意保留 old→new
+    "datasets/pol2/pipeline/README.md",
+    "datasets/pol2/pipeline/smoke/anchor-migration*.json",
+    "datasets/pol2/pipeline/smoke/policy-review.jsonl",
+    "datasets/pol2/pipeline/smoke/policy-summary.md",
 )
 
 
@@ -77,8 +88,7 @@ def migrate_text(text):
 
 
 def is_allowlisted(relative):
-    return any(relative == item or relative.startswith(item.rstrip("/") + "/")
-               for item in ALLOWLIST)
+    return any(fnmatch.fnmatch(relative, pattern) for pattern in ALLOWLIST)
 
 
 def iter_files(root, includes=(), skip=()):
@@ -227,7 +237,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", type=Path, default=ROOT_DEFAULT)
-    parser.add_argument("--apply", action="store_true", help="真正落盘（默认只预演）")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--apply", action="store_true", help="真正落盘（默认只预演）")
+    mode.add_argument("--dry-run", action="store_true",
+                      help="显式预演（与默认行为等价，只是写出来更清楚）")
     parser.add_argument("--include", action="append", default=[],
                         help="只处理这些相对路径前缀，可重复")
     parser.add_argument("--report", type=Path, help="完整 JSON 报告写到哪里")
