@@ -751,7 +751,7 @@ class ReportSectionTests(unittest.TestCase):
         family = report['breakdown_by_family_id']['criticism_dignity.criticism_vs_attack']
         self.assertEqual(family['cases'], 1)
         self.assertEqual(family['action_agreement_all_requests']['rate'], 0)
-        clause = report['breakdown_by_clause']['EAP.5.3.2']
+        clause = report['breakdown_by_clause']['EAP.4.3.2']
         self.assertEqual(clause['cases'], 3)
         self.assertEqual(clause['reference_status'], {'conforming': 2, 'insufficient': 1})
 

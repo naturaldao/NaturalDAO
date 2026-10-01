@@ -252,3 +252,24 @@ stdout 汇总给出 calls / ok / failed / tokens / cost / p50 / p95。价格用 
   --price-in/--price-out 即可自动计算。
 - 历史对照：换用 json_object 之前，两族 107 次尝试中 16 次失败（15%），其中 15 次是
   "no parseable JSON"；改结构化输出 + max_tokens 16384 后解析失败归零。
+
+## 12. 条款锚点迁移（论文重排：EAP 5→4、PoL 3→5、ENG 6.1→ENG.1）
+
+论文重排后旧锚点的迁移由一次性脚本完成，**不重跑任何模型生成**（纯元数据字符串重映射）：
+
+    uv run --no-project --offline python datasets/pol2/pipeline/migrate_anchors.py            # 预演（默认）
+    uv run --no-project --offline python datasets/pol2/pipeline/migrate_anchors.py --apply \
+        --report datasets/pol2/pipeline/smoke/anchor-migration-report.json
+
+- 映射真源是本体 anchor_audit.renumbering（章级）：EAP.5→EAP.4、PoL.3→PoL.5、ENG.6→ENG.1；
+  唯一例外是 ENG.6.1→ENG.1（不会写成 ENG.1.1）。只替换 clause 标识符 token，不碰
+  “第 5 章”“3.4 节”这类自然语言叙述；PoL.1.* / PoL.2.* 不变。
+- 幂等：第二次 --apply 的 changed_file_count=0；--dry-run 不落盘。
+- 退出码：0 = 退役前缀只剩下 allowlist 内的防复发常量；1 = 仍有未迁移命中（预演时属正常）。
+- allowlist（保留旧前缀、不计入“未清除”）：ontology/clause-remap.md（历史记录）、
+  本体 JSON 的 retired_clause_prefixes 与 renumbering、check_ontology.py 与 test_ontology.py
+  （防复发常量与测试）、ontology/README.md、本脚本与其测试。改写它们会让防复发检查失效。
+- .gz 派生文件（v0.1-pilot/*.questions.jsonl.gz）在明文迁移后用同一内容重建（mtime=0，可复现）。
+- policy 待 Lead 裁定：case 的 input.policy 是条款文本的转述/短引，新版第 1 章与 4.3.2 正文有
+  实际改动；脚本把引用这些条款的条目单列进报告（policy_review + smoke/policy-review.jsonl +
+  smoke/policy-summary.md），**不自动改写 policy 文本**。

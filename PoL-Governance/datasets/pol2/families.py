@@ -39,28 +39,28 @@ DOMAINS: dict[str, dict] = {
     "honesty": {"desc": "诚实与信息真实", "clauses": ["PoL.2.1"], "axes": [
         "evidence_insufficiency", "negation_scope", "counterfactual",
         "actor_vs_quoted", "repair_over_block", "untrusted_instruction"]},
-    "consent_intimacy": {"desc": "同意与身体边界", "clauses": ["PoL.2.10", "EAP.5.3.2"], "axes": [
+    "consent_intimacy": {"desc": "同意与身体边界", "clauses": ["PoL.2.10", "EAP.4.3.2"], "axes": [
         "consent_withdrawal", "condition_exception", "polite_coercion",
         "nonpolar_absence", "person_vs_behavior"]},
-    "care_control": {"desc": "关怀与控制", "clauses": ["PoL.2.7", "EAP.5.3.2"], "axes": [
+    "care_control": {"desc": "关怀与控制", "clauses": ["PoL.2.7", "EAP.4.3.2"], "axes": [
         "polite_coercion", "condition_exception", "person_vs_behavior",
         "evidence_insufficiency", "counterfactual"]},
-    "protection_retaliation": {"desc": "保护与报复", "clauses": ["PoL.1.5", "EAP.5.3.2"], "axes": [
+    "protection_retaliation": {"desc": "保护与报复", "clauses": ["PoL.1.5", "EAP.4.3.2"], "axes": [
         "condition_exception", "criticism_vs_attack", "counterfactual",
         "actor_vs_quoted", "negation_scope"]},
     "criticism_dignity": {"desc": "批评与人格尊严", "clauses": ["PoL.2.3", "PoL.1.3"], "axes": [
         "criticism_vs_attack", "person_vs_behavior", "negation_scope",
         "polite_coercion", "repair_over_block"]},
-    "ai_intimacy": {"desc": "公共 AI 与人的情感边界", "clauses": ["EAP.5.3.2"], "axes": [
+    "ai_intimacy": {"desc": "公共 AI 与人的情感边界", "clauses": ["EAP.4.3.2"], "axes": [
         "polite_coercion", "person_vs_behavior", "nonpolar_absence",
         "love_language_attribution", "criticism_vs_attack"]},
-    "ai_emotion_judgement": {"desc": "公共 AI 是否判断人的情感状态", "clauses": ["EAP.5.3"], "axes": [
+    "ai_emotion_judgement": {"desc": "公共 AI 是否判断人的情感状态", "clauses": ["EAP.4.3"], "axes": [
         "evidence_insufficiency", "nonpolar_absence", "person_vs_behavior",
         "consent_withdrawal"]},
     "romance_privacy": {"desc": "浪漫爱情与排他性私有", "clauses": ["PoL.2.12", "PoL.1.2"], "axes": [
         "person_vs_behavior", "polite_coercion", "consent_withdrawal",
         "love_language_attribution", "condition_exception"]},
-    "family_kinship": {"desc": "家庭与宗法权力", "clauses": ["PoL.3.1", "EAP.5.3.1"], "axes": [
+    "family_kinship": {"desc": "家庭与宗法权力", "clauses": ["PoL.5.1", "EAP.4.3.1"], "axes": [
         "polite_coercion", "consent_withdrawal", "person_vs_behavior",
         "criticism_vs_attack", "repair_over_block"]},
     "work_labor": {"desc": "劳动、雇佣与剥削", "clauses": ["PoL.1.2", "PoL.7"], "axes": [
@@ -69,10 +69,10 @@ DOMAINS: dict[str, dict] = {
     "public_resource": {"desc": "公共资源与分配公平", "clauses": ["PoL.6", "PoL.7"], "axes": [
         "condition_exception", "person_vs_behavior", "evidence_insufficiency",
         "counterfactual", "repair_over_block"]},
-    "platform_content": {"desc": "平台内容与公共舆论", "clauses": ["PoL.3.1", "PoL.2.8"], "axes": [
+    "platform_content": {"desc": "平台内容与公共舆论", "clauses": ["PoL.5.1", "PoL.2.8"], "axes": [
         "criticism_vs_attack", "actor_vs_quoted", "negation_scope",
         "polite_coercion", "person_vs_behavior"]},
-    "conflict_mediation": {"desc": "冲突调解与关系修复", "clauses": ["PoL.2.13", "EAP.5.3.3.2"], "axes": [
+    "conflict_mediation": {"desc": "冲突调解与关系修复", "clauses": ["PoL.2.13", "EAP.4.3.3.2"], "axes": [
         "repair_over_block", "actor_vs_quoted", "criticism_vs_attack",
         "person_vs_behavior", "evidence_insufficiency"]},
     "ecology_species": {"desc": "跨物种、自然与生态", "clauses": ["PoL.2.15", "PoL.1.3"], "axes": [
@@ -81,18 +81,18 @@ DOMAINS: dict[str, dict] = {
     "play_humor": {"desc": "纯粹游戏与幽默的边界", "clauses": ["PoL.2.8", "PoL.2.9"], "axes": [
         "criticism_vs_attack", "consent_withdrawal", "person_vs_behavior",
         "love_language_attribution", "nonpolar_absence"]},
-    "autonomy_paternalism": {"desc": "自主与家长式干预", "clauses": ["PoL.2.3", "EAP.5.3.2"], "axes": [
+    "autonomy_paternalism": {"desc": "自主与家长式干预", "clauses": ["PoL.2.3", "EAP.4.3.2"], "axes": [
         "polite_coercion", "condition_exception", "consent_withdrawal",
         "evidence_insufficiency", "counterfactual"]},
-    "tool_action": {"desc": "工具调用与授权边界", "clauses": ["EAP.5.3.2"], "axes": [
+    "tool_action": {"desc": "工具调用与授权边界", "clauses": ["EAP.4.3.2"], "axes": [
         "tool_authority", "condition_exception", "evidence_insufficiency",
         "counterfactual", "consent_withdrawal"]},
-    "untrusted_context": {"desc": "不可信上下文与指令注入", "clauses": ["EAP.5.3.2"], "axes": [
+    "untrusted_context": {"desc": "不可信上下文与指令注入", "clauses": ["EAP.4.3.2"], "axes": [
         "untrusted_instruction", "actor_vs_quoted", "tool_authority", "negation_scope"]},
-    "equality_public": {"desc": "平等联结与公共性", "clauses": ["EAP.5.3.1"], "axes": [
+    "equality_public": {"desc": "平等联结与公共性", "clauses": ["EAP.4.3.1"], "axes": [
         "person_vs_behavior", "criticism_vs_attack", "condition_exception",
         "evidence_insufficiency"]},
-    "self_alignment": {"desc": "自我对齐与求助", "clauses": ["EAP.5.3.3.1"], "axes": [
+    "self_alignment": {"desc": "自我对齐与求助", "clauses": ["EAP.4.3.3.1"], "axes": [
         "nonpolar_absence", "repair_over_block", "evidence_insufficiency",
         "love_language_attribution"]},
 }
