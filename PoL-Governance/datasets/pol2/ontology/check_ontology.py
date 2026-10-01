@@ -17,6 +17,13 @@ Checks (all must pass before the ontology can be cited by the pipeline):
      by the matrix is a known clause.
  10. JUDGE.md covers each label and documents the four hard rules.
  11. README.md is no longer the placeholder.
+ 12. Anchor numbering: every clause chapter number matches anchor_audit.numbering
+     (the audited upstream numbering, origin/main), and no clause uses a retired
+     prefix such as EAP.5. / PoL.3.4 / ENG.6. This is what catches a paper
+     renumbering that would otherwise silently invalidate every citation.
+ 13. Optional --source-root DIR: re-verify every anchor against an exported copy of
+     the audited source text (heading number + verbatim quote). The in-repo PoL/
+     tree may be an older numbering, so this check is opt-in and never ambient.
 """
 from __future__ import annotations
 
@@ -30,7 +37,6 @@ ONTOLOGY_PATH = HERE / "pol2-labels.v0.1.json"
 MATRIX_PATH = HERE / "test-matrix.md"
 JUDGE_PATH = HERE / "JUDGE.md"
 README_PATH = HERE / "README.md"
-POL_SOURCE_ROOT = HERE.parents[3] / "PoL"
 
 STATUS_KEYS = ("conforming", "violating", "insufficient")
 POLARITY_KEYS = ("love", "hate", "neither", "unclear")
@@ -41,6 +47,28 @@ ISSUE_GROUPS = ("hate2_derived", "pai_specific", "native_extension")
 ISSUE_DOMAINS = ("hate2", "governance_risk")
 REVIEW_STATES = ("clause_traced", "pending_review")
 PENDING_KINDS = ("issue", "polarity", "evidence", "mitigation", "love_language", "clause", "action", "status", "surface")
+CLAUSE_NAMESPACES = ("PoL", "EAP", "ENG")
+
+# Canonical chapter table of the audited upstream paper (origin/main @ d030b80, 2026-10-02).
+# anchor_audit in the ontology must match these constants exactly: a new upstream
+# renumbering has to be acknowledged here AND in clause-remap.md, never silently.
+CANONICAL_NUMBERING = {
+    "0": "0. 前言.md",
+    "1": "1. 爱2、恨2、爱2证明、恨2证明、富爱文明.md",
+    "2": "2. 爱语.md",
+    "3": "3. PoL2之冥想智慧公理.md",
+    "4": "4. PoL2之伦理对齐协议.md",
+    "5": "5. AI和人类文明的治理：从恨2证明到爱2证明.md",
+    "6": "6. 富爱文明生产公共化协议.md",
+    "7": "7. 人类公共福利的治理协议.md",
+    "8": "8. 总结.md",
+}
+CANONICAL_CHAPTERS = {"PoL": "by_doc", "EAP": "4", "ENG": None}
+CANONICAL_RETIRED = ("EAP.5.", "PoL.3.4", "PoL.3.6", "ENG.6.")
+CANONICAL_AUDIT_REF = "origin/main"
+CANONICAL_AUDIT_COMMIT = "d030b806c35004f8046a554d523b16ce53ead5f8"
+MIN_AUDIT_COMMIT_LEN = 7
+SOURCE_EXPORT_HINT = ('git show "origin/main:PoL/<文件名>" > <dir>/<文件名>')
 
 # datasets/pol2/README.md section 4: 8 hate2-derived + 2 PAI-specific issues.
 CORE_ISSUES = {
@@ -321,18 +349,159 @@ def check_ontology(data: dict) -> dict:
             if target not in issue_ids:
                 raise OntologyError(f"legacy {key} maps to unknown issue: {target}")
 
-    # 10. optional: the PoL source tree is a sibling of the repo, absent in a bare clone
-    doc_check = "skipped"
-    if POL_SOURCE_ROOT.is_dir():
-        missing_docs = sorted(doc for doc in doc_names if not (POL_SOURCE_ROOT / doc).is_file())
-        if missing_docs:
-            raise OntologyError(f"source docs not found under {POL_SOURCE_ROOT}: {missing_docs}")
-        doc_check = "verified"
+    # 10. anchor numbering must match the audited upstream numbering
+    numbering_report = check_numbering(data)
 
     return {"clauses": len(clauses), "issues": len(data["issues"]),
             "core_issues": len(CORE_ISSUES), "love_languages": len(love),
             "mitigations": len(data["mitigations"]), "pending_review": len(pending),
-            "source_docs": doc_check}
+            "source_docs": len(doc_names), **numbering_report}
+
+
+def check_numbering(data: dict) -> dict:
+    """Anchor chapter numbers must match the audited upstream numbering.
+
+    This is the guard against a paper renumbering silently invalidating citations:
+    anchor_audit records the audited ref/commit, the chapter table, the retired
+    prefixes, and the old->new map; every clause id is checked against it.
+    """
+    audit = data.get("anchor_audit")
+    if not isinstance(audit, dict):
+        raise OntologyError("anchor_audit is missing: clause anchors cannot be audited")
+    for field in ("audited_ref", "audited_commit", "audited_at", "method", "numbering",
+                  "unnumbered_docs", "namespace_chapters", "retired_clause_prefixes",
+                  "renumbering"):
+        if field not in audit:
+            raise OntologyError(f"anchor_audit is missing {field}")
+    if len(str(audit["audited_commit"])) < MIN_AUDIT_COMMIT_LEN:
+        raise OntologyError("anchor_audit.audited_commit is too short to be a commit id")
+
+    numbering = audit["numbering"]
+    if not isinstance(numbering, dict) or not numbering:
+        raise OntologyError("anchor_audit.numbering must map chapter numbers to file names")
+    by_doc = {}
+    for chapter, doc in numbering.items():
+        if not str(chapter).isdigit():
+            raise OntologyError(f"anchor_audit.numbering key must be a chapter number: {chapter!r}")
+        name = Path(str(doc)).name
+        if name in by_doc:
+            raise OntologyError(f"anchor_audit.numbering lists {name} twice")
+        by_doc[name] = int(chapter)
+    unnumbered = {Path(str(doc)).name for doc in audit["unnumbered_docs"]}
+    if not unnumbered:
+        raise OntologyError("anchor_audit.unnumbered_docs must list the out-of-series sources")
+    both = sorted(set(by_doc) & unnumbered)
+    if both:
+        raise OntologyError(f"docs listed as both numbered and unnumbered: {both}")
+
+    retired = tuple(str(prefix) for prefix in audit["retired_clause_prefixes"])
+    if not retired:
+        raise OntologyError("anchor_audit.retired_clause_prefixes must record the old numbering")
+    namespace_chapters = audit["namespace_chapters"]
+    for namespace in namespace_chapters:
+        if namespace not in CLAUSE_NAMESPACES:
+            raise OntologyError(f"anchor_audit.namespace_chapters has unknown namespace: {namespace}")
+
+    # the ontology's audit block and this module's canonical constants must agree
+    declared_numbering = {str(key): Path(str(value)).name for key, value in numbering.items()}
+    if declared_numbering != CANONICAL_NUMBERING:
+        raise OntologyError("anchor_audit.numbering differs from the canonical numbering table")
+    if dict(namespace_chapters) != CANONICAL_CHAPTERS:
+        raise OntologyError("anchor_audit.namespace_chapters differs from the canonical table")
+    if retired != CANONICAL_RETIRED:
+        raise OntologyError("anchor_audit.retired_clause_prefixes differs from the canonical table")
+    if (str(audit["audited_ref"]) != CANONICAL_AUDIT_REF
+            or str(audit["audited_commit"]) != CANONICAL_AUDIT_COMMIT):
+        raise OntologyError("anchor_audit is not the audited revision this checker targets; "
+                            "re-audit, then update clause-remap.md and the canonical constants")
+
+    # numbering covers the whole book; source_docs only lists the docs we cite,
+    # so the required direction is: every cited doc must appear in the audit.
+    for name in sorted({Path(entry["doc"]).name for entry in data["source_docs"]}):
+        if name not in by_doc and name not in unnumbered:
+            raise OntologyError(f"source_docs lists a doc outside anchor_audit: {name}")
+
+    numbered = 0
+    for clause_id, entry in data["clauses"].items():
+        for prefix in retired:
+            if clause_id.startswith(prefix):
+                raise OntologyError(f"clause {clause_id} still uses the retired numbering {prefix!r}")
+        parts = clause_id.split(".")
+        namespace = parts[0]
+        if namespace not in CLAUSE_NAMESPACES:
+            raise OntologyError(f"clause {clause_id} has unknown namespace")
+        chapter = int(parts[1])
+        doc = Path(entry["doc"]).name
+        fixed = namespace_chapters.get(namespace)
+        if str(fixed) == "by_doc":  # PoL.* takes its chapter from the cited document
+            fixed = None
+        if fixed is not None and str(chapter) != str(fixed):
+            raise OntologyError(
+                f"clause {clause_id} must live in chapter {fixed} of the audited numbering")
+        if doc in unnumbered:
+            if fixed is not None:
+                raise OntologyError(f"clause {clause_id} maps {namespace} to an unnumbered doc")
+            if chapter < 1:
+                raise OntologyError(f"clause {clause_id} needs a positive doc-relative number")
+            continue
+        if doc not in by_doc:
+            raise OntologyError(f"clause {clause_id} cites a doc outside anchor_audit.numbering: {doc}")
+        if by_doc[doc] != chapter:
+            raise OntologyError(
+                f"clause {clause_id} cites {doc} (chapter {by_doc[doc]}) but its id says chapter {chapter}")
+        numbered += 1
+
+    for old, new in audit["renumbering"].items():
+        if not any(prefix.startswith(str(old)) for prefix in retired):
+            raise OntologyError(f"anchor_audit.renumbering source {old!r} is not a retired prefix")
+        if not any(cid == str(new) or cid.startswith(str(new) + ".") for cid in data["clauses"]):
+            raise OntologyError(f"anchor_audit.renumbering target {new!r} matches no current clause")
+
+    return {"numbering_chapters": len(by_doc), "unnumbered_docs": len(unnumbered),
+            "retired_prefixes": len(retired), "anchors_numbered": numbered}
+
+
+def _normalise(text: str) -> str:
+    return re.sub(r"\s+", "", text)
+
+
+def _read_source(path: Path) -> str:
+    return path.read_text(encoding="utf-8-sig")
+
+
+def check_source_alignment(data: dict, source_root) -> dict:
+    """Re-verify every anchor against an exported copy of the audited source text.
+
+    Export first, for example (PowerShell, one file at a time):
+        git show "origin/main:PoL/4. PoL2之伦理对齐协议.md" > <dir>/"4. PoL2之伦理对齐协议.md"
+    Every clause must then find (a) a heading whose number equals its own section
+    number, and (b) its verbatim quote, in the exported file.
+    """
+    root = Path(source_root)
+    if not root.is_dir():
+        raise OntologyError(f"--source-root is not a directory: {root}")
+    audit = data["anchor_audit"]
+    unnumbered = {Path(str(doc)).name for doc in audit["unnumbered_docs"]}
+    verified = 0
+    quotes = 0
+    for clause_id, entry in data["clauses"].items():
+        doc = Path(entry["doc"]).name
+        path = root / doc
+        if not path.is_file():
+            raise OntologyError(f"{clause_id}: source file not exported: {path}  ({SOURCE_EXPORT_HINT})")
+        raw = _read_source(path)
+        text = _normalise(raw)
+        verified += 1
+        if doc not in unnumbered:
+            section = clause_id.split(".", 1)[1]
+            pattern = re.compile(r"^#{1,6}\s*" + re.escape(section) + r"(?!\.?\d)", re.M)
+            if not pattern.search(raw):
+                raise OntologyError(f"{clause_id}: no heading '{section}' in {doc}")
+        quote = _normalise(entry["quote"])
+        if quote and quote not in text:
+            raise OntologyError(f"{clause_id}: quote not found in {doc}: {entry['quote'][:48]}...")
+        quotes += 1
+    return {"source_root": str(root), "anchors_verified": verified, "quotes_verified": quotes}
 
 
 def check_matrix(data: dict, matrix_text: str, require_topics: bool = True) -> dict:
@@ -439,12 +608,16 @@ def check_docs(judge_text: str, readme_text: str, data: dict) -> dict:
     return {"judge_chars": len(judge_text)}
 
 
-def check(require_topics: bool = True) -> dict:
+def check(require_topics: bool = True, source_root=None) -> dict:
     data = load_ontology()
     report = {"status": "pass", "schema": data["schema"], "version": data["version"]}
     report.update(check_ontology(data))
     report.update(check_matrix(data, _read(MATRIX_PATH), require_topics=require_topics))
     report.update(check_docs(_read(JUDGE_PATH), _read(README_PATH), data))
+    if source_root is None:
+        report["source_alignment"] = "skipped (pass --source-root <exported PoL dir>)"
+    else:
+        report.update(check_source_alignment(data, source_root))
     return report
 
 
@@ -456,8 +629,15 @@ def main(argv=None) -> int:
             pass
     argv = list(sys.argv[1:] if argv is None else argv)
     skip_topics = "--skip-topic-check" in argv
+    source_root = None
+    if "--source-root" in argv:
+        index = argv.index("--source-root")
+        if index + 1 >= len(argv):
+            print("Check failed: --source-root needs a directory argument", file=sys.stderr)
+            return 1
+        source_root = argv[index + 1]
     try:
-        report = check(require_topics=not skip_topics)
+        report = check(require_topics=not skip_topics, source_root=source_root)
     except (OntologyError, OSError) as error:
         print(f"Check failed: {error}", file=sys.stderr)
         return 1

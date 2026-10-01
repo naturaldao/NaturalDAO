@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -310,6 +311,145 @@ class CheckerCatchesProblemsTest(unittest.TestCase):
         text = _matrix_text().replace("工具越权（文本无害但调用越权）", "某工程主题")
         with self.assertRaises(co.OntologyError):
             co.check_matrix(_data(), text, require_topics=True)
+
+
+
+class RenumberingGuardTest(unittest.TestCase):
+    """Anchors must follow the audited upstream numbering (EAP 5->4, AI governance 3->5)."""
+
+    def setUp(self):
+        self.data = _data()
+
+    def test_anchor_audit_records_the_audited_revision(self):
+        audit = self.data["anchor_audit"]
+        self.assertEqual(audit["audited_ref"], "origin/main")
+        self.assertGreaterEqual(len(audit["audited_commit"]), co.MIN_AUDIT_COMMIT_LEN)
+        self.assertEqual(audit["numbering"]["4"], "4. PoL2之伦理对齐协议.md")
+        self.assertEqual(audit["numbering"]["5"], "5. AI和人类文明的治理：从恨2证明到爱2证明.md")
+        self.assertIn("3. PoL2之冥想智慧公理.md", audit["numbering"].values())
+        self.assertIn("PoL共识的工程策略.md", audit["unnumbered_docs"])
+
+    def test_ontology_audit_matches_checker_constants(self):
+        audit = self.data["anchor_audit"]
+        self.assertEqual({str(k): Path(v).name for k, v in audit["numbering"].items()},
+                         co.CANONICAL_NUMBERING)
+        self.assertEqual(dict(audit["namespace_chapters"]), co.CANONICAL_CHAPTERS)
+        self.assertEqual(tuple(audit["retired_clause_prefixes"]), co.CANONICAL_RETIRED)
+        self.assertEqual(audit["audited_ref"], co.CANONICAL_AUDIT_REF)
+        self.assertEqual(audit["audited_commit"], co.CANONICAL_AUDIT_COMMIT)
+
+    def test_rejects_numbering_drift_between_json_and_checker(self):
+        data = copy.deepcopy(self.data)
+        data["anchor_audit"]["numbering"]["4"] = "4. 被改名的章节.md"
+        with self.assertRaises(co.OntologyError):
+            co.check_ontology(data)
+
+    def test_old_numbering_is_retired(self):
+        retired = set(self.data["anchor_audit"]["retired_clause_prefixes"])
+        self.assertLessEqual({"EAP.5.", "PoL.3.4", "PoL.3.6", "ENG.6."}, retired)
+        for clause_id in self.data["clauses"]:
+            for prefix in retired:
+                self.assertFalse(clause_id.startswith(prefix), clause_id)
+
+    def test_eap_lives_in_chapter_4_and_ai_governance_in_chapter_5(self):
+        eap = [c for c in self.data["clauses"] if c.startswith("EAP.")]
+        gov = [c for c in self.data["clauses"] if c.startswith("PoL.5.")]
+        self.assertEqual(len(eap), 9)
+        self.assertEqual(sorted(gov), ["PoL.5.4", "PoL.5.4.1", "PoL.5.6"])
+        for clause_id in eap:
+            self.assertEqual(clause_id.split(".")[1], "4", clause_id)
+
+    def test_clause_chapter_matches_its_document(self):
+        report = co.check_numbering(self.data)
+        self.assertEqual(report["anchors_numbered"], 33)
+        self.assertEqual(report["unnumbered_docs"], 1)
+
+    def test_rejects_a_clause_that_reverts_to_the_old_numbering(self):
+        data = copy.deepcopy(self.data)
+        data["clauses"]["EAP.5.3.2"] = data["clauses"].pop("EAP.4.3.2")
+        with self.assertRaises(co.OntologyError):
+            co.check_ontology(data)
+
+    def test_rejects_clause_chapter_not_matching_its_doc(self):
+        data = copy.deepcopy(self.data)
+        data["clauses"]["EAP.3.2"] = data["clauses"].pop("EAP.4.3.2")
+        with self.assertRaises(co.OntologyError):
+            co.check_ontology(data)
+
+    def test_rejects_missing_anchor_audit(self):
+        data = copy.deepcopy(self.data)
+        del data["anchor_audit"]
+        with self.assertRaises(co.OntologyError):
+            co.check_ontology(data)
+
+    def test_rejects_a_document_outside_the_audited_numbering(self):
+        data = copy.deepcopy(self.data)
+        data["clauses"]["PoL.9.1"] = dict(data["clauses"]["PoL.1.1"], doc="9. 不存在的章节.md")
+        with self.assertRaises(co.OntologyError):
+            co.check_ontology(data)
+
+    def test_default_check_does_not_depend_on_a_local_source_tree(self):
+        report = co.check()
+        self.assertEqual(report["source_alignment"],
+                         "skipped (pass --source-root <exported PoL dir>)")
+
+
+class SourceAlignmentTest(unittest.TestCase):
+    """--source-root must verify heading numbers and verbatim quotes."""
+
+    def _fixture(self, root: Path):
+        (root / "4. PoL2之伦理对齐协议.md").write_text(
+            "# 4. PoL2之伦理对齐协议\n\n## 4.3.2 原则二：扬爱抑恨\n\n"
+            "负责安保的智能机器人发现紧急情况对人大声发出警示语或警示指令，"
+            "不能视为对此人或其周围人的仇恨攻击。\n", encoding="utf-8")
+        (root / "PoL共识的工程策略.md").write_text(
+            "# PoL共识的工程策略\n\n明辨恨语甚至比爱语的对齐更加重要。\n", encoding="utf-8")
+        data = {
+            "anchor_audit": {
+                "numbering": {"4": "4. PoL2之伦理对齐协议.md"},
+                "unnumbered_docs": ["PoL共识的工程策略.md"],
+            },
+            "clauses": {
+                "EAP.4.3.2": {
+                    "doc": "4. PoL2之伦理对齐协议.md",
+                    "quote": "负责安保的智能机器人发现紧急情况对人大声发出警示语或警示指令，不能视为对此人或其周围人的仇恨攻击",
+                },
+                "ENG.1": {"doc": "PoL共识的工程策略.md", "quote": "明辨恨语甚至比爱语的对齐更加重要"},
+            },
+        }
+        return data
+
+    def test_accepts_matching_headings_and_quotes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self._fixture(Path(tmp))
+            report = co.check_source_alignment(data, tmp)
+            self.assertEqual(report["anchors_verified"], 2)
+            self.assertEqual(report["quotes_verified"], 2)
+
+    def test_rejects_a_missing_section_heading(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = self._fixture(root)
+            (root / "4. PoL2之伦理对齐协议.md").write_text(
+                "# 4. PoL2之伦理对齐协议\n\n## 4.9 别的节\n\n正文。\n", encoding="utf-8")
+            with self.assertRaises(co.OntologyError):
+                co.check_source_alignment(data, tmp)
+
+    def test_rejects_a_quote_that_changed_upstream(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = self._fixture(root)
+            (root / "PoL共识的工程策略.md").write_text(
+                "# PoL共识的工程策略\n\n明辨爱语比明辨恨语更加重要。\n", encoding="utf-8")
+            with self.assertRaises(co.OntologyError):
+                co.check_source_alignment(data, tmp)
+
+    def test_rejects_a_source_file_that_was_not_exported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self._fixture(Path(tmp))
+            (Path(tmp) / "PoL共识的工程策略.md").unlink()
+            with self.assertRaises(co.OntologyError):
+                co.check_source_alignment(data, tmp)
 
 
 if __name__ == "__main__":
