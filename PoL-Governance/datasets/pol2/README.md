@@ -49,7 +49,7 @@ case     一条场景：谁、在什么上下文、做了什么待判定行为�
 | `input.context` | string[] | 是 | 非空字符串数组，多轮按时间顺序 |
 | `input.target` | string | 是 | 待判定的具体行为，不写结论 |
 | `input.policy` | string | 是 | 引用的 PoL2 条款文本；`clause` 记条款 id |
-| `input.clause` | string | 是 | 如 `PoL.2.10`、`EAP.5.3.2` |
+| `input.clause` | string | 是 | 如 `PoL.2.10`、`EAP.4.3.2`（锚点以 [本体](ontology/pol2-labels.v0.1.json) 的 clause 表为准） |
 | `provenance` | object | 是 | `generator,model,prompt_id,gen_version,seed,created_at` |
 
 ### 3.2 question（`<region>.questions.jsonl`）
