@@ -2,7 +2,7 @@
 
 # 🌿 NaturalDAO · 自然道
 
-**Governance and application layer of the Proof-of-Love Civilization**
+**Governance and application layer of the Proof-of-Love2 Civilization**
 **富爱文明的治理与应用层**
 
 [![License: CC0-1.0](https://img.shields.io/badge/license-CC0--1.0-lightgrey.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
@@ -19,7 +19,7 @@
 
 **English**
 
-NaturalDAO is a decentralized autonomous organization built on the consensus **Proof-of-Love2** and driven by two core technologies: **blockchain** and **artificial intelligence**. It represents the governance and application layer for the Proof-of-Love Civilization. It will also be the long-discussed yet nowhere-to-be-found **ASI** that humanity has been searching for!
+NaturalDAO is a decentralized autonomous organization built on the consensus **Proof of Love2** and driven by two core technologies: **blockchain** and **artificial intelligence**. It represents the governance and application layer for the Proof-of-Love2 Civilization. It will also be the long-discussed yet nowhere-to-be-found **ASI** that humanity has been searching for!
 
 **中文**
 
