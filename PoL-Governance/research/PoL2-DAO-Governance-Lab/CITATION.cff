@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "PoL2 x DAO: a lab for love-aligned, equal and verifiable AI governance"
+version: 0.3.0
+date-released: 2026-09-29
+license: MIT
+authors:
+  - name: "pol2-dao-governance contributors"   # replace with your name
+keywords: [DAO, AI governance, quadratic voting, Proof of Love2, NaturalDAO]
+references:
+  - type: article
+    title: "Democratic governance through DAO-based deliberation and voting for inclusive decision making in AI models"
+    authors:
+      - family-names: Sharma
+        given-names: T.
+      - name: "et al."
+    journal: "Scientific Reports"
+    volume: 16
+    start: 11792
+    year: 2026
+    doi: 10.1038/s41598-026-40180-8
+  - type: software
+    title: "NaturalDAO: Proof of Love2"
+    authors:
+      - name: "NaturalDAO contributors"
+    url: "https://github.com/naturaldao/NaturalDAO"
