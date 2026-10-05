@@ -133,7 +133,7 @@ default 配置一条：
 - 真值率 44%（7,017 / 15,915），且带得动校准训练：jev-distill、open-jev、system-one-270m、procedural 给完整概率分布；jev-decisions、systemone-lite 给硬标签。
 - 已知空洞：以上全是英文情境，**PoL2 的判定轴（爱/恨、同意撤回、批评与人格等）不在其中**——由 PoL2 专项语料承担，不要用通用数据集硬凑。
 
-**现状与下一步**：当前 items.jsonl 里这些来源仍被套上了本地 taxonomy 的中文问题模板，原生 question / options / target 存在 meta.source_record 里。按本文件结论，下一步应改为**直接把原生 question / options / target 作为条目内容**（条数不变，只是不再重写题目）；taxonomy 只在来源没有原生问题时才用得上，即第 3 节那类数据。
+**现状**：原生版本已经落地——**items.native.jsonl，15,983 条，100% 带原生真值**（23,914 个问题 / 3,729 个来源原生键；条目直接使用来源的 state / question / options / target，键名就是来源自己的问题名）。模板版 **items.jsonl（37,124 条）**与 **items.bilingual.jsonl** 保留作对照，已不是训练首选。
 
 ## 3. 传统数据集的处理原则
 
