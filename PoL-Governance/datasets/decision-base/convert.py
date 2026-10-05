@@ -42,6 +42,7 @@ CONVERTER_VERSION = "0.1"
 HERE = Path(__file__).resolve().parent
 DEFAULT_RAW_ROOT = Path(r"D:\pol2-raw")
 DEFAULT_OUT = HERE / "data" / "items.jsonl"
+DEFAULT_NATIVE_OUT = HERE / "data" / "items.native.jsonl"   # 原生四元组模式（不覆盖已交付产物）
 MAX_STATE_CHARS = 6000          # 超长 state 截断并打旗标（保证文件可用，不静默丢信息）
 META_PAYLOAD_BYTES = 4096       # meta 里每个原始数据字段的字节上限（超出截断并留 sha256 与原始长度）
 DIRECT, DOCUMENTED = "direct", "documented"
@@ -344,9 +345,7 @@ def convert_open_jev(ctx, unit):
     for group in order:
         members = groups[group]
         row, first = members[0]
-        state_json = json_loads(first.get("state_json"))
-        state = state_json if isinstance(state_json, str) else str(state_json or "")
-        state = state.strip()
+        state = native_state_text(first.get("state_json"))
         if not state:
             unit.skip("empty_state")
             continue
@@ -906,6 +905,570 @@ def convert_procedural(ctx, unit):
                                          "source_questions": source_questions}))
 
 
+# ------------------------------------------------------------------ 原生四元组模式（task-16）
+#
+# 立论：目标模型只做"选一个"。System-1 来源本来就自带 (state, question, options, target)，
+# 直接用它们的原生问题，不再套本地 taxonomy 的中文模板；taxonomy 只在来源没有原生问题时才用。
+#
+# 契约扩展：questions[] 增加 origin（"source"）与 source_key（原生问题名，与 key 相同）。
+# 原生键名一律不动：open-jev 用 category / bug_severity，procedural 用 starts_before_noon 等。
+
+NATIVE_SLUGS: tuple[str, ...] = (
+    "jev-distill-v3", "open-jev", "jev-decisions-general-50k", "jev-decisions-strata",
+    "systemone-lite-general", "system-one-270m", "procedural-typed-decisions",
+)
+NATIVE_ID_PATTERN = re.compile(r"^db-[A-Za-z0-9._-]+-[0-9a-f]{8}$")
+NATIVE_KINDS = ("noul", "choice", "score")
+STATE_NOTE_FIELD = "state 取原生 state.user_goal；完整原生 state（system/history/environment）" \
+                   "可按 source 的 dataset+revision+config+split+row 从 D:\\pol2-raw 的原始行复原"
+
+
+def native_option_pairs(labels):
+    """候选文本 → [{key,label}]，顺序与原文一致；key 由 label 派生，保证条目内唯一。"""
+    used = set()
+    return [{"key": option_key(label, index, used), "label": str(label)}
+            for index, label in enumerate(labels)]
+
+
+def level_pairs(count):
+    """score 的原生档位：key 用序号（与原生 target 数组下标一一对应），档位文本原样保留。"""
+    return [{"key": str(index), "label": str(index)} for index in range(count)]
+
+
+def scale_of(labels):
+    return {"min": 0, "max": len(labels) - 1, "labels": [str(label) for label in labels]}
+
+
+def prob_map(pairs, weights):
+    """把原生权重（数组）绑到候选 key 上；不归一就不要概率。"""
+    values, flag = normalize_probs(weights)
+    if values is None:
+        return None, flag
+    return {pair["key"]: round(value, 6) for pair, value in zip(pairs, values)}, flag
+
+
+def point_mass(pairs, index):
+    """硬标签 → 单点分布（选中 1.0、其余 0.0），保证与 options 等长可复原。"""
+    return {pair["key"]: (1.0 if position == index else 0.0)
+            for position, pair in enumerate(pairs)}
+
+
+def argmax_key(pairs, weights):
+    best = max(range(len(weights)), key=lambda index: float(weights[index]))
+    return pairs[best]["key"]
+
+
+def native_state_text(raw):
+    """把原生 state_json 还原成文本：字符串原样用；对象/数组按其 JSON 序列化（不是 Python repr）。"""
+    value = json_loads(raw)
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return ""
+
+
+def native_question(key, kind, prompt, *, options=None, scale=None):
+    question = {"key": str(key), "kind": kind, "origin": "source", "source_key": str(key),
+                "prompt": prompt}
+    if kind == "score":
+        question["scale"] = scale
+    else:
+        question["options"] = options
+    return question
+
+
+def native_item_errors(item) -> list:
+    """原生模式的契约校验（不能直接用 taxonomy.item_errors：原生键名与档位都不在 taxonomy 词表里）。"""
+    if not isinstance(item, dict):
+        return ["条目不是 JSON 对象"]
+    errors = []
+    for field in ("id", "domain", "lang", "state", "questions", "source", "meta"):
+        if field not in item:
+            errors.append(f"缺字段 {field}")
+    if not isinstance(item.get("id"), str) or not NATIVE_ID_PATTERN.match(item.get("id") or ""):
+        errors.append(f"id 不符合 db-<slug>-<8hex>：{item.get('id')!r}")
+    if not isinstance(item.get("state"), str) or not item["state"].strip():
+        errors.append("state 必须是非空字符串")
+    for field in ("dataset", "revision", "config", "split", "row", "license", "url"):
+        if not isinstance(item.get("source"), dict) or field not in item["source"]:
+            errors.append(f"source 缺字段 {field}")
+    questions = item.get("questions")
+    keys, option_keys = [], {}
+    if not isinstance(questions, list) or not questions:
+        errors.append("questions 必须是非空数组")
+        questions = []
+    for index, question in enumerate(questions):
+        prefix = f"questions[{index}]"
+        if not isinstance(question, dict):
+            errors.append(f"{prefix}: 不是对象")
+            continue
+        key = question.get("key")
+        if not isinstance(key, str) or not key.strip():
+            errors.append(f"{prefix}: 缺 key")
+            continue
+        if key in keys:
+            errors.append(f"{prefix}: 问题键重复 {key}")
+        keys.append(key)
+        if question.get("origin") != "source":
+            errors.append(f"{prefix}: origin 必须是 source")
+        if question.get("source_key") != key:
+            errors.append(f"{prefix}: source_key 必须等于原生问题名 {key!r}")
+        if question.get("kind") not in NATIVE_KINDS:
+            errors.append(f"{prefix}: kind 必须是 {NATIVE_KINDS}")
+        if not isinstance(question.get("prompt"), str) or not question["prompt"].strip():
+            errors.append(f"{prefix}: prompt 必须是非空字符串")
+        if question.get("kind") == "score":
+            scale = question.get("scale")
+            if not isinstance(scale, dict) or not isinstance(scale.get("labels"), list) \
+                    or not scale["labels"]:
+                errors.append(f"{prefix}: score 缺 scale.labels")
+            elif scale.get("max") != len(scale["labels"]) - 1 or scale.get("min") != 0:
+                errors.append(f"{prefix}: scale 的 min/max 必须覆盖 labels")
+            else:
+                option_keys[key] = [str(index) for index in range(len(scale["labels"]))]
+        elif question.get("kind") in ("noul", "choice"):
+            options = question.get("options")
+            if not isinstance(options, list) or len(options) < 2:
+                errors.append(f"{prefix}: 至少 2 个 options")
+                continue
+            seen = []
+            for option in options:
+                if not isinstance(option, dict) or not str(option.get("key") or "").strip() \
+                        or not str(option.get("label") or "").strip():
+                    errors.append(f"{prefix}: option 必须有非空 key 与 label")
+                    continue
+                if option["key"] in seen:
+                    errors.append(f"{prefix}: option key 重复 {option['key']}")
+                seen.append(option["key"])
+            option_keys[key] = seen
+    targets = item.get("targets") or {}
+    if not isinstance(targets, dict):
+        errors.append("targets 必须是对象")
+        targets = {}
+    for key, value in targets.items():
+        if key not in keys:
+            errors.append(f"targets[{key}]: 没有对应的问题")
+            continue
+        if not isinstance(value, dict):
+            errors.append(f"targets[{key}]: 必须是对象")
+            continue
+        allowed = option_keys.get(key, [])
+        answer = value.get("answer")
+        if answer is not None and allowed and str(answer) not in allowed:
+            errors.append(f"targets[{key}]: answer {answer!r} 不在候选里")
+        probs = value.get("probs")
+        if probs is None:
+            if answer is None:
+                errors.append(f"targets[{key}]: answer 与 probs 至少有一个")
+            continue
+        if not isinstance(probs, dict) or not probs:
+            errors.append(f"targets[{key}]: probs 必须是非空对象")
+            continue
+        if allowed and len(probs) != len(allowed):
+            errors.append(f"targets[{key}]: probs {len(probs)} 项与 options {len(allowed)} 项不等长")
+        total = 0.0
+        for raw_key, prob in probs.items():
+            if allowed and str(raw_key) not in allowed:
+                errors.append(f"targets[{key}]: probs 键 {raw_key!r} 不在候选内")
+            if isinstance(prob, bool) or not isinstance(prob, (int, float)) or not 0 <= float(prob) <= 1:
+                errors.append(f"targets[{key}]: probs[{raw_key!r}] 必须是 [0,1] 数字")
+                continue
+            total += float(prob)
+        if abs(total - 1.0) > 1e-3:
+            errors.append(f"targets[{key}]: probs 之和 {total:.6f} 未归一")
+    return errors
+
+
+def build_native_item(taxonomy, *, slug, manifest, row, domain, domain_rule, state, questions,
+                      targets, flags=(), meta_extra=None, variant="", key_source="native"):
+    """按原生四元组组装条目；questions 里每个问题都自带 origin/source_key。"""
+    source = {
+        "dataset": manifest["dataset"], "revision": manifest["revision"],
+        "config": manifest["config"], "split": manifest["split"], "row": row,
+        "license": manifest["license"],
+        "url": manifest.get("source_url") or f"https://huggingface.co/datasets/{manifest['dataset']}",
+        "slug": slug,
+    }
+    meta = {
+        "converter": CONVERTER_NAME, "converter_version": CONVERTER_VERSION,
+        "created_at": manifest["_created_at"], "native": True,
+        "key_source": key_source, "question_origin": "source",
+        "quality_flags": list(flags), "domain_rule": domain_rule,
+    }
+    if meta_extra:
+        meta.update(meta_extra)
+    item = {
+        "id": item_id(slug, manifest["dataset"], manifest["revision"], manifest["config"],
+                      manifest["split"], row, variant),
+        "domain": domain, "lang": manifest.get("lang") or "en", "state": state,
+        "questions": questions, "source": source, "meta": meta,
+    }
+    if targets:
+        item["targets"] = targets
+    return item, native_item_errors(item)
+
+
+def native_jev_typed(ctx, unit):
+    """jev-distill-v3：原生 kind/options/target/state/question；score 保留 0-5 六档不压。"""
+    for row, payload in unit.rows:
+        state = str(payload.get("state") or "")
+        question_text = str(payload.get("question") or "")
+        if not state.strip() or not question_text.strip():
+            unit.skip("empty_state_or_question")
+            continue
+        family = str(payload.get("family") or "")
+        domain = JEV_FAMILY_DOMAIN.get(family) or classify_domain(str(payload.get("domain") or ""))
+        if domain is None:
+            unit.skip("domain_unmapped")
+            continue
+        kind = str(payload.get("kind") or "")
+        labels = [str(value) for value in (payload.get("options") or [])]
+        weights = list(payload.get("target") or [])
+        if kind not in NATIVE_KINDS or len(labels) < 2 or len(labels) != len(weights):
+            unit.skip("options_target_misaligned")
+            continue
+        flags = []
+        if kind == "score":
+            pairs = level_pairs(len(labels))
+            question = native_question(question_text, "score", question_text, scale=scale_of(labels))
+        else:
+            pairs = native_option_pairs(labels)
+            question = native_question(question_text, kind, question_text, options=pairs)
+        probs, weight_flag = prob_map(pairs, weights)
+        if weight_flag:
+            flags.append(weight_flag)
+        target = {"answer": argmax_key(pairs, weights)}
+        if probs:
+            target["probs"] = probs
+        if max(float(value) for value in weights) - min(float(value) for value in weights) < 1e-9:
+            flags.append("uniform_target")
+        unit.emit(build_native_item(
+            ctx.taxonomy, slug=unit.slug, manifest=unit.manifest, row=row, domain=domain,
+            domain_rule=(f"family:{family}" if family in JEV_FAMILY_DOMAIN
+                         else f"domain:{payload.get('domain')}"),
+            state=state, questions=[question], targets={question_text: target}, flags=flags,
+            key_source="native-text",
+            meta_extra={"native_id": payload.get("id"), "native_kind": kind,
+                        "native_family": family, "native_domain": payload.get("domain"),
+                        "native_source": payload.get("source"),
+                        "native_option_count": len(labels)}))
+
+
+def native_open_jev(ctx, unit):
+    """open-jev：按 group_id 聚合成一个 state 挂多个正交问题，键名用原生问题名。"""
+    groups, order = {}, []
+    for row, payload in unit.rows:
+        group = str(payload.get("group_id") or f"row:{row}")
+        if group not in groups:
+            groups[group] = []
+            order.append(group)
+        groups[group].append((row, payload))
+    for group in order:
+        members = groups[group]
+        row, first = members[0]
+        state = native_state_text(first.get("state_json"))
+        if not state:
+            unit.skip("empty_state")
+            continue
+        questions, targets, flags = [], {}, []
+        for member_row, payload in members:
+            key = str(payload.get("id") or "").rsplit(":", 1)[-1]
+            kind = str(payload.get("kind") or "")
+            labels = [str(value) for value in (payload.get("options") or [])]
+            weights = list(payload.get("target") or [])
+            if not key or kind not in NATIVE_KINDS or len(labels) < 2 or len(labels) != len(weights):
+                unit.skip("member_skipped")
+                continue
+            if key in targets:
+                unit.skip("duplicate_question_key")
+                continue
+            prompt = str(payload.get("question") or key)
+            if kind == "score":
+                pairs = level_pairs(len(labels))
+                questions.append(native_question(key, "score", prompt, scale=scale_of(labels)))
+            else:
+                pairs = native_option_pairs(labels)
+                questions.append(native_question(key, kind, prompt, options=pairs))
+            probs, weight_flag = prob_map(pairs, weights)
+            if weight_flag:
+                flags.append(weight_flag)
+            target = {"answer": argmax_key(pairs, weights)}
+            if probs:
+                target["probs"] = probs
+            targets[key] = target
+        if not questions:
+            unit.skip("no_questions")
+            continue
+        flags.append(f"grouped_questions:{len(questions)}")
+        unit.emit(build_native_item(
+            ctx.taxonomy, slug=unit.slug, manifest=unit.manifest, row=row,
+            domain="decision_mechanics", domain_rule=f"source:{first.get('source')}",
+            state=state, questions=questions, targets=targets, flags=flags,
+            key_source="native-name",
+            meta_extra={"group_id": group, "native_source": first.get("source"),
+                        "native_line_number": first.get("original_line_number")}))
+
+
+def native_jev_decisions(ctx, unit):
+    """jev-decisions：硬标签（target_index / candidate_id）→ answer + 单点 probs。"""
+    for row, payload in unit.rows:
+        state_field = payload.get("state") or {}
+        state = str((state_field or {}).get("user_goal") or "")
+        if not state.strip():
+            unit.skip("empty_state")
+            continue
+        flags, meta_extra = [], {}
+        if payload.get("answer_options"):
+            key = str(payload.get("question") or "").strip() or "choice"
+            labels = [str(option.get("label") or option.get("type") or "")
+                      for option in payload["answer_options"]]
+            index = payload.get("target_index")
+            kind = str(payload.get("question_type") or "choice")
+            key_source = "native-text"
+            meta_extra["native_config_shape"] = "answer_options+target_index"
+        elif payload.get("candidates"):
+            key = str(payload.get("decision_type") or "tool_choice")
+            labels = [str(candidate.get("name") or candidate.get("id") or "")
+                      for candidate in payload["candidates"]]
+            target_field = payload.get("target") or {}
+            wanted = str(target_field.get("candidate_id") or "")
+            index = None
+            for position, candidate in enumerate(payload["candidates"]):
+                if str(candidate.get("id")) == wanted:
+                    index = position
+                    break
+            kind = "choice"
+            key_source = "native-name"
+            flags.append("prompt_falls_back_to_native_decision_type")
+            meta_extra["native_config_shape"] = "candidates+target.candidate_id"
+        else:
+            unit.skip("no_candidates")
+            continue
+        if not labels or len(labels) < 2 or index is None or not 0 <= int(index) < len(labels):
+            unit.skip("target_index_out_of_range")
+            continue
+        pairs = native_option_pairs(labels)
+        question = native_question(key, kind, key, options=pairs)
+        target = {"answer": pairs[int(index)]["key"], "probs": point_mass(pairs, int(index))}
+        flags.append("hard_label_to_point_mass")
+        if len(labels) > 16:
+            flags.append(f"option_count_over_16:{len(labels)}")
+        unit.emit(build_native_item(
+            ctx.taxonomy, slug=unit.slug, manifest=unit.manifest, row=row,
+            domain="decision_mechanics",
+            domain_rule=(f"source:{payload.get('source')}"
+                         + (f"|decision_type:{payload.get('decision_type')}"
+                            if payload.get("decision_type") else "")),
+            state=state, questions=[question], targets={key: target}, flags=flags,
+            key_source=key_source,
+            meta_extra={"native_source": payload.get("source"),
+                        "native_state_note": STATE_NOTE_FIELD,
+                        "native_option_count": len(labels), **meta_extra}))
+
+
+def native_systemone_lite(ctx, unit):
+    """systemone-lite-general：键名用原生 task，问题用原生 instructions，硬标签取 criteria_values。"""
+    for row, payload in unit.rows:
+        state = str(payload.get("state") or "")
+        task = str(payload.get("task") or "")
+        instructions = str(payload.get("instructions") or "")
+        if not state.strip() or not instructions.strip():
+            unit.skip("empty_state_or_instruction")
+            continue
+        labels = [str(value) for value in (payload.get("criteria_values") or [])]
+        keys = [str(value) for value in (payload.get("criteria_keys") or [])]
+        label_alias = str(payload.get("label_alias") or "")
+        if len(labels) < 2 or len(keys) != len(labels) or label_alias not in keys:
+            unit.skip("criteria_misaligned")
+            continue
+        pairs = native_option_pairs(labels)
+        index = keys.index(label_alias)
+        key = task or instructions
+        question = native_question(key, "choice", instructions, options=pairs)
+        target = {"answer": pairs[index]["key"], "probs": point_mass(pairs, index)}
+        unit.emit(build_native_item(
+            ctx.taxonomy, slug=unit.slug, manifest=unit.manifest, row=row,
+            domain="decision_mechanics", domain_rule=f"task:{task}",
+            state=state, questions=[question], targets={key: target},
+            flags=["hard_label_to_point_mass"], key_source="native-name",
+            meta_extra={"native_task": task, "native_label_alias": label_alias,
+                        "native_label_key": payload.get("label_key"),
+                        "native_criteria_keys": keys}))
+
+
+def native_system_one_270m(ctx, unit):
+    """system-one-270m：state 段与 Question 段都在原生 prompt 模板里，逐字抽出来用。"""
+    groups, order = {}, []
+    for row, payload in unit.rows:
+        state_id = str(payload.get("state_id") or f"row:{row}")
+        if state_id not in groups:
+            groups[state_id] = []
+            order.append(state_id)
+        groups[state_id].append((row, payload))
+    for state_id in order:
+        members = groups[state_id]
+        row, first = members[0]
+        prompt = str(first.get("prompt") or "")
+        match = re.search(r"<state>\s*(.*?)\s*</state>", prompt, re.S)
+        state = match.group(1) if match else ""
+        if not state.strip():
+            unit.skip("empty_state")
+            continue
+        questions, targets, flags = [], {}, []
+        for member_row, payload in members:
+            member_prompt = str(payload.get("prompt") or "")
+            question_text = member_prompt.split("Question:", 1)[-1].split("Options:", 1)[0].strip()
+            kind = str(payload.get("qtype") or "")
+            letters = [str(value) for value in (payload.get("letters") or [])]
+            weights = list(payload.get("target") or [])
+            if not question_text or kind not in NATIVE_KINDS or len(letters) < 2 \
+                    or len(letters) != len(weights):
+                unit.skip("member_skipped")
+                continue
+            if question_text in targets:
+                unit.skip("duplicate_question_key")
+                continue
+            labels = parse_lettered_options(member_prompt, letters)
+            if len(labels) != len(letters):
+                unit.skip("options_unparsable")
+                continue
+            if kind == "score":
+                pairs = level_pairs(len(labels))
+                question = native_question(question_text, "score", question_text,
+                                           scale=scale_of(labels))
+            else:
+                pairs = native_option_pairs(labels)
+                question = native_question(question_text, kind, question_text, options=pairs)
+            probs, weight_flag = prob_map(pairs, weights)
+            if weight_flag:
+                flags.append(weight_flag)
+            target = {"answer": argmax_key(pairs, weights)}
+            if probs:
+                target["probs"] = probs
+            targets[question_text] = target
+            questions.append(question)
+        if not questions:
+            unit.skip("no_questions")
+            continue
+        flags.append(f"grouped_questions:{len(questions)}")
+        unit.emit(build_native_item(
+            ctx.taxonomy, slug=unit.slug, manifest=unit.manifest, row=row,
+            domain=classify_domain(str(first.get("domain") or "")) or "decision_mechanics",
+            domain_rule=f"native_domain:{first.get('domain')}",
+            state=state, questions=questions, targets=targets, flags=flags,
+            key_source="native-text",
+            meta_extra={"state_id": state_id, "native_domain": first.get("domain")}))
+
+
+def native_procedural(ctx, unit):
+    """procedural-typed-decisions：questions/answers 两个原生 map，逐问转成原生键。"""
+    for row, payload in unit.rows:
+        state = str(payload.get("state") or "")
+        if not state.strip():
+            unit.skip("empty_state")
+            continue
+        questions_map = json_loads(payload.get("questions")) or {}
+        answers_map = json_loads(payload.get("answers")) or {}
+        if not isinstance(questions_map, dict) or not isinstance(answers_map, dict) \
+                or not questions_map:
+            unit.skip("unparsable_questions")
+            continue
+        questions, targets, flags = [], {}, []
+        for key, spec in questions_map.items():
+            if not isinstance(spec, dict):
+                unit.skip("bad_question_spec")
+                continue
+            kind = str(spec.get("type") or "")
+            answer = answers_map.get(key) or {}
+            prompt = str(spec.get("instructions") or key)
+            criteria = spec.get("criteria")
+            levels = []
+            if kind == "score":
+                levels = [str(value) for value in criteria] if isinstance(criteria, list) else []
+                if len(levels) < 2:
+                    unit.skip("score_without_levels")
+                    continue
+                pairs = level_pairs(len(levels))
+                question = native_question(key, "score", prompt, scale=scale_of(levels))
+                target = {}
+                weights = answer.get("probabilities")
+                if isinstance(weights, dict):
+                    probs, weight_flag = prob_map(pairs, [weights.get(level, 0.0) for level in levels])
+                    if weight_flag:
+                        flags.append(weight_flag)
+                    if probs:
+                        target["probs"] = probs
+                score = answer.get("score")
+                if isinstance(score, (int, float)) and not isinstance(score, bool):
+                    target["answer"] = str(int(score)) if float(score).is_integer() else str(score)
+                    if not float(score).is_integer():
+                        flags.append("non_integer_score_kept_as_text")
+            elif kind in ("choice", "noul"):
+                if kind == "choice":
+                    levels = list(criteria.keys()) if isinstance(criteria, dict) else []
+                    if len(levels) < 2:
+                        unit.skip("choice_without_criteria")
+                        continue
+                    pairs = native_option_pairs(levels)
+                    question = native_question(key, "choice", prompt, options=pairs)
+                else:
+                    pairs = [{"key": "yes", "label": "yes"}, {"key": "no", "label": "no"}]
+                    question = native_question(key, "noul", prompt, options=pairs)
+                    flags.append("noul_options_canonical")
+                target = {}
+                weights = answer.get("probabilities")
+                if isinstance(weights, dict) and kind == "choice":
+                    probs, weight_flag = prob_map(pairs, [weights.get(level, 0.0) for level in levels])
+                    if weight_flag:
+                        flags.append(weight_flag)
+                    if probs:
+                        target["probs"] = probs
+                elif kind == "noul":
+                    value = answer.get("noul")
+                    if isinstance(value, (int, float)) and not isinstance(value, bool):
+                        probs, weight_flag = prob_map(pairs, [float(value), 1.0 - float(value)])
+                        if weight_flag:
+                            flags.append(weight_flag)
+                        if probs:
+                            target["probs"] = probs
+                choice = answer.get("choice")
+                if isinstance(choice, str) and choice and kind == "choice":
+                    for pair, label in zip(pairs, levels):
+                        if label == choice:
+                            target["answer"] = pair["key"]
+                            break
+                if "answer" not in target and target.get("probs"):
+                    target["answer"] = max(target["probs"], key=lambda name: target["probs"][name])
+            else:
+                unit.skip("unknown_question_type")
+                continue
+            questions.append(question)
+            if target:
+                targets[key] = target
+        if not questions:
+            unit.skip("no_questions")
+            continue
+        flags.append(f"native_questions:{len(questions)}")
+        unit.emit(build_native_item(
+            ctx.taxonomy, slug=unit.slug, manifest=unit.manifest, row=row,
+            domain="decision_mechanics", domain_rule=f"task:{payload.get('task')}",
+            state=state, questions=questions, targets=targets, flags=flags,
+            key_source="native-name",
+            meta_extra={"native_task": payload.get("task"), "native_level": payload.get("level"),
+                        "native_id": payload.get("id")}))
+
+
+NATIVE_CONVERTERS = {
+    "jev_typed": native_jev_typed,
+    "open_jev": native_open_jev,
+    "jev_decisions_v1": native_jev_decisions,
+    "systemone_lite": native_systemone_lite,
+    "system_one_270m": native_system_one_270m,
+    "procedural": native_procedural,
+}
+
+
 CONVERTERS = {
     "jev_typed": convert_jev_typed,
     "open_jev": convert_open_jev,
@@ -939,7 +1502,7 @@ class Unit:
         self.skipped = {}
         self.by_domain = {}
         self.by_domain_targets = {}
-        self.target_classes = {DIRECT: 0, DOCUMENTED: 0}
+        self.target_classes = {DIRECT: 0, DOCUMENTED: 0, "hard_label": 0, "distribution": 0}
         self.with_targets = 0
         self.invalid = 0
         self.duplicate_states = 0
@@ -975,15 +1538,22 @@ class Unit:
         if item.get("targets"):
             self.with_targets += 1
             self.by_domain_targets[item["domain"]] =                 self.by_domain_targets.get(item["domain"], 0) + 1
+            kinds = set()
             for flag in item["meta"]["quality_flags"]:
                 for name in (DIRECT, DOCUMENTED):
                     if flag.startswith(f"mapping:{name}:"):
-                        self.target_classes[name] += 1
+                        kinds.add(name)
+                if flag.startswith("hard_label_to_point_mass"):
+                    kinds.add("hard_label")
+            if not kinds:
+                kinds.add("distribution")      # 原生模式：直接来自来源的概率分布
+            for name in kinds:
+                self.target_classes[name] = self.target_classes.get(name, 0) + 1
         return item
 
     def report(self):
         rate = (self.with_targets / self.items) if self.items else 0.0
-        direct = self.target_classes[DIRECT]
+        direct = self.target_classes.get(DIRECT, 0)
         return {
             "slug": self.slug, "dataset": self.manifest["dataset"],
             "config": self.manifest["config"], "split": self.manifest["split"],
@@ -992,7 +1562,7 @@ class Unit:
             "native_target_rate": round(rate, 4),
             "native_target_rate_direct_only": round((direct / self.items) if self.items else 0.0, 4),
             "pending_external_answers": self.items - self.with_targets,
-            "target_classes": dict(self.target_classes),
+            "target_classes": dict(self.target_classes),   # 固定四个键，两个模式口径一致
             "duplicate_states": self.duplicate_states,
             "invalid": self.invalid, "by_domain": self.by_domain,
             "by_domain_with_targets": self.by_domain_targets, "skipped": self.skipped,
@@ -1024,10 +1594,12 @@ def source_config(sources_path=None):
     return {source["slug"]: source for source in payload.get("sources", [])}
 
 
-def convert_unit(context, slug, manifest, rows, *, converter=None, limit=None, stratum_cap=0.35):
+def convert_unit(context, slug, manifest, rows, *, converter=None, limit=None, stratum_cap=0.35,
+                 converters=None):
     """转换一个来源目录；返回 (items, report)。main 与离线测试走同一条路径。"""
+    table = CONVERTERS if converters is None else converters
     name = converter or manifest.get("converter")
-    function = CONVERTERS.get(str(name))
+    function = table.get(str(name))
     if function is None:
         raise KeyError(f"未知转换器 {name!r}")
     prepared = dict(manifest)
@@ -1083,7 +1655,10 @@ def load_units(raw_root: Path, slugs=None):
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="把 decision-base 原始行转换成契约条目")
     parser.add_argument("--raw-root", type=Path, default=DEFAULT_RAW_ROOT)
-    parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="items.jsonl 输出路径")
+    parser.add_argument("--out", type=Path, default=None,
+                        help=f"输出路径（默认 {DEFAULT_OUT.name}；--native 时默认 {DEFAULT_NATIVE_OUT.name}）")
+    parser.add_argument("--native", action="store_true",
+                        help="原生四元组模式：直接用来源的 question/options/target，taxonomy 退回可选层")
     parser.add_argument("--report", type=Path, default=None, help="报告路径（默认与 --out 同目录）")
     parser.add_argument("--source", action="append", default=[], help="只转换指定 slug（可重复）")
     parser.add_argument("--limit", type=int, default=None, help="每个来源最多读取的行数")
@@ -1096,16 +1671,21 @@ def main(argv=None) -> int:
     parser.add_argument("--stratum-cap", type=float, default=0.35,
                         help="单一 stratum（如 jev-decisions-v1 的 source 值）在该来源内的占比上限")
     parser.add_argument("--created-at", default=None, help="固定 meta.created_at，便于可复现构建")
-    parser.add_argument("--max-state-chars", type=int, default=MAX_STATE_CHARS,
-                        help=f"state 字符上限（默认 {MAX_STATE_CHARS}，超出截断并打 quality_flags；"
-                             f"调小可显著减小 items.jsonl）")
+    parser.add_argument("--max-state-chars", type=int, default=None,
+                        help=f"state 字符上限（taxonomy 模式默认 {MAX_STATE_CHARS}；"
+                             f"原生模式默认 0 = 不截断，state 用原文）")
     parser.add_argument("--stdout", action="store_true", help="把条目写到标准输出，不落盘")
     args = parser.parse_args(argv)
 
+    converters = NATIVE_CONVERTERS if args.native else CONVERTERS
+    max_state_chars = args.max_state_chars
+    if max_state_chars is None:
+        max_state_chars = 0 if args.native else MAX_STATE_CHARS
     taxonomy = load_taxonomy(args.taxonomy)
     context = Context(taxonomy, mappings=args.mappings, question_lang=args.question_lang,
                       stratum_cap=args.stratum_cap, created_at=args.created_at,
-                      max_state_chars=args.max_state_chars)
+                      max_state_chars=max_state_chars or MAX_STATE_CHARS)
+    context.native = bool(args.native)
     by_slug = source_config(args.sources)
     units = load_units(args.raw_root, set(args.source) or None)
     if not units:
@@ -1113,8 +1693,10 @@ def main(argv=None) -> int:
         return 1
 
     reports, written, total, total_targets = [], 0, 0, 0
-    skipped_units = []
-    out_path = args.out if not args.stdout else None
+    skipped_units, out_of_scope = [], []
+    out_path = None
+    if not args.stdout:
+        out_path = args.out or (DEFAULT_NATIVE_OUT if args.native else DEFAULT_OUT)
     handle = None
     if not args.stdout:
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1125,15 +1707,19 @@ def main(argv=None) -> int:
                 skipped_units.append({"slug": slug, "reason": problem})
                 print(f"跳过 {slug}：{problem}", file=sys.stderr)
                 continue
+            if args.native and slug not in NATIVE_SLUGS:
+                out_of_scope.append({"slug": slug,
+                                     "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"})
+                continue
             configured = by_slug.get(slug) or {}
             name = configured.get("converter") or manifest.get("converter")
-            if str(name) not in CONVERTERS:
+            if str(name) not in converters:
                 skipped_units.append({"slug": slug, "reason": f"未知转换器 {name!r}"})
                 print(f"跳过 {slug}：未知转换器 {name!r}", file=sys.stderr)
                 continue
             rows = read_rows(rows_path, args.limit)
             items, report = convert_unit(context, slug, manifest, rows, converter=name,
-                                         limit=args.limit,
+                                         limit=args.limit, converters=converters,
                                          stratum_cap=float(configured.get("stratum_cap",
                                                                           args.stratum_cap)))
             for item in items:
@@ -1166,6 +1752,8 @@ def main(argv=None) -> int:
                     for domain, count in sorted(by_domain.items())}
     summary = {
         "converter": CONVERTER_NAME, "converter_version": CONVERTER_VERSION,
+        "mode": "native" if args.native else "taxonomy",
+        "native_slugs": list(NATIVE_SLUGS) if args.native else None,
         "created_at": context.created_at, "raw_root": str(args.raw_root),
         "items_path": str(out_path) if out_path else None,
         "mappings_used": args.mappings,
@@ -1180,18 +1768,20 @@ def main(argv=None) -> int:
         "native_target_rate": round((total_targets / total) if total else 0.0, 4),
         "pending_external_answers": total - total_targets,
         "by_domain": by_domain, "by_domain_detail": domain_rates,
-        "units": reports, "skipped_units": skipped_units,
+        "units": reports, "skipped_units": skipped_units, "out_of_scope": out_of_scope,
     }
     if not args.stdout:
-        report_path = args.report or out_path.with_name("convert-report.json")
+        default_report_name = "items.native.report.json" if args.native else "convert-report.json"
+        report_path = args.report or out_path.with_name(default_report_name)
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
                                encoding="utf-8")
-    print(json.dumps({"items": total, "with_targets": total_targets,
+    print(json.dumps({"mode": summary["mode"], "items": total, "with_targets": total_targets,
                       "native_target_rate": summary["native_target_rate"],
                       "pending_external_answers": summary["pending_external_answers"],
                       "mappings": args.mappings, "by_domain": by_domain,
-                      "units": len(reports), "skipped_units": len(skipped_units)},
+                      "units": len(reports), "skipped_units": len(skipped_units),
+                      "out_of_scope": len(out_of_scope)},
                      ensure_ascii=False))
     invalid = sum(report["invalid"] for report in reports)
     return 1 if invalid or skipped_units else 0

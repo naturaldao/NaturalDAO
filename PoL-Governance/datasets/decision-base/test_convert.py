@@ -586,7 +586,8 @@ class ReportingTests(unittest.TestCase):
         self.assertEqual(report["with_targets"], 1)
         self.assertEqual(report["native_target_rate"], 0.5)
         self.assertEqual(report["pending_external_answers"], 1)
-        self.assertEqual(report["target_classes"], {"direct": 1, "documented": 0})
+        self.assertEqual(report["target_classes"],
+                         {"direct": 1, "documented": 0, "hard_label": 0, "distribution": 0})
         self.assertEqual(report["by_domain_with_targets"], {"decision_mechanics": 1})
 
     def test_documented_targets_are_counted_separately(self):
@@ -594,7 +595,8 @@ class ReportingTests(unittest.TestCase):
                    "response_label": "unsafe", "prompt_label_source": "human",
                    "response_label_source": "human", "violated_categories": []})
         _items, report = run("ag", [row], "aegis")
-        self.assertEqual(report["target_classes"], {"direct": 0, "documented": 1})
+        self.assertEqual(report["target_classes"],
+                         {"direct": 0, "documented": 1, "hard_label": 0, "distribution": 0})
         self.assertEqual(report["native_target_rate_direct_only"], 0.0)
 
     def test_meta_payload_is_capped_with_digest(self):
