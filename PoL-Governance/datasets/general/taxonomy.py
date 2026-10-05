@@ -1,7 +1,7 @@
 """general 覆盖域分类法与问题键定义（schema: general-taxonomy/0.1）。
 
 契约来源
-- datasets/general/README.md（第 2/3/4 节，Lead 所有；字段名不得改）
+- datasets/general/CONTRACT.md（第 2/3/4 节，Lead 所有；字段名不得改）
 - datasets/pol2/ontology/pol2-labels.v0.1.json（PoL2 判据唯一来源，本文件只引用其 id 与枚举）
 
 本文件是 **db-hf（HF 通用决策转换）与 db-luna（自回归输出清洗）共用的转换目标**。

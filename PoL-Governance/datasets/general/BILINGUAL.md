@@ -2,7 +2,7 @@
 
 - 生成日期：2026-10-02（UTC+8）
 - 执行：pol2-replay（DSH Agent Team），共享任务 task-14
-- 契约：[README.md](README.md)；问题键：[taxonomy.py](taxonomy.py)；中文来源：[sources.zh.json](sources.zh.json) + [zh-survey.md](zh-survey.md)
+- 契约：[README.md](CONTRACT.md)；问题键：[taxonomy.py](taxonomy.py)；中文来源：[sources.zh.json](sources.zh.json) + [zh-survey.md](zh-survey.md)
 - 英文来源：[sources.json](sources.json) + [data/convert-report.json](data/convert-report.json)；抓取/转换：[convert_zh.py](convert_zh.py)
 - 产物：**`data/items.bilingual.jsonl`**（明文，已 gitignore）与 **`data/items.bilingual.jsonl.gz`**（入库）；
   机器可读报告 `data/items.bilingual.report.json`

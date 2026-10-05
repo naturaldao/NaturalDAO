@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 r"""把 D:\pol2-raw 下的原始行转换成 general 契约条目（仅标准库）。
 
-配套：契约 datasets/general/README.md、问题键 datasets/general/taxonomy.py（db-schema 所有）。
+配套：契约 datasets/general/CONTRACT.md、问题键 datasets/general/taxonomy.py（db-schema 所有）。
 
 输入：fetch.py 的产物目录 <raw-root>\<slug>\{manifest.json, rows.jsonl}
 输出：--out 指定的 items.jsonl（默认 datasets/general/data/items.jsonl）与转换报告。

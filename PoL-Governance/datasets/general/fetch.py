@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 r"""从 HuggingFace datasets-server 抓取 general 原始行（仅标准库）。
 
-配套契约：datasets/general/README.md；来源清单：datasets/general/sources.json。
+配套契约：datasets/general/CONTRACT.md；来源清单：datasets/general/sources.json。
 原始数据写到仓库外的 D:\pol2-raw\<slug>\，仓库里只提交构建产物。
 
 为什么不直接相信 revision 参数

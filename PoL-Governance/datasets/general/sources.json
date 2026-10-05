@@ -2,7 +2,7 @@
   "version": "0.1",
   "generated_at": "2026-09-30T19:30:00+08:00",
   "owner": "db-hf",
-  "contract": "datasets/general/README.md",
+  "contract": "datasets/general/CONTRACT.md",
   "raw_root_default": "D:\\pol2-raw",
   "page_size": 100,
   "quotas": {

@@ -557,7 +557,7 @@ private: true
 
 ## 字段
 
-每条记录沿用数据集契约 datasets/general/README.md 第 2.1 节的 items 形状：
+每条记录沿用数据集契约 datasets/general/CONTRACT.md 第 2.1 节的 items 形状：
 id / domain / lang / state / questions[] / targets / source / meta。
 questions[] 是本条目自带的问题（origin=source 时 key 为来源原生名，origin=taxonomy 时取自 taxonomy 键表）。
 

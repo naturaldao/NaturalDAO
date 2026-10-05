@@ -1,0 +1,33 @@
+{
+ "task": "task-21",
+ "converter": "build_supp.py",
+ "created_at": "2026-10-05T18:31:04+08:00",
+ "sources": [
+  [
+   "BEncoderRT/User_Intent_Risk_Triage",
+   "72ee9b506993ffcaa2e47506d583a44eadd48cde",
+   "apache-2.0"
+  ],
+  [
+   "chenhaodev/med-guard-safety-synth",
+   "63374505e88feff96c07e543f8fa00890a6aa4b2",
+   "apache-2.0"
+  ],
+  [
+   "textdetox/multilingual_toxicity_dataset",
+   "01907546324b0330d2d8b7669648cc18823323e5",
+   "openrail++"
+  ],
+  [
+   "vanila434/multilingual-elder-safety-msgs",
+   "b800377502098c8aa851e5c91eb8ff85848b4d21",
+   "cc-by-4.0"
+  ]
+ ],
+ "items": 3148,
+ "bytes": 8595371,
+ "sha256": "9f45b8cea1ea6f2090584f83d76e7b77fd9c39fb06d286ed9793dee3cb172a55",
+ "train_only": true,
+ "benchmark_eligible": false,
+ "origin": "taxonomy"
+}

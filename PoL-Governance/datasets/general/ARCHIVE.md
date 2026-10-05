@@ -71,7 +71,8 @@
 
 | 文件 | 说明 |
 |---|---|
-| README.md | **契约**（Lead 所有）：字段定义、覆盖域、配额。字段名不得改 |
+| README.md | **面向协作者的总览**：思路、来源与例子、划分信息（db-hf） |
+| CONTRACT.md | **契约**（Lead 所有）：字段定义、覆盖域、配额。字段名不得改 |
 | SOURCES.md | 英文侧来源说明：推荐保留的 6 个 System-1 数据集、结构、真实样例、精简建议 |
 | ask.md | 作答 harness 的用法与答案契约（db-ask） |
 | BILINGUAL.md / zh-survey.md / zh-typed-survey.md | 中文侧调研、准入与合并说明（pol2-replay） |

@@ -1,135 +1,230 @@
-# PoL 通用决策底座 v0.1（general）
+# 通用决策数据集 general（v0.1）
 
-本目录制备**通用决策数据**：不追求"更大"，追求**覆盖全面、可直接改问、可被外部答案源批量作答**。
-它服务三件事：给治理模型打通用决策基本功（防偏科）、给 Jev 交叉优化提供问题集、给后续训练提供可复算底料。
+给**只做"选一个"的小决策模型**用的中英双语语料：**23,855 条，100% 带真值**，已按请求分组切成
+train / test / validation / benchmark 四个分区。
 
-依据：[SPEC](../../SPEC.md)、[数据集契约](../pol2/README.md)、协作方调研 [data.md](../../research/Wenbo/data.md)、
-来源审计 [replay](../pol2/replay/survey.md)。
+新人从这一页开始看就够；字段与格式细节在 **[CONTRACT.md](CONTRACT.md)**。
 
-## 1. 三条设计原则
+| 我想知道 | 看这里 |
+|---|---|
+| 字段怎么定义、三种原语什么形状 | [CONTRACT.md](CONTRACT.md) |
+| 英文侧每个来源是什么、为什么选它 | [SOURCES.md](SOURCES.md) |
+| 最终语料怎么合出来的、中文占比为什么是 33% | [merge-report.md](merge-report.md) |
+| 四个分区各有多少条、怎么切的、泄漏检查 | [split-report.md](split-report.md) |
+| 每条记录省了多少字段（manifest + 紧凑引用） | [slim-report.md](slim-report.md) |
+| 目录里每个脚本干什么、哪些已过时 | [ARCHIVE.md](ARCHIVE.md) |
 
-1. **状态与问题分离。** `state` 是待判断的情境；`questions` 是在同一 state 上**相互正交**的类型化问题；`targets` 才放答案。
-   同一句话要能同时问出"有没有伤害倾向""是不是边界主张""要不要介入"，而不是压成一个"爱分"。
-2. **兼容 Jev 的三种原语。** `noul`（是/否）、`choice`（多选一）、`score`（分级）。不发明第四种。
-3. **概率优先于硬标签。** 有分布就存分布（多人标注的 vote distribution 尤其宝贵），没有才存单标签。
-   但**不允许**把单标签伪装成概率。
+## 1. 我们用了什么思路
 
-## 2. 记录格式（JSONL，UTF-8）
+### 1.1 目标模型只做"选一个"，不生成文字
 
-### 2.1 条目 `items.jsonl`
+它要能快速在**封闭候选集**里选一项，而不是像 LLM 那样逐字生成。这决定了数据必须尽量是原生的
+**(state, question, options, target) 四元组**：情境、问题、候选、答案都现成。
 
-| 字段 | 类型 | 必填 | 说明 |
+### 1.2 为什么优先用来源原生的问题
+
+把别人的分类数据套上我们自己的中文问题模板，会把"选择"变成"**按我们的口径重新解释别人的数据**"：
+模型学到的将是我们的解释，而不是数据本身。所以：
+
+- 来源自带问题的（System-1 系）：**直接用它的 state / question / options / target**，键名就用来源的原生问题名，
+  不改写、不翻译、不压档位（例如来源是 0–5 六档就保留六档）。
+- 来源确实没有问题的：才由本地 taxonomy 出题（这是次选，origin=taxonomy）。
+
+### 1.3 三种原语
+
+| 原语 | 含义 | 答案形态 | 例 |
 |---|---|---|---|
-| `id` | string | 是 | `db-<source-slug>-<8hex>`，全局唯一，由 (source, revision, row) 确定性派生 |
-| `domain` | string | 是 | 覆盖域，见第 3 节 |
-| `lang` | string | 是 | `en` / `zh` / 其他，保留源语言，不做静默翻译 |
-| `state` | string | 是 | 待判断的情境文本；不写结论、不写"这是违规"之类提示 |
-| `questions` | object[] | 是 | 非空；每条 `{key, kind, prompt, options?, scale?, origin?, source_key?}` |
-| `targets` | object | 否 | `{<key>: {answer?, probs?}}`；源数据自带答案时填，否则留空等外部答案源 |
-| `source` | object | 是 | `{dataset, revision, config, split, row, license, url}`，全部必填，无法固定 revision 的一律不收 |
-| `meta` | object | 是 | `{converter, converter_version, created_at, quality_flags}` |
+| **choice** | 多选一，选项 2 个以上（实测最多 57 个） | 概率分布或硬标签 | 选哪个工具 / 哪个类别 |
+| **noul** | 是 / 否 | 概率分布或硬标签 | 这条记录是否相关 |
+| **score** | 整数分级（各来源档位不同，0–2 / 0–5 / 0–9 都有） | 概率分布 | 严重程度打分 |
 
-`questions[].origin` 取值（**决定这道题是谁出的**，是本源最重要的区分）：
+只用这三种，是因为它们正好覆盖"选一个"的全部形态；**不发明第四种**。
 
-- `source`：题目来自数据集本身。此时 `key` 直接用来源的原生问题名（如 `category`、`bug_severity`），
-  `source_key` 记录该原生名以便溯源，`state` 与 `options`／`scale`／`target` 全部用来源原文，**不做改写、翻译或档位压缩**。
-  这是首选形态：我们的目标模型只做"选一个"，题目应当来自真实决策场景，而不是我们替数据出题。
-- `taxonomy`：来源本身没有原生问题，由本地 taxonomy 生成题面。**这是次选**，只在来源确实不含问题时使用。
-  此时 `key` 取自 taxonomy 的问题键表。
+### 1.4 中英构成与 33% 的取舍
 
-`origin` **缺省即视为 `taxonomy`**：只有原生四元组的条目才写 `origin: "source"`。
-早期按模板命题的语料因此不必回填该字段，也能被正确解读。`coverage.py` 按 `origin` 分别统计：
-`source` 的原生键不在 taxonomy 词表内属正常，不应报 schema 警告。
+| | 条数 | 占比 | 来源数 | 覆盖原语 |
+|---|---:|---:|---:|---|
+| 英文 en | 15,983 | 67% | 6 个 HF 仓库（7 个抓取单元） | choice / noul / score |
+| 中文 zh | 7,872 | 33% | 1 个（Deepexi） | choice |
 
-**当前主产物是 [data/items.native.jsonl.gz](data/items.native.jsonl.gz)**（15,983 条，全部 `origin=source`，100% 带原生真值；
-明文同名去 `.gz`，体积大故不入库）。
-`items.jsonl` 与 `items.bilingual.jsonl` 是按模板命题的早期版本，留作对照，不再是训练首选。
+**为什么中文取 33% 而不是上限 40%**：Deepexi 是唯一中文来源，中文占比就等于该来源占比。
+取到 40% 会正好顶满契约"单一来源 ≤ 40%"的线、没有余量；而多取的是**同一批请求的变体**，
+边际信息量递减。33% 既落在 30–40% 区间里，又给以后第二个中文来源留出头寸。
+（详见 [merge-report.md](merge-report.md)；抽取种子 general-merge-v1，可复算。）
 
-`questions[].kind` 取值：`noul`（是/否）、`choice`（多选一）、`score`（分级）。
+### 1.5 成色分层（做训练决策必读）
 
-**下面的形状约束只在 `origin=taxonomy` 时强制**；`origin=source` 一律以条目自带的 `options`／`scale` 为准——
-原生数据是什么形状就用什么形状，**不得为了迁就我们的规范去改题**（砍选项就是改题目）。
+| 层级 | 是什么 | 条数 | 真值形态 | 进 benchmark？ |
+|---|---|---:|---|---|
+| **A. 原生四元组** | 来源自带 state/question/options/target，我们只搬运 | **23,855（100%）** | 来源的概率分布，或来源自己的硬标签 | **是（只有这一层）** |
+| B. 单标签转换的补充 | 数据只有"这条属于 X 类"，我们把 X 当正确选项、再从**同一标签集**取其余选项凑成 choice | 暂未引入（中文 noul/score 补充，task-21） | 硬标签 + documented 映射 | **否** |
 
-| 约束 | `origin=taxonomy`（我们出题） | `origin=source`（数据自带） |
+**怎么用**：A 层可以直接进训练与 benchmark；B 层是**成色降级**的补充，**只进 train**，
+不进 validation / test / benchmark，训练时也要与 A 层分开报告。内部 benchmark **只含 A 层**。
+
+### 1.6 一条数据里的语言分工
+
+| 内容 | 来自哪 | 语言 |
 |---|---|---|
-| `noul` 选项 | 固定 `[{"key":"yes"},{"key":"no"}]` | 恰好 2 个非空选项，`false/true`、`no/yes` 均可，顺序任意 |
-| `choice` 选项数 | 2–16 | ≥2，**不设上限**（实测最多 57 个） |
-| `score` 量程 | `{min:0,max:4,labels:…}` | 用自带 `scale` 自洽即可（实测最多 0–9 十档） |
-| 答案与概率 | 按 taxonomy 规范选项校验 | 按**该题自带**的 options/scale 校验 |
+| state（情境） | 来源原文 | 英文条目的 state 是英文，中文条目的 state 是中文 |
+| questions 的 key / prompt | 来源原生问题名与原文（英文侧）；中文侧候选来自来源、题面由 taxonomy 出 | 英文侧英文；中文侧中文 |
+| options | 来源原文（含中文侧已被确定性打散顺序的候选菜单） | 随来源 |
+| targets | 来源自带答案；有分布存分布，只有硬标签就只写 answer | 语言无关 |
 
-### 2.2 答案 `answers.<source>.jsonl`
+## 2. 开源来源清单 + 真实例子
 
-一行一个"某答案源对某问题的回答"：
+### 2.1 英文侧：6 个 HF 仓库 / 7 个抓取单元，15,983 条
 
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `qid` | string | 是 | `<item id>.<question key>` |
-| `id` | string | 是 | 所属条目 |
-| `key` | string | 是 | 问题 key |
-| `kind` | string | 是 | `noul` / `choice` / `score` |
-| `source` | string | 是 | `jev-<version>` / `luna` / `grok-4.7` …，写进文件名 |
-| `source_version` | string | 是 | 固定版本 |
-| `answer` | string 或 number | 否 | 失败时为 null |
-| `probs` | object | 否 | 归一到 1；没给概率就不要编 |
-| `execution_status` | string | 是 | `ok` / `timeout` / `error` / `invalid` |
-| `latency_ms` | number | 是 | 客户端全程耗时 |
-| `created_at` | string | 是 | ISO 8601 带时区 |
+| 来源 | HF 链接 | 许可 | 固定 revision | 一句话 | 条数 |
+|---|---|---|---|---:|
+| jev-distill-corpus-v3 | [SargeDev/jev-distill-corpus-v3](https://huggingface.co/datasets/SargeDev/jev-distill-corpus-v3) | apache-2.0 | fc99c6357a9f | 教师蒸馏的三原语语料，**带完整概率分布**，规模主力 | 7,756 |
+| jev-decisions-v1 | [samatv256/jev-decisions-v1](https://huggingface.co/datasets/samatv256/jev-decisions-v1) | cc-by-4.0 | c12aadf1f01c | agent **工具选择**（通用精选配置），硬标签 | 3,802 |
+| procedural-typed-decisions | [tasksource/procedural-typed-decisions](https://huggingface.co/datasets/tasksource/procedural-typed-decisions) | apache-2.0 | 609513a3fadd | **一个情境挂多个类型化问题**，带概率 | 1,500 |
+| systemone-lite-general | [dwidlee/systemone-lite-general](https://huggingface.co/datasets/dwidlee/systemone-lite-general) | mit | c14eb7f7518f | 合成 gym（辩论裁决、工单紧急度），硬标签 | 1,479 |
+| Open-Jev | [ZefanCai/Open-Jev](https://huggingface.co/datasets/ZefanCai/Open-Jev) | cc0-1.0 | c67699e13d0a | 同一请求下**多个正交问题**，规范最好、可逐行溯源 | 792 |
+| system-one-270m-data | [kaivoss/system-one-270m-data](https://huggingface.co/datasets/kaivoss/system-one-270m-data) | apache-2.0 | f31d5a3f3da8 | 日志与告警分诊，带概率 | 447 |
+| jev-decisions-v1（default 配置） | 同上 | cc-by-4.0 | c12aadf1f01c | 1200 万行里做的浅窗口抽样，仅作分布对照 | 207 |
 
-**失败不写 ok。** 外部答案源（含官方 Jev）没接通时必须显式报错退出，不得静默降级成"跳过"。
+逐来源的取材理由与陷阱见 [SOURCES.md](SOURCES.md)；来源清单机器可读版见 [sources.json](sources.json)。
 
-## 3. 覆盖域（每个域设下限配额，宁缺毋滥）
+### 2.2 中文侧：1 个来源，7,872 条
 
-| domain | 覆盖什么 | 主要来源 |
-|---|---|---|
-| `decision_mechanics` | 工具选择、下一步动作、计划、资格/权限判定 | Jev Decisions v1、Open-Jev、tasksource-jev |
-| `human_judgment` | 真人情感/毒性/蕴含判断，含多人 vote 分布 | GoEmotions、Civil Comments、ChaosNLI（经 jev-bench 定位，但取其**上游 train 划分**） |
-| `social_moral` | 亲社会回应、道德规范、动机→行为→后果 | ProsocialDialog、Social Chemistry、Moral Stories |
-| `risk_harm` | 伤害类别、越狱与对抗、升级判断 | WildGuardMix、PKU-SafeRLHF |
-| `knowledge_reasoning` | 常识与知识型判断，防止只会做治理题 | 受许可的问答类来源 |
-| `pol2_axis` | 关怀与控制、同意撤回、批评与人格、公共性等判定轴 | 与 datasets/pol2 的 15 条判定轴对齐 |
+| 来源 | HF 链接 | 许可 | 固定 revision | 说明 | 条数 |
+|---|---|---|---|---:|
+| Deepexi 函数调用 | [Deepexi/openai-formate-function-calling-small](https://huggingface.co/datasets/Deepexi/openai-formate-function-calling-small) | apache-2.0 | 6d1dc02a2549 | 中文用户请求 + 候选工具菜单 + 正确工具；从 5,454 个唯一请求按变体抽到 33% 占比 | 7,872 |
 
-**已知边界**：`Praveenrajus/jev-bench` 全部划分都是 `test`，它本身是排行榜基准，
-**只能当外部评测，不得进训练**。要做真人校准监督，请取其上游数据集各自的 train 划分。
+中文侧调研与准入见 [zh-survey.md](zh-survey.md)、构建说明见 [zh-build-report.md](zh-build-report.md)、
+清单见 [sources.zh.json](sources.zh.json)。
 
-## 4. 规模与配额
+### 2.3 真实例子（取自最终语料，长文本标 [截断]）
 
-- 总量下限 **10,000 条**，目标 20,000–30,000 条；每个覆盖域至少 1,200 条。
-- 单一来源占比不得超过 40%，防止某一家数据定义整个表示。
-- 同一 `state` 的翻译与改写视为同族，只能出现在同一分区。
+**例 1 · 英文 choice：从候选菜单里选正确的一个（Open-Jev，同一请求下共 6 个问题）**
 
-## 5. 目录与文件归属
+    state: "Conversation with account holder Harbor-65673ba098.
+            Customer message: I need access restored after changing the email address [截断]"
+    questions[0]: key="category"  kind=choice   ← 键名就是来源自己的问题名
+      options: [{"key":"account_login_permission","label":"account: Login, permissions, profile, security"},
+                {"key":"bug_report_the_user_is_r","label":"bug_report: The user is reporting something broken"},
+                {"key":"billing_charges_invoices","label":"billing: Charges, invoices, refunds, subscriptions"},
+                {"key":"feature_request_the_user","label":"feature_request: The user is requesting new functionality"}]
+    targets["category"]: {"answer":"account_login_permission",
+                          "probs":{"account_login_permission":1.0,"bug_report_the_user_is_r":0.0, ...}}   ← 来源给的是分布
 
-| 路径 | 内容 | 归属 |
-|---|---|---|
-| `datasets/general/README.md` | 本契约 | Lead |
-| `datasets/general/sources.json` | 来源清单与配额 | Lead |
-| `datasets/general/taxonomy.py` | 覆盖域与问题键定义 | db-schema |
-| `datasets/general/coverage.py` | 覆盖报告与配额校验 | db-schema |
-| `datasets/general/fetch.py` | 下载（datasets-server 分页）与断点续跑 | db-hf |
-| `datasets/general/convert.py` | 各来源 → 统一 schema | db-hf |
-| `datasets/general/ask.py` | 批量作答harness（Jev 适配、可续跑、默认离线） | db-ask |
-| `datasets/general/luna_clean.py` | 自回归输出清洗成严格决策格式 | db-luna |
-| `datasets/general/data/` | 构建产物 `items.jsonl` 等 | Lead 统管 |
+**例 2 · 英文 choice：来源只有硬标签，就只写 answer + 单点分布（systemone-lite-general）**
 
-原始下载放仓库外（`D:\pol2-raw\`），仓库只提交构建后的 items 与清单。
+    state: "{\"ticket\": {\"subject\": \"Production outage: checkout broken\", \"tier\": \"enterprise\", ...}}"
+    questions[0]: key="ticket.urgency"  kind=choice
+      options: [{"key":"1_medium_same_day","label":"1: medium — same day"},
+                {"key":"0_low_can_wait","label":"0: low — can wait"},
+                {"key":"2_high_immediate","label":"2: high — immediate"}]
+    targets["ticket.urgency"]: {"answer":"2_high_immediate",
+                                "probs":{"1_medium_same_day":0.0,"0_low_can_wait":0.0,"2_high_immediate":1.0}}
 
-## 6. 已知限制（施工中发现，不要当成已解决）
+**例 3 · 英文 noul 与 score：保留来源自己的档位（jev-distill-corpus-v3）**
 
-1. **HF datasets-server 不遵守 revision 参数。** 实测带伪造 sha、别人的 sha、不带 revision，返回的首行完全相同。
-   抓取时的做法是：先用 HF API 解析当前 sha 并与 sources.json 的固定值比对，不一致就停下；
-   manifest 记录 revision、revision_enforced=false 与抓取后复核得到的 revision_stable。
-   **真正逐字节可复现需要走 resolve/<sha>/<path> 下载文件**，而不是 /rows 分页接口。本阶段未做这一步。
-2. **length 上限 100**，超过返回 422。
-3. **config 名里的加号必须转义**（%2B），否则会被 query 解析成空格导致 404。
-4. **来源问题与 taxonomy 键不是一一对应。** 已知：jev-distill-v3 的 score 是 0-5 六档（本契约的 score 键是 0-4 五档），
-   其 noul 是场景专属谓词；prosocial-dialog 的三标注 vote 与 safety_label 五档在本契约里没有等义键。
-   处理口径：**不硬塞档位**，原生问答与分布保留在 meta.source_record，条目按该域的 CORE 键提问、targets 留空等外部答案源。
-   转换汇总必须分别报告 native_target_rate（带真值的条目占比）与待作答条目数。
-5. 语义近重复与同情节跨区检测、跨文件/跨来源 id 去重，本阶段均未实现。
+    noul:  state "The log shipper shows a 22% drop in request rate with no deploys [截断]"
+           key "Is this scenario one where: this can wait until morning?"  kind=noul
+           options [{"key":"false","label":"false"},{"key":"true","label":"true"}]     ← 原样，不改成 yes/no
+           target  {"answer":"false","probs":{"false":0.87,"true":0.13}}
 
-## 7. 检查
+    score: state "A statistic in the draft attributes to a study that says the opposite [截断]"
+           key "Rate claim reliability for this scenario on a 0-5 scale."  kind=score
+           scale {"min":0,"max":5,"labels":["0","1","2","3","4","5"]}                  ← 六档原样保留，不压成 0-4
+           target {"answer":"4","probs":{"0":0.01,"1":0.01,"2":0.05,"3":0.41,"4":0.51,"5":0.01}}
 
-```powershell
-uv run --no-project --offline python tools/check.py
-uv run --no-project --offline python datasets/general/coverage.py --items datasets/general/data/items.jsonl
-```
+**例 4 · 英文：一条条目挂多个问题（procedural-typed-decisions，一次覆盖三种原语）**
+
+    state: "Order lines (prices in €):
+            item,unit_price,quantity
+            drill,2,1 / vase,20,2 / tent,15,2
+            Rule: Orders of €50 or more get €5 off; smaller orders pay €6 shipping."
+    questions: largest_line     kind=choice  "Which line costs the most in total?"          options [drill, vase, tent]
+               lines_above      kind=score   "Count the lines whose total exceeds €30."      scale 0..9
+               random_line_bulk kind=noul    "If one line is picked at random, P(quantity>=2)?" options [yes, no]
+               within_budget    kind=noul    "Does the order fit within a budget of €62?"
+    targets: largest_line {"answer":"vase","probs":{"drill":0.0,"vase":1.0,"tent":0.0}}
+             lines_above  {"answer":"1","probs":{"0":0.0,"1":1.0,"2":0.0, ...}}
+             random_line_bulk {"answer":"yes","probs":{"yes":0.666667,"no":0.333333}}      ← 真概率，不是凑的
+
+**例 5 · 中文 choice：候选菜单来自来源（顺序已确定性打散），答案是硬标签（Deepexi）**
+
+    state: "20210101的短信发送状态如何？"
+    group_id: "zhgrp-104f0514ee19"        ← 同一请求的多个变体共用一个 group_id（切分按组，不拆开）
+    questions[0]: key="next_step_candidate"  kind=choice
+      options: [{"key":"ListMessages","label":"ListMessages：按指定过滤条件获取指定日期的短信发送状态。"},
+                {"key":"UpdateDISyncTask","label":"UpdateDISyncTask：更新数据集成同步任务。"},
+                {"key":"GenerateDISyncTaskConfigForCreating","label":"GenerateDISyncTaskConfigForCreating：异步生成同时任务的JSON。"}]
+    targets["next_step_candidate"]: {"answer":"ListMessages"}    ← 来源只给了硬标签，就不编概率
+
+（中文侧的 **noul / score 例子**要等中文补充数据 task-21 交付后补上，见下一节。）
+
+### 2.4 补充数据（中文 noul / score）：只进 train
+
+中文侧目前只有 choice（Deepexi 一个来源）。为补 noul / score，正在做**单标签转换**的补充集
+（中文分类数据 + documented 映射，属于第 1.5 节的 **B 层**）：
+
+- **只进 train**，不进 validation / test / **benchmark**；
+- 训练时必须与 A 层（原生四元组）分开报告，便于消融；
+- 本轮 README 先写约定，数字等交付后补。
+
+## 3. 划分信息
+
+四分区按**请求分组**切分（不是按行），种子 **20261005**，两次运行逐字节一致。
+
+| 分区 | 条目 | 占比 | 请求组 | 英文 | 中文 |
+|---|---:|---:|---:|---:|---:|
+| train | 14,310 | 60.0% | 14,310 | 9,588 (67%) | 4,722 (33%) |
+| test | 4,771 | 20.0% | 4,771 | 3,197 (67%) | 1,574 (33%) |
+| validation | 2,385 | 10.0% | 2,385 | 1,598 (67%) | 787 (33%) |
+| benchmark | 2,389 | 10.0% | 2,389 | 1,600 (67%) | 789 (33%) |
+| 合计 | 23,855 | 100% | 21,376 | 15,983 | 7,872 |
+
+域与原语分布（各区内部占比）：
+
+| 维度 | train | test | validation | benchmark |
+|---|---|---|---|---|
+| decision_mechanics | 11,677 (82%) | 3,893 (82%) | 1,946 (82%) | 1,949 (82%) |
+| knowledge_reasoning | 2,633 (18%) | 878 (18%) | 439 (18%) | 440 (18%) |
+| choice | 10,706 (75%) | 3,545 (74%) | 1,780 (75%) | 1,784 (75%) |
+| noul | 3,977 (28%) | 1,342 (28%) | 668 (28%) | 680 (28%) |
+| score | 2,236 (16%) | 742 (16%) | 367 (15%) | 380 (16%) |
+
+（同一条目可挂多个问题，所以 kind 占比之和超过 100%。）
+
+**为什么必须整组切**：中文侧的多个变体来自**同一个请求**、state 逐字相同，只是候选顺序不同。
+按行随机切会把同一请求的变体分到 train 和 test 两侧，**静默泄漏**——测试分数会虚高。
+切分器的做法是并查集合并：显式分组键（group_id / request_id，中英两侧都读）与**归一化 state**
+各自连边，同一连通分量的条目整组进同一分区。实测：显式分组键 8,664 条，靠 state 或 id 兜底的 15,191 条，
+共 21,376 组；多条目组 2,479 个（最大 2 条）。
+
+**泄漏检查（必须为空，实测为空）**：跨分区的组 0、跨分区的同一 state 0、跨分区的 id 0；
+复核范围 21,376 组 / 21,376 个不同 state。
+
+**复现**：
+
+    uv run --no-project --offline python datasets/general/data/splits/split.py \
+        --items datasets/general/data/items.final.jsonl --out datasets/general/data/splits --seed 20261005
+
+产物与哈希见 [data/splits/split-manifest.json](data/splits/split-manifest.json)；
+产物树哈希 2c3fa92c323edbf38147325dd6605220ed9a7b1a64cc0d935201f514533c62f4。
+完整报告见 [split-report.md](split-report.md)。
+
+### 3.1 内部 benchmark 的隐私约定
+
+- **不得进公开仓库**：benchmark 分区（2,389 条）与可上传目录 data/splits/benchmark-dataset/ 已在 .gitignore 里；
+- **上传时设为 private**，不要放到任何公开分支、fork、PR、日志或截图里；
+- **其他人不要引用其内容**：看过逐例答案就不能再自称在它上面是盲测；
+- 它只含 A 层（原生四元组），**不含**第 1.5 节 B 层的补充数据。
+
+## 4. 文件在哪
+
+| 文件 | 内容 |
+|---|---|
+| [data/items.final.jsonl.gz](data/items.final.jsonl.gz) | **最终语料** 23,855 条（明文同名去 .gz，体积大不入库） |
+| [data/items.native.jsonl.gz](data/items.native.jsonl.gz) | 英文侧主产物 15,983 条 |
+| data/splits/train.jsonl(.gz) 等四份 | 切分产物（benchmark 那份勿公开） |
+| data/items.jsonl(.gz) / items.bilingual.jsonl(.gz) | 早期"模板命题"版（37,124 条），**留作对照，不再是训练首选** |
+
+原始下载在仓库外（D:\pol2-raw\）。检查：
+
+    uv run --no-project --offline python tools/check.py

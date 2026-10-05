@@ -2,7 +2,7 @@
 
 - 调研日期：2026-10-02（UTC+8）
 - 执行：pol2-replay（DSH Agent Team），共享任务 task-11
-- 上游依据：[datasets/general/README.md](README.md)（契约）、[taxonomy.py](taxonomy.py)（问题键）、
+- 上游依据：[datasets/general/CONTRACT.md](CONTRACT.md)（契约）、[taxonomy.py](taxonomy.py)（问题键）、
   [sources.json](sources.json)（英文来源清单）、[../../SPEC.md](../../SPEC.md)、[../../research/Wenbo/data.md](../../research/Wenbo/data.md)
 - 方法沿用 [datasets/pol2/replay/survey.md](../pol2/replay/survey.md)：固定 revision、逐条许可判读、剔除评测集、标注证据等级
 - 机器可读准入清单：[sources.zh.json](sources.zh.json)；抓取+转换：[convert_zh.py](convert_zh.py)；离线测试：[test_convert_zh.py](test_convert_zh.py)

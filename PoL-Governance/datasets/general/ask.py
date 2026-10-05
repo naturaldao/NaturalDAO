@@ -3,7 +3,7 @@
 
 目标：外部答案源（官方 Jev / OpenAI 兼容端点 / 离线 fixture）在上万条问题上
 **一条命令跑完、断了能续、失败能重跑、产物符合契约 2.2 节**。
-契约：datasets/general/README.md 第 2.2 节（字段名固定，不新增、不改名）。
+契约：datasets/general/CONTRACT.md 第 2.2 节（字段名固定，不新增、不改名）。
 
 只依赖标准库；默认离线（不加 --live 只写请求计划，不联网）。
 密钥只从环境变量或 --key-file 读取，绝不写进任何产物；日志里只有 sha256 前 8 位指纹。
@@ -73,7 +73,7 @@ except ImportError as error:  # pragma: no cover
 
 TOOL = "general-ask"
 HARNESS_VERSION = "ask-v0.1"
-ANSWER_CONTRACT = "datasets/general/README.md 2.2"
+ANSWER_CONTRACT = "datasets/general/CONTRACT.md 2.2"
 CHAT_TEMPLATE_VERSION = "ask-chat-v0.1"
 
 KINDS = ("noul", "choice", "score")
