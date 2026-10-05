@@ -19,6 +19,23 @@ decision-base 是通用底座，PoL2 专项语料本轮由协作者在别处生�
 把它卡在 1200 会逼通用底座去补一个不归它管的缺口、稀释通用覆盖；等 PoL2 语料落地后再提这一档。
 命令行显式给 --min-per-domain 而未给 --domain-min 时，该默认例外不自动生效。
 
+出题方（questions[].origin，见 README 2.1）：
+
+- origin=source：题目来自数据集本身，key 即来源原生问题名，**不在 taxonomy 词表内属正常**。
+  形状校验改用条目自带的 options/scale：noul 只要求恰好 2 个非空选项（不强制字面量 yes/no——
+  实测原生 noul 用 false/true、no/yes 且顺序不一）、choice >= 2 且不设上限（实测最多 57 个）、
+  score 用自带 scale 自洽（实测最高 10 档）。原生键不计入 taxonomy 覆盖率统计，另列一组计数。
+- origin=taxonomy（或缺省；老 items.jsonl 根本没有该字段）：沿用 taxonomy 词表的严格校验
+  （noul 必须 yes/no、choice 2–16、score 0–4）。
+- **未知键永不提前中断校验**：未知键只报一条可分类告警，同一条目的形状问题照样全部报出。
+
+产物档位（--profile）：
+
+- full（默认）：全量产物，按 sources.json / README 阈值校验总量、每域下限、单一来源占比。
+- subset：子集产物（如 System-1 原生题子集）只校验它自己该负责的维度——非空、domain 合法、
+  id 唯一、每道题显式声明 origin；全量阈值只在命令行显式给出时才生效（README / sources.json 的
+  环境值不套用）。否则"单一来源 48.5%、三个域为 0"的子集产物会永远红，配额检查再次失去信号。
+
 退出码：
 
 - 0：通过（有问题但只是 schema 警告时仍为 0，除非加 --strict）
@@ -68,6 +85,32 @@ QUOTA_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "max_source_share": ("max_source_share", "source_share_cap", "single_source_max_share", "max_share"),
 }
 QUOTA_ORIGIN_LABELS = {"cli": "命令行", "sources.json": "sources.json", "readme-default": "README 默认"}
+
+#: questions[].origin 取值（README 2.1）；缺省按 taxonomy，保证老数据行为不变
+ORIGIN_SOURCE = "source"
+ORIGIN_TAXONOMY = "taxonomy"
+ORIGINS = (ORIGIN_SOURCE, ORIGIN_TAXONOMY)
+
+#: 产物档位：full=全量配额，subset=子集只查自身该负责的维度（见模块 docstring）
+PROFILES: dict[str, dict] = {
+    "full": {
+        "description": "全量产物：按 sources.json / README 阈值校验总量、每域下限、单一来源占比",
+        "read_ambient": True,
+        "require_origin": False,
+        "enforce_total": True,
+        "enforce_domains": True,
+        "enforce_source_share": True,
+    },
+    "subset": {
+        "description": "子集产物：只校验非空/域合法/id 唯一/origin 显式；全量阈值需命令行显式给出",
+        "read_ambient": False,
+        "require_origin": True,
+        "enforce_total": False,
+        "enforce_domains": False,
+        "enforce_source_share": False,
+    },
+}
+DEFAULT_PROFILE = "full"
 
 
 class ItemsError(Exception):
@@ -160,18 +203,26 @@ def _first_present(raw: dict, field: str):
 
 def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool = True,
                    min_total: int | None = None, min_per_domain: int | None = None,
-                   max_source_share: float | None = None, domain_min: dict | None = None) -> dict:
-    """按 命令行 > sources.json > README 默认 逐字段解析配额。
+                   max_source_share: float | None = None, domain_min: dict | None = None,
+                   profile: str = DEFAULT_PROFILE) -> dict:
+    """按 命令行 > sources.json > README 默认 逐字段解析配额，并给出哪些维度要强制。
 
     参数传 None 表示"这一层没给"，交给下一层；传具体值表示覆盖。
     domain_min 的 None 与 {} 含义不同：None=没给，{}=显式要求没有任何例外。
+    profile=subset 时不套用环境值（sources.json / README），只有命令行显式给出的维度才强制。
     """
+    if profile not in PROFILES:
+        raise ValueError(f"未知档位 {profile!r}；合法值：{sorted(PROFILES)}")
+    settings = PROFILES[profile]
     notes: list[str] = []
     raw: dict = {}
     used_file = False
-    if use_sources:
+    if use_sources and settings["read_ambient"]:
         raw, file_notes, used_file = read_sources_quotas(sources_path)
         notes.extend(file_notes)
+    elif use_sources:
+        notes.append(f"档位 {profile}：不套用 sources.json / README 的环境配额，"
+                     "只有命令行显式给出的阈值才生效")
     origin: dict[str, str] = {}
 
     def pick(cli_value, field: str, default, cast):
@@ -229,8 +280,10 @@ def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool
         exceptions = dict(DEFAULT_DOMAIN_MIN)
         origin["min_per_domain"] = "readme-default"
         origin["domain_min"] = "readme-default"
-        notes.append(f"pol2_axis 下限默认 {DEFAULT_DOMAIN_MIN['pol2_axis']}（其余五域 {base}）："
-                     "decision-base 是通用底座，PoL2 专项语料本轮由协作者在别处生产，等其落地后再提这一档")
+        if settings["enforce_domains"]:
+            notes.append(f"pol2_axis 下限默认 {DEFAULT_DOMAIN_MIN['pol2_axis']}（其余五域 {base}）："
+                         "decision-base 是通用底座，PoL2 专项语料本轮由协作者在别处生产，"
+                         "等其落地后再提这一档")
 
     values = set(origin.values())
     if "cli" in values:
@@ -241,7 +294,16 @@ def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool
         status = "readme-defaults"
     else:
         status = "mixed"
+    enforce = {
+        "total": bool(settings["enforce_total"] or origin.get("min_total") == "cli"),
+        "domains": bool(settings["enforce_domains"] or origin.get("min_per_domain") == "cli"
+                        or origin.get("domain_min") == "cli"),
+        "source_share": bool(settings["enforce_source_share"] or origin.get("max_source_share") == "cli"),
+        "require_origin": bool(settings["require_origin"]),
+    }
     return {
+        "profile": profile,
+        "profile_description": settings["description"],
         "min_total": resolved_total,
         "min_per_domain": base,
         "domain_min": exceptions,
@@ -250,7 +312,275 @@ def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool
         "status": status,
         "source_file": str(sources_path) if used_file else None,
         "notes": notes,
+        "enforce": enforce,
     }
+
+
+# ---------------------------------------------------------------- origin 感知的校验
+
+
+def question_origin(question) -> str:
+    """取问题的出题方；缺省按 taxonomy（老 items.jsonl 没有该字段，行为必须不变）。"""
+    origin = question.get("origin") if isinstance(question, dict) else None
+    return origin if origin in ORIGINS else ORIGIN_TAXONOMY
+
+
+def _option_item_errors(label: str, options) -> list[str]:
+    """选项表自身的形状：key/label 非空、key 不重复。"""
+    errors: list[str] = []
+    seen: list[str] = []
+    for option in options:
+        if not isinstance(option, dict):
+            errors.append(f"{label}: 选项必须是对象")
+            continue
+        okey, text = option.get("key"), option.get("label")
+        if not isinstance(okey, str) or not okey.strip():
+            errors.append(f"{label}: 选项缺非空 key")
+            continue
+        if not isinstance(text, str) or not text.strip():
+            errors.append(f"{label}: 选项 {okey} 缺非空 label")
+        if okey in seen:
+            errors.append(f"{label}: 选项 key 重复 {okey}")
+        seen.append(okey)
+    return errors
+
+
+def _scale_shape_errors(label: str, scale, *, strict_limits: bool) -> list[str]:
+    if not isinstance(scale, dict):
+        return [f"{label}: score 必须有 scale 对象"]
+    errors: list[str] = []
+    low, high = scale.get("min"), scale.get("max")
+    if isinstance(low, bool) or isinstance(high, bool) or \
+            not isinstance(low, int) or not isinstance(high, int):
+        return [f"{label}: scale.min/max 必须是整数"]
+    if high < low:
+        errors.append(f"{label}: scale.max {high} < min {low}")
+    labels = scale.get("labels")
+    if not isinstance(labels, list) or len(labels) != high - low + 1:
+        errors.append(f"{label}: scale.labels 必须覆盖 {low}..{high} 共 {high - low + 1} 档")
+    elif any(not isinstance(x, str) or not x.strip() for x in labels):
+        errors.append(f"{label}: scale.labels 必须都是非空字符串")
+    if strict_limits and (low, high) != (0, 4):
+        errors.append(f"{label}: taxonomy 出题的 score 量程必须是 0..4，收到 {low}..{high}")
+    return errors
+
+
+def question_shape_errors(question, *, strict_limits: bool) -> list[str]:
+    """与 origin 无关的形状校验（kind / prompt / options / scale 的结构）。
+
+    strict_limits=True（taxonomy 出题）套用 README 固定档位；False（source 出题或未知键）只查结构：
+    noul 恰好 2 个非空选项、choice >= 2 且不设上限、score 的 min/max/labels 自洽。都不提前返回。
+    """
+    if not isinstance(question, dict):
+        return ["问题不是 JSON 对象"]
+    raw_key = question.get("key")
+    label = raw_key if isinstance(raw_key, str) and raw_key.strip() else "(缺 key)"
+    errors: list[str] = []
+    kind = question.get("kind")
+    if kind not in taxonomy.KINDS:
+        errors.append(f"{label}: kind={kind!r} 不在 {list(taxonomy.KINDS)}")
+    prompt = question.get("prompt")
+    if not isinstance(prompt, str) or not prompt.strip():
+        errors.append(f"{label}: prompt 必须是非空字符串")
+    if kind == "noul":
+        options = question.get("options")
+        if not isinstance(options, list):
+            errors.append(f"{label}: noul 必须有 options 数组")
+            return errors
+        if len(options) != 2:
+            errors.append(f"{label}: noul 必须恰好 2 个选项，收到 {len(options)}")
+        errors += _option_item_errors(label, options)
+        if strict_limits:
+            names = [o.get("key") for o in options if isinstance(o, dict)]
+            if names != ["yes", "no"]:
+                errors.append(f"{label}: taxonomy 出题的 noul 选项必须恰好是 ['yes', 'no']，收到 {names}")
+    elif kind == "choice":
+        options = question.get("options")
+        if not isinstance(options, list):
+            errors.append(f"{label}: choice 必须有 options 数组")
+            return errors
+        if len(options) < taxonomy.MIN_CHOICE_OPTIONS:
+            errors.append(f"{label}: choice 至少 {taxonomy.MIN_CHOICE_OPTIONS} 个选项，收到 {len(options)}")
+        if strict_limits and len(options) > taxonomy.MAX_CHOICE_OPTIONS:
+            errors.append(f"{label}: taxonomy 出题的 choice 最多 {taxonomy.MAX_CHOICE_OPTIONS} 个选项，"
+                          f"收到 {len(options)}")
+        errors += _option_item_errors(label, options)
+    elif kind == "score":
+        errors += _scale_shape_errors(label, question.get("scale"), strict_limits=strict_limits)
+    return errors
+
+
+def question_errors(question) -> list[str]:
+    """一个 questions[] 条目的完整校验（origin 感知；不因未知键提前返回）。"""
+    if not isinstance(question, dict):
+        return ["问题不是 JSON 对象"]
+    raw_key = question.get("key")
+    origin = question_origin(question)
+    if origin == ORIGIN_SOURCE:
+        errors: list[str] = []
+        if not isinstance(raw_key, str) or not raw_key.strip():
+            errors.append("origin=source 的问题缺非空 key")
+        source_key = question.get("source_key")
+        if not isinstance(source_key, str) or not source_key.strip():
+            errors.append(f"{raw_key or '(缺 key)'}: origin=source 必须带非空 source_key")
+        return errors + question_shape_errors(question, strict_limits=False)
+    try:
+        taxonomy.key_spec(raw_key)
+    except KeyError as exc:
+        return [f"{raw_key!r}: 未知问题键且未标 origin=source（{exc}）"] + \
+            question_shape_errors(question, strict_limits=False)
+    return list(taxonomy.validate_question(question))
+
+
+def _target_against_question(key: str, value, question) -> list[str]:
+    """按条目自带的 options/scale 校验 targets[key]（source 原生键走这条路）。"""
+    if value is None:
+        return []
+    if not isinstance(value, dict):
+        return [f"{key}: target 必须是对象 {{answer?, probs?}}"]
+    kind = question.get("kind")
+    option_keys = [o.get("key") for o in question.get("options") or [] if isinstance(o, dict)]
+    scale = question.get("scale") if isinstance(question.get("scale"), dict) else {}
+    low, high = scale.get("min"), scale.get("max")
+    errors: list[str] = []
+    answer = value.get("answer")
+    if answer is not None:
+        if kind == "noul":
+            if not (isinstance(answer, bool) or answer in option_keys):
+                errors.append(f"{key}: noul 答案必须是 {option_keys} 之一（或布尔），收到 {answer!r}")
+        elif kind == "choice":
+            if not isinstance(answer, str) or answer not in option_keys:
+                errors.append(f"{key}: 答案 {answer!r} 不在该题的 {len(option_keys)} 个选项内")
+        elif kind == "score":
+            level = _as_level(answer)
+            if level is None:
+                errors.append(f"{key}: score 答案必须是整数或整数字符串，收到 {answer!r}")
+            elif isinstance(low, int) and isinstance(high, int) and not low <= level <= high:
+                errors.append(f"{key}: score 答案 {level} 越界 {low}..{high}")
+    errors += _prob_against_question(key, value.get("probs"), kind, option_keys, low, high)
+    return errors
+
+
+def _as_level(answer):
+    """把 score 答案归一成整数：接受 int，也接受原生数据里的整数字符串（如 "4"）。"""
+    if isinstance(answer, bool):
+        return None
+    if isinstance(answer, int):
+        return answer
+    if isinstance(answer, str):
+        text = answer.strip()
+        if text.lstrip("-").isdigit():
+            return int(text)
+    return None
+
+
+def _prob_against_question(key: str, probs, kind, option_keys, low, high) -> list[str]:
+    if probs is None:
+        return []
+    if not isinstance(probs, dict) or not probs:
+        return [f"{key}: probs 必须是非空对象"]
+    errors: list[str] = []
+    total = 0.0
+    for raw, prob in probs.items():
+        if isinstance(prob, bool) or not isinstance(prob, (int, float)):
+            errors.append(f"{key}: probs[{raw!r}] 必须是数字")
+            continue
+        if not 0.0 <= float(prob) <= 1.0:
+            errors.append(f"{key}: probs[{raw!r}]={prob} 越界 [0,1]")
+            continue
+        total += float(prob)
+        text = str(raw)
+        if kind in ("noul", "choice"):
+            if text not in option_keys:
+                errors.append(f"{key}: probs 键 {raw!r} 不在该题的选项内")
+        elif kind == "score":
+            level = _as_level(text)
+            if level is None:
+                errors.append(f"{key}: probs 键 {raw!r} 不是整数分级")
+            elif isinstance(low, int) and isinstance(high, int) and not low <= level <= high:
+                errors.append(f"{key}: probs 键 {level} 越界 {low}..{high}")
+    if not errors and abs(total - 1.0) > 1e-3:
+        errors.append(f"{key}: probs 之和 {total:.6f} 未归一到 1")
+    return errors
+
+
+def target_errors(key: str, value, question) -> list[str]:
+    """校验 targets[key]；question 为该条目里同名的 questions[] 条目（可为 None）。"""
+    if question is None:
+        return [f"没有对应的 questions 条目"]
+    if question_origin(question) == ORIGIN_TAXONOMY:
+        try:
+            taxonomy.key_spec(key)
+        except KeyError:
+            pass
+        else:
+            return list(taxonomy.validate_target(key, value))
+    return _target_against_question(key, value, question)
+
+
+def item_errors(item) -> list[str]:
+    """按 README 2.1 校验一个条目（origin 感知；任何单点错误都不会中断其余校验）。"""
+    if not isinstance(item, dict):
+        return ["条目不是 JSON 对象"]
+    errors: list[str] = []
+    for field_name in ("id", "domain", "lang", "state", "questions", "source", "meta"):
+        if field_name not in item:
+            errors.append(f"缺字段 {field_name}")
+    item_id = item.get("id")
+    if not isinstance(item_id, str) or not item_id.strip():
+        errors.append("id 必须是非空字符串")
+    domain = item.get("domain")
+    if domain not in taxonomy.DOMAINS:
+        errors.append(f"domain={domain!r} 不在 taxonomy 的 6 个覆盖域内")
+    lang = item.get("lang")
+    if not isinstance(lang, str) or not lang.strip():
+        errors.append("lang 必须是非空字符串")
+    state = item.get("state")
+    if not isinstance(state, str) or not state.strip():
+        errors.append("state 必须是非空字符串")
+
+    by_key: dict[str, dict] = {}
+    questions = item.get("questions")
+    if not isinstance(questions, list) or not questions:
+        errors.append("questions 必须是非空数组")
+    else:
+        for index, question in enumerate(questions):
+            errors += [f"questions[{index}]: {e}" for e in question_errors(question)]
+            raw = question.get("key") if isinstance(question, dict) else None
+            if not isinstance(raw, str) or not raw.strip():
+                continue
+            canonical = raw if question_origin(question) == ORIGIN_SOURCE else taxonomy.QUESTION_KEY_ALIASES.get(raw, raw)
+            if canonical in by_key:
+                errors.append(f"questions[{index}]: 问题键重复 {canonical}")
+            by_key[canonical] = question
+
+    targets = item.get("targets")
+    if targets is None:
+        targets = {}
+    if not isinstance(targets, dict):
+        errors.append("targets 必须是对象")
+    else:
+        for raw_key, value in targets.items():
+            question = by_key.get(str(raw_key))
+            if question is None:
+                question = by_key.get(taxonomy.QUESTION_KEY_ALIASES.get(str(raw_key), ""))
+            errors += [f"targets[{raw_key}]: {e}" for e in target_errors(str(raw_key), value, question)]
+
+    source = item.get("source")
+    if not isinstance(source, dict):
+        errors.append("source 必须是对象")
+    else:
+        for field_name in ("dataset", "revision", "config", "split", "row", "license", "url"):
+            if field_name not in source:
+                errors.append(f"source 缺字段 {field_name}")
+    meta = item.get("meta")
+    if not isinstance(meta, dict):
+        errors.append("meta 必须是对象")
+    else:
+        for field_name in ("converter", "converter_version", "created_at"):
+            if field_name not in meta:
+                errors.append(f"meta 缺字段 {field_name}")
+    return errors
 
 
 def _dist(counter: Counter, total: int, limit: int | None = None) -> dict:
@@ -274,8 +604,16 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
     """对已读入的条目做分布统计与配额校验，返回可 JSON 序列化的报告。
 
     domain_min 是"每域下限的例外"（如 {"pol2_axis": 400}）；quota_meta 来自 resolve_quotas，
-    只用于在报告里写明本次配额是哪一套（origin/status/source_file/notes），不参与计算。
+    用于写明本次配额是哪一套（origin/status/source_file/notes）以及哪些维度要强制（enforce）。
     """
+    meta = quota_meta or {}
+    enforce = dict(meta.get("enforce") or {})
+    enforce_total = bool(enforce.get("total", True))
+    enforce_domains = bool(enforce.get("domains", True))
+    enforce_share = bool(enforce.get("source_share", True))
+    require_origin = bool(enforce.get("require_origin", False))
+    profile = meta.get("profile", DEFAULT_PROFILE)
+
     total = len(items)
     per_domain_min = {domain: int((domain_min or {}).get(domain, min_per_domain))
                       for domain in taxonomy.DOMAINS}
@@ -285,6 +623,9 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
     lang_counts: Counter = Counter()
     source_counts: Counter = Counter()
     key_counts: Counter = Counter()
+    source_key_counts: Counter = Counter()
+    kind_by_origin: Counter = Counter()
+    origin_counts: Counter = Counter()
     domain_kind: Counter = Counter()
     domain_lang: Counter = Counter()
     axes_asked: Counter = Counter()
@@ -293,6 +634,9 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
     love_language_counts: Counter = Counter()
 
     question_total = 0
+    taxonomy_question_total = 0
+    source_question_total = 0
+    origin_missing = 0
     duplicates: list[str] = []
     seen_ids: set[str] = set()
     unknown_domains: Counter = Counter()
@@ -321,30 +665,41 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
                 duplicates.append(item_id)
             seen_ids.add(item_id)
 
+        origin_map: dict[str, str] = {}
         for question in item.get("questions") or []:
             if not isinstance(question, dict):
                 continue
             key = question.get("key")
-            if not isinstance(key, str) or not key:
+            if not isinstance(key, str) or not key.strip():
                 continue
-            key_counts[key] += 1
+            origin = question_origin(question)
+            if question.get("origin") not in ORIGINS:
+                origin_missing += 1
             question_total += 1
+            origin_counts[origin] += 1
             kind = str(question.get("kind"))
             kind_counts[kind] += 1
+            kind_by_origin[f"{origin}|{kind}"] += 1
             if domain in taxonomy.DOMAINS:
                 domain_kind[f"{domain}|{kind}"] += 1
                 domain_lang[f"{domain}|{lang}"] += 1
-            try:
-                canonical = taxonomy.resolve_key(key)
-            except KeyError:
-                continue
-            if canonical in taxonomy.POL2_AXIS_KEYS:
-                axes_asked[canonical[len("issue_"):]] += 1
+            if origin == ORIGIN_SOURCE:
+                source_question_total += 1
+                source_key_counts[key] += 1
+                origin_map[key] = origin
+            else:
+                taxonomy_question_total += 1
+                key_counts[key] += 1
+                canonical = taxonomy.QUESTION_KEY_ALIASES.get(key, key)
+                origin_map[canonical] = origin
+                if canonical in taxonomy.POL2_AXIS_KEYS:
+                    axes_asked[canonical[len("issue_"):]] += 1
 
         for raw_key, value in (item.get("targets") or {}).items():
-            try:
-                canonical = taxonomy.resolve_key(str(raw_key))
-            except KeyError:
+            raw_text = str(raw_key)
+            canonical = (raw_text if origin_map.get(raw_text) == ORIGIN_SOURCE
+                         else taxonomy.QUESTION_KEY_ALIASES.get(raw_text, raw_text))
+            if origin_map.get(canonical) != ORIGIN_TAXONOMY:
                 continue
             if canonical in taxonomy.POL2_AXIS_KEYS and isinstance(value, dict) and value:
                 axes_answered[canonical[len("issue_"):]] += 1
@@ -353,7 +708,7 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
             if canonical == "love_language" and isinstance(value, dict):
                 love_language_counts[str(value.get("answer"))] += 1
 
-        errors = taxonomy.item_errors(item)
+        errors = item_errors(item)
         if errors:
             issue_total += len(errors)
             for message in errors:
@@ -364,23 +719,43 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
     checks: list[dict] = []
     violations: list[str] = []
     gaps: dict = {"total_shortfall": 0, "domains": {}, "sources_over_share": {}}
+    skipped = f"未启用（profile={profile}；需命令行显式给出阈值）"
+    skipped_origin = f"未启用（profile={profile} 不要求）"
 
-    checks.append({"id": "total", "ok": total >= min_total,
-                   "actual": total, "required": f">= {min_total}",
+    if total == 0:
+        violations.append("条目数为 0：任何产物都必须非空")
+    checks.append({"id": "non_empty", "enforced": True, "ok": total > 0,
+                   "actual": total, "required": ">= 1", "detail": "非空"})
+
+    checks.append({"id": "total", "enforced": enforce_total,
+                   "ok": (not enforce_total) or total >= min_total,
+                   "actual": total,
+                   "required": f">= {min_total}" if enforce_total else skipped,
                    "detail": "总量"})
-    if total < min_total:
+    if enforce_total and total < min_total:
         gaps["total_shortfall"] = min_total - total
         violations.append(f"总量 {total} < 下限 {min_total}（缺 {min_total - total}）")
 
     for domain in taxonomy.DOMAINS:
         count = domain_counts.get(domain, 0)
         required = per_domain_min[domain]
-        checks.append({"id": f"domain:{domain}", "ok": count >= required,
-                       "actual": count, "required": f">= {required}",
+        checks.append({"id": f"domain:{domain}", "enforced": enforce_domains,
+                       "ok": (not enforce_domains) or count >= required,
+                       "actual": count,
+                       "required": f">= {required}" if enforce_domains else skipped,
                        "detail": f"覆盖域 {domain}"})
-        if count < required:
+        if enforce_domains and count < required:
             gaps["domains"][domain] = required - count
             violations.append(f"覆盖域 {domain} 只有 {count} 条 < 下限 {required}（缺 {required - count}）")
+
+    checks.append({"id": "origin_declared", "enforced": require_origin,
+                   "ok": (not require_origin) or origin_missing == 0,
+                   "actual": origin_missing,
+                   "required": f"= 0（合法值 {list(ORIGINS)}）" if require_origin else skipped_origin,
+                   "detail": "每道题显式声明 origin"})
+    if require_origin and origin_missing:
+        violations.append(f"档位要求每道题显式声明 origin：{origin_missing} 道题缺失或取值非法"
+                          f"（合法值 {list(ORIGINS)}）")
 
     if unknown_domains:
         violations.append("存在未知覆盖域：" + "、".join(
@@ -397,12 +772,14 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
     else:
         top_source, top_count = "", 0
     top_share = (top_count / total) if total else 0.0
-    checks.append({"id": "max_source_share", "ok": top_share <= max_source_share + 1e-9,
-                   "actual": round(top_share, 6), "required": f"<= {max_source_share}",
+    checks.append({"id": "max_source_share", "enforced": enforce_share,
+                   "ok": (not enforce_share) or top_share <= max_source_share + 1e-9,
+                   "actual": round(top_share, 6),
+                   "required": f"<= {max_source_share}" if enforce_share else skipped,
                    "detail": f"最大单一来源 {top_source or '(none)'}"})
     over = {name: round(count / total, 6) for name, count in source_counts.items()
             if total and count / total > max_source_share + 1e-9}
-    if over:
+    if enforce_share and over:
         gaps["sources_over_share"] = over
         for name, share in sorted(over.items(), key=lambda kv: -kv[1]):
             violations.append(f"单一来源 {name} 占 {share:.1%}，超过上限 {max_source_share:.0%}"
@@ -411,10 +788,13 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
     axes_missing = [axis for axis in (key[len("issue_"):] for key in taxonomy.POL2_AXIS_KEYS)
                     if not axes_asked.get(axis)]
     warnings: list[str] = []
-    if total and axes_missing:
+    if taxonomy_question_total and axes_missing:
         warnings.append(f"PoL2 判定轴有 {len(axes_missing)} 条没有任何条目提问："
                         + "、".join(axes_missing)
                         + "（pol2_axis 条目应按涉及范围带上对应 issue_* 键）")
+    if source_question_total:
+        warnings.append(f"origin=source 的原生问题键 {len(source_key_counts)} 个 / "
+                        f"{source_question_total} 次：不在 taxonomy 词表内属正常，不计入 taxonomy 覆盖率")
     if issue_total:
         warnings.append(f"schema 警告共 {issue_total} 条（{len(issue_counts)} 类），"
                         "加 --strict 可让它失败")
@@ -425,12 +805,22 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
         "items": total,
         "questions": question_total,
         "taxonomy": taxonomy.summary(),
+        "profile": profile,
+        "origin": {
+            "questions": dict(origin_counts.most_common()),
+            "missing_or_invalid": origin_missing,
+            "source_questions": source_question_total,
+            "taxonomy_questions": taxonomy_question_total,
+            "source_keys_distinct": len(source_key_counts),
+        },
         "distributions": {
             "domain": _dist(domain_counts, total),
             "kind": _dist(kind_counts, question_total),
             "lang": _dist(lang_counts, total),
             "source.dataset": _dist(source_counts, total),
-            "question_key": _dist(key_counts, question_total),
+            "question_key": _dist(key_counts, taxonomy_question_total),
+            "question_key_source": _dist(source_key_counts, source_question_total),
+            "kind_by_origin": dict(sorted(kind_by_origin.items(), key=lambda kv: (-kv[1], kv[0]))),
             "domain_x_kind": dict(sorted(domain_kind.items(), key=lambda kv: (-kv[1], kv[0]))),
             "domain_x_lang": dict(sorted(domain_lang.items(), key=lambda kv: (-kv[1], kv[0]))),
         },
@@ -444,14 +834,21 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
             "love_language_answers": dict(love_language_counts.most_common()),
         },
         "quotas": {
+            "profile": profile,
             "min_total": min_total,
             "min_per_domain": min_per_domain,
             "per_domain": per_domain_min,
             "max_source_share": max_source_share,
-            "origin": dict((quota_meta or {}).get("origin") or {}),
-            "status": (quota_meta or {}).get("status", "explicit"),
-            "source_file": (quota_meta or {}).get("source_file"),
-            "notes": list((quota_meta or {}).get("notes") or []),
+            "origin": dict(meta.get("origin") or {}),
+            "status": meta.get("status", "explicit"),
+            "source_file": meta.get("source_file"),
+            "notes": list(meta.get("notes") or []),
+            "enforce": {
+                "total": enforce_total,
+                "domains": enforce_domains,
+                "source_share": enforce_share,
+                "require_origin": require_origin,
+            },
             "source_shares": _share(source_counts, total),
             "checks": checks,
             "violations": violations,
@@ -474,9 +871,13 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
 def format_report(report: dict, *, top: int = 40) -> str:
     """人类可读的文本报告。"""
     lines: list[str] = []
-    lines.append(f"decision-base 覆盖报告  schema={report['schema']}")
-    lines.append(f"items: {report['items']}  问题数: {report['questions']}  "
-                 f"file: {report['items_file']}")
+    profile = report.get("profile") or report["quotas"].get("profile", DEFAULT_PROFILE)
+    lines.append(f"decision-base 覆盖报告  schema={report['schema']}  profile={profile}")
+    origin_info = report.get("origin") or {}
+    lines.append(f"items: {report['items']}  问题数: {report['questions']}"
+                 f"（source {origin_info.get('source_questions', 0)} / "
+                 f"taxonomy {origin_info.get('taxonomy_questions', 0)}）"
+                 f"  file: {report['items_file']}")
     summary = report["taxonomy"]
     kinds = " / ".join(f"{kind} {count}" for kind, count in summary["key_kinds"].items())
     lines.append(f"taxonomy: {summary['schema']}  {len(summary['domains'])} 域 / "
@@ -490,18 +891,35 @@ def format_report(report: dict, *, top: int = 40) -> str:
         rows = list(dist.items())
         shown = rows if limit is None else rows[:limit]
         for name, row in shown:
-            lines.append(f"  {name:<34} {row['count']:>7}  {row['share']:>7.2%}")
+            display = str(name).replace("\r", "").replace("\n", "\\n")
+            if len(display) > 48:
+                display = display[:45] + "…"
+            lines.append(f"  {display:<34} {row['count']:>7}  {row['share']:>7.2%}")
         if limit is not None and len(rows) > limit:
             lines.append(f"  ... 其余 {len(rows) - limit} 项见 --json-out")
         lines.append("")
 
     distributions = report["distributions"]
-    section("domain", distributions["domain"], f"每域下限 {report['quotas']['min_per_domain']}")
+    enforce = report["quotas"].get("enforce") or {}
+    domain_note = (f"每域下限 {report['quotas']['min_per_domain']}"
+                   if enforce.get("domains", True) else
+                   f"每域下限未启用（profile={profile}）")
+    share_note = (f"单一来源上限 {report['quotas']['max_source_share']:.0%}"
+                  if enforce.get("source_share", True) else
+                  f"单一来源上限未启用（profile={profile}）")
+    section("domain", distributions["domain"], domain_note)
+    origin_counts = origin_info.get("questions") or {}
+    total_questions = report["questions"] or 1
+    section("出题方 origin", {name: {"count": count, "share": round(count / total_questions, 6)}
+                               for name, count in origin_counts.items()},
+            f"缺失或非法 origin {origin_info.get('missing_or_invalid', 0)} 道")
     section("原语 kind", distributions["kind"], "占全部问题数的比例")
     section("lang", distributions["lang"])
-    section("source.dataset", distributions["source.dataset"],
-            f"单一来源上限 {report['quotas']['max_source_share']:.0%}")
-    section("问题键 question_key", distributions["question_key"], limit=top)
+    section("source.dataset", distributions["source.dataset"], share_note)
+    section("问题键 question_key（taxonomy 出题）", distributions["question_key"], limit=top)
+    source_keys = distributions.get("question_key_source") or {}
+    if source_keys:
+        section(f"问题键 source 原生（共 {len(source_keys)} 个）", source_keys, limit=top)
 
     axis = report["pol2_axis"]
     covered = sum(1 for count in axis["axes_asked"].values() if count)
@@ -523,7 +941,10 @@ def format_report(report: dict, *, top: int = 40) -> str:
     for note in quotas.get("notes") or []:
         lines.append(f"  注：{note}")
     for check in report["quotas"]["checks"]:
-        mark = "OK" if check["ok"] else "NG"
+        if not check.get("enforced", True):
+            mark = "--"
+        else:
+            mark = "OK" if check["ok"] else "NG"
         lines.append(f"  [{mark}] {check['detail']}: {check['actual']} （要求 {check['required']}）")
     lines.append("")
     if report["quotas"]["violations"]:
@@ -535,8 +956,12 @@ def format_report(report: dict, *, top: int = 40) -> str:
             lines.append(f"  总量缺口：{gaps['total_shortfall']}")
         for domain, shortfall in gaps["domains"].items():
             lines.append(f"  {domain} 缺口：{shortfall}")
-    else:
+    elif enforce.get("total", True) and enforce.get("domains", True) \
+            and enforce.get("source_share", True):
         lines.append("[通过] 总量、每域下限、单一来源占比均达标")
+    else:
+        lines.append(f"[通过] profile={profile}：只判定启用的检查"
+                     "（非空 / domain 合法 / id 唯一 / origin 显式），未启用的全量阈值不参与）")
     lines.append("")
     issues = report["schema_issues"]
     if issues["total"]:
@@ -568,6 +993,9 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="decision-base 覆盖报告与配额校验")
     parser.add_argument("--items", type=Path, default=DEFAULT_ITEMS,
                         help=f"items.jsonl 路径（默认 {DEFAULT_ITEMS}）")
+    parser.add_argument("--profile", choices=sorted(PROFILES), default=DEFAULT_PROFILE,
+                        help="产物档位：full=全量配额（默认）；subset=子集只校验自身一致性"
+                             "（非空/域合法/id 唯一/origin 显式），全量阈值需命令行显式给出")
     parser.add_argument("--sources", type=Path, default=SOURCES_PATH,
                         help=f"配额来源 sources.json（默认 {SOURCES_PATH}）")
     parser.add_argument("--no-sources", action="store_true",
@@ -611,7 +1039,7 @@ def main(argv=None) -> int:
 
     resolved = resolve_quotas(sources_path=args.sources, use_sources=not args.no_sources,
                               min_total=args.min_total, min_per_domain=args.min_per_domain,
-                              max_source_share=args.max_source_share,
+                              max_source_share=args.max_source_share, profile=args.profile,
                               domain_min=(domain_min if domain_min or args.domain_min else None))
     report = build_report(items, items_file=args.items, min_total=resolved["min_total"],
                           min_per_domain=resolved["min_per_domain"],

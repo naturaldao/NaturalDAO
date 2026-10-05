@@ -97,8 +97,8 @@ class QuotaPassTest(unittest.TestCase):
         report = cov.build_report(self.items, items_file=self.path, min_total=12,
                                   min_per_domain=2, max_source_share=0.5)
         text = cov.format_report(report)
-        for token in ("[domain]", "[原语 kind]", "[lang]", "[source.dataset]",
-                      "[问题键 question_key]", "[pol2_axis]", "[配额校验]", "[通过]"):
+        for token in ("[domain]", "[出题方 origin]", "[原语 kind]", "[lang]", "[source.dataset]",
+                      "[问题键 question_key（taxonomy 出题）]", "[pol2_axis]", "[配额校验]", "[通过]"):
             self.assertIn(token, text)
 
 
@@ -114,7 +114,9 @@ class QuotaFailTest(unittest.TestCase):
         self.assertEqual(report["gaps"]["total_shortfall"], 4)
         self.assertIn("human_judgment", report["gaps"]["domains"])
         self.assertEqual(report["gaps"]["sources_over_share"]["src-big"], 1.0)
-        self.assertEqual(report["quotas"]["checks"][0]["id"], "total")
+        by_id = {check["id"]: check for check in report["quotas"]["checks"]}
+        self.assertFalse(by_id["total"]["ok"])
+        self.assertEqual(by_id["total"]["actual"], 6)
 
     def test_cli_exit_code_one_on_fail(self):
         path = fixture([make_item(i, "risk_harm", dataset="src-big") for i in range(6)])
@@ -383,6 +385,242 @@ class QuotaSourceTest(unittest.TestCase):
         self.assertIn("file=x/sources.json", text)
         self.assertIn("示例说明", text)
         self.assertIn("min_total=sources.json", text)
+
+
+def source_question(key, kind, options=None, scale=None, prompt="native question"):
+    """构造一条 origin=source 的原生问题（key 即来源原生名）。"""
+    question = {"key": key, "kind": kind, "prompt": prompt, "origin": "source", "source_key": key}
+    if options is not None:
+        question["options"] = options
+    if scale is not None:
+        question["scale"] = scale
+    return question
+
+
+def noul_options(*keys):
+    return [{"key": key, "label": key} for key in keys]
+
+
+def score_scale(minimum, maximum):
+    return {"min": minimum, "max": maximum, "labels": [str(i) for i in range(minimum, maximum + 1)]}
+
+
+def make_source_item(index, domain="decision_mechanics", dataset="src-native",
+                     questions=None, targets=None):
+    """一条 origin=source 的合法条目（默认问题集是原生 choice）。"""
+    item = make_item(index, domain, dataset=dataset)
+    item["questions"] = questions if questions is not None else [
+        source_question("category", "choice",
+                        options=[{"key": "a", "label": "A"}, {"key": "b", "label": "B"}])]
+    item["targets"] = targets if targets is not None else {"category": {"answer": "a"}}
+    return item
+
+
+class OriginAwareTest(unittest.TestCase):
+    """origin=source 的原生问题：不查 taxonomy 词表，改用条目自带的 options/scale。"""
+
+    def test_origin_defaults_to_taxonomy(self):
+        legacy = {"key": "contains_harm", "kind": "noul", "prompt": "p",
+                  "options": noul_options("yes", "no")}
+        self.assertEqual(cov.question_origin(legacy), "taxonomy")
+        self.assertEqual(cov.question_errors(legacy), [])
+        self.assertEqual(cov.question_origin(dict(legacy, origin="source")), "source")
+        self.assertEqual(cov.question_origin({"origin": "banana"}), "taxonomy")
+
+    def test_source_native_keys_are_not_unknown(self):
+        questions = [source_question("bug_severity", "score", scale=score_scale(0, 5)),
+                     source_question("refund_requested", "noul", options=noul_options("false", "true"))]
+        item = make_source_item(0, questions=questions,
+                                targets={"bug_severity": {"answer": "4"},
+                                         "refund_requested": {"answer": "false"}})
+        self.assertEqual(cov.item_errors(item), [])
+        report = cov.build_report([item], min_total=1, min_per_domain=0, max_source_share=1.0)
+        self.assertEqual(report["schema_issues"]["total"], 0)
+        self.assertNotIn("未知问题键", " | ".join(report["schema_issues"]["counts"]))
+        self.assertEqual(report["origin"]["questions"], {"source": 2})
+        self.assertEqual(report["distributions"]["question_key"], {})
+        self.assertEqual(set(report["distributions"]["question_key_source"]),
+                         {"bug_severity", "refund_requested"})
+
+    def test_source_noul_accepts_false_true_and_no_yes(self):
+        for order in (("false", "true"), ("no", "yes"), ("true", "false")):
+            question = source_question("is_relevant", "noul", options=noul_options(*order))
+            self.assertEqual(cov.question_errors(question), [], order)
+            item = make_source_item(1, questions=[question],
+                                    targets={"is_relevant": {"answer": order[0]}})
+            self.assertEqual(cov.item_errors(item), [], order)
+
+    def test_source_noul_must_still_have_exactly_two_options(self):
+        question = source_question("is_relevant", "noul", options=noul_options("a", "b", "c"))
+        errors = cov.question_errors(question)
+        self.assertTrue(any("恰好 2 个选项" in error for error in errors), errors)
+
+    def test_taxonomy_noul_still_requires_yes_no(self):
+        question = {"key": "contains_harm", "kind": "noul", "prompt": "p",
+                    "options": noul_options("false", "true")}
+        errors = cov.question_errors(question)
+        self.assertTrue(any("['yes', 'no']" in error for error in errors), errors)
+
+    def test_source_choice_may_exceed_16_options(self):
+        options = [{"key": f"o{i}", "label": f"O{i}"} for i in range(57)]
+        question = source_question("pick_one", "choice", options=options)
+        self.assertEqual(cov.question_errors(question), [])
+        item = make_source_item(2, questions=[question], targets={"pick_one": {"answer": "o56"}})
+        self.assertEqual(cov.item_errors(item), [])
+        report = cov.build_report([item], min_total=1, min_per_domain=0, max_source_share=1.0)
+        self.assertEqual(report["schema_issues"]["total"], 0)
+
+    def test_source_choice_needs_at_least_two_options(self):
+        question = source_question("pick_one", "choice", options=[{"key": "only", "label": "Only"}])
+        self.assertTrue(any("至少 2 个选项" in error for error in cov.question_errors(question)))
+
+    def test_taxonomy_choice_still_capped_at_16(self):
+        options = [{"key": f"o{i}", "label": f"O{i}"} for i in range(17)]
+        question = {"key": "action_selection", "kind": "choice", "prompt": "p", "options": options}
+        self.assertTrue(any("越界 [2,16]" in error for error in cov.question_errors(question)))
+
+    def test_source_score_uses_its_own_scale(self):
+        for maximum in (1, 4, 5, 9):
+            question = source_question("severity", "score", scale=score_scale(0, maximum))
+            self.assertEqual(cov.question_errors(question), [], maximum)
+            item = make_source_item(3, questions=[question],
+                                    targets={"severity": {"answer": str(maximum)}})
+            self.assertEqual(cov.item_errors(item), [], maximum)
+        question = source_question("severity", "score", scale=score_scale(0, 9))
+        out_of_range = make_source_item(4, questions=[question],
+                                        targets={"severity": {"answer": "10"}})
+        self.assertTrue(any("越界 0..9" in error for error in cov.item_errors(out_of_range)))
+
+    def test_source_score_labels_must_match_range(self):
+        question = source_question("severity", "score",
+                                   scale={"min": 0, "max": 4, "labels": ["a", "b", "c"]})
+        self.assertTrue(any("scale.labels" in error for error in cov.question_errors(question)))
+
+    def test_taxonomy_score_still_must_be_0_to_4(self):
+        question = {"key": "harm_severity", "kind": "score", "prompt": "p",
+                    "scale": score_scale(0, 9)}
+        self.assertTrue(any("0..4" in error for error in cov.question_errors(question)))
+
+    def test_source_target_answer_must_be_in_its_own_options(self):
+        question = source_question("category", "choice",
+                                   options=[{"key": "a", "label": "A"}, {"key": "b", "label": "B"}])
+        item = make_source_item(5, questions=[question], targets={"category": {"answer": "zzz"}})
+        self.assertTrue(any("不在该题的 2 个选项内" in error for error in cov.item_errors(item)))
+
+    def test_source_probs_are_checked_against_own_options(self):
+        question = source_question("category", "choice",
+                                   options=[{"key": "a", "label": "A"}, {"key": "b", "label": "B"}])
+        item = make_source_item(6, questions=[question],
+                                targets={"category": {"probs": {"a": 0.6, "b": 0.4}}})
+        self.assertEqual(cov.item_errors(item), [])
+        bad = make_source_item(7, questions=[question],
+                               targets={"category": {"probs": {"a": 0.6, "zzz": 0.4}}})
+        self.assertTrue(any("不在该题的选项内" in error for error in cov.item_errors(bad)))
+
+    def test_source_question_requires_source_key(self):
+        question = source_question("category", "choice",
+                                   options=[{"key": "a", "label": "A"}, {"key": "b", "label": "B"}])
+        del question["source_key"]
+        self.assertTrue(any("source_key" in error for error in cov.question_errors(question)))
+
+    def test_source_key_equal_to_taxonomy_name_is_not_taxonomy_coverage(self):
+        question = source_question("contains_harm", "noul", options=noul_options("yes", "no"))
+        item = make_source_item(8, questions=[question],
+                                targets={"contains_harm": {"answer": "yes"}})
+        report = cov.build_report([item], min_total=1, min_per_domain=0, max_source_share=1.0)
+        self.assertEqual(report["schema_issues"]["total"], 0)
+        self.assertEqual(report["distributions"]["question_key"], {})
+        self.assertIn("contains_harm", report["distributions"]["question_key_source"])
+        self.assertEqual(report["pol2_axis"]["axes_asked"]["violence_worship"], 0)
+
+    def test_item_errors_does_not_early_return(self):
+        """未知键 + 形状错误必须一次报全，而不是被未知键挡住。"""
+        broken = make_source_item(9)
+        broken["questions"] = [{"key": "totally_unknown_native", "kind": "bogus", "prompt": "  "}]
+        broken["targets"] = {"totally_unknown_native": {"answer": "x"},
+                             "ghost_target": {"answer": "x"}}
+        errors = cov.item_errors(broken)
+        joined = " | ".join(errors)
+        self.assertIn("未知问题键", joined)
+        self.assertIn("kind=", joined)
+        self.assertIn("prompt 必须是非空字符串", joined)
+        self.assertIn("ghost_target", joined)
+        self.assertIn("没有对应的 questions 条目", joined)
+
+    def test_legacy_items_without_origin_stay_taxonomy(self):
+        item = make_item(10, "risk_harm")
+        report = cov.build_report([item], min_total=1, min_per_domain=0, max_source_share=1.0)
+        self.assertEqual(report["schema_issues"]["total"], 0)
+        self.assertEqual(report["origin"]["questions"], {"taxonomy": len(item["questions"])})
+        self.assertEqual(report["origin"]["missing_or_invalid"], len(item["questions"]))
+        self.assertEqual(len(report["distributions"]["question_key"]), len(item["questions"]))
+
+
+class ProfileTest(unittest.TestCase):
+    """--profile subset：子集只校验自己该负责的维度。"""
+
+    def subset_items(self):
+        return [make_source_item(i, domain="decision_mechanics" if i % 2 else "knowledge_reasoning")
+                for i in range(20)]
+
+    def test_subset_passes_what_full_rejects(self):
+        path = fixture(self.subset_items())
+        out = Path(tempfile.mkdtemp(prefix="db-coverage-out-")) / "report.json"
+        code = cov.main(["--items", str(path), "--profile", "subset",
+                         "--json-out", str(out), "--quiet"])
+        self.assertEqual(code, 0)
+        report = json.loads(out.read_text(encoding="utf-8"))
+        self.assertEqual(report["profile"], "subset")
+        self.assertTrue(report["ok"])
+        self.assertFalse(report["quotas"]["enforce"]["total"])
+        self.assertFalse(report["quotas"]["enforce"]["domains"])
+        self.assertFalse(report["quotas"]["enforce"]["source_share"])
+        self.assertTrue(report["quotas"]["enforce"]["require_origin"])
+        # 同一份数据走全量档位必然不达标（20 条、单一来源 100%、只覆盖 2 个域）
+        self.assertEqual(cov.main(["--items", str(path), "--quiet"]), 1)
+
+    def test_subset_still_checks_non_empty_domain_and_id(self):
+        empty = fixture([])
+        self.assertEqual(cov.main(["--items", str(empty), "--profile", "subset", "--quiet"]), 1)
+        items = self.subset_items()[:2]
+        items[1]["domain"] = "made_up_domain"
+        items[1]["id"] = items[0]["id"]
+        self.assertEqual(cov.main(["--items", str(fixture(items)), "--profile", "subset",
+                                   "--quiet"]), 1)
+
+    def test_subset_requires_explicit_origin(self):
+        item = make_item(0, "decision_mechanics")
+        report = cov.build_report([item], min_total=0, min_per_domain=0, max_source_share=1.0,
+                                  quota_meta={"profile": "subset",
+                                              "enforce": {"require_origin": True,
+                                                          "total": False, "domains": False,
+                                                          "source_share": False}})
+        self.assertFalse(report["ok"])
+        self.assertIn("显式声明 origin", " ".join(report["quotas"]["violations"]))
+        self.assertEqual(cov.main(["--items", str(fixture([item])), "--profile", "subset",
+                                   "--quiet"]), 1)
+
+    def test_subset_enforces_cli_thresholds_only(self):
+        path = fixture(self.subset_items())
+        self.assertEqual(cov.main(["--items", str(path), "--profile", "subset", "--quiet"]), 0)
+        self.assertEqual(cov.main(["--items", str(path), "--profile", "subset",
+                                   "--min-total", "100", "--quiet"]), 1)
+
+    def test_subset_ignores_sources_json_quotas(self):
+        sources = write_sources({"quotas": {"min_total": 999999, "min_per_domain": 88888,
+                                            "max_source_share": 0.01}})
+        path = fixture(self.subset_items())
+        self.assertEqual(cov.main(["--items", str(path), "--profile", "subset",
+                                   "--sources", str(sources), "--quiet"]), 0)
+
+    def test_resolve_quotas_reports_profile_and_enforcement(self):
+        resolved = cov.resolve_quotas(profile="subset", use_sources=False)
+        self.assertEqual(resolved["profile"], "subset")
+        self.assertEqual(resolved["enforce"]["total"], False)
+        resolved = cov.resolve_quotas(profile="subset", use_sources=False, min_total=10)
+        self.assertEqual(resolved["enforce"]["total"], True)
+        with self.assertRaises(ValueError):
+            cov.resolve_quotas(profile="nope")
 
 
 if __name__ == "__main__":

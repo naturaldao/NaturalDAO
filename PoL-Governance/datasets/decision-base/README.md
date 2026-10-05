@@ -45,10 +45,17 @@
 明文同名去 `.gz`，体积大故不入库）。
 `items.jsonl` 与 `items.bilingual.jsonl` 是按模板命题的早期版本，留作对照，不再是训练首选。
 
-`questions[].kind` 取值：
-- `noul`：`options` 固定为 `[{"key":"yes"…},{"key":"no"…}]`。
-- `choice`：`options` 为 2–16 个 `{key,label}`，key 稳定、label 可读。
-- `score`：`scale` 为 `{min,max,labels}`，整数分级。
+`questions[].kind` 取值：`noul`（是/否）、`choice`（多选一）、`score`（分级）。
+
+**下面的形状约束只在 `origin=taxonomy` 时强制**；`origin=source` 一律以条目自带的 `options`／`scale` 为准——
+原生数据是什么形状就用什么形状，**不得为了迁就我们的规范去改题**（砍选项就是改题目）。
+
+| 约束 | `origin=taxonomy`（我们出题） | `origin=source`（数据自带） |
+|---|---|---|
+| `noul` 选项 | 固定 `[{"key":"yes"},{"key":"no"}]` | 恰好 2 个非空选项，`false/true`、`no/yes` 均可，顺序任意 |
+| `choice` 选项数 | 2–16 | ≥2，**不设上限**（实测最多 57 个） |
+| `score` 量程 | `{min:0,max:4,labels:…}` | 用自带 `scale` 自洽即可（实测最多 0–9 十档） |
+| 答案与概率 | 按 taxonomy 规范选项校验 | 按**该题自带**的 options/scale 校验 |
 
 ### 2.2 答案 `answers.<source>.jsonl`
 
