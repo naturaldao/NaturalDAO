@@ -1,0 +1,166 @@
+{
+ "created_at": "2026-10-05T18:45:00+08:00",
+ "converter": "build_supp.py",
+ "converter_version": "0.1",
+ "pool_key_distributions": {
+  "contains_harm": {
+   "kind": "noul",
+   "domain": "risk_harm",
+   "distribution": {
+    "no": 694,
+    "yes": 388
+   },
+   "both_classes_or_levels": true,
+   "eligible": true
+  },
+  "emotion_primary": {
+   "kind": "choice",
+   "domain": "human_judgment",
+   "distribution": {
+    "anger": 527,
+    "disgust": 404,
+    "joy": 591,
+    "neutral": 704,
+    "other": 386,
+    "sadness": 486,
+    "surprise": 497
+   },
+   "both_classes_or_levels": true,
+   "eligible": false
+  },
+  "escalation_needed": {
+   "kind": "noul",
+   "domain": "risk_harm",
+   "distribution": {
+    "no": 846,
+    "yes": 280
+   },
+   "both_classes_or_levels": true,
+   "eligible": true
+  },
+  "recommended_action": {
+   "kind": "choice",
+   "domain": "risk_harm",
+   "distribution": {
+    "allow": 600,
+    "block": 280,
+    "review": 120
+   },
+   "both_classes_or_levels": true,
+   "eligible": false
+  },
+  "refusal_appropriate": {
+   "kind": "noul",
+   "domain": "risk_harm",
+   "distribution": {
+    "yes": 17966
+   },
+   "both_classes_or_levels": false,
+   "eligible": false
+  },
+  "sentiment_polarity": {
+   "kind": "choice",
+   "domain": "human_judgment",
+   "distribution": {
+    "negative": 4918,
+    "positive": 5184
+   },
+   "both_classes_or_levels": true,
+   "eligible": false
+  },
+  "toxicity_present": {
+   "kind": "noul",
+   "domain": "human_judgment",
+   "distribution": {
+    "no": 2500,
+    "yes": 2500
+   },
+   "both_classes_or_levels": true,
+   "eligible": true
+  }
+ },
+ "pool": "D:\\pol2-raw\\zh-items\\items.zh.jsonl",
+ "pool_items": 42436,
+ "cap_ratio": 0.4,
+ "zh_native_side": 7872,
+ "cap": 3148,
+ "available": {
+  "toxicity_present": {
+   "no": 2500,
+   "yes": 2500
+  },
+  "contains_harm": {
+   "no": 694,
+   "yes": 388
+  },
+  "escalation_needed": {
+   "no": 846,
+   "yes": 280
+  },
+  "harm_severity": {
+   "1": 846,
+   "2": 240,
+   "3": 280,
+   "4": 151
+  }
+ },
+ "selected_total": 3148,
+ "selected_by_key": {
+  "contains_harm": 544,
+  "escalation_needed": 544,
+  "harm_severity": 1517,
+  "toxicity_present": 543
+ },
+ "selected_by_answer": {
+  "contains_harm": {
+   "yes": 272,
+   "no": 272
+  },
+  "escalation_needed": {
+   "no": 272,
+   "yes": 272
+  },
+  "harm_severity": {
+   "1": 846,
+   "2": 240,
+   "3": 280,
+   "4": 151
+  },
+  "toxicity_present": {
+   "yes": 271,
+   "no": 272
+  }
+ },
+ "selected_by_source": {
+  "vanila434/multilingual-elder-safety-msgs": 72,
+  "chenhaodev/med-guard-safety-synth": 472,
+  "BEncoderRT/User_Intent_Risk_Triage": 2061,
+  "textdetox/multilingual_toxicity_dataset": 543
+ },
+ "selected_by_domain": {
+  "risk_harm": 2605,
+  "human_judgment": 543
+ },
+ "quotas": {
+  "contains_harm": 544,
+  "escalation_needed": 544,
+  "toxicity_present": 543
+ },
+ "score_taken": 1517,
+ "noul_budget": 1631,
+ "excluded_single_class": {
+  "refusal_appropriate": {}
+ },
+ "item_errors": 0,
+ "item_errors_examples": [],
+ "rules": {
+  "origin": "taxonomy",
+  "tier": "derived",
+  "origin_placement": "questions[].origin 显式写 taxonomy（CONTRACT.md §2.1 的契约位置）；条目顶层 origin 与 meta.origin 同时保留，不依赖缺省值",
+  "train_only": true,
+  "benchmark_eligible": false,
+  "id_prefix": "db-zhtax-",
+  "selection": "score 全取；noul 额度=cap-score，按键均分，再按类均分，类内 sha256(seed+源条目 id) 升序取",
+  "cap_interpretation": "补充集 ≤ 中文原生侧 7,872 的 40% = 3,148（不含补充集自身）"
+ }
+}

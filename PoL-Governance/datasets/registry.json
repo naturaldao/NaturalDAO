@@ -9,5 +9,18 @@
     "families": 10,
     "license": "CC0-1.0",
     "eligible_for_ranking": false
+  },
+  {
+    "id": "pol2-replay-pool-v0.1",
+    "card": "datasets/pol2/replay/replay_pool.md",
+    "data": "datasets/pol2/replay/candidates.json",
+    "status": "external_sources_audited_not_downloaded",
+    "split": "replay_pool_train_mix_only",
+    "admitted_sources": 15,
+    "observed_sources": 16,
+    "excluded_sources": 37,
+    "license": "per source, see candidates.json",
+    "notes": "只有 PoL 专项的 train 分区可与本池混合，起点 通用:PoL = 9:1 或 8:2；英文样本必须改写为中文并重新判断，不得照搬英文标签。",
+    "eligible_for_ranking": false
   }
 ]

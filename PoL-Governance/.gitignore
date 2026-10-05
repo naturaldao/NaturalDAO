@@ -6,6 +6,16 @@ __pycache__/
 .env.*
 datasets/private/
 datasets/private_holdout/
+# PoL2 生成中间产物：分片与批次可由 cases/questions 复算，不入库
+datasets/pol2/**/shards/
+# 大体积派生文件只提交压缩版，明文保留在本机供校验脚本使用
+datasets/pol2/**/*.questions.jsonl
+datasets/general/data/*.jsonl
+# 内部 benchmark 不进公开仓库：单独交付给维护者上传私有托管
+datasets/general/data/splits/benchmark*
+# 派生数据的明文与缓存不入库
+datasets/general/data/splits/*.jsonl
+datasets/general/data/**/__pycache__/
 **/raw-private/
 **/*.safetensors
 **/*.gguf

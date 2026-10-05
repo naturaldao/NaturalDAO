@@ -1,0 +1,95 @@
+{
+ "name": "fixture-candidates",
+ "version": "v0.1",
+ "audited_at": "2026-09-30",
+ "notes": [
+  "离线测试用最小审计表；不是真实候选全集（真实表见 ../../candidates.json）。"
+ ],
+ "candidates": [
+  {
+   "id": "ZefanCai/Open-Jev",
+   "revision": "c67699e13d0ae25e35b77165a4b6b079bedc8aba",
+   "license": "cc0-1.0",
+   "license_status": "clear",
+   "license_training": "yes",
+   "license_derivative": "yes",
+   "task_forms": [
+    "choice",
+    "noul",
+    "score"
+   ],
+   "languages": [
+    "en",
+    "zh",
+    "tr"
+   ],
+   "splits": [
+    "train",
+    "calibration",
+    "validation",
+    "test",
+    "ood"
+   ],
+   "train_only": true,
+   "is_benchmark": false,
+   "generation": "synthetic",
+   "source_basis": "fixture：受控合成 typed decisions",
+   "row_count": 266793,
+   "tier": "admit",
+   "evidence_level": "A",
+   "decision_reason": "fixture：许可 CC0 且形态同构，只用 train"
+  },
+  {
+   "id": "Praveenrajus/jev-bench",
+   "revision": "18f88da81c28c2bec55edc31f63f2afdfba109ea",
+   "license": "other",
+   "license_status": "composite",
+   "license_training": "yes",
+   "license_derivative": "yes_with_conditions",
+   "task_forms": [
+    "choice",
+    "noul",
+    "score"
+   ],
+   "languages": [
+    "en"
+   ],
+   "splits": [
+    "test"
+   ],
+   "train_only": false,
+   "is_benchmark": true,
+   "generation": "mixed",
+   "source_basis": "fixture：benchmark 本体",
+   "row_count": 166054,
+   "tier": "exclude",
+   "evidence_level": "A",
+   "decision_reason": "fixture：评测集本体，硬规则剔除"
+  },
+  {
+   "id": "mystery/decisions",
+   "revision": "0123456789abcdef0123456789abcdef01234567",
+   "license": "unknown",
+   "license_status": "unclear",
+   "license_training": "unknown",
+   "license_derivative": "unknown",
+   "task_forms": [
+    "choice"
+   ],
+   "languages": [
+    "en"
+   ],
+   "splits": [
+    "train"
+   ],
+   "train_only": true,
+   "is_benchmark": false,
+   "generation": "unknown",
+   "source_basis": "fixture：卡面无许可",
+   "row_count": null,
+   "tier": "observe",
+   "evidence_level": "A",
+   "decision_reason": "fixture：许可不明只能观察"
+  }
+ ]
+}

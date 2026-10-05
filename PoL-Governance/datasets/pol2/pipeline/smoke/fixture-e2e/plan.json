@@ -1,0 +1,39 @@
+{
+  "tool": "pol2-generate",
+  "schema": "pol2-pipeline-v0.1",
+  "seed": 20260930,
+  "pairs_per_batch": 3,
+  "limit": 6,
+  "config_sha256": "46927648e0733df8a85402e5ee3948883e4e4423afb45fefbe7d5972a6208fbe",
+  "created_at": "2026-09-30T11:11:21+00:00",
+  "regions": {
+    "public_test": 6
+  },
+  "total_pairs": 3,
+  "total_cases": 6,
+  "families": [
+    {
+      "family_id": "ai_emotion_judgement.evidence_insufficiency",
+      "region": "public_test",
+      "pairs": 3,
+      "cases": 6,
+      "first_pair_ordinal": 1,
+      "pair_ids": [
+        "pol2-public_test-p000001",
+        "pol2-public_test-p000002",
+        "pol2-public_test-p000003"
+      ],
+      "case_ids": [
+        "pol2-public_test-000001",
+        "pol2-public_test-000002",
+        "pol2-public_test-000003",
+        "pol2-public_test-000004",
+        "pol2-public_test-000005",
+        "pol2-public_test-000006"
+      ],
+      "batches": [
+        3
+      ]
+    }
+  ]
+}

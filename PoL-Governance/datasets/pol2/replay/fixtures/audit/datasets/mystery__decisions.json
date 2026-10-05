@@ -1,0 +1,25 @@
+{
+ "id": "mystery/decisions",
+ "sha": "0123456789abcdef0123456789abcdef01234567",
+ "lastModified": "2026-09-19T00:00:00.000Z",
+ "downloads": 3,
+ "likes": 0,
+ "gated": false,
+ "tags": [
+  "task_categories:text-classification",
+  "language:en"
+ ],
+ "cardData": {
+  "language": [
+   "en"
+  ]
+ },
+ "siblings": [
+  {
+   "rfilename": "README.md"
+  },
+  {
+   "rfilename": "train.jsonl"
+  }
+ ]
+}

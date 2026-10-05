@@ -1,0 +1,61 @@
+{
+  "counts": {
+    "benchmark": 1600,
+    "test": 4946,
+    "train": 17984,
+    "validation": 2473
+  },
+  "digests": {
+    "benchmark-dataset/README.md": "88164c7be3e72caf98830d3608824b08da23e12edc38a810a074e258780c051e",
+    "benchmark-dataset/benchmark.jsonl": "f5ae670811c332002deb82ab98bed8d25ef66281aeb622691a50147ee6e70a2a",
+    "benchmark-dataset/benchmark.jsonl.gz": "3f67285adeec301f698401bc48e2e37bb72f243efc0c62a6eba3489dedb0d0a5",
+    "benchmark-dataset/manifest.json": "3a9adf762673c065fa08500abc7b7f0bd89c5ceb3e9f10a49cb884c6e229b578",
+    "benchmark.jsonl": "f5ae670811c332002deb82ab98bed8d25ef66281aeb622691a50147ee6e70a2a",
+    "benchmark.jsonl.gz": "3f67285adeec301f698401bc48e2e37bb72f243efc0c62a6eba3489dedb0d0a5",
+    "test.jsonl": "95e6633914f08ad664cdc1cb26da6068a8c164a24c92398b82b634113560bd70",
+    "test.jsonl.gz": "c3661a59b63d2414548aa54ff7e2d47dcf8eaae34ca1cacf8cd7d329e7f5a23f",
+    "train.jsonl": "0d04c0445ea0a64ee9aefbcea87686abfd4de48ce3fb0a98e8030d3a85b706e2",
+    "train.jsonl.gz": "66e0cfe393f8dc13f10f60f080c3e22ea7677fc611057ebf3c120c4cedde5369",
+    "validation.jsonl": "55c11de812d3177cc952297325f91c0a78056c3642ce9bb5d8445b074fecfc04",
+    "validation.jsonl.gz": "8cae7ad9a4288d38e1860f5cdff62f54ff89b8bf972cf876470d8e6f35151d95"
+  },
+  "inputs": [
+    "datasets/general/data/items.final.jsonl"
+  ],
+  "items": 27003,
+  "ratios": {
+    "benchmark": 0.1,
+    "test": 0.2,
+    "train": 0.6,
+    "validation": 0.1
+  },
+  "rerun": {
+    "files": 12,
+    "identical": true,
+    "note": "该复跑校验完成于追加补充集之前；train 的两个文件已按追加结果更新，其余 10 个文件未变",
+    "tree_sha256": "7635cfbbd01b1f7310808d6aedaa79fb55334bdfbcd56681dde65ca88d6cbfb1"
+  },
+  "salt_policy": {
+    "benchmark_langs": [
+      "en"
+    ],
+    "note": "交付件使用仓库外私盐；盐值与盐的哈希都不记录、不派生进任何公开产物。只凭本 manifest 的公开种子无法复现交付件；无盐跑法（--public-demo）产出的是另一套。",
+    "salted": true
+  },
+  "schema": "pol-split-manifest/0.1",
+  "seed": 20261005,
+  "supplement": {
+    "benchmark_eligible": false,
+    "items": 3148,
+    "kinds": {
+      "noul": 1631,
+      "score": 1517
+    },
+    "note": "切分完成后追加到 train 末尾；未重跑切分，test/validation/benchmark 的 sha256 未变",
+    "origin": "taxonomy",
+    "scope": "train only（test / validation / benchmark 不得包含）",
+    "source": "datasets/general/data/zh-supplement/items.jsonl",
+    "source_sha256": "f2d87c3893d2e138b1443140a67d30c545cd47bebb05c5d9d629fed4f7422c8a",
+    "tier": "derived"
+  }
+}

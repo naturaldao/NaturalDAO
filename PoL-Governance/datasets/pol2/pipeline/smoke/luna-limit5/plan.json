@@ -1,0 +1,39 @@
+{
+  "tool": "pol2-generate",
+  "schema": "pol2-pipeline-v0.1",
+  "seed": 20260930,
+  "pairs_per_batch": 3,
+  "limit": 5,
+  "config_sha256": "df0be351a26c78d424ab3c5342cdb3ec645c2a934d4f8f685221b85d3e418800",
+  "created_at": "2026-09-30T09:10:57+00:00",
+  "regions": {
+    "train": 6
+  },
+  "total_pairs": 3,
+  "total_cases": 6,
+  "families": [
+    {
+      "family_id": "autonomy_paternalism.evidence_insufficiency",
+      "region": "train",
+      "pairs": 3,
+      "cases": 6,
+      "first_pair_ordinal": 1,
+      "pair_ids": [
+        "pol2-train-p000001",
+        "pol2-train-p000002",
+        "pol2-train-p000003"
+      ],
+      "case_ids": [
+        "pol2-train-000001",
+        "pol2-train-000002",
+        "pol2-train-000003",
+        "pol2-train-000004",
+        "pol2-train-000005",
+        "pol2-train-000006"
+      ],
+      "batches": [
+        3
+      ]
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "tool": "pol2-generate",
+  "state": "finished",
+  "mode": "fixture",
+  "out": "datasets\\pol2\\pipeline\\smoke\\fixture-e2e",
+  "fresh": true,
+  "seed": 20260930,
+  "model": "fixture-v0.1",
+  "generator": "fixture",
+  "generator_lineage": "fixture",
+  "gen_version": "pol2-gen-v0.1",
+  "question_template": "pol2-qtemplate-v0.1",
+  "ontology": {
+    "source": "C:\\Projects\\DAism\\NaturalDAO\\PoL-Governance\\datasets\\pol2\\ontology\\pol2-labels.v0.1.json",
+    "issues": 15,
+    "issue_keys": [
+      "coercion_manipulation",
+      "consent_violation",
+      "deception_distortion",
+      "dignity_denial",
+      "ecological_harm",
+      "emotion_state_detection",
+      "exclusive_private",
+      "fabricated_intimacy",
+      "harm_facilitation",
+      "hostile_exclusion",
+      "public_erosion",
+      "tool_scope_overreach",
+      "unnecessary_restriction",
+      "untrusted_instruction_injection",
+      "violence_worship"
+    ],
+    "criteria_sections": [
+      "actions",
+      "evidence",
+      "polarity",
+      "status"
+    ]
+  },
+  "planned_cases": 6,
+  "planned_pairs": 3,
+  "complete_families": [
+    "ai_emotion_judgement.evidence_insufficiency"
+  ],
+  "duplicate_case_cases": 0,
+  "pair_slots": 3,
+  "duplicate_case_dropped_cases": 0,
+  "duplicate_case_dropped_by_region": {},
+  "accepted_pairs": 3,
+  "dropped_pairs": 0,
+  "drop_reasons": {},
+  "regenerated_slots": 0,
+  "generation_attempts": 1,
+  "response_format": "none",
+  "pair_attempts": 3,
+  "missing_status": [],
+  "class_coverage_complete": true,
+  "families": [
+    {
+      "family_id": "ai_emotion_judgement.evidence_insufficiency",
+      "region": "public_test",
+      "batches": 1,
+      "skipped_batches": 0,
+      "failed_batches": 0,
+      "cases": 6,
+      "slots": 3,
+      "accepted_pairs": 3,
+      "dropped_pairs": 0,
+      "drop_reasons": {},
+      "regenerated_slots": 0,
+      "generation_attempts": 1,
+      "complete": true
+    }
+  ],
+  "workers": 4,
+  "calls": {
+    "calls": 0,
+    "ok": 0,
+    "failed": 0,
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0,
+    "cost_usd": null,
+    "failed_by_kind": {},
+    "invalid_attempt_rate": 0.0
+  },
+  "created_at": "2026-09-30T11:11:21+00:00"
+}

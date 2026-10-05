@@ -1,0 +1,31 @@
+{
+ "id": "Praveenrajus/jev-bench",
+ "sha": "18f88da81c28c2bec55edc31f63f2afdfba109ea",
+ "lastModified": "2026-09-25T07:27:22.000Z",
+ "downloads": 6358,
+ "likes": 6,
+ "gated": false,
+ "tags": [
+  "license:other",
+  "language:en",
+  "task_categories:text-classification",
+  "benchmark",
+  "evaluation",
+  "calibration",
+  "system-one"
+ ],
+ "cardData": {
+  "license": "other",
+  "language": [
+   "en"
+  ]
+ },
+ "siblings": [
+  {
+   "rfilename": "README.md"
+  },
+  {
+   "rfilename": "results/leaderboard/models_map.png"
+  }
+ ]
+}

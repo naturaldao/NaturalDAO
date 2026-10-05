@@ -1,0 +1,33 @@
+{
+  "tool": "pol2-adjudicate",
+  "version": "pol2-adjudication-v0.1",
+  "region": "public_test",
+  "cases": 6,
+  "labels": 1,
+  "pending": 5,
+  "pending_reasons": {
+    "inconsistent_answers": 5
+  },
+  "min_lineages": 2,
+  "exclude_lineages": [],
+  "allow_majority": false,
+  "allow_missing_issues": false,
+  "answer_files": [
+    "datasets\\pol2\\pipeline\\smoke\\fixture-e2e\\public_test.answers.fixture-a.jsonl",
+    "datasets\\pol2\\pipeline\\smoke\\fixture-e2e\\public_test.answers.fixture-b.jsonl"
+  ],
+  "sources": [
+    "fixture-a",
+    "fixture-b"
+  ],
+  "lineage_usage_in_labels": {
+    "family-a": 1,
+    "family-b": 1
+  },
+  "unmapped_sources": [],
+  "human_labels": 0,
+  "review_levels": {
+    "model_cross_checked": 1
+  },
+  "created_at": "2026-09-30T11:11:21+00:00"
+}

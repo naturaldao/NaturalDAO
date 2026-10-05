@@ -1,0 +1,398 @@
+{
+  "version": "0.1",
+  "generated_at": "2026-10-02T00:30:00+08:00",
+  "owner": "pol2-replay",
+  "contract": "datasets/general/CONTRACT.md",
+  "audit": "datasets/general/zh-survey.md",
+  "raw_root_default": "D:\\pol2-raw",
+  "page_size": 100,
+  "quotas": {
+    "min_total_zh": 11000,
+    "target_zh_share": 0.3,
+    "zh_needed_for_30pct": 15911,
+    "zh_needed_note": "现有英文 37,124 条不变时，中文要占 ≥30% 需要 37124 ÷ 0.7 × 0.3 ≈ 15911 条；准入来源的 row_limit 合计 45,608 条，够用，但真实条数取决于每个来源的实际行数与转换损失，见本次 --limit 200 试点报告。",
+    "min_per_domain": 1200,
+    "max_source_share": 0.4,
+    "domain_note": "本清单覆盖 human_judgment / risk_harm / social_moral 三个域；decision_mechanics 与 knowledge_reasoning 目前没有合格的中文原生来源，宁缺毋滥：不拿通用指令语料（BAAI/COIG）或机翻语料填充。"
+  },
+  "policy": {
+    "revision": "每个来源固定 40 位 commit sha；datasets-server 不遵守 revision 参数，抓取前后由 HF API 解析当前 sha 并与本文件比对（见 fetch.py）。",
+    "splits": "只取 train（textdetox 的中文子集本身就是一个 config split，无 train/test 之分，见该来源 notes）。validation/calibration/test 一律不进训练。",
+    "lang": "lang=zh，原生中文来源；机器翻译或文化适配的英文来源单独列在 excluded，不进准入。",
+    "truth": "targets 只在来源真给出标注时填写，并区分 direct（源字段就是该问题答案）与 documented（按卡面/抽样证据做的一次有据可查的映射）；映射不上的进 meta.source_record，targets 留空等外部答案源。",
+    "benchmarks": "评测集与对抗考卷本体整库不进训练（thu-coai/Safety-Prompts、TC260 两份、SafetyBench、ChineseSafe、ChineseHarm-bench、hatecheck-mandarin 等）。",
+    "share_cap": "单一来源占比不得超过 40%；cvalues-rlhf 的 row_limit 已按此上限核算（18,000 / 45,608 ≈ 39.5%，放量时按实际入库条数复核）。",
+    "license_derivative": "apache-2.0/mit/cc-by-2.0/cc-by-4.0 → 允许训练与衍生发布（署名）；openrail++ → 允许训练与衍生，但衍生物须沿用同一使用限制。",
+    "mt_is_not_zh": "机器翻译出来的英文数据集不算中文来源（用户硬约束）；这类来源在 excluded 里单独列出并写明理由。"
+  },
+  "excluded": [
+    {
+      "dataset": "thu-coai/Safety-Prompts",
+      "reason": "中文安全评测/红队提示语料（THU CoAI 安全榜单用），本体是对抗考卷；不得进训练，可作外部评测。",
+      "evidence": "卡面 license=apache-2.0；文件为 typical_safety_scenarios.json / instruction_attack_scenarios.json，字段 prompt/response/type 无 train/test 划分"
+    },
+    {
+      "dataset": "BBBBBBBBBBBQ/TC260-Chinese-Safety-Prompts",
+      "reason": "合成对抗安全评测提示（TC260 类别），卡面自述为安全评测数据集且含 public/validation/test 分区；review_status=pending 的 silver 数据。不进训练，登记为外部评测。",
+      "evidence": "README『不得用公开测试集训练后，再把同一测试集结果作为泛化能力证明』；schema.json；DATA_STATEMENT.md"
+    },
+    {
+      "dataset": "MuYi23/TC260-Chinese-Safety-Prompts",
+      "reason": "与 BBBBBBBBBBBQ 同一份 TC260 数据（17 个文件同名同大小、README 逐字节一致），按镜像去重后只保留外部评测登记。",
+      "evidence": "两端 17 个文件清单一致；README 4910 字节相同"
+    },
+    {
+      "dataset": "nvidia/Nemotron-Safety-Guard-Dataset-v3",
+      "reason": "中文部分是 CultureGuard 从英文 Aegis 2.0 文化适配/翻译生成（卡面：primarily synthetically generated ... culturally adapts and translates content from the English Aegis 2.0），机器翻译来源不算中文来源。",
+      "evidence": "卡面 Dataset Description；zh/train.jsonl 抽样"
+    },
+    {
+      "dataset": "ToxicityPrompts/PolyGuardMix",
+      "reason": "中英混合，卡面写明由『自然多语人机交互 + WildGuardMix 的人验机翻』组成，中文部分无法逐行区分原生与翻译。",
+      "evidence": "卡面 Abstract；metadata.source 形如 wildguardmix_translated_tower"
+    },
+    {
+      "dataset": "DirectLLM/Chinese_Preference_Safe_and_Helpful",
+      "reason": "英文 HH-RLHF/SHP 的中文译本（MT）；按用户硬约束不作为中文来源。",
+      "evidence": "目录结构 SHP/ + hh_rlhf_harmful/；抽样文本有明显机翻痕迹"
+    },
+    {
+      "dataset": "erhwenkuo/hh_rlhf-chinese-zhtw",
+      "reason": "HH-RLHF 的繁中译本（MT）。",
+      "evidence": "数据集名与卡面"
+    },
+    {
+      "dataset": "lchakkei/OpenOrca-Traditional-Chinese",
+      "reason": "OpenOrca 的繁中译本（MT）。",
+      "evidence": "数据集名与卡面"
+    },
+    {
+      "dataset": "brighter-dataset/BRIGHTER-emotion-categories",
+      "reason": "GoEmotions 的多语机器翻译扩展（含 chn 配置），MT 来源。",
+      "evidence": "卡面语言表 + GoEmotions 派生说明"
+    },
+    {
+      "dataset": "zzhdbw/Simplified_Chinese_Multi-Emotion_Dialogue_Dataset",
+      "reason": "Johnson8187 繁中数据的 Qwen2.5-32B 机器转写（繁→简），与原始来源同内容；按内容去重后只用原始来源。",
+      "evidence": "卡面明写『使用Qwen2.5-32B-instruce模型将其从繁体中文翻译为简体中文』"
+    },
+    {
+      "dataset": "TIX007/chinese-sentiment",
+      "reason": "由英文 dair-ai/emotion 的模板扩增生成的合成中文（卡面 annotations_creators=machine-generated）；多样性低且非原生人类语料。",
+      "evidence": "卡面『文本来源于模板扩增』；source_datasets: dair-ai/emotion"
+    },
+    {
+      "dataset": "SUSTech/ChineseSafe",
+      "reason": "cc-by-nc-4.0（NC）+ 中文安全评测集，双重不符。",
+      "evidence": "HF API cardData.license；仅 test.jsonl"
+    },
+    {
+      "dataset": "zjunlp/ChineseHarm-bench",
+      "reason": "cc-by-nc-4.0 + 中文有害内容评测基准。",
+      "evidence": "HF API cardData.license；bench.json"
+    },
+    {
+      "dataset": "OpenStellarTeam/Chinese-SafetyQA",
+      "reason": "cc-by-nc-sa-4.0 + 评测榜单用数据集。",
+      "evidence": "HF API cardData.license；卡面 Leader Board"
+    },
+    {
+      "dataset": "thu-coai/SafetyBench",
+      "reason": "中文安全评测基准（dev/test 双语）；不进训练。",
+      "evidence": "文件 dev_zh.json/test_zh.json"
+    },
+    {
+      "dataset": "Paul/hatecheck-mandarin",
+      "reason": "HateCheck 功能测试套件，只有 test 划分。",
+      "evidence": "datasets-server /splits 仅 default/test"
+    },
+    {
+      "dataset": "clue/clue",
+      "reason": "CLUE 官方仓库卡面 license=unknown；OCNLI/CMNLI 是其中的原生中文 NLI，但许可未标，无法授权。",
+      "evidence": "HF API cardData.license=unknown"
+    },
+    {
+      "dataset": "suolyer/ocnli",
+      "reason": "CLUE OCNLI 的二次上传，自述 apache-2.0 但上游 CLUE 未标许可，授权链不成立。",
+      "evidence": "上游 clue/clue license=unknown"
+    },
+    {
+      "dataset": "suolyer/cmnli",
+      "reason": "同上；且 CMNLI 本身是 MNLI 的中文翻译版本。",
+      "evidence": "上游 clue/clue license=unknown"
+    },
+    {
+      "dataset": "m-a-p/COIG-CQIA",
+      "reason": "卡面没有 license 字段；许可不明不得入池。",
+      "evidence": "HF API cardData 无 license"
+    },
+    {
+      "dataset": "BAAI/COIG-PC",
+      "reason": "许可 unknown；且是预训练语料。",
+      "evidence": "HF API cardData.license=unknown"
+    },
+    {
+      "dataset": "hasankursun/multilingual-safety-classification-dataset",
+      "reason": "cc-by-nc-sa-4.0（NC）。",
+      "evidence": "HF API cardData.license"
+    },
+    {
+      "dataset": "BAAI/COIG",
+      "reason": "中文原生但形态是通用指令/多轮问答，不是可判定的决策情境；按宁缺毋滥不进池（可作后续通用能力回归语料另行评估）。",
+      "evidence": "first-rows 字段 instruction/conversations；抽样"
+    },
+    {
+      "dataset": "BAAI/Infinity-Preference",
+      "reason": "抽样 100 条中仅约 7% 为中文 prompt（≈4,150 条），其余英文；中文部分来源与是否翻译未逐条说明。",
+      "evidence": "datasets-server /rows 抽样 offset=1000 length=100"
+    },
+    {
+      "dataset": "david9dragon9/cvalues-chinese",
+      "reason": "与 Skepsun/cvalues_rlhf 同源（CValues-Comparison），但上传者随机重切 train/val/test 并拆成 477MB 单文件；去重后只取 Skepsun 版本。",
+      "evidence": "两份卡面均标注 ModelScope iic/CValues-Comparison"
+    },
+    {
+      "dataset": "i-Lang/ilang-judge-observations",
+      "reason": "某团队自出版的评测/判日志（按天分文件），不含可复用 state 语料。",
+      "evidence": "first-rows 字段 caller/jev_class5_probabilities/..."
+    },
+    {
+      "dataset": "valuesimplex-ai-lab/FinCPRG",
+      "reason": "检索语料 + qrels，task 形态不是决策。",
+      "evidence": "文件 corpus.jsonl + qrels/*.tsv"
+    },
+    {
+      "dataset": "MiniMaxAI/SynLogic",
+      "reason": "语言标签含 zh，但抽样内容是英文 ARC-AGI 逻辑题。",
+      "evidence": "first-rows prompt 为英文"
+    },
+    {
+      "dataset": "sojuL/RubricHub_v1",
+      "reason": "抽样 prompt 为英文 rubric 数据。",
+      "evidence": "first-rows prompt 为英文"
+    },
+    {
+      "dataset": "shibing624/DPO-En-Zh-20k-Preference",
+      "reason": "zh 配置的 10k 来自 wenbopan/Chinese-dpo-pairs，另 10k 为英文 DPO 数据；中文部分的原生/翻译成分未逐条可辨。",
+      "evidence": "卡面 composition 列表"
+    }
+  ],
+  "sources": [
+    {
+      "slug": "cvalues-rlhf",
+      "dataset": "Skepsun/cvalues_rlhf",
+      "revision": "130d6cc61440b02aaa6d649b983826b09403440a",
+      "license": "apache-2.0",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "risk_harm",
+      "converter": "cvalues",
+      "lang": "zh",
+      "row_limit": 18000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "B",
+      "notes": "CValues-Comparison 的中文价值观对齐数据（ModelScope iic/CValues-Comparison → HF 二次上传）。上游项目 X-PLUG/CValues 的 LICENSE 已核实为 Apache-2.0（Copyright 2023 Alibaba X-PLUG Team），因此二次上传的 apache-2.0 声明有据。字段 prompt/pos_resp/neg_resp/pos_type/neg_type；pos_type ∈ {拒绝为主, 拒绝&正向建议} 表示人类标注认为【拒绝】是妥当回应，映射到 refusal_appropriate=yes（documented）；neg_resp 为风险回复（harmless 子集）或纯拒绝（helpful 子集）。chosen/rejected 原文进 meta，不硬塞。"
+    },
+    {
+      "slug": "zhihu-preference",
+      "dataset": "liyucheng/zhihu_rlhf_3k",
+      "revision": "97c801e016265144750cb6cae8e4a31156ff43a1",
+      "license": "cc-by-2.0",
+      "license_derivative": "yes_with_conditions",
+      "config": "default",
+      "split": "train",
+      "domain": "social_moral",
+      "converter": "zhihu_pref",
+      "lang": "zh",
+      "row_limit": 3460,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "B",
+      "notes": "知乎真实问答的人类偏好数据：prompt 为问题，chosen/rejected 为高赞/低赞回答，upvotes_chosen/upvotes_rejected 是真人投票数。域按内容归 social_moral（生活/价值/人际情境）。taxonomy 没有『哪个回答更好』的键，因此不硬塞 prefer 标签，targets 留空等外部答案源，两条回答与票数进 meta.source_record。"
+    },
+    {
+      "slug": "chinese-emotion-dialogue",
+      "dataset": "Johnson8187/Chinese_Multi-Emotion_Dialogue_Dataset",
+      "revision": "f3854f9489071a4dc0bb69f2366d95095837ce68",
+      "license": "mit",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "human_judgment",
+      "converter": "emotion_zh",
+      "lang": "zh",
+      "row_limit": 4159,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "4,159 条繁体中文口语/影视对白，8 类情绪，卡面称人工标注。emotion → emotion_primary 为 documented 映射（平淡語氣=neutral、開心語調=joy、悲傷語調=sadness、憤怒語調=anger、驚訝/驚奇語調=surprise、恐懼語調=fear、厭惡語調=disgust、疑問語調=other）；未在映射表内的标签打 unmapped_emotion 旗标并留空。"
+    },
+    {
+      "slug": "chinese-logic-sentiment",
+      "dataset": "YiMeng-SYSU/chinese-logic-sentiment-dataset",
+      "revision": "09cb1ba399dd4f0c884217ea19629139609b303e",
+      "license": "apache-2.0",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "human_judgment",
+      "converter": "sentiment_zh",
+      "lang": "zh",
+      "row_limit": 2176,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "由豆包 API 生成、人工清洗的中文逻辑情感数据（反讽/双重否定/转折/简单句），label 0=负面 1=正面。卡面明确 label 语义，映射到 sentiment_polarity 为 documented；type/sub_type/domain/is_valid 全部进 meta。"
+    },
+    {
+      "slug": "baidu-review-sentiment",
+      "dataset": "left0ver/sentiment-classification",
+      "revision": "2f78a31b0c7d46df3f8d00dc00d2736e0fd7f205",
+      "license": "mit",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "human_judgment",
+      "converter": "sentiment_binary_zh",
+      "lang": "zh",
+      "row_limit": 9146,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "B",
+      "notes": "来源为百度飞桨公开的中文商品/酒店评论情感数据集，9,146 条 train。卡面没写 label 极性，本次用 30 条抽样人工核对（正面评价=1、负面评价=0）后才做 documented 映射；该抽检结论写进 quality_flags 供复核。"
+    },
+    {
+      "slug": "toxic-zh",
+      "dataset": "textdetox/multilingual_toxicity_dataset",
+      "revision": "01907546324b0330d2d8b7669648cc18823323e5",
+      "license": "openrail++",
+      "license_derivative": "yes_with_conditions",
+      "config": "default",
+      "split": "zh",
+      "domain": "human_judgment",
+      "converter": "toxicity_zh",
+      "lang": "zh",
+      "row_limit": 5000,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "B",
+      "notes": "PAN TextDetox 2024/2025 共享任务的中文毒性二分类子集（5,000 条，2.5k 毒/2.5k 非毒）。字段 text/toxic 直接就是 toxicity_present 的答案（direct 映射）。注意：卡面列了各语言的原始来源，但没有单独列出中文来源，属来源说明不完整——因此准入但证据等级 B，只当 state+硬标签使用，不改标签、不外推为中文毒性全貌。"
+    },
+    {
+      "slug": "elder-scam-zh",
+      "dataset": "vanila434/multilingual-elder-safety-msgs",
+      "revision": "b800377502098c8aa851e5c91eb8ff85848b4d21",
+      "license": "cc-by-4.0",
+      "license_derivative": "yes_with_conditions",
+      "config": "default",
+      "split": "train",
+      "domain": "risk_harm",
+      "converter": "elder_scam",
+      "lang": "zh",
+      "row_limit": 1029,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "B",
+      "notes": "手写的中文/粤语长者防诈骗场景（467 个场景扩到 1,029 行），label ∈ {safe, scam, ambiguous}，另有 category/recommended_action/channel/cultural_lever。转换时只保留 language ∈ {mandarin, cantonese, code_mixed_*} 的行；label scam→contains_harm=yes、safe→no（documented），ambiguous 留空。holdout 分区不取。"
+    },
+    {
+      "slug": "med-guard-unsafe",
+      "dataset": "chenhaodev/med-guard-safety-synth",
+      "revision": "63374505e88feff96c07e543f8fa00890a6aa4b2",
+      "license": "apache-2.0",
+      "license_derivative": "yes",
+      "config": "unsafe",
+      "split": "train",
+      "domain": "risk_harm",
+      "converter": "med_guard",
+      "lang": "zh",
+      "row_limit": 320,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "中文健康/康养场景护栏数据（合成，针对真实生产系统的 11 类误报根因）。字段 text/safety/action/categories/root_cause/channel。safety→contains_harm（Unsafe=yes、Safe=no、Controversial 留空）与 action→recommended_action（放行=allow、观察=review、拦截=block）都是 documented 映射，原始值留在 meta。"
+    },
+    {
+      "slug": "med-guard-controversial",
+      "dataset": "chenhaodev/med-guard-safety-synth",
+      "revision": "63374505e88feff96c07e543f8fa00890a6aa4b2",
+      "license": "apache-2.0",
+      "license_derivative": "yes",
+      "config": "controversial",
+      "split": "train",
+      "domain": "risk_harm",
+      "converter": "med_guard",
+      "lang": "zh",
+      "row_limit": 120,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "同上数据集的边界样本（120 条）：safety=Controversial，contains_harm 留空、只映射 recommended_action。"
+    },
+    {
+      "slug": "med-guard-benign-r1r5",
+      "dataset": "chenhaodev/med-guard-safety-synth",
+      "revision": "63374505e88feff96c07e543f8fa00890a6aa4b2",
+      "license": "apache-2.0",
+      "license_derivative": "yes",
+      "config": "benign_r1_r5",
+      "split": "train",
+      "domain": "risk_harm",
+      "converter": "med_guard",
+      "lang": "zh",
+      "row_limit": 300,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "被旧系统误拦的正当医疗咨询（300 条），正是『过度限制/误拦』的负样本：contains_harm=no、recommended_action=allow。"
+    },
+    {
+      "slug": "med-guard-benign-r6r11",
+      "dataset": "chenhaodev/med-guard-safety-synth",
+      "revision": "63374505e88feff96c07e543f8fa00890a6aa4b2",
+      "license": "apache-2.0",
+      "license_derivative": "yes",
+      "config": "benign_r6_r11",
+      "split": "train",
+      "domain": "risk_harm",
+      "converter": "med_guard",
+      "lang": "zh",
+      "row_limit": 300,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "A",
+      "notes": "误报根因 R6-R11（300 条），同上。"
+    },
+    {
+      "slug": "mh-risk-triage-zh",
+      "dataset": "BEncoderRT/User_Intent_Risk_Triage",
+      "revision": "72ee9b506993ffcaa2e47506d583a44eadd48cde",
+      "license": "apache-2.0",
+      "license_derivative": "yes",
+      "config": "default",
+      "split": "train",
+      "domain": "risk_harm",
+      "converter": "mh_triage",
+      "lang": "zh",
+      "row_limit": 1598,
+      "sampling": {
+        "strategy": "head"
+      },
+      "evidence": "B",
+      "notes": "中文心理危机风险分级（1,598 条 train）：input 为用户文本（部分行为多轮对话在 output.conversation 内），output.response 给 intent/risk(low|medium|high|ambiguous)/strategy/recommended_action/uncertainty。risk high→escalation_needed=yes、low→no（documented），medium/ambiguous 留空；strategy 词表与 taxonomy 的 response_style 不是等义枚举，只进 meta 不硬塞。"
+    }
+  ]
+}

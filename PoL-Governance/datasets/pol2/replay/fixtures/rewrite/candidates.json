@@ -1,0 +1,81 @@
+{
+ "name": "fixture-rewrite-candidates",
+ "version": "v0.1",
+ "audited_at": "2026-09-30",
+ "notes": [
+  "离线测试用候选表：fixture/own-authored-decisions 是本仓库自写的 CC0 样例，不是 HuggingFace 数据集。"
+ ],
+ "candidates": [
+  {
+   "id": "fixture/own-authored-decisions",
+   "revision": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+   "license": "cc0-1.0",
+   "license_status": "clear",
+   "task_forms": [
+    "choice",
+    "noul",
+    "score"
+   ],
+   "languages": [
+    "en"
+   ],
+   "splits": [
+    "train"
+   ],
+   "train_only": true,
+   "is_benchmark": false,
+   "generation": "human",
+   "source_basis": "本目录自写的三行 fixture 样例",
+   "row_count": 3,
+   "tier": "admit",
+   "evidence_level": "A",
+   "decision_reason": "fixture：作者自写、CC0、只用于离线测试，不是真实回放数据"
+  },
+  {
+   "id": "fixture/bench-like",
+   "revision": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+   "license": "mit",
+   "license_status": "clear",
+   "task_forms": [
+    "choice"
+   ],
+   "languages": [
+    "en"
+   ],
+   "splits": [
+    "test"
+   ],
+   "train_only": false,
+   "is_benchmark": true,
+   "generation": "unknown",
+   "source_basis": "fixture：模拟评测集候选",
+   "row_count": 10,
+   "tier": "exclude",
+   "evidence_level": "A",
+   "decision_reason": "fixture：评测集本体"
+  },
+  {
+   "id": "fixture/unclear-license",
+   "revision": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+   "license": "unknown",
+   "license_status": "unclear",
+   "task_forms": [
+    "choice"
+   ],
+   "languages": [
+    "en"
+   ],
+   "splits": [
+    "train"
+   ],
+   "train_only": true,
+   "is_benchmark": false,
+   "generation": "unknown",
+   "source_basis": "fixture：卡面无许可",
+   "row_count": 10,
+   "tier": "observe",
+   "evidence_level": "A",
+   "decision_reason": "fixture：许可不明"
+  }
+ ]
+}

@@ -1,0 +1,47 @@
+{
+ "_id": "6ab03e4d1ce52d54824a8b47",
+ "id": "ZefanCai/Open-Jev",
+ "author": "ZefanCai",
+ "disabled": false,
+ "gated": false,
+ "lastModified": "2026-09-20T22:49:59.000Z",
+ "likes": 56,
+ "private": false,
+ "sha": "c67699e13d0ae25e35b77165a4b6b079bedc8aba",
+ "description": "Open-Jev: typed decision datasets",
+ "downloads": 3383,
+ "tags": [
+  "task_categories:text-classification",
+  "language:en",
+  "language:zh",
+  "language:tr",
+  "license:cc0-1.0",
+  "size_categories:100K<n<1M",
+  "format:parquet",
+  "open-jev",
+  "synthetic",
+  "typed-decisions"
+ ],
+ "cardData": {
+  "license": "cc0-1.0",
+  "language": [
+   "en",
+   "zh",
+   "tr"
+  ],
+  "task_categories": [
+   "text-classification"
+  ]
+ },
+ "siblings": [
+  {
+   "rfilename": "README.md"
+  },
+  {
+   "rfilename": "data/x.parquet"
+  },
+  {
+   "rfilename": "raw/x.jsonl.gz"
+  }
+ ]
+}

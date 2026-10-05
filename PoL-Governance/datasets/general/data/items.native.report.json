@@ -1,0 +1,347 @@
+{
+  "converter": "convert.py",
+  "converter_version": "0.1",
+  "mode": "native",
+  "native_slugs": [
+    "jev-distill-v3",
+    "open-jev",
+    "jev-decisions-general-50k",
+    "jev-decisions-strata",
+    "systemone-lite-general",
+    "system-one-270m",
+    "procedural-typed-decisions"
+  ],
+  "created_at": "2026-10-05T04:00:00+00:00",
+  "raw_root": "D:\\pol2-raw",
+  "items_path": "C:\\Projects\\DAism\\NaturalDAO\\PoL-Governance\\datasets\\general\\data\\items.native.jsonl",
+  "mappings_used": "all",
+  "mappings_default": "all",
+  "mappings_default_note": "core 问题 + direct 映射 + documented 映射；--mappings direct 只保留 core 问题与 direct 映射",
+  "mapping_classes": {
+    "direct_targets": 0,
+    "documented_targets": 0
+  },
+  "question_lang": "zh",
+  "stratum_cap": 0.35,
+  "limit": null,
+  "items": 15983,
+  "items_with_targets": 15983,
+  "native_target_rate": 1.0,
+  "pending_external_answers": 0,
+  "by_domain": {
+    "decision_mechanics": 11593,
+    "knowledge_reasoning": 4390
+  },
+  "by_domain_detail": {
+    "decision_mechanics": {
+      "items": 11593,
+      "with_targets": 11593,
+      "native_target_rate": 1.0
+    },
+    "knowledge_reasoning": {
+      "items": 4390,
+      "with_targets": 4390,
+      "native_target_rate": 1.0
+    }
+  },
+  "units": [
+    {
+      "slug": "jev-decisions-general-50k",
+      "dataset": "samatv256/jev-decisions-v1",
+      "config": "general-clean-50k",
+      "split": "train",
+      "rows_read": 4000,
+      "items": 3802,
+      "with_targets": 3802,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0,
+        "hard_label": 3802,
+        "distribution": 0
+      },
+      "duplicate_states": 198,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 3802
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 3802
+      },
+      "skipped": {
+        "duplicate_state": 198
+      }
+    },
+    {
+      "slug": "jev-decisions-strata",
+      "dataset": "samatv256/jev-decisions-v1",
+      "config": "default",
+      "split": "train",
+      "rows_read": 400,
+      "items": 207,
+      "with_targets": 207,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0,
+        "hard_label": 207,
+        "distribution": 0
+      },
+      "duplicate_states": 193,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 207
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 207
+      },
+      "skipped": {
+        "duplicate_state": 193
+      }
+    },
+    {
+      "slug": "jev-distill-v3",
+      "dataset": "SargeDev/jev-distill-corpus-v3",
+      "config": "default",
+      "split": "train",
+      "rows_read": 8000,
+      "items": 7756,
+      "with_targets": 7756,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0,
+        "hard_label": 0,
+        "distribution": 7756
+      },
+      "duplicate_states": 244,
+      "invalid": 0,
+      "by_domain": {
+        "knowledge_reasoning": 4358,
+        "decision_mechanics": 3398
+      },
+      "by_domain_with_targets": {
+        "knowledge_reasoning": 4358,
+        "decision_mechanics": 3398
+      },
+      "skipped": {
+        "duplicate_state": 244
+      }
+    },
+    {
+      "slug": "open-jev",
+      "dataset": "ZefanCai/Open-Jev",
+      "config": "release-v2-redistributable",
+      "split": "train",
+      "rows_read": 6000,
+      "items": 792,
+      "with_targets": 792,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0,
+        "hard_label": 0,
+        "distribution": 792
+      },
+      "duplicate_states": 0,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 792
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 792
+      },
+      "skipped": {
+        "duplicate_question_key": 1521
+      }
+    },
+    {
+      "slug": "procedural-typed-decisions",
+      "dataset": "tasksource/procedural-typed-decisions",
+      "config": "all",
+      "split": "train",
+      "rows_read": 1500,
+      "items": 1500,
+      "with_targets": 1500,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0,
+        "hard_label": 0,
+        "distribution": 1500
+      },
+      "duplicate_states": 0,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 1500
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 1500
+      },
+      "skipped": {}
+    },
+    {
+      "slug": "system-one-270m",
+      "dataset": "kaivoss/system-one-270m-data",
+      "config": "default",
+      "split": "train",
+      "rows_read": 1500,
+      "items": 447,
+      "with_targets": 447,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0,
+        "hard_label": 0,
+        "distribution": 447
+      },
+      "duplicate_states": 0,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 415,
+        "knowledge_reasoning": 32
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 415,
+        "knowledge_reasoning": 32
+      },
+      "skipped": {}
+    },
+    {
+      "slug": "systemone-lite-general",
+      "dataset": "dwidlee/systemone-lite-general",
+      "config": "default",
+      "split": "train",
+      "rows_read": 1500,
+      "items": 1479,
+      "with_targets": 1479,
+      "native_target_rate": 1.0,
+      "native_target_rate_direct_only": 0.0,
+      "pending_external_answers": 0,
+      "target_classes": {
+        "direct": 0,
+        "documented": 0,
+        "hard_label": 1479,
+        "distribution": 0
+      },
+      "duplicate_states": 21,
+      "invalid": 0,
+      "by_domain": {
+        "decision_mechanics": 1479
+      },
+      "by_domain_with_targets": {
+        "decision_mechanics": 1479
+      },
+      "skipped": {
+        "duplicate_state": 21
+      }
+    }
+  ],
+  "skipped_units": [],
+  "out_of_scope": [
+    {
+      "slug": "aegis1",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "aegis2",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "baidu-review-sentiment",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "chinese-emotion-dialogue",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "chinese-logic-sentiment",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "civil-comments",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "cvalues-rlhf",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "elder-scam-zh",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "ethics-commonsense",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "ethics-deontology",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "ethics-justice",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "ethics-utilitarianism",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "ethics-virtue",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "helpsteer2",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "med-guard-benign-r1r5",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "med-guard-benign-r6r11",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "med-guard-controversial",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "med-guard-unsafe",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "mh-risk-triage-zh",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "moral-stories",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "prosocial-dialog",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "toxic-zh",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    },
+    {
+      "slug": "zhihu-preference",
+      "reason": "原生模式只重建 SOURCES.md 推荐的 7 个单元"
+    }
+  ]
+}

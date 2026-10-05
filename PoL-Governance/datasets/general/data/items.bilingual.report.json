@@ -1,0 +1,186 @@
+{
+ "items": 54594,
+ "by_lang": {
+  "en": 37124,
+  "zh": 17470
+ },
+ "lang_share": {
+  "en": 0.68,
+  "zh": 0.32
+ },
+ "items_with_targets_by_lang": {
+  "en": 16717,
+  "zh": 15090
+ },
+ "native_target_rate_by_lang": {
+  "en": 0.4503,
+  "zh": 0.8638
+ },
+ "by_domain": {
+  "risk_harm": 9988,
+  "human_judgment": 15511,
+  "social_moral": 13180,
+  "decision_mechanics": 11557,
+  "knowledge_reasoning": 4358
+ },
+ "by_domain_lang": {
+  "risk_harm": {
+   "en": 4366,
+   "zh": 5622
+  },
+  "human_judgment": {
+   "en": 5491,
+   "zh": 10020
+  },
+  "social_moral": {
+   "en": 11352,
+   "zh": 1828
+  },
+  "decision_mechanics": {
+   "en": 11557
+  },
+  "knowledge_reasoning": {
+   "en": 4358
+  }
+ },
+ "by_source": {
+  "aegis1": 1477,
+  "aegis2": 2889,
+  "civil-comments": 2991,
+  "ethics-commonsense": 1000,
+  "ethics-deontology": 359,
+  "ethics-justice": 1000,
+  "ethics-utilitarianism": 997,
+  "ethics-virtue": 998,
+  "helpsteer2": 2500,
+  "jev-decisions-general-50k": 3802,
+  "jev-decisions-strata": 139,
+  "jev-distill-v3": 7756,
+  "moral-stories": 3000,
+  "open-jev": 792,
+  "procedural-typed-decisions": 1500,
+  "prosocial-dialog": 3998,
+  "system-one-270m": 447,
+  "systemone-lite-general": 1479,
+  "baidu-review-sentiment": 3823,
+  "chinese-emotion-dialogue": 2272,
+  "chinese-logic-sentiment": 1190,
+  "cvalues-rlhf": 4016,
+  "elder-scam-zh": 96,
+  "med-guard-benign-r1r5": 173,
+  "med-guard-benign-r6r11": 172,
+  "med-guard-controversial": 69,
+  "med-guard-unsafe": 184,
+  "mh-risk-triage-zh": 912,
+  "toxic-zh": 2735,
+  "zhihu-preference": 1828
+ },
+ "item_errors": 0,
+ "en_items": 37124,
+ "zh_available": 42436,
+ "zh_kept": 17470,
+ "target_zh_share": 0.32,
+ "zh_share_floor": 0.3,
+ "sampling": {
+  "mode": "stratified",
+  "target": 17470,
+  "available": 30520,
+  "source_cap": 6988,
+  "domain_capacity": {
+   "risk_harm": 9782,
+   "social_moral": 2420,
+   "human_judgment": 18318
+  },
+  "domain_budget": {
+   "risk_harm": 5622,
+   "social_moral": 1828,
+   "human_judgment": 10020
+  },
+  "per_source": {
+   "baidu-review-sentiment": {
+    "available": 7926,
+    "capacity": 6988,
+    "kept": 3823,
+    "domain": "human_judgment"
+   },
+   "chinese-emotion-dialogue": {
+    "available": 4154,
+    "capacity": 4154,
+    "kept": 2272,
+    "domain": "human_judgment"
+   },
+   "chinese-logic-sentiment": {
+    "available": 2176,
+    "capacity": 2176,
+    "kept": 1190,
+    "domain": "human_judgment"
+   },
+   "toxic-zh": {
+    "available": 5000,
+    "capacity": 5000,
+    "kept": 2735,
+    "domain": "human_judgment"
+   },
+   "cvalues-rlhf": {
+    "available": 17966,
+    "capacity": 6988,
+    "kept": 4016,
+    "domain": "risk_harm"
+   },
+   "elder-scam-zh": {
+    "available": 167,
+    "capacity": 167,
+    "kept": 96,
+    "domain": "risk_harm"
+   },
+   "med-guard-benign-r1r5": {
+    "available": 300,
+    "capacity": 300,
+    "kept": 173,
+    "domain": "risk_harm"
+   },
+   "med-guard-benign-r6r11": {
+    "available": 300,
+    "capacity": 300,
+    "kept": 172,
+    "domain": "risk_harm"
+   },
+   "med-guard-controversial": {
+    "available": 120,
+    "capacity": 120,
+    "kept": 69,
+    "domain": "risk_harm"
+   },
+   "med-guard-unsafe": {
+    "available": 320,
+    "capacity": 320,
+    "kept": 184,
+    "domain": "risk_harm"
+   },
+   "mh-risk-triage-zh": {
+    "available": 1587,
+    "capacity": 1587,
+    "kept": 912,
+    "domain": "risk_harm"
+   },
+   "zhihu-preference": {
+    "available": 2420,
+    "capacity": 2420,
+    "kept": 1828,
+    "domain": "social_moral"
+   }
+  },
+  "source_cap_ratio": 0.4,
+  "domain_floor": 1200,
+  "seed": "pol2-bilingual-v1"
+ },
+ "collisions": 0,
+ "out": "datasets\\general\\data\\items.bilingual.jsonl",
+ "out_bytes": 131385656,
+ "out_sha256": "ac24d42fdcf89102bf1adccad0fb985f87e77480e01f96fa53da42d594f70b68",
+ "en_sha256": "5a64912ab599228b6f4c359b9d9643ba9a6de54ffa7cecffb55464844c09ebaf",
+ "zh_sha256": "6137b0ab4e69564ac1709b50c027e023464a7db6e650a469e28d7239d5657617",
+ "created_at": "2026-10-02T00:49:19+08:00",
+ "gz": "datasets\\general\\data\\items.bilingual.jsonl.gz",
+ "gz_bytes": 16287199
+}
