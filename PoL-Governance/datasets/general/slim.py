@@ -183,8 +183,8 @@ def build_slim(items, raw_root: Path):
             per["present"] += 1
             per["values"].add(stable(value))
         flags = list(meta.get("quality_flags") or [])
-        if flags:
-            flag_lists[slug][stable(flags)] += 1
+        # 空列表也要计进去：否则"部分记录带 flag、部分不带"的来源会被误判为一致并错误提升
+        flag_lists[slug][stable(flags)] += 1
         pending.append((slug, item, meta))
 
     total_items = len(pending)

@@ -1,0 +1,63 @@
+{
+  "en": {
+    "items": 15983,
+    "domains": {
+      "decision_mechanics": 11593,
+      "knowledge_reasoning": 4390
+    },
+    "langs": {
+      "en": 15983
+    },
+    "with_targets": 15983,
+    "target_rate": 1.0,
+    "groups": 792,
+    "unique_ids": 15983
+  },
+  "zh": {
+    "items": 7872,
+    "domains": {
+      "decision_mechanics": 7872
+    },
+    "langs": {
+      "zh": 7872
+    },
+    "with_targets": 7872,
+    "target_rate": 1.0,
+    "groups": 5454,
+    "unique_ids": 7872
+  },
+  "final": {
+    "items": 23855,
+    "domains": {
+      "decision_mechanics": 19465,
+      "knowledge_reasoning": 4390
+    },
+    "langs": {
+      "en": 15983,
+      "zh": 7872
+    },
+    "with_targets": 23855,
+    "target_rate": 1.0,
+    "groups": 6246,
+    "unique_ids": 23855
+  },
+  "zh_share": 0.33,
+  "target_zh": 7872,
+  "seed": "general-merge-v1",
+  "requested_share": 0.33,
+  "id_collisions": [],
+  "zh_selection": {
+    "zh_available_items": 22372,
+    "zh_total_groups": 5454,
+    "zh_groups_with_variant_1": 5454,
+    "zh_taken_variant_0": 5454,
+    "zh_taken_variant_1": 2418,
+    "zh_unique_groups_taken": 5454
+  },
+  "zh_source_share_note": "Deepexi 是唯一中文来源，因此中文占比即该来源占比；取 33% 而非 40%，是给'单一来源 ≤40%'留余量，且多取的变体来自同一批请求、边际信息量递减。",
+  "gzip": {
+    "path": "datasets\\general\\data\\items.final.jsonl.gz",
+    "bytes": 10751674,
+    "sha256": "2e45a2e726f8e07586d15db9f1063f72b069c22f4f6bf5f24996469006c7fb2c"
+  }
+}

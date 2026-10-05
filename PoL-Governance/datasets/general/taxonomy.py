@@ -1,4 +1,4 @@
-"""decision-base 覆盖域分类法与问题键定义（schema: decision-base-taxonomy/0.1）。
+"""general 覆盖域分类法与问题键定义（schema: general-taxonomy/0.1）。
 
 契约来源
 - datasets/general/README.md（第 2/3/4 节，Lead 所有；字段名不得改）
@@ -40,7 +40,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-SCHEMA = "decision-base-taxonomy/0.1"
+SCHEMA = "general-taxonomy/0.1"
 VERSION = "0.1"
 
 #: 六个覆盖域（README 第 3 节，顺序即配额报告顺序）；没有 unknown/other 域，

@@ -1,6 +1,6 @@
 # 通用问题集批量作答（ask.py 操作手册）
 
-给 [decision-base 契约](README.md) 的 `items.jsonl` 批量取外部答案（默认面向官方 Jev）。
+给 [general 契约](README.md) 的 `items.jsonl` 批量取外部答案（默认面向官方 Jev）。
 **默认离线**：不加 `--live` 只写请求计划，不联网、不读密钥。密钥只从环境变量或 `--key-file` 读，
 任何产物里都只有 sha256 前 8 位指纹。
 

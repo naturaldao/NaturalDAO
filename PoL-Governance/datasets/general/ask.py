@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""通用问题集批量作答 harness（decision-base/ask.py, ask-v0.1）。
+"""通用问题集批量作答 harness（general/ask.py, ask-v0.1）。
 
 目标：外部答案源（官方 Jev / OpenAI 兼容端点 / 离线 fixture）在上万条问题上
 **一条命令跑完、断了能续、失败能重跑、产物符合契约 2.2 节**。
@@ -71,7 +71,7 @@ except ImportError as error:  # pragma: no cover
     taxonomy = None
     TAXONOMY_ERROR = error
 
-TOOL = "decision-base-ask"
+TOOL = "general-ask"
 HARNESS_VERSION = "ask-v0.1"
 ANSWER_CONTRACT = "datasets/general/README.md 2.2"
 CHAT_TEMPLATE_VERSION = "ask-chat-v0.1"
@@ -87,7 +87,7 @@ SOURCE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 RETRY_STATUS = (408, 409, 425, 429, 500, 502, 503, 504)
 MAX_RESPONSE_BYTES = 2_000_000
-DEFAULT_USER_AGENT = "PoL-decision-base/0.1 (+https://github.com/naturaldao/NaturalDAO)"
+DEFAULT_USER_AGENT = "PoL-general/0.1 (+https://github.com/naturaldao/NaturalDAO)"
 DEFAULT_KEY_ENV = {"jev": "JEV_API_KEY", "openai-compatible": "ASK_API_KEY"}
 FIXTURE_SOURCE = "fixture"
 FIXTURE_VERSION = "fixture-v0.1"
@@ -1710,7 +1710,7 @@ def add_item_check(parser):
 
 def add_selection(parser):
     parser.add_argument("--keys", help="逗号分隔的问题 key 过滤（先小样本）")
-    parser.add_argument("--domains", help="逗号分隔的覆盖域过滤（decision-base 契约第 3 节）")
+    parser.add_argument("--domains", help="逗号分隔的覆盖域过滤（general 契约第 3 节）")
     parser.add_argument("--limit", type=int, help="最多取前 N 条问题请求")
 
 

@@ -1,0 +1,39 @@
+{
+  "counts": {
+    "benchmark": 2389,
+    "test": 4771,
+    "train": 14310,
+    "validation": 2385
+  },
+  "digests": {
+    "benchmark-dataset/README.md": "62157f580928096a59a02c2206134afac9658c1b20cfed466e82f83ca26a37d1",
+    "benchmark-dataset/benchmark.jsonl": "63cf705c4713f4f13418cfe867ed06d3677238fd53957c4f8d6364aca89b116b",
+    "benchmark-dataset/benchmark.jsonl.gz": "9eca6b92228eca2df7f7b9e174eadc1ead2c85f5136a3dd47facb1d7331c516e",
+    "benchmark-dataset/manifest.json": "e434c9d01df09bd7e73f487d1d446c4436aa8ec1d29f8a74c0b104a141c7066d",
+    "benchmark.jsonl": "63cf705c4713f4f13418cfe867ed06d3677238fd53957c4f8d6364aca89b116b",
+    "benchmark.jsonl.gz": "9eca6b92228eca2df7f7b9e174eadc1ead2c85f5136a3dd47facb1d7331c516e",
+    "test.jsonl": "bf44c98e4d8d59788b3884be6bed180ea071690f451268a12588e20f0b33548a",
+    "test.jsonl.gz": "aef6f410cbd376b96331a66bdbc3ebc24b8ceae843883a3f69ad522a0875d0d0",
+    "train.jsonl": "29fea7697eece18477a9d5b270ad4835ff81ae846497bbb912ecc50ef0c65c6b",
+    "train.jsonl.gz": "fe1d341673dcc0f15a85aa35a2d62fd5734cb08c8201eea777a38712bb0fd7f3",
+    "validation.jsonl": "7bedb5008b978e6b330460db00cffd0e61735ec917d6a3911b2e279508724733",
+    "validation.jsonl.gz": "9b7c0b9d13794a313dbd9624a6ee4955a49fd4c27bccbf874a330c7029242036"
+  },
+  "inputs": [
+    "datasets/general/data/items.final.jsonl"
+  ],
+  "items": 23855,
+  "ratios": {
+    "benchmark": 0.1,
+    "test": 0.2,
+    "train": 0.6,
+    "validation": 0.1
+  },
+  "rerun": {
+    "files": 12,
+    "identical": true,
+    "tree_sha256": "2c3fa92c323edbf38147325dd6605220ed9a7b1a64cc0d935201f514533c62f4"
+  },
+  "schema": "pol-split-manifest/0.1",
+  "seed": 20261005
+}

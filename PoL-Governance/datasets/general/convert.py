@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""把 D:\pol2-raw 下的原始行转换成 decision-base 契约条目（仅标准库）。
+r"""把 D:\pol2-raw 下的原始行转换成 general 契约条目（仅标准库）。
 
 配套：契约 datasets/general/README.md、问题键 datasets/general/taxonomy.py（db-schema 所有）。
 
@@ -51,7 +51,7 @@ DIRECT, DOCUMENTED = "direct", "documented"
 # ------------------------------------------------------------------ taxonomy
 
 def load_taxonomy(path=None):
-    """按路径加载 taxonomy.py（decision-base 目录名带连字符，不能当包 import）。"""
+    """按路径加载 taxonomy.py（general 目录名带连字符，不能当包 import）。"""
     target = Path(path or HERE / "taxonomy.py")
     if not target.is_file():
         raise SystemExit(f"缺 taxonomy.py：{target}")
@@ -1660,7 +1660,7 @@ def load_units(raw_root: Path, slugs=None):
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="把 decision-base 原始行转换成契约条目")
+    parser = argparse.ArgumentParser(description="把 general 原始行转换成契约条目")
     parser.add_argument("--raw-root", type=Path, default=DEFAULT_RAW_ROOT)
     parser.add_argument("--out", type=Path, default=None,
                         help=f"输出路径（默认 {DEFAULT_OUT.name}；--native 时默认 {DEFAULT_NATIVE_OUT.name}）")

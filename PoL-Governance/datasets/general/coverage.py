@@ -1,4 +1,4 @@
-"""decision-base 覆盖报告与配额校验。
+"""general 覆盖报告与配额校验。
 
 用法：
 
@@ -15,7 +15,7 @@
 
 per-domain 政策（基础下限 + 例外）整组取用：命令行给了任一每域参数就整组用命令行，
 否则整组取 sources.json，再否则用 README 默认。README 默认里 pol2_axis 下限是 **400**（其余五域 1200）：
-decision-base 是通用底座，PoL2 专项语料本轮由协作者在别处生产（我方已搁置），
+general 是通用底座，PoL2 专项语料本轮由协作者在别处生产（我方已搁置），
 把它卡在 1200 会逼通用底座去补一个不归它管的缺口、稀释通用覆盖；等 PoL2 语料落地后再提这一档。
 命令行显式给 --min-per-domain 而未给 --domain-min 时，该默认例外不自动生效。
 
@@ -67,7 +67,7 @@ if str(_HERE) not in sys.path:
 
 import taxonomy  # noqa: E402
 
-SCHEMA = "decision-base-coverage/0.1"
+SCHEMA = "general-coverage/0.1"
 DEFAULT_ITEMS = _HERE / "data" / "items.jsonl"
 SOURCES_PATH = _HERE / "sources.json"
 DEFAULT_MIN_TOTAL = 10_000
@@ -125,7 +125,9 @@ def read_items(path: Path | str) -> list[dict]:
     except OSError as exc:
         raise ItemsError(f"无法读取 {source}: {exc}") from exc
     items: list[dict] = []
-    for lineno, line in enumerate(text.splitlines(), 1):
+    # 只按换行 \n 切：str.splitlines() 会把 U+2028 / U+2029 / U+0085 也当换行，把一条记录劈开
+    # （这些字符在 JSON 里合法；split.py 输出时已转义，这里再兜一层读法上的鲁棒性）。
+    for lineno, line in enumerate(text.split("\n"), 1):
         if not line.strip():
             continue
         try:
@@ -282,7 +284,7 @@ def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool
         origin["domain_min"] = "readme-default"
         if settings["enforce_domains"]:
             notes.append(f"pol2_axis 下限默认 {DEFAULT_DOMAIN_MIN['pol2_axis']}（其余五域 {base}）："
-                         "decision-base 是通用底座，PoL2 专项语料本轮由协作者在别处生产，"
+                         "general 是通用底座，PoL2 专项语料本轮由协作者在别处生产，"
                          "等其落地后再提这一档")
 
     values = set(origin.values())
@@ -872,7 +874,7 @@ def format_report(report: dict, *, top: int = 40) -> str:
     """人类可读的文本报告。"""
     lines: list[str] = []
     profile = report.get("profile") or report["quotas"].get("profile", DEFAULT_PROFILE)
-    lines.append(f"decision-base 覆盖报告  schema={report['schema']}  profile={profile}")
+    lines.append(f"general 覆盖报告  schema={report['schema']}  profile={profile}")
     origin_info = report.get("origin") or {}
     lines.append(f"items: {report['items']}  问题数: {report['questions']}"
                  f"（source {origin_info.get('source_questions', 0)} / "
@@ -990,7 +992,7 @@ def parse_domain_min(values) -> dict:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="decision-base 覆盖报告与配额校验")
+    parser = argparse.ArgumentParser(description="general 覆盖报告与配额校验")
     parser.add_argument("--items", type=Path, default=DEFAULT_ITEMS,
                         help=f"items.jsonl 路径（默认 {DEFAULT_ITEMS}）")
     parser.add_argument("--profile", choices=sorted(PROFILES), default=DEFAULT_PROFILE,

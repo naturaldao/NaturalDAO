@@ -187,6 +187,73 @@ class ProportionTest(unittest.TestCase):
         self.assertLess(abs(splits.count("train") / len(items) - 0.7), 0.05)
 
 
+class LineSeparatorTest(unittest.TestCase):
+    """U+2028 / U+2029 / U+0085 必须转义。
+
+    它们在 JSON 里合法，但 Python 的 str.splitlines() 会把它们当换行，于是"换一种读法"就把一条记录
+    从中间劈开（coverage.py 第一次读 items.jsonl 就是这么炸的）。本类同时守两件事：
+    产物字节里没有裸分隔符，且用 splitlines() 读出来的行数正好等于条目数。
+    """
+
+    TRICKY = "\u2028前\u2029中\u0085后"
+
+    def tricky_items(self):
+        items = []
+        for index in range(4):
+            record = item(index, state=f"{self.TRICKY} state {index}", group=f"req-{index}")
+            record["questions"][0]["prompt"] = f"q{self.TRICKY}?"
+            items.append(record)
+        return items
+
+    def test_serializer_escapes_and_round_trips(self):
+        line = sp._json_line({"state": self.TRICKY})
+        for char in ("\u2028", "\u2029", "\u0085"):
+            self.assertNotIn(char, line, repr(char))
+        self.assertIn("\\u2028", line)
+        self.assertEqual(json.loads(line)["state"], self.TRICKY)
+
+    def test_products_have_no_bare_separators(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            source = write_input(root, self.tricky_items())
+            out_dir = root / "out"
+            self.assertEqual(run_quiet(["--input", str(source), "--out", str(out_dir),
+                                        "--report", str(root / "r.md"),
+                                        "--benchmark-min-per-kind", "0",
+                                        "--benchmark-min-per-domain", "0",
+                                        "--benchmark-min-per-lang", "0"]), 0)
+            for split in sp.SPLITS:
+                self.assertEqual(sp.count_bare_line_separators(out_dir / f"{split}.jsonl"), 0, split)
+                with gzip.open(out_dir / f"{split}.jsonl.gz", "rt", encoding="utf-8") as handle:
+                    gz_text = handle.read()
+                for char in ("\u2028", "\u2029", "\u0085"):
+                    self.assertNotIn(char, gz_text, f"{split}.jsonl.gz")
+            for name in ("benchmark.jsonl", "manifest.json", "README.md"):
+                self.assertEqual(sp.count_bare_line_separators(out_dir / "benchmark-dataset" / name), 0, name)
+
+    def test_splitlines_reads_back_the_same_row_count(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            source = write_input(root, self.tricky_items())
+            out_dir = root / "out"
+            self.assertEqual(run_quiet(["--input", str(source), "--out", str(out_dir),
+                                        "--report", str(root / "r.md"),
+                                        "--benchmark-min-per-kind", "0",
+                                        "--benchmark-min-per-domain", "0",
+                                        "--benchmark-min-per-lang", "0"]), 0)
+            states = []
+            for split in sp.SPLITS:
+                text = (out_dir / f"{split}.jsonl").read_text(encoding="utf-8")
+                rows = load_lines(out_dir / f"{split}.jsonl")
+                self.assertEqual(len(text.splitlines()), len(rows), f"{split} 被裸分隔符劈开了")
+                states.extend(row["state"] for row in rows)
+            # 无损：转义后读回来仍是原字符
+            self.assertEqual(len(states), 4)
+            for state in states:
+                for char in ("\u2028", "\u2029", "\u0085"):
+                    self.assertIn(char, state, repr(state))
+
+
 class BenchmarkFloorTest(unittest.TestCase):
     def test_rare_kind_gets_floor(self):
         def kind_for(group_index, variant):
@@ -326,7 +393,9 @@ class PrivacyTest(unittest.TestCase):
                                         "--benchmark-min-per-domain", "0",
                                         "--benchmark-min-per-lang", "0"]), 0)
             text = report.read_text(encoding="utf-8")
-            for token in ("随机种子：99", "## 5. 泄漏检查", "跨分区的组：0", "结论：**空**"):
+            for token in ("随机种子：99", "## 6. 泄漏检查", "跨分区的组：0", "结论：**空**",
+                          "中文侧分组 id 门禁", "## 3. 数据成色与已知缺口",
+                          "## 9. 可复现性", "逐字节一致", "侧只有单一来源"):
                 self.assertIn(token, text)
 
 
@@ -376,10 +445,9 @@ class GroupIdGateTest(unittest.TestCase):
         self.assertEqual(gaps["total"], 4)
         self.assertTrue(all("lang=zh" in key for key in gaps["missing"]))
 
-    def test_default_inputs_prefer_native(self):
+    def test_default_input_is_final_corpus(self):
         names = [path.name for path in sp.DEFAULT_INPUTS]
-        self.assertEqual(names[0], "items.native.jsonl")
-        self.assertNotIn("items.jsonl", names)
+        self.assertEqual(names, ["items.final.jsonl"])
 
 
 class InputValidationTest(unittest.TestCase):
@@ -410,19 +478,25 @@ class InputValidationTest(unittest.TestCase):
             with self.assertRaises(sp.SplitError):
                 sp.load_records([path])
 
-    def test_resolve_inputs_skips_splits_outputs(self):
+    def test_resolve_inputs_skips_splits_outputs_and_indexes(self):
         with tempfile.TemporaryDirectory() as workspace:
             root = Path(workspace)
+            row = json.dumps(item(1), ensure_ascii=False) + "\n"
             inside = root / "data" / "splits"
             inside.mkdir(parents=True)
-            (inside / "train.jsonl").write_text("", encoding="utf-8")
+            (inside / "train.jsonl").write_text(row, encoding="utf-8")
             outside = root / "data" / "zh"
             outside.mkdir(parents=True)
-            (outside / "zh.jsonl").write_text("", encoding="utf-8")
-            found = sp.resolve_inputs([root])
+            (outside / "zh.jsonl").write_text(row, encoding="utf-8")
+            (outside / "zh-group-index.jsonl").write_text(
+                json.dumps({"group_id": "g1", "rows": [1, 2]}, ensure_ascii=False) + "\n",
+                encoding="utf-8")
+            ignored: list = []
+            found = sp.resolve_inputs([root], ignored=ignored)
             names = [path.name for path in found]
             self.assertIn("zh.jsonl", names)
             self.assertNotIn("train.jsonl", names)
+            self.assertIn("zh-group-index.jsonl", [Path(path).name for path in ignored])
 
     def test_missing_input_returns_two(self):
         with tempfile.TemporaryDirectory() as workspace:

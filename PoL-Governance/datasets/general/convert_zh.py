@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""中文来源 → decision-base 契约条目（抓取 + 转换 + 报告，仅标准库）。
+r"""中文来源 → general 契约条目（抓取 + 转换 + 报告，仅标准库）。
 
 配套契约：datasets/general/README.md；来源清单：datasets/general/sources.zh.json；
 调研与准入证据：datasets/general/zh-survey.md。

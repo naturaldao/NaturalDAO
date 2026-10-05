@@ -1,4 +1,4 @@
-"""luna_clean.py —— 把 Luna（自回归教师）的自由文本/半结构化输出清洗成 decision-base 契约条目。
+"""luna_clean.py —— 把 Luna（自回归教师）的自由文本/半结构化输出清洗成 general 契约条目。
 
 职责边界
 --------
@@ -1237,7 +1237,7 @@ def make_live_regenerator(args):
 # --------------------------------------------------------------------------- CLI
 
 def build_parser():
-    parser = argparse.ArgumentParser(description="把 Luna 输出清洗成 decision-base 契约条目")
+    parser = argparse.ArgumentParser(description="把 Luna 输出清洗成 general 契约条目")
     parser.add_argument("--input", required=True, help="原始响应 JSONL")
     parser.add_argument("--items", required=True, help="输出 items.jsonl")
     parser.add_argument("--rejects", required=True, help="输出 rejects.jsonl")

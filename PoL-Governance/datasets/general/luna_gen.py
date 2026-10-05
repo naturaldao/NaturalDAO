@@ -1,4 +1,4 @@
-"""luna_gen.py —— 按 decision-base 覆盖域与问题键，让 Luna 生成 decision 条目（默认 dry-run）。
+"""luna_gen.py —— 按 general 覆盖域与问题键，让 Luna 生成 decision 条目（默认 dry-run）。
 
 设计
 ----
@@ -63,7 +63,7 @@ MIN_MAX_TOKENS_LIVE = 4096
 BULK_LIMIT = 25
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 QUESTIONS_PER_ITEM = (3, 6)
-USER_AGENT = "PoL-decision-base/0.1 (luna_gen.py; +https://github.com/naturaldao)"
+USER_AGENT = "PoL-general/0.1 (luna_gen.py; +https://github.com/naturaldao)"
 
 ROUTES = {
     "luna": {
@@ -381,7 +381,7 @@ def load_module(path, name="decision_base_taxonomy"):
 
 # --------------------------------------------------------------------------- 提示
 
-PROMPT_HEADER = """你是治理决策数据生成器（decision-base v0.1）。请针对覆盖域「{domain}」生成 {items} 个待判断情境与类型化问题，并给出你自己的判断。
+PROMPT_HEADER = """你是治理决策数据生成器（general v0.1）。请针对覆盖域「{domain}」生成 {items} 个待判断情境与类型化问题，并给出你自己的判断。
 
 硬性要求（违反任何一条该条目作废）：
 1. 只输出一个 JSON 对象，不要 markdown 围栏，不要解释文字。顶层结构必须是 {{"items": [ ... ]}}。

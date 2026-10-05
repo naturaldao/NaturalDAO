@@ -234,7 +234,7 @@ class CliSubprocessTest(unittest.TestCase):
              "--min-total", "12", "--min-per-domain", "2", "--max-source-share", "0.5"],
             capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(HERE))
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
-        self.assertIn("decision-base 覆盖报告", completed.stdout)
+        self.assertIn("general 覆盖报告", completed.stdout)
         self.assertIn("[通过]", completed.stdout)
 
 
@@ -621,6 +621,26 @@ class ProfileTest(unittest.TestCase):
         self.assertEqual(resolved["enforce"]["total"], True)
         with self.assertRaises(ValueError):
             cov.resolve_quotas(profile="nope")
+
+
+class LineSeparatorTest(unittest.TestCase):
+    """U+2028 / U+2029 / U+0085 在 JSON 里合法，但 str.splitlines() 会把一条记录劈开。"""
+
+    def test_reader_handles_raw_line_separators(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            path = Path(workspace) / "items.jsonl"
+            record = make_item(1, "risk_harm")
+            tricky = "前" + chr(0x2028) + "中" + chr(0x2029) + "后" + chr(0x0085) + "尾"
+            record["state"] = tricky
+            record["questions"][0]["prompt"] = "q" + tricky
+            path.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
+
+            items = cov.read_items(path)  # 改前这里会因 splitlines() 劈开而 JSON 解析失败
+            self.assertEqual(len(items), 1)
+            self.assertEqual(items[0]["state"], tricky)
+            report = cov.build_report(items, min_total=1, min_per_domain=0, max_source_share=1.0)
+            self.assertEqual(report["items"], 1)
+            self.assertEqual(report["questions"], len(record["questions"]))
 
 
 if __name__ == "__main__":

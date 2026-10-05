@@ -13,6 +13,9 @@ datasets/pol2/**/*.questions.jsonl
 datasets/general/data/*.jsonl
 # 内部 benchmark 不进公开仓库：单独交付给维护者上传私有托管
 datasets/general/data/splits/benchmark*
+# 派生数据的明文与缓存不入库
+datasets/general/data/splits/*.jsonl
+datasets/general/data/**/__pycache__/
 **/raw-private/
 **/*.safetensors
 **/*.gguf

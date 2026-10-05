@@ -1,4 +1,4 @@
-# 中英双语决策底座（decision-base bilingual v0.1）
+# 中英双语决策底座（general bilingual v0.1）
 
 - 生成日期：2026-10-02（UTC+8）
 - 执行：pol2-replay（DSH Agent Team），共享任务 task-14

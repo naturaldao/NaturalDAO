@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""从 HuggingFace datasets-server 抓取 decision-base 原始行（仅标准库）。
+r"""从 HuggingFace datasets-server 抓取 general 原始行（仅标准库）。
 
 配套契约：datasets/general/README.md；来源清单：datasets/general/sources.json。
 原始数据写到仓库外的 D:\pol2-raw\<slug>\，仓库里只提交构建产物。
@@ -63,7 +63,7 @@ def utc_now() -> str:
 
 def http_get(url: str, timeout: float = 45.0):
     """默认传输层：返回 (status, body_bytes)。4xx/5xx 不抛异常，交给重试策略判断。"""
-    request = urllib.request.Request(url, headers={"User-Agent": "pol-decision-base/0.1"})
+    request = urllib.request.Request(url, headers={"User-Agent": "pol-general/0.1"})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.status, response.read()
@@ -420,7 +420,7 @@ def plan_for_source(client: Client, source: dict, limit, page_size: int):
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="抓取 decision-base 原始行（datasets-server 分页）")
+    parser = argparse.ArgumentParser(description="抓取 general 原始行（datasets-server 分页）")
     parser.add_argument("--sources", type=Path, default=DEFAULT_SOURCES, help="来源清单 JSON")
     parser.add_argument("--raw-root", type=Path, default=DEFAULT_RAW_ROOT, help="原始数据落盘根目录")
     parser.add_argument("--source", action="append", default=[], help="只抓指定 slug（可重复）")

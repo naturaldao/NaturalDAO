@@ -5,9 +5,10 @@
     uv run --no-project --offline python datasets/general/data/splits/split.py \
         --out datasets/general/data/splits --report datasets/general/split-report.md --seed 20261005
 
-输入默认自动探测：datasets/general/data/items.native.jsonl（最终语料的英文侧）+
-datasets/general/data/zh/*.jsonl；也可用 --input 显式指定（文件或目录，支持 .gz）。
-data/items.jsonl（37,124 条，替数据出题的旧版本）不参与最终切分，只能显式传入做回归对照。
+最终输入只有一份：**datasets/general/data/items.final.jsonl**（db-hf 合并：英文原生四元组 +
+已按 33% 目标筛过的中文侧）。默认就取它，不自动叠加 data/zh/（会把中文侧重复计入）。
+其它语料只能显式 --input 传入，且只用于 dry-run 验证：items.native.jsonl（英文全量）、
+D:/pol2-raw/zh-final/items.zh.jsonl（中文全量）、data/items.jsonl（替数据出题的旧版本，仅回归对照）。
 
 中文侧硬门禁：zh 条目（或来自 data/zh/ 的条目）必须带显式分组 id
 （item/source/meta 下的 group_id / request_id / family_id），否则直接拒绝切分并返回 3，
@@ -40,6 +41,7 @@ import json
 import random
 import re
 import sys
+import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -49,11 +51,12 @@ DEFAULT_RATIOS = {"train": 0.6, "test": 0.2, "validation": 0.1, "benchmark": 0.1
 DEFAULT_SEED = 20261005
 DEFAULT_OUT = Path("datasets/general/data/splits")
 DEFAULT_REPORT = Path("datasets/general/split-report.md")
-ZH_DIR = Path("datasets/general/data/zh")
-#: 最终语料 = 英文原生四元组 + 中文侧（Lead 裁定 2026-10-05）。
-#: data/items.jsonl（37,124 条，替数据出题的旧版本）不参与最终切分，只能显式 --input 传入做回归对照。
+#: 最终语料是 db-hf 合并后的单一文件（英文原生四元组 + 已按 33% 目标筛过的中文侧）。
+#: 不自动叠加 datasets/general/data/zh/（会把中文侧重复计入）；别的语料只能显式 --input 传入，
+#: 且只用于 dry-run 验证：items.native.jsonl（英文全量）、D:/pol2-raw/zh-final/items.zh.jsonl（中文全量）、
+#: data/items.jsonl（替数据出题的旧版本，仅回归对照）。
 DEFAULT_INPUTS = (
-    Path("datasets/general/data/items.native.jsonl"),
+    Path("datasets/general/data/items.final.jsonl"),
 )
 ZH_PATH_MARKER = "data/zh/"
 #: 内部 benchmark 的保底配额（每个 lang x kind / 每个 domain / 每个 lang），可用命令行覆盖
@@ -103,9 +106,25 @@ def declared_group(item: dict):
             or _first_present(meta, keys + ("source_group",)))
 
 
-def resolve_inputs(explicit) -> list[Path]:
-    """解析输入；显式优先，否则探测默认位置（排除 splits 目录自身的产物）。"""
+def looks_like_items(path: Path) -> bool:
+    """判断一个 JSONL 是否像 items 文件（一行内有 id/domain/lang/questions）；只用于自动探测。"""
+    try:
+        for _lineno, row in iter_jsonl(path):
+            return (isinstance(row, dict) and row.get("id") and row.get("domain")
+                    and row.get("lang") and row.get("questions"))
+    except SplitError:
+        return False
+    return False
+
+
+def resolve_inputs(explicit, *, ignored: list | None = None) -> list[Path]:
+    """解析输入；显式优先，否则只认最终语料 items.final.jsonl。
+
+    目录输入会逐文件探测是否像条目文件（索引/清单类 JSONL 忽略并记入 ignored）；
+    显式文件不做过滤（你指定什么就读什么）。
+    """
     files: list[Path] = []
+    sink = ignored if ignored is not None else []
     if explicit:
         for raw in explicit:
             path = Path(raw)
@@ -113,7 +132,11 @@ def resolve_inputs(explicit) -> list[Path]:
                 found = sorted(p for p in path.rglob("*.jsonl"))
                 if not found:
                     raise SplitError(f"目录里没有 .jsonl: {path}")
-                files.extend(found)
+                for candidate in found:
+                    if looks_like_items(candidate):
+                        files.append(candidate)
+                    else:
+                        sink.append(candidate.as_posix())
             elif path.is_file():
                 files.append(path)
             else:
@@ -123,8 +146,6 @@ def resolve_inputs(explicit) -> list[Path]:
             if candidate.is_file():
                 files.append(candidate)
                 break
-        if ZH_DIR.is_dir():
-            files.extend(sorted(ZH_DIR.rglob("*.jsonl")))
     unique: list[Path] = []
     seen: set[str] = set()
     for path in files:
@@ -136,8 +157,8 @@ def resolve_inputs(explicit) -> list[Path]:
         seen.add(key)
         unique.append(path)
     if not unique:
-        raise SplitError("没有找到输入：用 --input 指定最终语料，或先等 task-18/task-19 产出 "
-                         + DEFAULT_INPUTS[0].as_posix())
+        raise SplitError("没有找到输入：最终语料 " + DEFAULT_INPUTS[0].as_posix()
+                         + " 还没生成（等 task-19 的合并产物）；dry-run 可用 --input 显式指定别的语料")
     return unique
 
 
@@ -433,14 +454,34 @@ def leak_report(records, labels, split_of_item, items=None) -> dict:
 
 # ---------------------------------------------------------------- 输出
 
+#: json.dumps(ensure_ascii=False) 不转义这三个字符。它们在 JSON 里合法，但 Python 的 str.splitlines()
+#: 会把 U+2028/U+2029 当换行、U+0085 当 NEL，于是"换一种读法"就把一条记录从中间劈开
+#: （coverage.py 第一次读 items.jsonl 就是这么炸的）。输出统一写成 \uXXXX 转义：无损、仍是合法 JSON。
+_LINE_SEPARATORS = ("\u2028", "\u2029", "\u0085")
+
+
+def escape_line_separators(text: str) -> str:
+    """把裸 U+2028 / U+2029 / U+0085 换成 JSON 转义形式（无损，只是换一种合法编码）。"""
+    for char in _LINE_SEPARATORS:
+        if char in text:
+            text = text.replace(char, "\\u%04x" % ord(char))
+    return text
+
+
 def _json_line(item: dict) -> str:
-    return json.dumps(item, ensure_ascii=False)
+    return escape_line_separators(json.dumps(item, ensure_ascii=False))
 
 
 def write_jsonl(path: Path, items) -> str:
     text = "".join(_json_line(item) + "\n" for item in items)
     path.write_text(text, encoding="utf-8", newline="\n")
     return text
+
+
+def count_bare_line_separators(path: Path) -> int:
+    """数产物里裸 U+2028 / U+2029 / U+0085 的字节数（应为 0；测试与报告都用这个口径）。"""
+    data = Path(path).read_bytes()
+    return sum(data.count(char.encode("utf-8")) for char in _LINE_SEPARATORS)
 
 
 def write_gz(path: Path, text: str) -> None:
@@ -484,7 +525,7 @@ def export_benchmark_dataset(directory: Path, items, groups: int, sources, *,
     text = write_jsonl(directory / "benchmark.jsonl", items)
     write_gz(directory / "benchmark.jsonl.gz", text)
     manifest = {
-        "name": "pol-general-decision-base-internal-benchmark",
+        "name": "pol-general-general-internal-benchmark",
         "private": True,
         "seed": seed,
         "ratios": ratios,
@@ -538,8 +579,68 @@ questions[] 是本条目自带的问题（origin=source 时 key 为来源原生�
 
 # ---------------------------------------------------------------- 报告
 
+#: 逐字节比对范围：4 个分区 + benchmark-dataset 的确定性产物
+PRODUCT_FILES = (
+    "train.jsonl", "train.jsonl.gz", "test.jsonl", "test.jsonl.gz",
+    "validation.jsonl", "validation.jsonl.gz", "benchmark.jsonl", "benchmark.jsonl.gz",
+    "benchmark-dataset/README.md", "benchmark-dataset/benchmark.jsonl",
+    "benchmark-dataset/benchmark.jsonl.gz", "benchmark-dataset/manifest.json",
+)
+
+
+def composition_summary(records, items) -> dict:
+    """数据成色：每种语言覆盖哪些 kind、各自来源数与最大来源占比（供报告如实写明缺口）。"""
+    lang_kinds: dict = defaultdict(set)
+    items_by_lang: Counter = Counter()
+    for record in records:
+        items_by_lang[record["lang"]] += 1
+        for kind in record["kinds"]:
+            lang_kinds[record["lang"]].add(kind)
+    sources_by_lang: dict = defaultdict(Counter)
+    for item in items:
+        source = item.get("source") if isinstance(item.get("source"), dict) else {}
+        sources_by_lang[str(item.get("lang"))][str(source.get("dataset", "(unknown)"))] += 1
+    kinds = sorted({kind for group in lang_kinds.values() for kind in group})
+    total = len(items)
+    single_source_langs = []
+    for lang, counter in sorted(sources_by_lang.items()):
+        if len(counter) == 1:
+            name, count = counter.most_common(1)[0]
+            single_source_langs.append({"lang": lang, "dataset": name, "items": count,
+                                        "share": count / max(total, 1)})
+    return {
+        "items_by_lang": dict(items_by_lang),
+        "single_source_langs": single_source_langs,
+        "kinds_by_lang": {lang: sorted(group) for lang, group in sorted(lang_kinds.items())},
+        "langs_by_kind": {kind: sorted(lang for lang, group in lang_kinds.items() if kind in group)
+                          for kind in kinds},
+        "sources_by_lang": {lang: dict(counter.most_common())
+                            for lang, counter in sorted(sources_by_lang.items())},
+    }
+
+
+def compare_dirs(left: Path, right: Path, names=PRODUCT_FILES) -> dict:
+    """逐字节比对两个目录下的同名产物；返回是否一致、树哈希与逐文件 sha256。"""
+    digests: dict = {}
+    problems: list = []
+    for name in names:
+        left_path, right_path = left / name, right / name
+        if not left_path.is_file() or not right_path.is_file():
+            problems.append(f"{name}: 缺文件")
+            continue
+        first = hashlib.sha256(left_path.read_bytes()).hexdigest()
+        second = hashlib.sha256(right_path.read_bytes()).hexdigest()
+        digests[name] = first
+        if first != second:
+            problems.append(f"{name}: {first[:12]} != {second[:12]}")
+    tree = hashlib.sha256("\n".join(f"{name}:{digests[name]}" for name in sorted(digests)).encode("utf-8"))
+    return {"files": len(names), "identical": not problems, "problems": problems[:5],
+            "tree_sha256": tree.hexdigest(), "digests": digests}
+
+
 def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks,
-                  seed: int, ratios: dict, counts: dict) -> str:
+                  seed: int, ratios: dict, counts: dict, composition: dict,
+                  rerun: dict | None = None) -> str:
     """split-report.md：只有聚合统计，不含任何样本内容。"""
     lines: list[str] = []
     total = len(items)
@@ -554,6 +655,9 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
     lines.append("")
     lines.append(f"- 随机种子：{seed}")
     lines.append("- 切分比例：" + ", ".join(f"{split}={ratios[split]:g}" for split in SPLITS))
+    if stats["input"].get("ignored"):
+        lines.append("- 自动探测时忽略的非条目 JSONL："
+                     + ", ".join(stats["input"]["ignored"]))
     lines.append(f"- 输入文件：{len(inputs)} 个")
     for entry in stats["input"]["files"]:
         lines.append(f"  - {entry['path']}：{entry['items']} 条")
@@ -573,6 +677,12 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
                  f"{groups['groups_with_multiple_declared_ids']} 个")
     lines.append(f"   - 无 state 的条目 {groups['items_without_state']} 条；"
                  f"state 分组：{'开启' if groups['state_grouping'] else '关闭'}")
+    gate = stats.get("group_id_gate") or {}
+    if gate:
+        state_text = "已通过" if not gate.get("missing") else (
+            "已用 --allow-missing-group-id 跳过（危险）" if gate.get("skipped") else "未通过")
+        lines.append(f"   - 中文侧分组 id 门禁（{', '.join(gate.get('required_langs', []))}）：{state_text}"
+                     + (f"，缺失 {gate['missing']} 条" if gate.get("missing") else ""))
     lines.append("2. **分层**：按 (domain, lang) 分层；层内组按种子洗牌，benchmark 先按 10% 预留，"
                  "其余组按 6:2:1 用「目标条数 - 已分配条数」最大缺口贪心分配。")
     lines.append("3. **benchmark 保底**：对每个 lang x kind、每个 domain、每个 lang 设下限，"
@@ -589,10 +699,37 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
         lines.append(f"| {split} | {item_count} | {item_count / total:.1%} | {ratios[split]:.0%} "
                      f"| {group_counts[split]} |")
     lines.append("")
-    lines.append("## 3. 分布（每区内部占比）")
+    lines.append("## 3. 数据成色与已知缺口（用户决策必读）")
+    lines.append("")
+    lines.append("| 语言 | 条目 | 覆盖的 kind | 来源数 | 最大来源占比 |")
+    lines.append("|---|---:|---|---:|---:|")
+    for lang, count in sorted(composition["items_by_lang"].items(), key=lambda kv: -kv[1]):
+        kinds = ", ".join(composition["kinds_by_lang"].get(lang, [])) or "-"
+        sources = composition["sources_by_lang"].get(lang, {})
+        top = next(iter(sources.values()), 0)
+        lines.append(f"| {lang} | {count} | {kinds} | {len(sources)} | {top / max(count, 1):.0%} |")
+    lines.append("")
+    lines.append("| kind | 出现在哪些语言 |")
+    lines.append("|---|---|")
+    for kind, langs in sorted(composition["langs_by_kind"].items()):
+        lines.append(f"| {kind} | {', '.join(langs)} |")
+    lines.append("")
+    for kind, langs in sorted(composition["langs_by_kind"].items()):
+        missing = [lang for lang in composition["items_by_lang"] if lang not in langs]
+        if missing:
+            lines.append(f"- **{kind} 只来自 {'/'.join(langs)}**，{'/'.join(missing)} 侧没有 {kind} 形态的原生数据。")
+    for row in composition.get("single_source_langs", []):
+        lines.append(f"- **{row['lang']} 侧只有单一来源** {row['dataset']}（{row['items']} 条，"
+                     f"占全语料 {row['share']:.0%}）——低于契约 40% 上限，但**没有第二来源兜底**，"
+                     "跨来源去偏能力有限，训练决策请按单一来源对待。")
+    lines.append("- 可选补强路径：中文 noul/score 目前没有原生来源；task-14 的中文分类衍生池"
+                 "（42,436 条，单标签 + documented 映射，**非原生四元组**）可作补强，属成色降级，"
+                 "需用户确认后另行引入——**本轮未引入**。")
+    lines.append("")
+    lines.append("## 4. 分布（每区内部占比）")
     lines.append("")
     for index, dimension in enumerate(("lang", "domain", "kind"), start=1):
-        lines.append(f"### 3.{index} {dimension}")
+        lines.append(f"### 4.{index} {dimension}")
         lines.append("")
         lines.append("| " + dimension + " | " + " | ".join(SPLITS) + " |")
         lines.append("|---|" + "---:|" * len(SPLITS))
@@ -604,7 +741,7 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
                 cells.append(f"{have} ({have / base:.0%})")
             lines.append(f"| {key} | " + " | ".join(cells) + " |")
         lines.append("")
-    lines.append("### 3.4 分层漂移（各区内 (domain, lang) 占比 vs 全局占比）")
+    lines.append("### 4.4 分层漂移（各区内 (domain, lang) 占比 vs 全局占比）")
     lines.append("")
     lines.append("| 分区 | 最大占比差 | 该层 |")
     lines.append("|---|---:|---|")
@@ -620,7 +757,7 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
                 worst, worst_cell = gap, f"{cell[0]}/{cell[1]}"
         lines.append(f"| {split} | {worst:.1%} | {worst_cell} |")
     lines.append("")
-    lines.append("## 4. benchmark 保底配额")
+    lines.append("## 5. benchmark 保底配额")
     lines.append("")
     lines.append("| 单元 | 下限 | 实际 | 该类不足（取全部） |")
     lines.append("|---|---:|---:|---|")
@@ -628,7 +765,7 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
         lines.append(f"| {floor['cell']} | {floor['required']} | {floor['have']} | "
                      f"{'是' if floor.get('capped') else '否'} |")
     lines.append("")
-    lines.append("## 5. 泄漏检查（必须为空）")
+    lines.append("## 6. 泄漏检查（必须为空）")
     lines.append("")
     lines.append(f"- 跨分区的组：{leaks['groups_multi_split']}")
     lines.append(f"- 跨分区的同一 state：{leaks['states_multi_split']}")
@@ -641,20 +778,37 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
     else:
         lines.append("- 结论：**空**（按组切分 + state 合并后无任何跨区）。")
     lines.append("")
-    lines.append("## 6. 来源汇总（benchmark 分区，聚合）")
+    lines.append("## 7. 来源汇总（benchmark 分区，聚合）")
     lines.append("")
     lines.append("| dataset | revision | license | 条目 |")
     lines.append("|---|---|---|---:|")
     for row in stats["sources"]:
         lines.append(f"| {row['dataset']} | {row['revision']} | {row['license']} | {row['items']} |")
     lines.append("")
-    lines.append("## 7. 产物")
+    lines.append("## 8. 产物")
     lines.append("")
     for split in SPLITS:
         suffix = "（**内部，勿公开**）" if split == "benchmark" else ""
         lines.append(f"- data/splits/{split}.jsonl（+.gz）：{counts['items'][split]} 条{suffix}")
     lines.append("- data/splits/benchmark-dataset/：可直接上传 HF 的 private benchmark"
                  "（dataset card + benchmark.jsonl(.gz) + manifest.json）")
+    lines.append("- data/splits/split-manifest.json：各产物 sha256 与复跑校验结果（机器可读）")
+    lines.append("")
+    lines.append("## 9. 可复现性（两次运行逐字节一致）")
+    lines.append("")
+    lines.append(f"- 随机种子：{seed}；同一输入 + 同一种子 → 同一分组、同一分配、同一顺序。")
+    lines.append("- 分区内条目按 id 排序；gzip 以 mtime=0 写入（gzip 头不含时间戳，否则两次压缩不会逐字节相同）。")
+    lines.append("- 输出把裸 U+2028 / U+2029 / U+0085 统一写成 \\uXXXX 转义（无损）：它们在 JSON 里合法，"
+                 "但用 str.splitlines() 读会被当成换行、把记录劈开。")
+    if rerun:
+        state = "**逐字节一致**" if rerun.get("identical") else "**不一致（见 problems）**"
+        lines.append(f"- 本次运行额外完整复跑一遍并写到独立临时目录，比对 {rerun['files']} 个产物文件：{state}。")
+        lines.append(f"- 产物树哈希（sha256 over 文件名+文件哈希）：{rerun.get('tree_sha256', '')}")
+        lines.append("- 比对范围：" + "、".join(PRODUCT_FILES))
+        if rerun.get("problems"):
+            lines.append("- 差异：" + "; ".join(rerun["problems"]))
+    else:
+        lines.append("- 本次运行未启用复跑校验（--no-verify-rerun）。")
     lines.append("")
     return "\n".join(lines)
 
@@ -678,7 +832,7 @@ def _parse_ratios(raw: str) -> dict:
 def run(argv=None) -> int:
     parser = argparse.ArgumentParser(description="最终语料切分 6:2:1:1（按请求分组）+ 内部 benchmark")
     parser.add_argument("--input", action="append", default=[], metavar="PATH",
-                        help="输入 JSONL 或目录（可重复；默认自动探测）")
+                        help="输入 JSONL 或目录（可重复；默认取最终语料 items.final.jsonl）")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help=f"分区输出目录（默认 {DEFAULT_OUT}）")
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT, help="切分报告路径")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
@@ -692,6 +846,8 @@ def run(argv=None) -> int:
                         help="这些语言必须带显式分组 id（默认 zh；中文侧缺 id 直接拒绝切分）")
     parser.add_argument("--allow-missing-group-id", action="store_true",
                         help="危险：允许中文侧缺分组 id（会退化成按行切，只用于探索）")
+    parser.add_argument("--no-verify-rerun", action="store_true",
+                        help="跳过复跑逐字节校验（默认会完整跑第二遍写到临时目录并比对）")
     parser.add_argument("--dry-run", action="store_true", help="只算不写（检查输入与比例）")
     args = parser.parse_args(argv)
 
@@ -704,49 +860,65 @@ def run(argv=None) -> int:
             return 2
 
     required_langs = tuple(args.require_group_id_lang) if args.require_group_id_lang else ("zh",)
-    try:
-        paths = resolve_inputs(args.input)
-        items, records, load_stats = load_records(paths, allow_duplicates=args.allow_duplicates)
-        gaps = group_id_gaps(records, required_langs=required_langs)
-        if gaps["total"] and not args.allow_missing_group_id:
-            print(f"拒绝切分：中文侧有 {gaps['total']} 条没有显式分组 id"
-                  "（按行切会静默泄漏，比切不出来更糟）。", file=sys.stderr)
-            for key, count in sorted(gaps["missing"].items()):
-                print(f"  - {key}: {count} 条（例 {gaps['examples'][key]}）", file=sys.stderr)
-            print("请让中文侧为同一请求的变体写同一个 group_id / request_id；"
-                  "确认可接受才加 --allow-missing-group-id（危险）。", file=sys.stderr)
-            return 3
-        split_of_item, labels, stats, _floors = assign_all(
-            records, ratios=ratios, seed=args.seed, use_state=not args.no_state_grouping,
+    ignored_inputs: list = []
+
+    def pipeline():
+        """一次完整流水线：读 → 分组/门禁 → 切分 → 派生分区与统计（复跑校验会再调一次）。"""
+        items_, records_, load_ = load_records(paths, allow_duplicates=args.allow_duplicates)
+        gaps_ = group_id_gaps(records_, required_langs=required_langs)
+        splits_, labels_, stats_, _ = assign_all(
+            records_, ratios=ratios, seed=args.seed, use_state=not args.no_state_grouping,
             min_per_domain=args.benchmark_min_per_domain,
             min_per_lang=args.benchmark_min_per_lang,
             min_per_kind=args.benchmark_min_per_kind)
+        stats_["group_id_gate"] = {
+            "required_langs": list(required_langs),
+            "missing": gaps_["total"],
+            "skipped": bool(args.allow_missing_group_id and gaps_["total"]),
+        }
+        stats_["input"] = load_
+        stats_["input"]["ignored"] = ignored_inputs
+        leak_ = leak_report(records_, labels_, splits_, items_)
+        split_items_ = {split: [] for split in SPLITS}
+        for item, split in zip(items_, splits_):
+            split_items_[split].append(item)
+        for split in SPLITS:
+            split_items_[split].sort(key=lambda item: str(item.get("id")))
+        counts_ = {dimension: defaultdict(Counter) for dimension in ("lang", "domain", "kind")}
+        counts_["items"] = Counter()
+        for record, split in zip(records_, splits_):
+            counts_["items"][split] += 1
+            counts_["lang"][record["lang"]][split] += 1
+            counts_["domain"][record["domain"]][split] += 1
+            for kind in record["kinds"]:
+                counts_["kind"][kind][split] += 1
+        stats_["sources"] = source_summary(split_items_["benchmark"])
+        benchmark_groups_ = len({label for label, split in zip(labels_, splits_) if split == "benchmark"})
+        return {"items": items_, "records": records_, "splits": splits_, "labels": labels_,
+                "stats": stats_, "gaps": gaps_, "leaks": leak_, "split_items": split_items_,
+                "counts": counts_, "benchmark_groups": benchmark_groups_}
+
+    try:
+        paths = resolve_inputs(args.input, ignored=ignored_inputs)
+        first = pipeline()
     except SplitError as exc:
         print(f"切分失败：{exc}", file=sys.stderr)
         return 2
 
-    leaks = leak_report(records, labels, split_of_item, items)
-    stats["input"] = load_stats
+    gaps = first["gaps"]
+    if gaps["total"] and not args.allow_missing_group_id:
+        print(f"拒绝切分：中文侧有 {gaps['total']} 条没有显式分组 id"
+              "（按行切会静默泄漏，比切不出来更糟）。", file=sys.stderr)
+        for key, count in sorted(gaps["missing"].items()):
+            print(f"  - {key}: {count} 条（例 {gaps['examples'][key]}）", file=sys.stderr)
+        print("请让中文侧为同一请求的变体写同一个 group_id / request_id；"
+              "确认可接受才加 --allow-missing-group-id（危险）。", file=sys.stderr)
+        return 3
 
-    split_items: dict = {split: [] for split in SPLITS}
-    for item, split in zip(items, split_of_item):
-        split_items[split].append(item)
-    for split in SPLITS:
-        split_items[split].sort(key=lambda item: str(item.get("id")))
-
-    counts = {dimension: defaultdict(Counter) for dimension in ("lang", "domain", "kind")}
-    counts["items"] = Counter()
-    for record, split in zip(records, split_of_item):
-        counts["items"][split] += 1
-        counts["lang"][record["lang"]][split] += 1
-        counts["domain"][record["domain"]][split] += 1
-        for kind in record["kinds"]:
-            counts["kind"][kind][split] += 1
-
-    benchmark_groups = len({label for label, split in zip(labels, split_of_item) if split == "benchmark"})
-    stats["sources"] = source_summary(split_items["benchmark"])
-
-    print(f"输入 {len(paths)} 个文件 / {len(items)} 条 / {stats['groups']['groups']} 组；"
+    leaks = first["leaks"]
+    stats = first["stats"]
+    counts = first["counts"]
+    print(f"输入 {len(paths)} 个文件 / {len(first['items'])} 条 / {stats['groups']['groups']} 组；"
           + "，".join(f"{split}={counts['items'][split]}" for split in SPLITS))
     print(f"泄漏检查：跨区组 {leaks['groups_multi_split']}，跨区 state {leaks['states_multi_split']}，"
           f"跨区 id {leaks['ids_multi_split']}")
@@ -754,19 +926,54 @@ def run(argv=None) -> int:
         print("dry-run：未写任何文件")
         return 0 if leaks["problem_count"] == 0 else 1
 
-    written = write_split_files(args.out, split_items)
-    export_benchmark_dataset(args.out / "benchmark-dataset", split_items["benchmark"],
-                             benchmark_groups, stats["sources"], seed=args.seed, ratios=ratios)
+    written = write_split_files(args.out, first["split_items"])
+    export_benchmark_dataset(args.out / "benchmark-dataset", first["split_items"]["benchmark"],
+                             first["benchmark_groups"], stats["sources"], seed=args.seed, ratios=ratios)
+
+    rerun = None
+    if not args.no_verify_rerun:
+        # 复跑校验：完整再跑一遍（重新读文件、重新分组、重新分配）并写到独立临时目录，逐字节比对
+        with tempfile.TemporaryDirectory(prefix="pol-split-rerun-") as workspace:
+            rerun_dir = Path(workspace)
+            second = pipeline()
+            write_split_files(rerun_dir, second["split_items"])
+            export_benchmark_dataset(rerun_dir / "benchmark-dataset", second["split_items"]["benchmark"],
+                                     second["benchmark_groups"], second["stats"]["sources"],
+                                     seed=args.seed, ratios=ratios)
+            rerun = compare_dirs(args.out, rerun_dir)
+
+    composition = composition_summary(first["records"], first["items"])
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(render_report(inputs=paths, items=items, records=records,
-                                         split_of_item=split_of_item, labels=labels, stats=stats,
-                                         leaks=leaks, seed=args.seed, ratios=ratios, counts=counts),
-                           encoding="utf-8", newline="\n")
-    print(f"已写：{args.out}（4 个分区 + benchmark-dataset）、{report_path}")
+    report_path.write_text(
+        render_report(inputs=paths, items=first["items"], records=first["records"],
+                      split_of_item=first["splits"], labels=first["labels"], stats=stats, leaks=leaks,
+                      seed=args.seed, ratios=ratios, counts=counts, composition=composition,
+                      rerun=rerun),
+        encoding="utf-8", newline="\n")
+
+    manifest = {
+        "schema": "pol-split-manifest/0.1",
+        "seed": args.seed,
+        "ratios": ratios,
+        "inputs": [path.as_posix() for path in paths],
+        "items": len(first["items"]),
+        "counts": {split: counts["items"][split] for split in SPLITS},
+        "rerun": None if rerun is None else {"files": rerun["files"], "identical": rerun["identical"],
+                                             "tree_sha256": rerun["tree_sha256"]},
+        "digests": {} if rerun is None else rerun["digests"],
+    }
+    (args.out / "split-manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8", newline="\n")
+
+    print(f"已写：{args.out}（4 个分区 + benchmark-dataset + split-manifest.json）、{report_path}")
     for split in SPLITS:
         print(f"  {split}: {written[split]['items']} 条")
-    return 0 if leaks["problem_count"] == 0 else 1
+    if rerun is not None:
+        print(f"复跑校验：{rerun['files']} 个文件逐字节"
+              f"{'一致' if rerun['identical'] else '不一致'}，树哈希 {rerun['tree_sha256'][:16]}")
+    return 0 if leaks["problem_count"] == 0 and (rerun is None or rerun["identical"]) else 1
 
 
 if __name__ == "__main__":

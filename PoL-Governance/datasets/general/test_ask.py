@@ -1,4 +1,4 @@
-"""decision-base/ask.py 的离线测试：全部 fixture / 假 opener，不联网、不需要密钥。
+"""general/ask.py 的离线测试：全部 fixture / 假 opener，不联网、不需要密钥。
 
     uv run --no-project --offline python -m unittest discover -s datasets/general -p "test_*.py" -q
 
