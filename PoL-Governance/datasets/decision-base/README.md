@@ -24,10 +24,20 @@
 | `domain` | string | 是 | 覆盖域，见第 3 节 |
 | `lang` | string | 是 | `en` / `zh` / 其他，保留源语言，不做静默翻译 |
 | `state` | string | 是 | 待判断的情境文本；不写结论、不写"这是违规"之类提示 |
-| `questions` | object[] | 是 | 非空；每条 `{key, kind, prompt, options?, scale?}` |
+| `questions` | object[] | 是 | 非空；每条 `{key, kind, prompt, options?, scale?, origin?, source_key?}` |
 | `targets` | object | 否 | `{<key>: {answer?, probs?}}`；源数据自带答案时填，否则留空等外部答案源 |
 | `source` | object | 是 | `{dataset, revision, config, split, row, license, url}`，全部必填，无法固定 revision 的一律不收 |
 | `meta` | object | 是 | `{converter, converter_version, created_at, quality_flags}` |
+
+`questions[].origin` 取值（**决定这道题是谁出的**，是本源最重要的区分）：
+
+- `source`：题目来自数据集本身。此时 `key` 直接用来源的原生问题名（如 `category`、`bug_severity`），
+  `source_key` 记录该原生名以便溯源，`state` 与 `options`／`scale`／`target` 全部用来源原文，**不做改写、翻译或档位压缩**。
+  这是首选形态：我们的目标模型只做"选一个"，题目应当来自真实决策场景，而不是我们替数据出题。
+- `taxonomy`：来源本身没有原生问题，由本地 taxonomy 生成题面。**这是次选**，只在来源确实不含问题时使用。
+  此时 `key` 取自 taxonomy 的问题键表。
+
+`coverage.py` 按 `origin` 分别统计：`source` 的原生键不在 taxonomy 词表内属正常，不应报 schema 警告。
 
 `questions[].kind` 取值：
 - `noul`：`options` 固定为 `[{"key":"yes"…},{"key":"no"…}]`。
