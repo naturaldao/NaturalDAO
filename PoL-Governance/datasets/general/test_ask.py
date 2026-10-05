@@ -1,6 +1,6 @@
 """decision-base/ask.py 的离线测试：全部 fixture / 假 opener，不联网、不需要密钥。
 
-    uv run --no-project --offline python -m unittest discover -s datasets/decision-base -p "test_*.py" -q
+    uv run --no-project --offline python -m unittest discover -s datasets/general -p "test_*.py" -q
 
 两类 fixture：
 1. 手搓条目一律用 taxonomy.build_questions() 生成（题型只认 taxonomy 一个真源，不再手写形状）；
@@ -877,7 +877,7 @@ class ChatBackendTests(BaseCase):
 # ------------------------------------------------------------------ 真实产物回归 fixture
 
 class RealSampleTests(unittest.TestCase):
-    """直接读 datasets/decision-base/fixtures/ask-items-sample.jsonl（真实 items.jsonl 截取）。"""
+    """直接读 datasets/general/fixtures/ask-items-sample.jsonl（真实 items.jsonl 截取）。"""
 
     @classmethod
     def setUpClass(cls):

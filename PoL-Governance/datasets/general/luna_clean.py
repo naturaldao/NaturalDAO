@@ -5,7 +5,7 @@
 * 只做「提取 + 字段级校验 + 归一 + 隔离」，默认不联网；只有显式 --live 才会为重生成调用模型。
 * **不得静默丢弃**：每条输入行必须落到 items 或 rejects 之一；统计里的 rows_without_output
   必须为 0，否则进程以非零码退出。
-* 契约与键名的权威是 datasets/decision-base/taxonomy.py（db-schema）；它存在时：
+* 契约与键名的权威是 datasets/general/taxonomy.py（db-schema）；它存在时：
   - 问题键解析别名（interaction_type→interaction_polarity 等）并取规范 options/scale/prompt；
   - 答案用 taxonomy.normalize_answer 归一、taxonomy.validate_target 校验；
   - 最后整条跑 taxonomy.item_errors 兜底。
@@ -41,7 +41,7 @@
 
 用法
 ----
-    uv run --no-project --offline python datasets/decision-base/luna_clean.py \
+    uv run --no-project --offline python datasets/general/luna_clean.py \
         --input raw.jsonl --items items.jsonl --rejects rejects.jsonl
     # 离线重生成路径（fixture 回放，不联网）
     ... --repair 1 --repair-fixture repairs.jsonl

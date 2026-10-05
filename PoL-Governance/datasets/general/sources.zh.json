@@ -2,8 +2,8 @@
   "version": "0.1",
   "generated_at": "2026-10-02T00:30:00+08:00",
   "owner": "pol2-replay",
-  "contract": "datasets/decision-base/README.md",
-  "audit": "datasets/decision-base/zh-survey.md",
+  "contract": "datasets/general/README.md",
+  "audit": "datasets/general/zh-survey.md",
   "raw_root_default": "D:\\pol2-raw",
   "page_size": 100,
   "quotas": {

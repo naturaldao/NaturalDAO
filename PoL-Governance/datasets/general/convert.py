@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 r"""把 D:\pol2-raw 下的原始行转换成 decision-base 契约条目（仅标准库）。
 
-配套：契约 datasets/decision-base/README.md、问题键 datasets/decision-base/taxonomy.py（db-schema 所有）。
+配套：契约 datasets/general/README.md、问题键 datasets/general/taxonomy.py（db-schema 所有）。
 
 输入：fetch.py 的产物目录 <raw-root>\<slug>\{manifest.json, rows.jsonl}
-输出：--out 指定的 items.jsonl（默认 datasets/decision-base/data/items.jsonl）与转换报告。
+输出：--out 指定的 items.jsonl（默认 datasets/general/data/items.jsonl）与转换报告。
 
 三条硬规则
 ----------
@@ -19,11 +19,11 @@ r"""把 D:\pol2-raw 下的原始行转换成 decision-base 契约条目（仅标
 
 用法
 ----
-    uv run --no-project --offline python datasets/decision-base/convert.py --raw-root D:\pol2-raw
-    uv run --no-project --offline python datasets/decision-base/convert.py --source jev-distill-v3 --limit 200 --out <临时目录>\items.jsonl
-    uv run --no-project --offline python datasets/decision-base/convert.py --mappings direct
+    uv run --no-project --offline python datasets/general/convert.py --raw-root D:\pol2-raw
+    uv run --no-project --offline python datasets/general/convert.py --source jev-distill-v3 --limit 200 --out <临时目录>\items.jsonl
+    uv run --no-project --offline python datasets/general/convert.py --mappings direct
 
-测试全离线：python -m unittest discover -s datasets/decision-base -p "test_*.py"
+测试全离线：python -m unittest discover -s datasets/general -p "test_*.py"
 """
 
 from __future__ import annotations
@@ -1469,6 +1469,13 @@ NATIVE_CONVERTERS = {
 }
 
 
+# ---------------------------------------------------------------- taxonomy 模板模式（对照 / 待归档）
+#
+# 这条线是"我们替数据出题"：用本地 taxonomy.py 的中文模板问题去套别人的 state。已被
+# --native（直接用来源原生 state/question/options/target）取代，不是训练首选。
+# 仍然保留的原因：items.jsonl（37,124 条模板版）作为对照产物存在，需要能复现；而且
+# coverage.py / ask.py / luna_clean.py / luna_gen.py / convert_zh.py 仍然 import taxonomy.py。
+# 整套删掉的前置条件见 ARCHIVE.md 的「清理提案」一节。
 CONVERTERS = {
     "jev_typed": convert_jev_typed,
     "open_jev": convert_open_jev,
@@ -1681,7 +1688,8 @@ def main(argv=None) -> int:
     max_state_chars = args.max_state_chars
     if max_state_chars is None:
         max_state_chars = 0 if args.native else MAX_STATE_CHARS
-    taxonomy = load_taxonomy(args.taxonomy)
+    # 原生模式不依赖 taxonomy.py（已解耦：它只是可选标注层），只有模板模式才加载
+    taxonomy = None if args.native else load_taxonomy(args.taxonomy)
     context = Context(taxonomy, mappings=args.mappings, question_lang=args.question_lang,
                       stratum_cap=args.stratum_cap, created_at=args.created_at,
                       max_state_chars=max_state_chars or MAX_STATE_CHARS)

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 r"""中文来源 → decision-base 契约条目（抓取 + 转换 + 报告，仅标准库）。
 
-配套契约：datasets/decision-base/README.md；来源清单：datasets/decision-base/sources.zh.json；
-调研与准入证据：datasets/decision-base/zh-survey.md。
+配套契约：datasets/general/README.md；来源清单：datasets/general/sources.zh.json；
+调研与准入证据：datasets/general/zh-survey.md。
 
 为什么单独一个文件
 ------------------
@@ -15,13 +15,13 @@ db-hf 的 fetch.py / convert.py 处理英文来源；中文来源的字段、许
 
 四个子命令
 ----------
-    uv run --no-project --offline python datasets/decision-base/convert_zh.py fetch --all
-    uv run --no-project --offline python datasets/decision-base/convert_zh.py convert --all \
+    uv run --no-project --offline python datasets/general/convert_zh.py fetch --all
+    uv run --no-project --offline python datasets/general/convert_zh.py convert --all \
         --out D:\pol2-raw\zh-items\items.zh.jsonl
-    uv run --no-project --offline python datasets/decision-base/convert_zh.py run --source cvalues-rlhf \
+    uv run --no-project --offline python datasets/general/convert_zh.py run --source cvalues-rlhf \
         --source chinese-emotion-dialogue --limit 200
-    uv run --no-project --offline python datasets/decision-base/convert_zh.py merge \
-        --zh D:\pol2-raw\zh-items\items.zh.jsonl --out datasets/decision-base/data/items.bilingual.jsonl
+    uv run --no-project --offline python datasets/general/convert_zh.py merge \
+        --zh D:\pol2-raw\zh-items\items.zh.jsonl --out datasets/general/data/items.bilingual.jsonl
 
 merge 把英文 items.jsonl 与中文条目合成双语底座：英文原样不动，中文按**域分层抽样**
 （每域下限 1,200 → 剩余按容量比例分域 → 域内按容量比例分源 → 源内 sha256(seed+id) 顺序取），
@@ -35,7 +35,7 @@ merge 把英文 items.jsonl 与中文条目合成双语底座：英文原样不�
 4. lang="zh"，id 与英文条目同规则；merge 会拒绝任何跨语言 id 碰撞。
 5. merge 不改写英文条目（按原顺序原样输出），只在中文侧做抽样。
 
-测试全离线：python -m unittest discover -s datasets/decision-base -p "test_*.py"
+测试全离线：python -m unittest discover -s datasets/general -p "test_*.py"
 """
 
 from __future__ import annotations

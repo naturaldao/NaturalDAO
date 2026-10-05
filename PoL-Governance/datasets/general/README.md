@@ -101,15 +101,15 @@
 
 | 路径 | 内容 | 归属 |
 |---|---|---|
-| `datasets/decision-base/README.md` | 本契约 | Lead |
-| `datasets/decision-base/sources.json` | 来源清单与配额 | Lead |
-| `datasets/decision-base/taxonomy.py` | 覆盖域与问题键定义 | db-schema |
-| `datasets/decision-base/coverage.py` | 覆盖报告与配额校验 | db-schema |
-| `datasets/decision-base/fetch.py` | 下载（datasets-server 分页）与断点续跑 | db-hf |
-| `datasets/decision-base/convert.py` | 各来源 → 统一 schema | db-hf |
-| `datasets/decision-base/ask.py` | 批量作答harness（Jev 适配、可续跑、默认离线） | db-ask |
-| `datasets/decision-base/luna_clean.py` | 自回归输出清洗成严格决策格式 | db-luna |
-| `datasets/decision-base/data/` | 构建产物 `items.jsonl` 等 | Lead 统管 |
+| `datasets/general/README.md` | 本契约 | Lead |
+| `datasets/general/sources.json` | 来源清单与配额 | Lead |
+| `datasets/general/taxonomy.py` | 覆盖域与问题键定义 | db-schema |
+| `datasets/general/coverage.py` | 覆盖报告与配额校验 | db-schema |
+| `datasets/general/fetch.py` | 下载（datasets-server 分页）与断点续跑 | db-hf |
+| `datasets/general/convert.py` | 各来源 → 统一 schema | db-hf |
+| `datasets/general/ask.py` | 批量作答harness（Jev 适配、可续跑、默认离线） | db-ask |
+| `datasets/general/luna_clean.py` | 自回归输出清洗成严格决策格式 | db-luna |
+| `datasets/general/data/` | 构建产物 `items.jsonl` 等 | Lead 统管 |
 
 原始下载放仓库外（`D:\pol2-raw\`），仓库只提交构建后的 items 与清单。
 
@@ -131,5 +131,5 @@
 
 ```powershell
 uv run --no-project --offline python tools/check.py
-uv run --no-project --offline python datasets/decision-base/coverage.py --items datasets/decision-base/data/items.jsonl
+uv run --no-project --offline python datasets/general/coverage.py --items datasets/general/data/items.jsonl
 ```

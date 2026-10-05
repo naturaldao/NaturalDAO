@@ -1,0 +1,416 @@
+{
+  "schema": "general-items-manifest/0.1",
+  "source_file": "datasets\\general\\data\\items.native.jsonl",
+  "verification": {
+    "compared": 15983,
+    "mismatches": {},
+    "examples": {}
+  },
+  "before": {
+    "records": 15983,
+    "bytes": 43374053,
+    "bytes_per_record": 2713.8,
+    "top_level": [
+      {
+        "field": "questions",
+        "bytes": 15647101,
+        "share": 0.3607
+      },
+      {
+        "field": "state",
+        "bytes": 7897022,
+        "share": 0.1821
+      },
+      {
+        "field": "meta",
+        "bytes": 7573321,
+        "share": 0.1746
+      },
+      {
+        "field": "targets",
+        "bytes": 5394177,
+        "share": 0.1244
+      },
+      {
+        "field": "source",
+        "bytes": 4487899,
+        "share": 0.1035
+      },
+      {
+        "field": "source.url",
+        "bytes": 1006186,
+        "share": 0.0232
+      },
+      {
+        "field": "source.revision",
+        "bytes": 671286,
+        "share": 0.0155
+      },
+      {
+        "field": "id",
+        "bytes": 516115,
+        "share": 0.0119
+      },
+      {
+        "field": "source.dataset",
+        "bytes": 494730,
+        "share": 0.0114
+      },
+      {
+        "field": "source.slug",
+        "bytes": 324319,
+        "share": 0.0075
+      },
+      {
+        "field": "domain",
+        "bytes": 324050,
+        "share": 0.0075
+      },
+      {
+        "field": "source.config",
+        "bytes": 190915,
+        "share": 0.0044
+      },
+      {
+        "field": "source.license",
+        "bytes": 175058,
+        "share": 0.004
+      },
+      {
+        "field": "source.split",
+        "bytes": 111881,
+        "share": 0.0026
+      },
+      {
+        "field": "lang",
+        "bytes": 63932,
+        "share": 0.0015
+      },
+      {
+        "field": "source.row",
+        "bytes": 59071,
+        "share": 0.0014
+      }
+    ],
+    "meta": [
+      {
+        "field": "native_state_note",
+        "bytes": 693557,
+        "share": 0.016
+      },
+      {
+        "field": "domain_rule",
+        "bytes": 517162,
+        "share": 0.0119
+      },
+      {
+        "field": "created_at",
+        "bytes": 431541,
+        "share": 0.0099
+      },
+      {
+        "field": "quality_flags",
+        "bytes": 383780,
+        "share": 0.0088
+      },
+      {
+        "field": "native_source",
+        "bytes": 329271,
+        "share": 0.0076
+      },
+      {
+        "field": "native_id",
+        "bytes": 249791,
+        "share": 0.0058
+      },
+      {
+        "field": "key_source",
+        "bytes": 207779,
+        "share": 0.0048
+      },
+      {
+        "field": "converter",
+        "bytes": 191796,
+        "share": 0.0044
+      },
+      {
+        "field": "native_domain",
+        "bytes": 158348,
+        "share": 0.0037
+      },
+      {
+        "field": "question_origin",
+        "bytes": 127864,
+        "share": 0.0029
+      },
+      {
+        "field": "native_config_shape",
+        "bytes": 116882,
+        "share": 0.0027
+      },
+      {
+        "field": "converter_version",
+        "bytes": 79915,
+        "share": 0.0018
+      },
+      {
+        "field": "native_family",
+        "bytes": 76925,
+        "share": 0.0018
+      },
+      {
+        "field": "native",
+        "bytes": 63932,
+        "share": 0.0015
+      },
+      {
+        "field": "native_task",
+        "bytes": 59071,
+        "share": 0.0014
+      },
+      {
+        "field": "native_kind",
+        "bytes": 52150,
+        "share": 0.0012
+      },
+      {
+        "field": "group_id",
+        "bytes": 22376,
+        "share": 0.0005
+      },
+      {
+        "field": "native_criteria_keys",
+        "bytes": 20905,
+        "share": 0.0005
+      },
+      {
+        "field": "native_option_count",
+        "bytes": 15772,
+        "share": 0.0004
+      },
+      {
+        "field": "state_id",
+        "bytes": 15198,
+        "share": 0.0004
+      },
+      {
+        "field": "native_label_key",
+        "bytes": 9212,
+        "share": 0.0002
+      },
+      {
+        "field": "native_label_alias",
+        "bytes": 4437,
+        "share": 0.0001
+      },
+      {
+        "field": "native_line_number",
+        "bytes": 2982,
+        "share": 0.0001
+      },
+      {
+        "field": "native_level",
+        "bytes": 1500,
+        "share": 0.0
+      }
+    ],
+    "questions": [
+      {
+        "field": "options",
+        "bytes": 6908979,
+        "share": 0.1593
+      },
+      {
+        "field": "prompt",
+        "bytes": 2991039,
+        "share": 0.069
+      },
+      {
+        "field": "key",
+        "bytes": 1405148,
+        "share": 0.0324
+      },
+      {
+        "field": "source_key",
+        "bytes": 1405148,
+        "share": 0.0324
+      },
+      {
+        "field": "scale",
+        "bytes": 816046,
+        "share": 0.0188
+      },
+      {
+        "field": "origin",
+        "bytes": 191312,
+        "share": 0.0044
+      },
+      {
+        "field": "kind",
+        "bytes": 170263,
+        "share": 0.0039
+      }
+    ]
+  },
+  "after": {
+    "records": 15983,
+    "bytes": 28415061,
+    "bytes_per_record": 1777.8,
+    "top_level": [
+      {
+        "field": "questions",
+        "bytes": 11990603,
+        "share": 0.422
+      },
+      {
+        "field": "state",
+        "bytes": 7897022,
+        "share": 0.2779
+      },
+      {
+        "field": "targets",
+        "bytes": 5394177,
+        "share": 0.1898
+      },
+      {
+        "field": "id",
+        "bytes": 516115,
+        "share": 0.0182
+      },
+      {
+        "field": "m",
+        "bytes": 489886,
+        "share": 0.0172
+      },
+      {
+        "field": "flags",
+        "bytes": 330172,
+        "share": 0.0116
+      },
+      {
+        "field": "domain",
+        "bytes": 324050,
+        "share": 0.0114
+      },
+      {
+        "field": "row",
+        "bytes": 59071,
+        "share": 0.0021
+      },
+      {
+        "field": "src",
+        "bytes": 15983,
+        "share": 0.0006
+      }
+    ],
+    "meta": [],
+    "questions": [
+      {
+        "field": "options",
+        "bytes": 6908979,
+        "share": 0.2431
+      },
+      {
+        "field": "prompt",
+        "bytes": 1759773,
+        "share": 0.0619
+      },
+      {
+        "field": "key",
+        "bytes": 1405148,
+        "share": 0.0495
+      },
+      {
+        "field": "scale",
+        "bytes": 816046,
+        "share": 0.0287
+      },
+      {
+        "field": "kind",
+        "bytes": 170263,
+        "share": 0.006
+      }
+    ]
+  },
+  "saved_bytes": 14958992,
+  "saved_share": 0.3449,
+  "slim": {
+    "path": "datasets\\general\\data\\items.native.slim.jsonl",
+    "records": 15983,
+    "bytes": 28431044,
+    "sha256": "5ec0b04214eac662366ae55b3fb506b1e26474376fa205b287d3d55e6a56811e"
+  },
+  "manifest": {
+    "path": "datasets\\general\\data\\items.native.manifest.json",
+    "bytes": 10226
+  },
+  "stats": {
+    "dropped_meta_keys": {
+      "domain_rule": 15983,
+      "native_source": 12557,
+      "native_option_count": 11765,
+      "native_config_shape": 4009,
+      "native_id": 9256,
+      "native_kind": 7756,
+      "native_family": 7756,
+      "native_domain": 8203,
+      "group_id": 792,
+      "native_line_number": 792,
+      "native_task": 2979,
+      "native_level": 1500,
+      "state_id": 447,
+      "native_label_alias": 1479,
+      "native_label_key": 1479,
+      "native_criteria_keys": 1479
+    },
+    "hoisted_flags": {
+      "jev-decisions-general-50k": [],
+      "jev-decisions-strata": [],
+      "jev-distill-v3": [],
+      "open-jev": [],
+      "procedural-typed-decisions": [],
+      "system-one-270m": [],
+      "systemone-lite-general": [
+        "hard_label_to_point_mass"
+      ]
+    },
+    "global_meta_keys": [
+      "converter",
+      "converter_version",
+      "created_at",
+      "native",
+      "question_origin"
+    ],
+    "per_source_meta_keys": {
+      "jev-decisions-general-50k": [
+        "key_source",
+        "native_state_note"
+      ],
+      "jev-decisions-strata": [
+        "key_source",
+        "native_state_note"
+      ],
+      "jev-distill-v3": [
+        "key_source"
+      ],
+      "open-jev": [
+        "key_source"
+      ],
+      "procedural-typed-decisions": [
+        "key_source"
+      ],
+      "system-one-270m": [
+        "key_source"
+      ],
+      "systemone-lite-general": [
+        "key_source",
+        "quality_flags"
+      ]
+    }
+  },
+  "gzip": {
+    "path": "datasets\\general\\data\\items.native.slim.jsonl.gz",
+    "bytes": 4521083,
+    "sha256": "b7d8c412fb1c2fb5301993a5ce5a5de7d5b33758bf56f7980c913ab94d3a34e3"
+  }
+}

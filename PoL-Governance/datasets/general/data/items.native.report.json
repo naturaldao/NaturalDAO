@@ -13,7 +13,7 @@
   ],
   "created_at": "2026-10-05T04:00:00+00:00",
   "raw_root": "D:\\pol2-raw",
-  "items_path": "C:\\Projects\\DAism\\NaturalDAO\\PoL-Governance\\datasets\\decision-base\\data\\items.native.jsonl",
+  "items_path": "C:\\Projects\\DAism\\NaturalDAO\\PoL-Governance\\datasets\\general\\data\\items.native.jsonl",
   "mappings_used": "all",
   "mappings_default": "all",
   "mappings_default_note": "core 问题 + direct 映射 + documented 映射；--mappings direct 只保留 core 问题与 direct 映射",

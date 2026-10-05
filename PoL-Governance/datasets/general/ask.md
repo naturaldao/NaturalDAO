@@ -24,25 +24,25 @@
 cd <仓库根>
 
 # (1) 离线：把 items.jsonl 展平成请求清单（qid/state/question/options），可直接交给 Jev
-uv run --no-project --offline python datasets/decision-base/ask.py plan `
-  --items datasets/decision-base/data/items.jsonl --out D:\pol2-out\requests.jsonl
+uv run --no-project --offline python datasets/general/ask.py plan `
+  --items datasets/general/data/items.jsonl --out D:\pol2-out\requests.jsonl
 
 # (2) 离线预演：写出真实请求包（URL/头/包体），核对形状；不联网
-uv run --no-project --offline python datasets/decision-base/ask.py run `
-  --items datasets/decision-base/data/items.jsonl --out D:\pol2-out --backend jev `
+uv run --no-project --offline python datasets/general/ask.py run `
+  --items datasets/general/data/items.jsonl --out D:\pol2-out --backend jev `
   --endpoint https://<官方地址>/<路径> --api-version <版本>
 
 # (3) 先小样本再放量：--limit 200 / --keys action,harmful / --domains risk_harm 任选
 #     --keys 取 items 里的 question key（键表见 db-schema 的 taxonomy.py QUESTION_KEYS）
-uv run --no-project --offline python datasets/decision-base/ask.py run `
-  --items datasets/decision-base/data/items.jsonl --out D:\pol2-out --backend jev --live `
+uv run --no-project --offline python datasets/general/ask.py run `
+  --items datasets/general/data/items.jsonl --out D:\pol2-out --backend jev --live `
   --endpoint https://<官方地址>/<路径> --api-version <版本> --integration-confirmed `
   --limit 200 --workers 4
 
 # (4) 全量：一条命令跑完（把 $env:JEV_API_KEY 设好）
 $env:JEV_API_KEY = "<密钥>"
-uv run --no-project --offline python datasets/decision-base/ask.py run `
-  --items datasets/decision-base/data/items.jsonl --out D:\pol2-out --backend jev --live `
+uv run --no-project --offline python datasets/general/ask.py run `
+  --items datasets/general/data/items.jsonl --out D:\pol2-out --backend jev --live `
   --endpoint https://<官方地址>/<路径> --api-version <版本> --integration-confirmed `
   --workers 8
 
@@ -50,11 +50,11 @@ uv run --no-project --offline python datasets/decision-base/ask.py run `
 #     只想把失败项重跑一遍：命令 (4) 末尾加 --retry-failed
 
 # (6) 核对与统计
-uv run --no-project --offline python datasets/decision-base/ask.py verify `
-  --items datasets/decision-base/data/items.jsonl --answers D:\pol2-out\answers.jev-<版本>.jsonl
-uv run --no-project --offline python datasets/decision-base/ask.py report `
+uv run --no-project --offline python datasets/general/ask.py verify `
+  --items datasets/general/data/items.jsonl --answers D:\pol2-out\answers.jev-<版本>.jsonl
+uv run --no-project --offline python datasets/general/ask.py report `
   --calls D:\pol2-out\calls.jev-<版本>.jsonl --answers D:\pol2-out\answers.jev-<版本>.jsonl `
-  --items datasets/decision-base/data/items.jsonl
+  --items datasets/general/data/items.jsonl
 ```
 
 产物目录自定（上例 `D:\pol2-out`）；若放进仓库，注意 [README](README.md) 第 5 节把 `data/` 归 Lead 统管。
@@ -83,7 +83,7 @@ uv run --no-project --offline python datasets/decision-base/ask.py report `
 
 ```powershell
 # 失败分类、延迟、token、成本、失败 qid 与原因（前 20 条）
-python datasets/decision-base/ask.py report --calls <calls.jsonl> --answers <answers.jsonl> --items <items.jsonl>
+python datasets/general/ask.py report --calls <calls.jsonl> --answers <answers.jsonl> --items <items.jsonl>
 # 机器可读：加 --json
 # 逐条原因在 calls.jsonl 里：phase=outcome 的 execution_status / failure_reason，
 # phase=attempt 的 status_code / failure_kind / error（timeout / error / invalid）。
@@ -139,7 +139,7 @@ choice/noul 只有 `options`）。plan/run 默认还会用 `taxonomy.item_errors
 ## 8. 自测
 
 ```powershell
-uv run --no-project --offline python -m unittest discover -s datasets/decision-base -p "test_*.py" -q
+uv run --no-project --offline python -m unittest discover -s datasets/general -p "test_*.py" -q
 ```
 
 其中 `fixtures/ask-items-sample.jsonl` 是从**真实 items.jsonl 截取的 10 条回归样本**

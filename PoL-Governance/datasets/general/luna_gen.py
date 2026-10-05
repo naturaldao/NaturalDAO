@@ -2,7 +2,7 @@
 
 设计
 ----
-* 键名权威是 datasets/decision-base/taxonomy.py（db-schema）：域、问题键、选项、量程、判据全部读它；
+* 键名权威是 datasets/general/taxonomy.py（db-schema）：域、问题键、选项、量程、判据全部读它；
   它不可用时才退回本文件里的 README 级兜底表，并在 summary 里标 taxonomy_source。
 * 默认 dry-run：只打印/写出**提示计划**（plan JSONL），绝不联网、绝不读密钥。
 * --live 才真调，且 --limit 必填；超过 BULK_LIMIT 需要 LUNA_BULK_APPROVED=1（放量由 Lead 批准）。
@@ -29,11 +29,11 @@
 典型用法
 --------
     # 1) 看提示（离线）
-    uv run --no-project --offline python datasets/decision-base/luna_gen.py --dry-run --out-plan plan.jsonl
+    uv run --no-project --offline python datasets/general/luna_gen.py --dry-run --out-plan plan.jsonl
     # 2) 小样本真实生成（需 --limit；冒烟授权为 5 条）
     ... --live --limit 5 --raw-out raw.jsonl --calls-log calls.jsonl
     # 3) 清洗成契约条目
-    uv run --no-project --offline python datasets/decision-base/luna_clean.py \
+    uv run --no-project --offline python datasets/general/luna_clean.py \
         --input raw.jsonl --items items.jsonl --rejects rejects.jsonl
 """
 

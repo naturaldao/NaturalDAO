@@ -2,7 +2,7 @@
 
 用法：
 
-    uv run --no-project --offline python datasets/decision-base/coverage.py --items datasets/decision-base/data/items.jsonl
+    uv run --no-project --offline python datasets/general/coverage.py --items datasets/general/data/items.jsonl
 
 输出：按 domain / source.dataset / 原语(kind) / lang / 问题键 的分布，PoL2 15 条判定轴的逐轴覆盖，
 以及配额校验（总量 / 每域 / 单一来源占比）。报告会写明本次配额用的是哪一套。
@@ -10,7 +10,7 @@
 配额来源（优先级从高到低，逐字段解析，报告 quotas.origin 给出每个字段的来源）：
 
 1. 命令行：--min-total / --min-per-domain / --domain-min / --max-source-share；
-2. datasets/decision-base/sources.json 的 quotas 段（db-hf 维护，字段名兼容见 resolve_quotas 的别名表）；
+2. datasets/general/sources.json 的 quotas 段（db-hf 维护，字段名兼容见 resolve_quotas 的别名表）；
 3. README 硬阈值（本文件常量）：总量 >= 10000、每域 >= 1200、单一来源 <= 40%。
 
 per-domain 政策（基础下限 + 例外）整组取用：命令行给了任一每域参数就整组用命令行，

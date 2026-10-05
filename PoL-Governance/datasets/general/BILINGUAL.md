@@ -39,19 +39,19 @@
 
 ```powershell
 # 1) 全量抓取（12 个中文来源；HF 免费下载，无付费调用；已抓完则自动跳过，未完成的加 --resume）
-uv run --no-project --offline python datasets/decision-base/convert_zh.py fetch --all --raw-root D:\pol2-raw\zh
+uv run --no-project --offline python datasets/general/convert_zh.py fetch --all --raw-root D:\pol2-raw\zh
 
 # 2) 转换（0 错误；产物在仓库外）
-uv run --no-project --offline python datasets/decision-base/convert_zh.py convert --all \
+uv run --no-project --offline python datasets/general/convert_zh.py convert --all \
     --raw-root D:\pol2-raw\zh --out D:\pol2-raw\zh-items\items.zh.jsonl
 
 # 3) 合并（英文原样 + 中文按域分层抽样；确定性，seed 固定）
-uv run --no-project --offline python datasets/decision-base/convert_zh.py merge \
-    --zh D:\pol2-raw\zh-items\items.zh.jsonl --out datasets/decision-base/data/items.bilingual.jsonl
+uv run --no-project --offline python datasets/general/convert_zh.py merge \
+    --zh D:\pol2-raw\zh-items\items.zh.jsonl --out datasets/general/data/items.bilingual.jsonl
 
 # 4) 覆盖校验
-uv run --no-project --offline python datasets/decision-base/coverage.py \
-    --items datasets/decision-base/data/items.bilingual.jsonl --json-out <临时目录>\coverage.json
+uv run --no-project --offline python datasets/general/coverage.py \
+    --items datasets/general/data/items.bilingual.jsonl --json-out <临时目录>\coverage.json
 ```
 
 抓取阶段遇到过 datasets-server 的 HTTP 429 限流：12 个来源里有 3 个（`chinese-emotion-dialogue`、

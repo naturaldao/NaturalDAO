@@ -3,7 +3,7 @@
 
 目标：外部答案源（官方 Jev / OpenAI 兼容端点 / 离线 fixture）在上万条问题上
 **一条命令跑完、断了能续、失败能重跑、产物符合契约 2.2 节**。
-契约：datasets/decision-base/README.md 第 2.2 节（字段名固定，不新增、不改名）。
+契约：datasets/general/README.md 第 2.2 节（字段名固定，不新增、不改名）。
 
 只依赖标准库；默认离线（不加 --live 只写请求计划，不联网）。
 密钥只从环境变量或 --key-file 读取，绝不写进任何产物；日志里只有 sha256 前 8 位指纹。
@@ -16,18 +16,18 @@
 
 常用命令
     # 1) 离线：生成请求清单（不联网、不需要密钥）
-    uv run --no-project --offline python datasets/decision-base/ask.py plan \
-        --items datasets/decision-base/data/items.jsonl --out <仓库外>/requests.jsonl
+    uv run --no-project --offline python datasets/general/ask.py plan \
+        --items datasets/general/data/items.jsonl --out <仓库外>/requests.jsonl
 
     # 2) 离线预演：只写请求计划，核对 URL/包体形状
-    uv run --no-project --offline python datasets/decision-base/ask.py run \
-        --items datasets/decision-base/data/items.jsonl --out <仓库外>/answers --backend jev \
+    uv run --no-project --offline python datasets/general/ask.py run \
+        --items datasets/general/data/items.jsonl --out <仓库外>/answers --backend jev \
         --endpoint https://<官方地址>/... --api-version <版本>
 
     # 3) 真跑（需要密钥；缺 endpoint/版本/密钥/--integration-confirmed 任一项退出码 2）
     $env:JEV_API_KEY = "<密钥>"
-    uv run --no-project --offline python datasets/decision-base/ask.py run \
-        --items datasets/decision-base/data/items.jsonl --out <仓库外>/answers --backend jev --live \
+    uv run --no-project --offline python datasets/general/ask.py run \
+        --items datasets/general/data/items.jsonl --out <仓库外>/answers --backend jev --live \
         --endpoint https://<官方地址>/... --api-version <版本> --integration-confirmed \
         --workers 8
 
@@ -35,10 +35,10 @@
     ... run --live ... --retry-failed
 
     # 5) 核对与统计
-    uv run --no-project --offline python datasets/decision-base/ask.py report \
+    uv run --no-project --offline python datasets/general/ask.py report \
         --calls <仓库外>/answers/calls.jev-<版本>.jsonl --answers <仓库外>/answers/answers.jev-<版本>.jsonl
-    uv run --no-project --offline python datasets/decision-base/ask.py verify \
-        --items datasets/decision-base/data/items.jsonl --answers <仓库外>/answers/answers.jev-<版本>.jsonl
+    uv run --no-project --offline python datasets/general/ask.py verify \
+        --items datasets/general/data/items.jsonl --answers <仓库外>/answers/answers.jev-<版本>.jsonl
 """
 from __future__ import annotations
 
@@ -73,7 +73,7 @@ except ImportError as error:  # pragma: no cover
 
 TOOL = "decision-base-ask"
 HARNESS_VERSION = "ask-v0.1"
-ANSWER_CONTRACT = "datasets/decision-base/README.md 2.2"
+ANSWER_CONTRACT = "datasets/general/README.md 2.2"
 CHAT_TEMPLATE_VERSION = "ask-chat-v0.1"
 
 KINDS = ("noul", "choice", "score")

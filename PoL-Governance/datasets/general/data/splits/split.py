@@ -1,0 +1,773 @@
+"""最终语料切分：按请求分组、按 domain x lang 分层、6:2:1:1、内部 benchmark（task-20）。
+
+用法::
+
+    uv run --no-project --offline python datasets/general/data/splits/split.py \
+        --out datasets/general/data/splits --report datasets/general/split-report.md --seed 20261005
+
+输入默认自动探测：datasets/general/data/items.native.jsonl（最终语料的英文侧）+
+datasets/general/data/zh/*.jsonl；也可用 --input 显式指定（文件或目录，支持 .gz）。
+data/items.jsonl（37,124 条，替数据出题的旧版本）不参与最终切分，只能显式传入做回归对照。
+
+中文侧硬门禁：zh 条目（或来自 data/zh/ 的条目）必须带显式分组 id
+（item/source/meta 下的 group_id / request_id / family_id），否则直接拒绝切分并返回 3，
+绝不退化成按行切——按行切会静默泄漏，比切不出来更糟。--allow-missing-group-id 可绕过，仅用于探索。
+
+四条最容易做错的地方，本脚本的对策：
+
+1. **按请求分组，绝不按行切分。** 分组键取（按优先级）item.group_id / source.group_id / meta.group_id /
+   source.request_id / meta.request_id；此外把**同一个归一化 state** 的条目并进同一组（并查集），
+   这样"同一请求的 4 套候选集变体"与"同 state 的翻译/改写"整组进同一分区。都取不到才退回 item id 兜底，
+   兜底条数与各组构成写进报告。
+2. **分层**：按 (domain, lang) 分层，层内按组用种子洗牌，再按"目标条数 - 已分配条数"最大缺口贪心分配，
+   使四区的域分布与语言比例大体一致。
+3. **benchmark 不是随机抽样**：先按 10% 比例预留，再对 lang x kind、domain、lang 做保底配额补齐
+   （该类不足时取全部），保证覆盖 noul/choice/score、主要 domain 与中英两侧。
+4. **隐私**：benchmark 条目只写进 --out 与 benchmark-dataset 目录；split-report.md 与 dataset card
+   只有聚合统计，**不含任何样本内容**（test_split.py 有对应断言）。请勿把 benchmark.jsonl(.gz)
+   提交到公开仓库——它由用户上传 Hugging Face 并设为 private。
+
+可复现：随机数全部来自 random.Random("seed|阶段|domain|lang")，分区内条目按 id 排序，
+gzip 用 mtime=0 写入；同一输入重跑两次逐字节一致（test_split.py 有对应测试）。
+"""
+
+from __future__ import annotations
+
+import argparse
+import gzip
+import hashlib
+import json
+import random
+import re
+import sys
+from collections import Counter, defaultdict
+from pathlib import Path
+
+SPLITS = ("train", "test", "validation", "benchmark")
+GROUPED_SPLITS = ("train", "test", "validation")
+DEFAULT_RATIOS = {"train": 0.6, "test": 0.2, "validation": 0.1, "benchmark": 0.1}
+DEFAULT_SEED = 20261005
+DEFAULT_OUT = Path("datasets/general/data/splits")
+DEFAULT_REPORT = Path("datasets/general/split-report.md")
+ZH_DIR = Path("datasets/general/data/zh")
+#: 最终语料 = 英文原生四元组 + 中文侧（Lead 裁定 2026-10-05）。
+#: data/items.jsonl（37,124 条，替数据出题的旧版本）不参与最终切分，只能显式 --input 传入做回归对照。
+DEFAULT_INPUTS = (
+    Path("datasets/general/data/items.native.jsonl"),
+)
+ZH_PATH_MARKER = "data/zh/"
+#: 内部 benchmark 的保底配额（每个 lang x kind / 每个 domain / 每个 lang），可用命令行覆盖
+DEFAULT_BENCHMARK_MIN_PER_CELL = 100
+_WS = re.compile(r"\s+")
+
+
+class SplitError(Exception):
+    """输入或配置不可用。"""
+
+
+# ---------------------------------------------------------------- 读取
+
+def iter_jsonl(path: Path | str):
+    """逐行读 JSONL（支持 .gz）；坏行直接报错。"""
+    source = Path(path)
+    opener = gzip.open if source.suffix == ".gz" else open
+    with opener(source, "rt", encoding="utf-8") as handle:
+        for lineno, line in enumerate(handle, 1):
+            if not line.strip():
+                continue
+            try:
+                yield lineno, json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise SplitError(f"{source}:{lineno} JSON 解析失败: {exc}") from exc
+
+
+def _first_present(mapping: dict, keys):
+    for key in keys:
+        value = mapping.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def normalize_state(text) -> str:
+    """state 归一：去首尾空白、压缩内部空白、大小写折叠。用于同 state 分组与泄漏检查。"""
+    return _WS.sub(" ", (text or "").strip()).casefold()
+
+
+def declared_group(item: dict):
+    """按优先级取显式分组键；取不到返回 None。"""
+    source = item.get("source") if isinstance(item.get("source"), dict) else {}
+    meta = item.get("meta") if isinstance(item.get("meta"), dict) else {}
+    keys = ("group_id", "request_id", "family_id")
+    return (_first_present(item, keys) or _first_present(source, keys)
+            or _first_present(meta, keys + ("source_group",)))
+
+
+def resolve_inputs(explicit) -> list[Path]:
+    """解析输入；显式优先，否则探测默认位置（排除 splits 目录自身的产物）。"""
+    files: list[Path] = []
+    if explicit:
+        for raw in explicit:
+            path = Path(raw)
+            if path.is_dir():
+                found = sorted(p for p in path.rglob("*.jsonl"))
+                if not found:
+                    raise SplitError(f"目录里没有 .jsonl: {path}")
+                files.extend(found)
+            elif path.is_file():
+                files.append(path)
+            else:
+                raise SplitError(f"输入不存在: {path}")
+    else:
+        for candidate in DEFAULT_INPUTS:
+            if candidate.is_file():
+                files.append(candidate)
+                break
+        if ZH_DIR.is_dir():
+            files.extend(sorted(ZH_DIR.rglob("*.jsonl")))
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for path in files:
+        if "data/splits" in path.as_posix():
+            continue  # 不把自己的产物当输入
+        key = str(path.resolve())
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    if not unique:
+        raise SplitError("没有找到输入：用 --input 指定最终语料，或先等 task-18/task-19 产出 "
+                         + DEFAULT_INPUTS[0].as_posix())
+    return unique
+
+
+def group_id_gaps(records, *, required_langs=("zh",), zh_path_marker: str = ZH_PATH_MARKER) -> dict:
+    """中文侧必须带显式分组 id：返回缺失统计。
+
+    Lead 的硬要求：中文侧变体共享同一个显式 group_id；没有就停下来报告，绝不退化成按行切
+    （按行切会静默泄漏，比切不出来更糟）。英文侧不要求（open-jev 本来就大部分没有显式键）。
+    """
+    missing: Counter = Counter()
+    examples: dict = {}
+    for record in records:
+        chinese_side = record["lang"] in required_langs or zh_path_marker in record["input"]
+        if chinese_side and not record["declared"]:
+            key = f"{record['input']} (lang={record['lang']})"
+            missing[key] += 1
+            examples.setdefault(key, record["id"])
+    return {"missing": dict(missing), "total": sum(missing.values()), "examples": examples}
+
+
+def load_records(paths, *, allow_duplicates: bool = False):
+    """读入所有条目；返回 (items, records, stats)。records 与 items 一一对应。"""
+    items: list[dict] = []
+    records: list[dict] = []
+    stats = {"files": [], "raw": 0, "duplicate_ids": 0}
+    seen_ids: set[str] = set()
+    for path in paths:
+        count = 0
+        for lineno, item in iter_jsonl(path):
+            stats["raw"] += 1
+            if not isinstance(item, dict):
+                raise SplitError(f"{path}:{lineno} 不是 JSON 对象")
+            for field in ("id", "domain", "lang", "questions"):
+                if not item.get(field):
+                    raise SplitError(f"{path}:{lineno} 缺必填字段 {field}")
+            item_id = str(item["id"])
+            if item_id in seen_ids:
+                stats["duplicate_ids"] += 1
+                if not allow_duplicates:
+                    raise SplitError(f"{path}:{lineno} id 重复 {item_id}（--allow-duplicates 保留首条）")
+                continue
+            seen_ids.add(item_id)
+            state = item.get("state")
+            kinds = tuple(sorted({str(q.get("kind")) for q in item.get("questions") or []
+                                  if isinstance(q, dict) and q.get("kind")}))
+            records.append({
+                "index": len(items),
+                "id": item_id,
+                "input": path.as_posix(),
+                "line": lineno,
+                "domain": str(item["domain"]),
+                "lang": str(item["lang"]),
+                "state_norm": normalize_state(state) if isinstance(state, str) else "",
+                "declared": declared_group(item),
+                "kinds": kinds,
+            })
+            items.append(item)
+            count += 1
+        stats["files"].append({"path": path.as_posix(), "items": count})
+    if not items:
+        raise SplitError("输入为空")
+    return items, records, stats
+
+
+# ---------------------------------------------------------------- 分组（并查集）
+
+def _state_node(state_norm: str) -> tuple:
+    return ("s", hashlib.sha1(state_norm.encode("utf-8")).hexdigest()[:20])
+
+
+def build_groups(records, *, use_state: bool = True):
+    """把条目并成请求组；返回 (每条目的组标签, 统计)。组标签由内容派生，稳定可复现。"""
+    parent: dict = {}
+
+    def find(node):
+        root = node
+        while parent[root] != root:
+            root = parent[root]
+        while parent[node] != root:
+            parent[node], node = root, parent[node]
+        return root
+
+    def union(left, right):
+        a, b = find(left), find(right)
+        if a != b:
+            parent[b] = a
+
+    nodes: list[tuple] = []
+    for record in records:
+        node = ("i", record["index"])
+        parent.setdefault(node, node)
+        nodes.append(node)
+        if record["declared"]:
+            other = ("g", record["declared"])
+            parent.setdefault(other, other)
+            nodes.append(other)
+            union(node, other)
+        if use_state and record["state_norm"]:
+            other = _state_node(record["state_norm"])
+            parent.setdefault(other, other)
+            nodes.append(other)
+            union(node, other)
+
+    members: dict = defaultdict(list)
+    for node in nodes:
+        members[find(node)].append(node)
+    label_of_root = {root: "|".join(sorted(f"{kind}:{value}" for kind, value in group))
+                     for root, group in members.items()}
+    labels = [label_of_root[find(("i", record["index"]))] for record in records]
+
+    by_label: dict = defaultdict(list)
+    for record, label in zip(records, labels):
+        by_label[label].append(record)
+    stats = {
+        "groups": len(by_label),
+        "items_with_declared_group": sum(1 for r in records if r["declared"]),
+        "items_without_declared_group": sum(1 for r in records if not r["declared"]),
+        "multi_item_groups": sum(1 for group in by_label.values() if len(group) > 1),
+        "largest_group": max((len(group) for group in by_label.values()), default=0),
+        "groups_with_multiple_states": sum(
+            1 for group in by_label.values() if len({r["state_norm"] for r in group}) > 1),
+        "groups_with_multiple_declared_ids": sum(
+            1 for group in by_label.values() if len({r["declared"] for r in group if r["declared"]}) > 1),
+        "items_without_state": sum(1 for r in records if not r["state_norm"]),
+        "state_grouping": use_state,
+    }
+    return labels, stats
+
+
+def group_stratum(group_records):
+    """组的 (domain, lang)：组内多数，平票按字典序，保证确定性。"""
+    counts = Counter((record["domain"], record["lang"]) for record in group_records)
+    return max(sorted(counts), key=lambda key: counts[key])
+
+
+# ---------------------------------------------------------------- 切分
+
+def _targets(items_count: int, ratios: dict, splits) -> dict:
+    total_ratio = sum(ratios[s] for s in splits)
+    return {s: items_count * ratios[s] / total_ratio for s in splits}
+
+
+def _shuffled(labels, seed: int, *parts) -> list[str]:
+    ordered = sorted(labels)
+    random.Random("|".join([str(seed), *parts])).shuffle(ordered)
+    return ordered
+
+
+def reserve_benchmark(records_by_group, ratios: dict, seed: int,
+                      min_per_domain: int, min_per_lang: int, min_per_kind: int):
+    """第一阶段：按 10% 预留 benchmark，再按保底配额补齐（lang x kind / domain / lang）。"""
+    total = sum(len(group) for group in records_by_group.values())
+    target = total * ratios["benchmark"]
+    by_stratum: dict = defaultdict(list)
+    for label, group in records_by_group.items():
+        by_stratum[group_stratum(group)].append(label)
+
+    reserved: set = set()
+    reserved_total = 0
+    budget = target * 1.2  # 允许一个组的粒度误差，但不让"每层至少一组"把 benchmark 撑大
+    for stratum in sorted(by_stratum):
+        labels = by_stratum[stratum]
+        stratum_items = sum(len(records_by_group[label]) for label in labels)
+        need = target * (stratum_items / total) if total else 0
+        taken = 0
+        for label in _shuffled(labels, seed, "bench", *stratum):
+            size = len(records_by_group[label])
+            if taken >= need:
+                break
+            if reserved_total >= target and reserved_total + size > budget:
+                break
+            reserved.add(label)
+            taken += size
+            reserved_total += size
+
+    def cell_items(predicate) -> int:
+        return sum(len(records_by_group[label]) for label in reserved if predicate(label))
+
+    domains = sorted({record["domain"] for group in records_by_group.values() for record in group})
+    langs = sorted({record["lang"] for group in records_by_group.values() for record in group})
+    pairs = sorted({(record["lang"], kind) for group in records_by_group.values()
+                    for record in group for kind in record["kinds"]})
+    definitions = []
+    for domain in domains:
+        definitions.append((min_per_domain, f"domain={domain}",
+                            lambda label, d=domain: any(r["domain"] == d for r in records_by_group[label])))
+    for lang in langs:
+        definitions.append((min_per_lang, f"lang={lang}",
+                            lambda label, l=lang: any(r["lang"] == l for r in records_by_group[label])))
+    for lang, kind in pairs:
+        definitions.append((min_per_kind, f"lang={lang},kind={kind}",
+                            lambda label, l=lang, k=kind: any(
+                                r["lang"] == l and k in r["kinds"] for r in records_by_group[label])))
+
+    floors: list[dict] = []
+    for required, name, predicate in definitions:
+        have = cell_items(predicate)
+        if have >= required:
+            floors.append({"cell": name, "required": required, "have": have, "capped": False})
+            continue
+        candidates = [label for label in records_by_group if label not in reserved and predicate(label)]
+        available = sum(len(records_by_group[label]) for label in candidates)
+        added = 0
+        for label in _shuffled(candidates, seed, "floor", name):
+            if cell_items(predicate) >= required:
+                break
+            reserved.add(label)
+            added += len(records_by_group[label])
+        have = cell_items(predicate)
+        floors.append({"cell": name, "required": required, "have": have, "added_items": added,
+                       "available_before": available, "capped": have < required})
+    return reserved, floors
+
+
+def assign_grouped(groups_by_stratum, records_by_group, ratios: dict, seed: int) -> dict:
+    """第二阶段：未预留的组按 6:2:1 分到 train/test/validation（层内最大缺口贪心）。"""
+    assignment: dict = {}
+    order = list(GROUPED_SPLITS)
+    for stratum in sorted(groups_by_stratum):
+        labels = groups_by_stratum[stratum]
+        stratum_items = sum(len(records_by_group[label]) for label in labels)
+        targets = _targets(stratum_items, ratios, GROUPED_SPLITS)
+        assigned = {split: 0 for split in GROUPED_SPLITS}
+        for label in _shuffled(labels, seed, "split", *stratum):
+            best = max(order, key=lambda split: (targets[split] - assigned[split], -order.index(split)))
+            assignment[label] = best
+            assigned[best] += len(records_by_group[label])
+    return assignment
+
+
+def assign_all(records, *, ratios: dict, seed: int, use_state: bool = True,
+               min_per_domain: int = DEFAULT_BENCHMARK_MIN_PER_CELL,
+               min_per_lang: int = DEFAULT_BENCHMARK_MIN_PER_CELL,
+               min_per_kind: int = DEFAULT_BENCHMARK_MIN_PER_CELL):
+    """完整切分；返回 (每条目分区, 组标签, 统计, 保底明细)。"""
+    labels, group_stats = build_groups(records, use_state=use_state)
+    grouped: dict = defaultdict(list)
+    for record, label in zip(records, labels):
+        grouped[label].append(record)
+    records_by_group = dict(grouped)
+
+    reserved, floors = reserve_benchmark(records_by_group, ratios, seed,
+                                         min_per_domain, min_per_lang, min_per_kind)
+    by_stratum: dict = defaultdict(list)
+    for label, group in records_by_group.items():
+        if label not in reserved:
+            by_stratum[group_stratum(group)].append(label)
+    assignment = assign_grouped(by_stratum, records_by_group, ratios, seed)
+    for label in reserved:
+        assignment[label] = "benchmark"
+
+    split_of_item = [assignment[label] for label in labels]
+    stats = {"groups": group_stats, "benchmark_reserved_groups": len(reserved),
+             "benchmark_floors": floors}
+    return split_of_item, labels, stats, floors
+
+
+# ---------------------------------------------------------------- 泄漏检查
+
+def leak_report(records, labels, split_of_item, items=None) -> dict:
+    """独立复核：组、归一化 state、id 都不得跨区。"""
+    problems: list[str] = []
+    splits_of_group: dict = defaultdict(set)
+    splits_of_state: dict = defaultdict(set)
+    ids: dict = defaultdict(set)
+    for record, label, split in zip(records, labels, split_of_item):
+        splits_of_group[label].add(split)
+        if record["state_norm"]:
+            splits_of_state[record["state_norm"]].add(split)
+        ids[record["id"]].add(split)
+    for label, splits in sorted(splits_of_group.items()):
+        if len(splits) > 1:
+            problems.append(f"组跨区 {sorted(splits)}：{label[:80]}")
+    for state, splits in sorted(splits_of_state.items()):
+        if len(splits) > 1:
+            problems.append(f"同一 state 跨区 {sorted(splits)}：{state[:80]}")
+    for item_id, splits in sorted(ids.items()):
+        if len(splits) > 1:
+            problems.append(f"id 跨区 {sorted(splits)}：{item_id}")
+    unknown = [s for s in split_of_item if s not in SPLITS]
+    if unknown:
+        problems.append(f"有 {len(unknown)} 条落到了未知分区")
+    return {
+        "groups_multi_split": sum(1 for splits in splits_of_group.values() if len(splits) > 1),
+        "states_multi_split": sum(1 for splits in splits_of_state.values() if len(splits) > 1),
+        "ids_multi_split": sum(1 for splits in ids.values() if len(splits) > 1),
+        "distinct_groups": len(splits_of_group),
+        "distinct_states": len(splits_of_state),
+        "problems": problems[:20],
+        "problem_count": len(problems),
+    }
+
+
+# ---------------------------------------------------------------- 输出
+
+def _json_line(item: dict) -> str:
+    return json.dumps(item, ensure_ascii=False)
+
+
+def write_jsonl(path: Path, items) -> str:
+    text = "".join(_json_line(item) + "\n" for item in items)
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return text
+
+
+def write_gz(path: Path, text: str) -> None:
+    """mtime=0 写 gzip：同一内容两次压缩逐字节一致。"""
+    with open(path, "wb") as raw:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as handle:
+            handle.write(text.encode("utf-8"))
+
+
+def write_split_files(out_dir: Path, split_items: dict) -> dict:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    written = {}
+    for split in SPLITS:
+        items = split_items[split]
+        text = write_jsonl(out_dir / f"{split}.jsonl", items)
+        write_gz(out_dir / f"{split}.jsonl.gz", text)
+        written[split] = {"items": len(items), "jsonl": (out_dir / f"{split}.jsonl").as_posix(),
+                          "gz": (out_dir / f"{split}.jsonl.gz").as_posix()}
+    return written
+
+
+def source_summary(items) -> list[dict]:
+    """按 (dataset, revision, license) 汇总来源；只用于 manifest 与报告，不含样本内容。"""
+    counts: dict = defaultdict(int)
+    for item in items:
+        source = item.get("source") if isinstance(item.get("source"), dict) else {}
+        counts[(str(source.get("dataset", "(unknown)")), str(source.get("revision", ""))[:12],
+                str(source.get("license", "")))] += 1
+    rows = [{"dataset": key[0], "revision": key[1], "license": key[2], "items": count}
+            for key, count in counts.items()]
+    return sorted(rows, key=lambda row: (-row["items"], row["dataset"]))
+
+
+def export_benchmark_dataset(directory: Path, items, groups: int, sources, *,
+                             seed: int, ratios: dict) -> dict:
+    """导出可直接上传 HF（private）的目录：dataset card + 数据 + 来源 manifest。
+
+    只写聚合信息，不写任何样本内容。
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    text = write_jsonl(directory / "benchmark.jsonl", items)
+    write_gz(directory / "benchmark.jsonl.gz", text)
+    manifest = {
+        "name": "pol-general-decision-base-internal-benchmark",
+        "private": True,
+        "seed": seed,
+        "ratios": ratios,
+        "items": len(items),
+        "groups": groups,
+        "sources": sources,
+        "warning": "内部 benchmark：请上传 Hugging Face 并设为 private，不得进入公开仓库或公开日志。",
+    }
+    (directory / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+    ratio_text = ", ".join(f"{key}={value:g}" for key, value in ratios.items())
+    card = f"""---
+license: other
+pretty_name: PoL 通用决策底座 · 内部 benchmark
+private: true
+---
+
+# PoL 通用决策底座 · 内部 benchmark（private）
+
+**用途**：内部模型比较与回归；不作为公开测试集，不进入训练或教师造数。
+**请勿公开**：本目录由用户上传 Hugging Face 并设为 private；不得进入公开仓库、公开日志或公开报告。
+
+## 规模
+
+- 条目数：{len(items)}
+- 请求组数：{groups}
+- 随机种子：{seed}（切分比例 {ratio_text}）
+- 覆盖：中英两侧；主要覆盖域与 noul / choice / score 三种原语（分布见 manifest.json）
+
+## 字段
+
+每条记录沿用数据集契约 datasets/general/README.md 第 2.1 节的 items 形状：
+id / domain / lang / state / questions[] / targets / source / meta。
+questions[] 是本条目自带的问题（origin=source 时 key 为来源原生名，origin=taxonomy 时取自 taxonomy 键表）。
+
+## 来源与许可
+
+逐来源的 dataset / revision / license / 条数见 manifest.json 的 sources 字段；
+每条记录自身的 source.dataset 与 source.revision 是唯一权威。
+
+## 生成
+
+    uv run --no-project --offline python datasets/general/data/splits/split.py --seed {seed}
+
+本卡片与 split-report.md 只包含聚合统计，不含任何 benchmark 样本内容。
+"""
+    (directory / "README.md").write_text(card, encoding="utf-8", newline="\n")
+    return {"directory": directory.as_posix(), "items": len(items),
+            "card": "README.md", "manifest": "manifest.json"}
+
+
+# ---------------------------------------------------------------- 报告
+
+def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks,
+                  seed: int, ratios: dict, counts: dict) -> str:
+    """split-report.md：只有聚合统计，不含任何样本内容。"""
+    lines: list[str] = []
+    total = len(items)
+    group_counts = Counter()
+    for split in split_of_item:
+        group_counts[split] += 1
+    lines.append("# 最终切分报告（6:2:1:1，按请求分组）")
+    lines.append("")
+    lines.append("本报告只含聚合统计，**不含任何样本内容**；内部 benchmark 的条目只存在于 "
+                 "data/splits/benchmark.jsonl(.gz) 与 data/splits/benchmark-dataset/，"
+                 "请勿提交到公开仓库，请上传 Hugging Face 并设为 private。")
+    lines.append("")
+    lines.append(f"- 随机种子：{seed}")
+    lines.append("- 切分比例：" + ", ".join(f"{split}={ratios[split]:g}" for split in SPLITS))
+    lines.append(f"- 输入文件：{len(inputs)} 个")
+    for entry in stats["input"]["files"]:
+        lines.append(f"  - {entry['path']}：{entry['items']} 条")
+    lines.append(f"- 条目总数：{total}；请求组 {stats['groups']['groups']} 个")
+    lines.append("")
+    lines.append("## 1. 切分算法")
+    lines.append("")
+    lines.append("1. **分组**（并查集）：显式分组键（item.group_id / source.group_id / meta.group_id / "
+                 "source.request_id / meta.request_id）与**归一化 state**（去空白、压缩空白、大小写折叠）"
+                 "各自连边；同一分量的所有条目整组进同一分区，绝不按行切。")
+    groups = stats["groups"]
+    lines.append(f"   - 显式分组键 {groups['items_with_declared_group']} 条；"
+                 f"无显式键（靠 state 或 id 兜底）{groups['items_without_declared_group']} 条")
+    lines.append(f"   - 组数 {groups['groups']}；多条目组 {groups['multi_item_groups']} 个；"
+                 f"最大组 {groups['largest_group']} 条；跨多个 state 的组 "
+                 f"{groups['groups_with_multiple_states']} 个；含多个显式分组 id 的组 "
+                 f"{groups['groups_with_multiple_declared_ids']} 个")
+    lines.append(f"   - 无 state 的条目 {groups['items_without_state']} 条；"
+                 f"state 分组：{'开启' if groups['state_grouping'] else '关闭'}")
+    lines.append("2. **分层**：按 (domain, lang) 分层；层内组按种子洗牌，benchmark 先按 10% 预留，"
+                 "其余组按 6:2:1 用「目标条数 - 已分配条数」最大缺口贪心分配。")
+    lines.append("3. **benchmark 保底**：对每个 lang x kind、每个 domain、每个 lang 设下限，"
+                 "不足时从其余组整组补足；该类总量不足下限时取全部并在下表标「是」。")
+    lines.append("4. **确定性**：随机数来自 random.Random(\"seed|阶段|domain|lang\")；分区内条目按 id 排序；"
+                 "gzip 以 mtime=0 写入 → 同一输入重跑逐字节一致。")
+    lines.append("")
+    lines.append("## 2. 分区规模")
+    lines.append("")
+    lines.append("| 分区 | 条目 | 占比 | 目标占比 | 请求组 |")
+    lines.append("|---|---:|---:|---:|---:|")
+    for split in SPLITS:
+        item_count = counts["items"][split]
+        lines.append(f"| {split} | {item_count} | {item_count / total:.1%} | {ratios[split]:.0%} "
+                     f"| {group_counts[split]} |")
+    lines.append("")
+    lines.append("## 3. 分布（每区内部占比）")
+    lines.append("")
+    for index, dimension in enumerate(("lang", "domain", "kind"), start=1):
+        lines.append(f"### 3.{index} {dimension}")
+        lines.append("")
+        lines.append("| " + dimension + " | " + " | ".join(SPLITS) + " |")
+        lines.append("|---|" + "---:|" * len(SPLITS))
+        for key in sorted(counts[dimension]):
+            cells = []
+            for split in SPLITS:
+                have = counts[dimension][key].get(split, 0)
+                base = counts["items"][split] or 1
+                cells.append(f"{have} ({have / base:.0%})")
+            lines.append(f"| {key} | " + " | ".join(cells) + " |")
+        lines.append("")
+    lines.append("### 3.4 分层漂移（各区内 (domain, lang) 占比 vs 全局占比）")
+    lines.append("")
+    lines.append("| 分区 | 最大占比差 | 该层 |")
+    lines.append("|---|---:|---|")
+    global_cells = Counter((record["domain"], record["lang"]) for record in records)
+    for split in SPLITS:
+        base = counts["items"][split] or 1
+        split_cells = Counter((record["domain"], record["lang"])
+                              for record, assigned in zip(records, split_of_item) if assigned == split)
+        worst, worst_cell = 0.0, "-"
+        for cell, count in global_cells.items():
+            gap = abs(split_cells.get(cell, 0) / base - count / total)
+            if gap > worst:
+                worst, worst_cell = gap, f"{cell[0]}/{cell[1]}"
+        lines.append(f"| {split} | {worst:.1%} | {worst_cell} |")
+    lines.append("")
+    lines.append("## 4. benchmark 保底配额")
+    lines.append("")
+    lines.append("| 单元 | 下限 | 实际 | 该类不足（取全部） |")
+    lines.append("|---|---:|---:|---|")
+    for floor in stats["benchmark_floors"]:
+        lines.append(f"| {floor['cell']} | {floor['required']} | {floor['have']} | "
+                     f"{'是' if floor.get('capped') else '否'} |")
+    lines.append("")
+    lines.append("## 5. 泄漏检查（必须为空）")
+    lines.append("")
+    lines.append(f"- 跨分区的组：{leaks['groups_multi_split']}")
+    lines.append(f"- 跨分区的同一 state：{leaks['states_multi_split']}")
+    lines.append(f"- 跨分区的 id：{leaks['ids_multi_split']}")
+    lines.append(f"- 复核范围：{leaks['distinct_groups']} 组 / {leaks['distinct_states']} 个不同 state")
+    if leaks["problems"]:
+        lines.append("")
+        for problem in leaks["problems"]:
+            lines.append(f"    {problem}")
+    else:
+        lines.append("- 结论：**空**（按组切分 + state 合并后无任何跨区）。")
+    lines.append("")
+    lines.append("## 6. 来源汇总（benchmark 分区，聚合）")
+    lines.append("")
+    lines.append("| dataset | revision | license | 条目 |")
+    lines.append("|---|---|---|---:|")
+    for row in stats["sources"]:
+        lines.append(f"| {row['dataset']} | {row['revision']} | {row['license']} | {row['items']} |")
+    lines.append("")
+    lines.append("## 7. 产物")
+    lines.append("")
+    for split in SPLITS:
+        suffix = "（**内部，勿公开**）" if split == "benchmark" else ""
+        lines.append(f"- data/splits/{split}.jsonl（+.gz）：{counts['items'][split]} 条{suffix}")
+    lines.append("- data/splits/benchmark-dataset/：可直接上传 HF 的 private benchmark"
+                 "（dataset card + benchmark.jsonl(.gz) + manifest.json）")
+    lines.append("")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- 主流程
+
+def _parse_ratios(raw: str) -> dict:
+    ratios: dict = {}
+    for part in raw.split(","):
+        name, _, value = part.partition("=")
+        name = name.strip()
+        if name not in SPLITS:
+            raise ValueError(f"未知分区 {name!r}")
+        ratios[name] = float(value)
+    missing = [split for split in SPLITS if split not in ratios]
+    if missing:
+        raise ValueError(f"缺少分区 {missing}")
+    return ratios
+
+
+def run(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="最终语料切分 6:2:1:1（按请求分组）+ 内部 benchmark")
+    parser.add_argument("--input", action="append", default=[], metavar="PATH",
+                        help="输入 JSONL 或目录（可重复；默认自动探测）")
+    parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help=f"分区输出目录（默认 {DEFAULT_OUT}）")
+    parser.add_argument("--report", type=Path, default=DEFAULT_REPORT, help="切分报告路径")
+    parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
+    parser.add_argument("--ratios", default=None, help="覆盖比例，如 train=0.6,test=0.2,validation=0.1,benchmark=0.1")
+    parser.add_argument("--benchmark-min-per-domain", type=int, default=DEFAULT_BENCHMARK_MIN_PER_CELL)
+    parser.add_argument("--benchmark-min-per-lang", type=int, default=DEFAULT_BENCHMARK_MIN_PER_CELL)
+    parser.add_argument("--benchmark-min-per-kind", type=int, default=DEFAULT_BENCHMARK_MIN_PER_CELL)
+    parser.add_argument("--no-state-grouping", action="store_true", help="只用显式分组键（默认会合并同 state）")
+    parser.add_argument("--allow-duplicates", action="store_true", help="重复 id 保留首条而不报错")
+    parser.add_argument("--require-group-id-lang", action="append", default=None, metavar="LANG",
+                        help="这些语言必须带显式分组 id（默认 zh；中文侧缺 id 直接拒绝切分）")
+    parser.add_argument("--allow-missing-group-id", action="store_true",
+                        help="危险：允许中文侧缺分组 id（会退化成按行切，只用于探索）")
+    parser.add_argument("--dry-run", action="store_true", help="只算不写（检查输入与比例）")
+    args = parser.parse_args(argv)
+
+    ratios = dict(DEFAULT_RATIOS)
+    if args.ratios:
+        try:
+            ratios = _parse_ratios(args.ratios)
+        except ValueError as exc:
+            print(f"参数错误：--ratios {exc}", file=sys.stderr)
+            return 2
+
+    required_langs = tuple(args.require_group_id_lang) if args.require_group_id_lang else ("zh",)
+    try:
+        paths = resolve_inputs(args.input)
+        items, records, load_stats = load_records(paths, allow_duplicates=args.allow_duplicates)
+        gaps = group_id_gaps(records, required_langs=required_langs)
+        if gaps["total"] and not args.allow_missing_group_id:
+            print(f"拒绝切分：中文侧有 {gaps['total']} 条没有显式分组 id"
+                  "（按行切会静默泄漏，比切不出来更糟）。", file=sys.stderr)
+            for key, count in sorted(gaps["missing"].items()):
+                print(f"  - {key}: {count} 条（例 {gaps['examples'][key]}）", file=sys.stderr)
+            print("请让中文侧为同一请求的变体写同一个 group_id / request_id；"
+                  "确认可接受才加 --allow-missing-group-id（危险）。", file=sys.stderr)
+            return 3
+        split_of_item, labels, stats, _floors = assign_all(
+            records, ratios=ratios, seed=args.seed, use_state=not args.no_state_grouping,
+            min_per_domain=args.benchmark_min_per_domain,
+            min_per_lang=args.benchmark_min_per_lang,
+            min_per_kind=args.benchmark_min_per_kind)
+    except SplitError as exc:
+        print(f"切分失败：{exc}", file=sys.stderr)
+        return 2
+
+    leaks = leak_report(records, labels, split_of_item, items)
+    stats["input"] = load_stats
+
+    split_items: dict = {split: [] for split in SPLITS}
+    for item, split in zip(items, split_of_item):
+        split_items[split].append(item)
+    for split in SPLITS:
+        split_items[split].sort(key=lambda item: str(item.get("id")))
+
+    counts = {dimension: defaultdict(Counter) for dimension in ("lang", "domain", "kind")}
+    counts["items"] = Counter()
+    for record, split in zip(records, split_of_item):
+        counts["items"][split] += 1
+        counts["lang"][record["lang"]][split] += 1
+        counts["domain"][record["domain"]][split] += 1
+        for kind in record["kinds"]:
+            counts["kind"][kind][split] += 1
+
+    benchmark_groups = len({label for label, split in zip(labels, split_of_item) if split == "benchmark"})
+    stats["sources"] = source_summary(split_items["benchmark"])
+
+    print(f"输入 {len(paths)} 个文件 / {len(items)} 条 / {stats['groups']['groups']} 组；"
+          + "，".join(f"{split}={counts['items'][split]}" for split in SPLITS))
+    print(f"泄漏检查：跨区组 {leaks['groups_multi_split']}，跨区 state {leaks['states_multi_split']}，"
+          f"跨区 id {leaks['ids_multi_split']}")
+    if args.dry_run:
+        print("dry-run：未写任何文件")
+        return 0 if leaks["problem_count"] == 0 else 1
+
+    written = write_split_files(args.out, split_items)
+    export_benchmark_dataset(args.out / "benchmark-dataset", split_items["benchmark"],
+                             benchmark_groups, stats["sources"], seed=args.seed, ratios=ratios)
+    report_path = Path(args.report)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(render_report(inputs=paths, items=items, records=records,
+                                         split_of_item=split_of_item, labels=labels, stats=stats,
+                                         leaks=leaks, seed=args.seed, ratios=ratios, counts=counts),
+                           encoding="utf-8", newline="\n")
+    print(f"已写：{args.out}（4 个分区 + benchmark-dataset）、{report_path}")
+    for split in SPLITS:
+        print(f"  {split}: {written[split]['items']} 条")
+    return 0 if leaks["problem_count"] == 0 else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(run())

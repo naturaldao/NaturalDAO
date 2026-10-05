@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 r"""从 HuggingFace datasets-server 抓取 decision-base 原始行（仅标准库）。
 
-配套契约：datasets/decision-base/README.md；来源清单：datasets/decision-base/sources.json。
+配套契约：datasets/general/README.md；来源清单：datasets/general/sources.json。
 原始数据写到仓库外的 D:\pol2-raw\<slug>\，仓库里只提交构建产物。
 
 为什么不直接相信 revision 参数
@@ -19,12 +19,12 @@ sha、不传 revision，/rows 返回完全相同的首行。因此本模块：
 
 用法
 ----
-    uv run --no-project --offline python datasets/decision-base/fetch.py --list
-    uv run --no-project --offline python datasets/decision-base/fetch.py --source jev-distill-v3 --limit 200
-    uv run --no-project --offline python datasets/decision-base/fetch.py --all --resume
-    uv run --no-project --offline python datasets/decision-base/fetch.py --source open-jev --dry-run
+    uv run --no-project --offline python datasets/general/fetch.py --list
+    uv run --no-project --offline python datasets/general/fetch.py --source jev-distill-v3 --limit 200
+    uv run --no-project --offline python datasets/general/fetch.py --all --resume
+    uv run --no-project --offline python datasets/general/fetch.py --source open-jev --dry-run
 
-测试全离线：python -m unittest discover -s datasets/decision-base -p "test_*.py"
+测试全离线：python -m unittest discover -s datasets/general -p "test_*.py"
 """
 
 from __future__ import annotations

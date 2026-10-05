@@ -1,0 +1,301 @@
+{
+  "schema": "general-items-manifest/0.1",
+  "generated_at": "2026-10-05T04:00:00+00:00",
+  "converter": "convert.py",
+  "converter_version": "0.1",
+  "defaults": {
+    "converter": "convert.py",
+    "converter_version": "0.1",
+    "created_at": "2026-10-05T04:00:00+00:00",
+    "native": true,
+    "question_origin": "source",
+    "lang": "en",
+    "prompt": "缺省等于 key（origin=source 时问题文本就是原生问题名）",
+    "source_key": "缺省等于 key（契约规定 origin=source 时两者相同）",
+    "omitted_when_empty": [
+      "quality_flags"
+    ]
+  },
+  "dropped_meta_keys": {
+    "domain_rule": {
+      "records": 15983,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "group_id": {
+      "records": 792,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_config_shape": {
+      "records": 4009,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_criteria_keys": {
+      "records": 1479,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_domain": {
+      "records": 8203,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_family": {
+      "records": 7756,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_id": {
+      "records": 9256,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_kind": {
+      "records": 7756,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_label_alias": {
+      "records": 1479,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_label_key": {
+      "records": 1479,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_level": {
+      "records": 1500,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_line_number": {
+      "records": 792,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_option_count": {
+      "records": 11765,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_source": {
+      "records": 12557,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "native_task": {
+      "records": 2979,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    },
+    "state_id": {
+      "records": 447,
+      "how_to_recover": "按 (src,row) 读 sources[src].trace.raw_file 的那一行，字段同名"
+    }
+  },
+  "record_fields": [
+    "id",
+    "src",
+    "row",
+    "domain",
+    "state",
+    "questions",
+    "targets",
+    "flags?(非空时)",
+    "m?(逐条变化的 meta)"
+  ],
+  "notes": [
+    "溯源：(src,row) + sources[src].dataset/revision/config/split/license/url + trace.raw_file/raw_sha256 唯一定位原始行；被删字段可从那一行读回",
+    "meta 三档：defaults（全库恒定）/ sources[].meta（该来源恒定）/ 记录 m（逐条变化）",
+    "questions[].origin 与 source_key 见 defaults；prompt 仅在不同于 key 时出现",
+    "quality_flags 为空时省略，展开时同样不补空数组"
+  ],
+  "sources": [
+    {
+      "src": 0,
+      "slug": "jev-decisions-general-50k",
+      "dataset": "samatv256/jev-decisions-v1",
+      "revision": "c12aadf1f01c72616bfab0b02480e21806397669",
+      "config": "general-clean-50k",
+      "split": "train",
+      "license": "cc-by-4.0",
+      "url": "https://huggingface.co/datasets/samatv256/jev-decisions-v1",
+      "row_range": [
+        0,
+        3999
+      ],
+      "items": 3802,
+      "meta": {
+        "key_source": "native-text",
+        "native_state_note": "state 取原生 state.user_goal；完整原生 state（system/history/environment）可按 source 的 dataset+revision+config+split+row 从 D:\\pol2-raw 的原始行复原"
+      },
+      "trace": {
+        "raw_file": "D:\\pol2-raw\\jev-decisions-general-50k\\rows.jsonl",
+        "raw_rows": 4000,
+        "raw_bytes": 74318252,
+        "raw_sha256": "a0f528c3df8a620003405e363030c197f0fbf0d0b406b646c2a18410bea04c44",
+        "raw_num_rows_total": 50000,
+        "revision_stable": true
+      }
+    },
+    {
+      "src": 1,
+      "slug": "jev-decisions-strata",
+      "dataset": "samatv256/jev-decisions-v1",
+      "revision": "c12aadf1f01c72616bfab0b02480e21806397669",
+      "config": "default",
+      "split": "train",
+      "license": "cc-by-4.0",
+      "url": "https://huggingface.co/datasets/samatv256/jev-decisions-v1",
+      "row_range": [
+        0,
+        199908
+      ],
+      "items": 207,
+      "meta": {
+        "key_source": "native-name",
+        "native_state_note": "state 取原生 state.user_goal；完整原生 state（system/history/environment）可按 source 的 dataset+revision+config+split+row 从 D:\\pol2-raw 的原始行复原"
+      },
+      "trace": {
+        "raw_file": "D:\\pol2-raw\\jev-decisions-strata\\rows.jsonl",
+        "raw_rows": 400,
+        "raw_bytes": 9126535,
+        "raw_sha256": "540c523b713191a4cc1653194d69fcd830492dfc6ffe36ecc4951bd37f6a2f1c",
+        "raw_num_rows_total": 11269408,
+        "revision_stable": true,
+        "raw_sampling": {
+          "strategy": "windows",
+          "window_size": 100,
+          "n_windows": 4,
+          "seed": 0,
+          "window_span": 200000
+        }
+      }
+    },
+    {
+      "src": 2,
+      "slug": "jev-distill-v3",
+      "dataset": "SargeDev/jev-distill-corpus-v3",
+      "revision": "fc99c6357a9f89f7512c4a987314352addead049",
+      "config": "default",
+      "split": "train",
+      "license": "apache-2.0",
+      "url": "https://huggingface.co/datasets/SargeDev/jev-distill-corpus-v3",
+      "row_range": [
+        0,
+        7999
+      ],
+      "items": 7756,
+      "meta": {
+        "key_source": "native-text"
+      },
+      "trace": {
+        "raw_file": "D:\\pol2-raw\\jev-distill-v3\\rows.jsonl",
+        "raw_rows": 8000,
+        "raw_bytes": 5469487,
+        "raw_sha256": "4ca6a19ab5fdf6979aea7860b00e5490ec795d0edd5062469cd3a69c9adef300",
+        "raw_num_rows_total": 655806,
+        "revision_stable": true
+      }
+    },
+    {
+      "src": 3,
+      "slug": "open-jev",
+      "dataset": "ZefanCai/Open-Jev",
+      "revision": "c67699e13d0ae25e35b77165a4b6b079bedc8aba",
+      "config": "release-v2-redistributable",
+      "split": "train",
+      "license": "cc0-1.0",
+      "url": "https://huggingface.co/datasets/ZefanCai/Open-Jev",
+      "row_range": [
+        0,
+        5997
+      ],
+      "items": 792,
+      "meta": {
+        "key_source": "native-name"
+      },
+      "trace": {
+        "raw_file": "D:\\pol2-raw\\open-jev\\rows.jsonl",
+        "raw_rows": 6000,
+        "raw_bytes": 24616337,
+        "raw_sha256": "ade4cd93dafd38325fc7acf8bb323e5efb3a71f2bdf6c2e9a8d854e63cb32bdf",
+        "raw_num_rows_total": 79116,
+        "revision_stable": true
+      }
+    },
+    {
+      "src": 4,
+      "slug": "procedural-typed-decisions",
+      "dataset": "tasksource/procedural-typed-decisions",
+      "revision": "609513a3faddf729123266efe9861456fe748f95",
+      "config": "all",
+      "split": "train",
+      "license": "apache-2.0",
+      "url": "https://huggingface.co/datasets/tasksource/procedural-typed-decisions",
+      "row_range": [
+        0,
+        1499
+      ],
+      "items": 1500,
+      "meta": {
+        "key_source": "native-name"
+      },
+      "trace": {
+        "raw_file": "D:\\pol2-raw\\procedural-typed-decisions\\rows.jsonl",
+        "raw_rows": 1500,
+        "raw_bytes": 4700694,
+        "raw_sha256": "e850f3f3674e18e1e2fe3e6f40308c792e4a67f4fdee3bec914920dbfadfed32",
+        "raw_num_rows_total": 260000,
+        "revision_stable": true
+      }
+    },
+    {
+      "src": 5,
+      "slug": "system-one-270m",
+      "dataset": "kaivoss/system-one-270m-data",
+      "revision": "f31d5a3f3da828021c792edf5ab4b93cf60fe01b",
+      "config": "default",
+      "split": "train",
+      "license": "apache-2.0",
+      "url": "https://huggingface.co/datasets/kaivoss/system-one-270m-data",
+      "row_range": [
+        0,
+        1498
+      ],
+      "items": 447,
+      "meta": {
+        "key_source": "native-text"
+      },
+      "trace": {
+        "raw_file": "D:\\pol2-raw\\system-one-270m\\rows.jsonl",
+        "raw_rows": 1500,
+        "raw_bytes": 3458808,
+        "raw_sha256": "2643a11c8c70337f3b5ab8ce8d1c4efe604b5eed229579f62fd2c7367344aa8c",
+        "raw_num_rows_total": 25002,
+        "revision_stable": true
+      }
+    },
+    {
+      "src": 6,
+      "slug": "systemone-lite-general",
+      "dataset": "dwidlee/systemone-lite-general",
+      "revision": "c14eb7f7518f1d15cfcc27ac300c070a145d506a",
+      "config": "default",
+      "split": "train",
+      "license": "mit",
+      "url": "https://huggingface.co/datasets/dwidlee/systemone-lite-general",
+      "row_range": [
+        0,
+        1499
+      ],
+      "items": 1479,
+      "meta": {
+        "key_source": "native-name",
+        "quality_flags": [
+          "hard_label_to_point_mass"
+        ]
+      },
+      "flags": [
+        "hard_label_to_point_mass"
+      ],
+      "trace": {
+        "raw_file": "D:\\pol2-raw\\systemone-lite-general\\rows.jsonl",
+        "raw_rows": 1500,
+        "raw_bytes": 1439485,
+        "raw_sha256": "ad73a5ca3944893ccdba2a576176f61070b91c482505e0add084a59c228da577",
+        "raw_num_rows_total": 32400,
+        "revision_stable": true
+      }
+    }
+  ]
+}

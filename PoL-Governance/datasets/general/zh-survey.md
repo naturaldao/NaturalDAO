@@ -2,7 +2,7 @@
 
 - 调研日期：2026-10-02（UTC+8）
 - 执行：pol2-replay（DSH Agent Team），共享任务 task-11
-- 上游依据：[datasets/decision-base/README.md](README.md)（契约）、[taxonomy.py](taxonomy.py)（问题键）、
+- 上游依据：[datasets/general/README.md](README.md)（契约）、[taxonomy.py](taxonomy.py)（问题键）、
   [sources.json](sources.json)（英文来源清单）、[../../SPEC.md](../../SPEC.md)、[../../research/Wenbo/data.md](../../research/Wenbo/data.md)
 - 方法沿用 [datasets/pol2/replay/survey.md](../pol2/replay/survey.md)：固定 revision、逐条许可判读、剔除评测集、标注证据等级
 - 机器可读准入清单：[sources.zh.json](sources.zh.json)；抓取+转换：[convert_zh.py](convert_zh.py)；离线测试：[test_convert_zh.py](test_convert_zh.py)
@@ -146,7 +146,7 @@
 命令（原始数据落 `D:\pol2-raw\<slug>\`，条目落 `D:\pol2-raw\zh-items\items.zh.jsonl`，**都不进仓库**）：
 
 ```powershell
-uv run --no-project --offline python datasets/decision-base/convert_zh.py run --all --limit 200 \
+uv run --no-project --offline python datasets/general/convert_zh.py run --all --limit 200 \
     --out D:\pol2-raw\zh-items\items.zh.jsonl
 ```
 
@@ -215,15 +215,15 @@ uv run --no-project --offline python datasets/decision-base/convert_zh.py run --
 
 ```powershell
 # 来源清单校验 + 全离线测试（decision-base 共 347 项，含本任务新增的 21 项）
-uv run --no-project --offline python -m unittest discover -s datasets/decision-base -p "test_*.py" -q
+uv run --no-project --offline python -m unittest discover -s datasets/general -p "test_*.py" -q
 
 # 小样本打通：抓取 + 转换（200 行/来源，写仓库外）
-uv run --no-project --offline python datasets/decision-base/convert_zh.py run --all --limit 200 \
+uv run --no-project --offline python datasets/general/convert_zh.py run --all --limit 200 \
     --out D:\pol2-raw\zh-items\items.zh.jsonl
 
 # 只跑某几个来源 / 断点续跑 / 只保留 direct 映射
-uv run --no-project --offline python datasets/decision-base/convert_zh.py fetch --source cvalues-rlhf --limit 200
-uv run --no-project --offline python datasets/decision-base/convert_zh.py convert --all --mappings direct \
+uv run --no-project --offline python datasets/general/convert_zh.py fetch --source cvalues-rlhf --limit 200
+uv run --no-project --offline python datasets/general/convert_zh.py convert --all --mappings direct \
     --created-at 2026-10-02T00:00:00+08:00 --out D:\pol2-raw\zh-items\items.zh.jsonl
 ```
 
@@ -240,7 +240,7 @@ uv run --no-project --offline python datasets/decision-base/convert_zh.py conver
 | 评测集证据（TC260） | 卡面 + `DATA_STATEMENT.md` + `schema.json` | 「合成安全测试提示」、public/validation/test、`review_status=pending`、`synthetic: const true` |
 | 评测集证据（THU） | Range 读两个 JSON 头部 | `typical_safety_scenarios.json`/`instruction_attack_scenarios.json`，字段 prompt/response/type |
 | 试点结果 | `convert_zh.py run --all --limit 200` | 2,154 条，item_errors=0，native_target_rate=0.906，域分布 risk_harm 1,206 / human_judgment 799 / social_moral 149 |
-| 本目录测试 | `python -m unittest discover -s datasets/decision-base -p "test_*.py" -q` | decision-base 共 347 项全绿；其中 test_convert_zh.py 21 项（来源清单校验、9 个转换器、去重、direct/document 映射开关、CLI 拒绝未授权来源） |
+| 本目录测试 | `python -m unittest discover -s datasets/general -p "test_*.py" -q` | decision-base 共 347 项全绿；其中 test_convert_zh.py 21 项（来源清单校验、9 个转换器、去重、direct/document 映射开关、CLI 拒绝未授权来源） |
 
 ## 11. 交接建议
 

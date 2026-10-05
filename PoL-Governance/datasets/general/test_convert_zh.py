@@ -2,7 +2,7 @@
 
 完全离线：不联网、不读 D:\pol2-raw，测试数据全部内联在本文件里。
 
-    uv run --no-project --offline python -m unittest discover -s datasets/decision-base -p "test_*.py" -q
+    uv run --no-project --offline python -m unittest discover -s datasets/general -p "test_*.py" -q
 """
 
 import json
