@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- E14 needs reporting (ch. 6 Art. 6): proportional vs capped water-filling vs water-filling with ex-ante audit.
+- E15 correlated same-base reviewers vs independent escalation (ch. 7 Art. 6 step 3); closed-form, no Monte Carlo error.
+- `experiments/allocation_exp.py`, `tests/test_allocation.py`; `docs/concept-mapping.md` gains section 4b; 16 experiments in total.
+
 ## 0.3.0 — 2026-09-29
 
 House figure style.

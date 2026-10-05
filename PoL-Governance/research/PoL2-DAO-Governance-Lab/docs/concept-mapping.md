@@ -47,6 +47,16 @@
 | 第 10 条 争议裁决过程公开，接受人类监督 | 不能定案时状态为 `escalated`，并写明原因 | `protocol.finalize` | `test_flagged_winning_option_escalates` |
 | 第 11.5 条 所有修订版本永久存档 | 链只追加不可改；修订 = 新的会话记录，引用旧链头 | `ledger` | — ❓ 尚未实现专门的修订流程 |
 
+## 4b. 生产公共化协议（第六章）与第七章第六条
+
+| 条款 | 解读 | 代码 | 测试 |
+|---|---|---|---|
+| 第六章第五条 Token 不可交易、不可跨域转移、不与货币挂钩 | 与「人工货币」机制相容；❓ Token 只是记账单位，还是每人一份的个人预算，协议未定 | — | — |
+| 第六章第六条 按需分配，AI 实时监测公共需求 | 需求来自申报时，规则必须封顶并核验：比较比例分配、封顶逐级填充、加事前核验 | `experiments.allocation_exp.needs_once`, `water_fill` | `test_proportional_rule_shifts_harm_to_honest_agents`, `test_water_fill_conserves_supply_and_caps` |
+| 第六章第十条 私有事务触发共识熔断 | ❓ 熔断由「系统自动」触发并剥夺调用权，触发判定者、复核与恢复程序未写明 | — | — |
+| 第六章第十一条 3 按「合理需求」无偿享有 | ❓ 「合理」由谁判定未写明；与第六条的需求信号问题同源 | — | — |
+| 第七章第六条 3 伦理验证由 EAP 自动完成 | 若由同底座的多个审核者承担，冗余价值取决于错误相关度；独立复核的价值更大 | `allocation_exp.fa_mean`, `fa_any`, `escalation_frontier` | `test_more_reviewers_help_less_when_errors_are_correlated`, `test_escalation_frontier_is_monotone_and_respects_false_rejection` |
+
 ## 5. 来自 PoL2-Jev 文献综述的工程约束
 
 NaturalDAO/PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey 的五条主要发现，在这里对应为：
@@ -59,7 +69,7 @@ NaturalDAO/PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey 的五条主
 | 二元问题把「不知道」压成是/否 | 三值输出，含 `absence` |
 | 升级给另一个 AI 未必能纠错，升级链末端必须有人 | `Route.ESCALATE` 表示「人类复核」，不是「再问一个模型」 |
 
-## 6. 实验对应（E0–E13）
+## 6. 实验对应（E0–E15）
 
 | PoL2 条款 / 问题 | 实验 | 结论（模型内） |
 |---|---|---|
@@ -70,6 +80,8 @@ NaturalDAO/PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey 的五条主
 | 第七章第 2 条 自主决策 | E7 | 依赖诚实报告；有人夸大时不优于二次方投票 |
 | 第七章第 4、5 条 可验证决策链路 | E12 | 成本可忽略；篡改被精确定位 |
 | 文献综述 G1–G7 | E13 | 每条轴线对应的模块 |
+| 第六章第六条 按需分配 | E14 | 比例分配把夸大的代价转给诚实者，且不表现为浪费；封顶加核验可缓解 |
+| 第七章第六条 3 伦理验证 | E15 | 同底座审核者错误高度相关时，加人不加保护；给不确定区间配独立复核更有效 |
 
 ## 尚未解决的问题
 

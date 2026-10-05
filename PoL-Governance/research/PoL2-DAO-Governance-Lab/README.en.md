@@ -32,7 +32,7 @@ pol2dao verify results/demo_decision_chain.jsonl
 pol2dao published            # equal-budget counterfactual from published numbers
 pol2dao simulate --reps 1000 # agent-based comparison (~1 min)
 pol2dao replay --data-dir path/to/osf-files   # per-ballot replay (OSF data not included)
-pol2dao experiments --reps 1000   # E0–E13, all figures (~3 min)
+pol2dao experiments --reps 1000   # E0–E15, all figures (~3 min)
 pytest                         # 49 tests
 ```
 
@@ -49,7 +49,7 @@ Plug in any model (LLM, Jev-style typed-decision model, safety classifier) with 
 - Under hostile talk, turn-taking restores the minority's share of the floor (0.12 → 0.20) and its win rate (0.34–0.40 → 0.67–0.68); EAP screening adds to it (→ 0.74–0.76) while missing ~20 % of hostile messages.
 - **Without hostility, screening hurts the minority** (0.67–0.70 → 0.60–0.62): the baseline's false alarms land on the minority's criticisms. A safety valve's false alarms are paid by the people it is meant to protect — hence human review and local calibration.
 
-**Fourteen further experiments (E0–E13)** with 14 new figures are documented in [docs/results.md](docs/results.md) (in Chinese; figures in English): mechanism decomposition, sensitivity heatmaps, preference intensity, pod size, judge operating point (AUROC × false-flag rate), judge bias against dissent, sybil attacks on quadratic voting, PAI-autonomous decisions vs voting (PoL2 ch. 7 Art. 2), voice dynamics, the NaturalDAO PoL-Governance pilot benchmark, a 96-sentence bilingual stress corpus, the published data, decision-chain cost, and the PoL2-Jev literature map. Run them all with `pol2dao experiments --reps 1000`.
+**Sixteen further experiments (E0–E15)** with 16 new figures are documented in [docs/results.md](docs/results.md) (in Chinese; figures in English): mechanism decomposition, sensitivity heatmaps, preference intensity, pod size, judge operating point (AUROC × false-flag rate), judge bias against dissent, sybil attacks on quadratic voting, PAI-autonomous decisions vs voting (PoL2 ch. 7 Art. 2), voice dynamics, the NaturalDAO PoL-Governance pilot benchmark, a 96-sentence bilingual stress corpus, the published data, decision-chain cost, the PoL2-Jev literature map, need reporting under proportional vs capped allocation (ch. 6 Art. 6), and correlated same-base reviewers vs independent escalation (ch. 7 Art. 6). Run them all with `pol2dao experiments --reps 1000`.
 
 Headline cross-experiment findings (model-based): equal power is the foundation; turn-taking is the strongest defence against hostility; screening pays only with hostility present, a judge with AUROC ≳ 0.85, and no bias against dissent; equality needs proof of personhood (sybils break quadratic voting); PAI autonomy is only as good as people's honesty in reporting.
 

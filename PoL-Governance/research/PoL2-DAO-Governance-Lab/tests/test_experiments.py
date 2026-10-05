@@ -72,7 +72,7 @@ def test_lexicon_v1_adds_pol2_categories_without_touching_criticism():
     assert pol.route(LexiconJudge().judge("这种人天生低人一等")) is Route.PASS
 
 
-@pytest.mark.parametrize("eid", ["E9", "E10", "E11", "E12", "E13", "E0"])
+@pytest.mark.parametrize("eid", ["E9", "E10", "E11", "E12", "E13", "E14", "E15", "E0"])
 def test_experiments_smoke(tmp_path, eid):
     pytest.importorskip("matplotlib")
     from pol2dao import experiments

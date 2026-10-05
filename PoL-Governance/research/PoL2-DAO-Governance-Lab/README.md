@@ -71,7 +71,7 @@ pol2dao demo                       # 跑一次完整的 PoL2 治理会话，写�
 pol2dao verify results/demo_decision_chain.jsonl
 pol2dao published                  # 用论文公布的数字做「平等预算」反事实
 pol2dao simulate --reps 1000       # 主模拟：4 个论文条件 + PoL2 + 消融（约 30 秒）
-pol2dao experiments --reps 1000    # 全部 14 个实验 E0–E13，生成全部图表（约 3 分钟）
+pol2dao experiments --reps 1000    # 全部 16 个实验 E0–E15，生成全部图表（约 3 分钟）
 pytest                             # 54 个测试
 ```
 
@@ -136,7 +136,7 @@ print(s.finalize().to_dict())
 
 > ⚠️ 这是一个**模型**，不是关于真实人群的证据。所有行为假设都是 `Scenario` 的参数，列在 [docs/experiment-design.md](docs/experiment-design.md)。模拟的用途是理清机制之间的相互作用、为真实实验设计假设。
 
-### 3. 实验图集：14 个实验 E0–E13
+### 3. 实验图集：16 个实验 E0–E15
 
 所有图表都遵循统一的[制图规范](docs/figure-style.md)（参照 [figures4papers](https://github.com/ChenLiu-1996/figures4papers)）：
 - 颜色语义固定：蓝 = PoL2，红 = 论文里的二次方投票基线，灰 = 论文里的排序投票基线，绿 = 变体；
@@ -196,7 +196,7 @@ pol2-dao-governance/
 │   ├── simulate.py       基于智能体的模拟（含合成判定器、女巫攻击、发言轨迹）
 │   ├── autonomy.py       PAI 自主决策（第七章第 2 条）
 │   ├── replay.py         用真实选票做平等预算反事实
-│   ├── experiments/      E0–E13 实验套件（机制、筛查、自主决策、判定器评测、数据）
+│   ├── experiments/      E0–E15 实验套件（机制、筛查、自主决策、判定器评测、数据、分配与审核者相关性）
 │   ├── plotstyle.py      制图规范的唯一实现（调色板、字体、导出）
 │   ├── figures.py        作图（可选）
 │   ├── demo.py  cli.py
@@ -209,7 +209,7 @@ pol2-dao-governance/
 ├── tests/                54 个测试（含制图规范检查）
 ├── CLAUDE.md             项目记忆：给 Claude Code 等编程助手的约定（含制图规范）
 └── docs/
-    ├── results.md             实验结果图集（E0–E13）
+    ├── results.md             实验结果图集（E0–E15）
     ├── figure-style.md        制图规范
     ├── concept-mapping.md     PoL2 条款 ↔ 机制 ↔ 代码 ↔ 测试
     ├── experiment-design.md   研究问题、模型假设、指标、局限、下一步真实实验
