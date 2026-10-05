@@ -37,7 +37,12 @@
 - `taxonomy`：来源本身没有原生问题，由本地 taxonomy 生成题面。**这是次选**，只在来源确实不含问题时使用。
   此时 `key` 取自 taxonomy 的问题键表。
 
-`coverage.py` 按 `origin` 分别统计：`source` 的原生键不在 taxonomy 词表内属正常，不应报 schema 警告。
+`origin` **缺省即视为 `taxonomy`**：只有原生四元组的条目才写 `origin: "source"`。
+早期按模板命题的语料因此不必回填该字段，也能被正确解读。`coverage.py` 按 `origin` 分别统计：
+`source` 的原生键不在 taxonomy 词表内属正常，不应报 schema 警告。
+
+**当前主产物是 [data/items.native.jsonl](data/items.native.jsonl)**（15,983 条，全部 `origin=source`，100% 带原生真值）。
+`items.jsonl` 与 `items.bilingual.jsonl` 是按模板命题的早期版本，留作对照，不再是训练首选。
 
 `questions[].kind` 取值：
 - `noul`：`options` 固定为 `[{"key":"yes"…},{"key":"no"…}]`。
