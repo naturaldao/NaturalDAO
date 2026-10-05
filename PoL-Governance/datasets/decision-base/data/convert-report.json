@@ -5,7 +5,7 @@
   "native_slugs": null,
   "created_at": "2026-09-30T12:00:00+00:00",
   "raw_root": "D:\\pol2-raw",
-  "items_path": "D:\\pol2-raw\\_restore\\items.jsonl",
+  "items_path": "C:\\Projects\\DAism\\NaturalDAO\\PoL-Governance\\datasets\\decision-base\\data\\items.jsonl",
   "mappings_used": "all",
   "mappings_default": "all",
   "mappings_default_note": "core 问题 + direct 映射 + documented 映射；--mappings direct 只保留 core 问题与 direct 映射",
@@ -553,55 +553,6 @@
       }
     }
   ],
-  "skipped_units": [
-    {
-      "slug": "baidu-review-sentiment",
-      "reason": "未知转换器 'sentiment_binary_zh'"
-    },
-    {
-      "slug": "chinese-emotion-dialogue",
-      "reason": "未知转换器 'emotion_zh'"
-    },
-    {
-      "slug": "chinese-logic-sentiment",
-      "reason": "未知转换器 'sentiment_zh'"
-    },
-    {
-      "slug": "cvalues-rlhf",
-      "reason": "未知转换器 'cvalues'"
-    },
-    {
-      "slug": "elder-scam-zh",
-      "reason": "未知转换器 'elder_scam'"
-    },
-    {
-      "slug": "med-guard-benign-r1r5",
-      "reason": "未知转换器 'med_guard'"
-    },
-    {
-      "slug": "med-guard-benign-r6r11",
-      "reason": "未知转换器 'med_guard'"
-    },
-    {
-      "slug": "med-guard-controversial",
-      "reason": "未知转换器 'med_guard'"
-    },
-    {
-      "slug": "med-guard-unsafe",
-      "reason": "未知转换器 'med_guard'"
-    },
-    {
-      "slug": "mh-risk-triage-zh",
-      "reason": "未知转换器 'mh_triage'"
-    },
-    {
-      "slug": "toxic-zh",
-      "reason": "未知转换器 'toxicity_zh'"
-    },
-    {
-      "slug": "zhihu-preference",
-      "reason": "未知转换器 'zhihu_pref'"
-    }
-  ],
+  "skipped_units": [],
   "out_of_scope": []
 }

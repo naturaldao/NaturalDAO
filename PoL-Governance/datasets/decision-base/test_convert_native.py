@@ -421,10 +421,13 @@ class MainIntegrationTests(unittest.TestCase):
             written = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
             self.assertEqual(len(written), 1)
             self.assertEqual(written[0]["questions"][0]["origin"], "source")
-            summary = json.loads((out.with_name("convert-report.json")).read_text(encoding="utf-8"))
+            # 原生模式的报告必须写在独立的 items.native.report.json 下
+            summary = json.loads((root / "items.native.report.json").read_text(encoding="utf-8"))
             self.assertEqual(summary["mode"], "native")
             self.assertEqual([unit["slug"] for unit in summary["out_of_scope"]], ["prosocial-dialog"])
             self.assertEqual(summary["skipped_units"], [])
+            # 且不得覆盖共享的 convert-report.json（这是被复核抓到的回归点）
+            self.assertFalse((root / "convert-report.json").exists())
 
 
 if __name__ == "__main__":
