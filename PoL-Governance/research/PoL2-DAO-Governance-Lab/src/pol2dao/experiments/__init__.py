@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from . import autonomy_exp, data_exp, judge_eval, mechanisms, screening
+from . import allocation_exp, autonomy_exp, data_exp, judge_eval, mechanisms, screening
 
 Experiment = Callable[[Path, int, Callable[[str], None]], list[Path]]
 
@@ -25,6 +25,8 @@ REGISTRY: dict[str, tuple[str, Experiment, float]] = {
     "E11": ("published data overview", data_exp.e11_published, 1.0),
     "E12": ("decision chain cost", data_exp.e12_ledger, 1.0),
     "E13": ("literature map", data_exp.e13_literature, 1.0),
+    "E14": ("needs reporting (ch. 6)", allocation_exp.e14_needs_report, 0.4),
+    "E15": ("correlated reviewers and escalation", allocation_exp.e15_reviewer_correlation, 1.0),
 }
 
 

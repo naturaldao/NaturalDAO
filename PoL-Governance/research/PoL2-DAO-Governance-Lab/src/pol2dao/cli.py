@@ -127,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", default="results")
     p.set_defaults(fn=cmd_replay)
 
-    p = sub.add_parser("experiments", help="run the E0-E13 experiment suite (needs matplotlib)")
+    p = sub.add_parser("experiments", help="run the E0-E15 experiment suite (needs matplotlib)")
     p.add_argument("--only", default="", help="comma-separated ids, e.g. E1,E4")
     p.add_argument("--reps", type=int, default=1000)
     p.add_argument("--out", default="results")
