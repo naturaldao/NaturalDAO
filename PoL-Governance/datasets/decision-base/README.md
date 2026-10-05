@@ -41,7 +41,8 @@
 早期按模板命题的语料因此不必回填该字段，也能被正确解读。`coverage.py` 按 `origin` 分别统计：
 `source` 的原生键不在 taxonomy 词表内属正常，不应报 schema 警告。
 
-**当前主产物是 [data/items.native.jsonl](data/items.native.jsonl)**（15,983 条，全部 `origin=source`，100% 带原生真值）。
+**当前主产物是 [data/items.native.jsonl.gz](data/items.native.jsonl.gz)**（15,983 条，全部 `origin=source`，100% 带原生真值；
+明文同名去 `.gz`，体积大故不入库）。
 `items.jsonl` 与 `items.bilingual.jsonl` 是按模板命题的早期版本，留作对照，不再是训练首选。
 
 `questions[].kind` 取值：
