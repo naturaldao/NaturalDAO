@@ -1,7 +1,13 @@
 # 通用决策数据集 general（v0.1）
 
-给**只做"选一个"的小决策模型**用的中英双语语料：**23,855 条，100% 带真值**，已按请求分组切成
-train / test / validation / benchmark 四个分区。
+给**只做"选一个"的小决策模型**用的中英双语语料，按请求分组切成 train / test / validation / benchmark 四个分区。
+
+| 规模 | 数值 |
+|---|---:|
+| 切分输入语料（items.final） | **23,855 条**（英文 15,983 + 中文 7,872） |
+| 中文补充（只追加进 train） | **3,148 条** |
+| **四个分区合计** | **27,003 条**（英文 15,983 + 中文 11,020） |
+| 带真值 | **100%**（每条都有来源自带的答案） |
 
 新人从这一页开始看就够；字段与格式细节在 **[CONTRACT.md](CONTRACT.md)**。
 
@@ -9,10 +15,13 @@ train / test / validation / benchmark 四个分区。
 |---|---|
 | 字段怎么定义、三种原语什么形状 | [CONTRACT.md](CONTRACT.md) |
 | 英文侧每个来源是什么、为什么选它 | [SOURCES.md](SOURCES.md) |
-| 最终语料怎么合出来的、中文占比为什么是 33% | [merge-report.md](merge-report.md) |
+| 最终语料怎么合出来的、中文占比怎么定的 | [merge-report.md](merge-report.md) |
 | 四个分区各有多少条、怎么切的、泄漏检查 | [split-report.md](split-report.md) |
 | 每条记录省了多少字段（manifest + 紧凑引用） | [slim-report.md](slim-report.md) |
 | 目录里每个脚本干什么、哪些已过时 | [ARCHIVE.md](ARCHIVE.md) |
+
+> **对外发布面待定**：本仓库正在做 benchmark 保密整改（私盐重切 + 完整语料与分区发布面的调整），
+> 因此本文里的路径都是**本机工作区路径**，不代表最终对外公开的内容。见 §3.1。
 
 ## 1. 我们用了什么思路
 
@@ -26,54 +35,74 @@ train / test / validation / benchmark 四个分区。
 把别人的分类数据套上我们自己的中文问题模板，会把"选择"变成"**按我们的口径重新解释别人的数据**"：
 模型学到的将是我们的解释，而不是数据本身。所以：
 
-- 来源自带问题的（System-1 系）：**直接用它的 state / question / options / target**，键名就用来源的原生问题名，
+- 来源自带候选与答案的（System-1 系）：**直接用它的 state / options / target**，键名就用来源的原生问题名，
   不改写、不翻译、不压档位（例如来源是 0–5 六档就保留六档）。
-- 来源确实没有问题的：才由本地 taxonomy 出题（这是次选，origin=taxonomy）。
+- 来源确实没有候选集的：才由本地 taxonomy 出题与补选项（次选，origin=taxonomy，见 [CONTRACT.md](CONTRACT.md) §2.1）。
 
 ### 1.3 三种原语
 
 | 原语 | 含义 | 答案形态 | 例 |
 |---|---|---|---|
 | **choice** | 多选一，选项 2 个以上（实测最多 57 个） | 概率分布或硬标签 | 选哪个工具 / 哪个类别 |
-| **noul** | 是 / 否 | 概率分布或硬标签 | 这条记录是否相关 |
-| **score** | 整数分级（各来源档位不同，0–2 / 0–5 / 0–9 都有） | 概率分布 | 严重程度打分 |
+| **noul** | 是 / 否（选项键可能是 false/true 或 no/yes） | 概率分布或硬标签 | 这条记录是否相关 |
+| **score** | 整数分级，**各来源档位不同**（实测 3 档 / 6 档 / 10 档 / **11 档**都有） | 概率分布 | 严重程度打分 |
 
 只用这三种，是因为它们正好覆盖"选一个"的全部形态；**不发明第四种**。
 
-### 1.4 中英构成与 33% 的取舍
+⚠️ **score 的取值口径有个坑**：score 题的 scale.labels 是**给人看的档位文字**，而 target 的键是
+**数字下标**（"0".."max"）。照 labels 去建输出词表会静默对不上。实测 6,752 道 score 题里，
+**4,661 道**的 labels 是描述文字（如 "Cosmetic; no impact to functionality"），只有 2,091 道是 "0".."max"。
 
-| | 条数 | 占比 | 来源数 | 覆盖原语 |
+### 1.4 构成：33% 是合并目标，补充集把中文推到 40.8%
+
+| 阶段 | 英文 | 中文 | 中文占比 | 说明 |
 |---|---:|---:|---:|---|
-| 英文 en | 15,983 | 67% | 6 个 HF 仓库（7 个抓取单元） | choice / noul / score |
-| 中文 zh | 7,872 | 33% | 1 个（Deepexi） | choice |
+| 合并（items.final） | 15,983 | 7,872 | **33.00%** | 中文按 33% 抽（先取每请求 1 套，再按 sha256(seed+group_id) 补第 2 套） |
+| + 中文补充（只进 train） | — | +3,148 | — | 单标签转换，成色降级（见 §1.5） |
+| **合计** | **15,983** | **11,020** | **40.8%** | 但**单一来源** Deepexi 只占 29.2%，未触 40% 上限 |
 
-**为什么中文取 33% 而不是上限 40%**：Deepexi 是唯一中文来源，中文占比就等于该来源占比。
-取到 40% 会正好顶满契约"单一来源 ≤ 40%"的线、没有余量；而多取的是**同一批请求的变体**，
-边际信息量递减。33% 既落在 30–40% 区间里，又给以后第二个中文来源留出头寸。
-（详见 [merge-report.md](merge-report.md)；抽取种子 general-merge-v1，可复算。）
+**为什么合并时取 33% 而不是上限 40%**：Deepexi 是唯一中文来源，中文占比就等于该来源占比。
+取到 40% 会正好顶满契约"单一来源 ≤ 40%"、没有余量；而多取的是**同一批请求的变体**，边际信息量递减。
+33% 落在 30–40% 区间内，又给第二个中文来源留出头寸。（详见 [merge-report.md](merge-report.md)。）
 
 ### 1.5 成色分层（做训练决策必读）
 
 | 层级 | 是什么 | 条数 | 真值形态 | 进 benchmark？ |
 |---|---|---:|---|---|
-| **A. 原生四元组** | 来源自带 state/question/options/target，我们只搬运 | **23,855（100%）** | 来源的概率分布，或来源自己的硬标签 | **是（只有这一层）** |
-| B. 单标签转换的补充 | 数据只有"这条属于 X 类"，我们把 X 当正确选项、再从**同一标签集**取其余选项凑成 choice | 暂未引入（中文 noul/score 补充，task-21） | 硬标签 + documented 映射 | **否** |
+| **A. 原生四元组** | 来源自带 state/候选/答案，我们只搬运 | **23,855** | 来源的概率分布，或来源自己的硬标签 | **是（只有这一层）** |
+| B. 单标签转换的补充 | 数据只有"这条属于 X 类"，把 X 当正确选项、再从**同一标签集**取其余选项凑成 choice | **3,148**（中文 noul 1,631 / score 1,517） | 硬标签 + documented 映射，origin=taxonomy | **否** |
 
 **怎么用**：A 层可以直接进训练与 benchmark；B 层是**成色降级**的补充，**只进 train**，
-不进 validation / test / benchmark，训练时也要与 A 层分开报告。内部 benchmark **只含 A 层**。
+不进 validation / test / benchmark，训练时也要与 A 层分开报告。**benchmark 只含 A 层**（实测 2,389 条全部 origin=source）。
 
-### 1.6 一条数据里的语言分工
+### 1.6 真值形态：别把"伪概率"当真分布（会改变训练结果）
+
+每条问题下 target 可能是三类之一，字段层面**长得一样**，必须先判形态再用：
+
+| 形态 | 怎么识别 | 全语料问题数 | 其中 benchmark |
+|---|---:|---:|---:|
+| **真分布** | probs 有多个不同取值 | 7,520 | 757 |
+| **伪 one-hot** | probs 恰好一个 1.0、其余 0.0（由硬标签造出来） | **14,119** | **1,398** |
+| **均匀分布** | probs 各项相等（如 0.5/0.5）→ **无信息** | 1,730 | 180 |
+| 只有 answer | 没有 probs 字段 | 11,565 | 854 |
+
+- 伪 one-hot 与 [CONTRACT.md](CONTRACT.md) 的"不允许把单标签伪装成概率"是**已知冲突**：
+  判别方法与建议的 provenance 字段见 CONTRACT §2.3；训练时若要按真分布做 KL / 校准目标，**请先按上表过滤**。
+- 均匀分布 target 没有信息量（多出现在教师模型的低置信样本），用它做监督等于教模型"别确定"；
+  报告指标时建议同时给"排除均匀目标"的子集分数。
+
+### 1.7 一条数据里的语言分工
 
 | 内容 | 来自哪 | 语言 |
 |---|---|---|
-| state（情境） | 来源原文 | 英文条目的 state 是英文，中文条目的 state 是中文 |
-| questions 的 key / prompt | 来源原生问题名与原文（英文侧）；中文侧候选来自来源、题面由 taxonomy 出 | 英文侧英文；中文侧中文 |
-| options | 来源原文（含中文侧已被确定性打散顺序的候选菜单） | 随来源 |
-| targets | 来源自带答案；有分布存分布，只有硬标签就只写 answer | 语言无关 |
+| state（情境） | 来源原文 | 英文条目英文，中文条目中文 |
+| questions 的 key / prompt | **候选集与答案来自来源**；题面措辞英文侧用来源原文，**中文侧由我们编写** | 随来源 / 中文侧中文 |
+| options | 来源原文（中文侧候选顺序已被确定性打散） | 随来源 |
+| targets | 来源自带答案；有分布存分布，只有硬标签就只写 answer（或单点分布） | 语言无关 |
 
 ## 2. 开源来源清单 + 真实例子
 
-### 2.1 英文侧：6 个 HF 仓库 / 7 个抓取单元，15,983 条
+### 2.1 英文侧：6 个 HF 仓库 / 7 个抓取单元，15,983 条（100% 带真值）
 
 | 来源 | HF 链接 | 许可 | 固定 revision | 一句话 | 条数 |
 |---|---|---|---|---:|
@@ -85,16 +114,20 @@ train / test / validation / benchmark 四个分区。
 | system-one-270m-data | [kaivoss/system-one-270m-data](https://huggingface.co/datasets/kaivoss/system-one-270m-data) | apache-2.0 | f31d5a3f3da8 | 日志与告警分诊，带概率 | 447 |
 | jev-decisions-v1（default 配置） | 同上 | cc-by-4.0 | c12aadf1f01c | 1200 万行里做的浅窗口抽样，仅作分布对照 | 207 |
 
-逐来源的取材理由与陷阱见 [SOURCES.md](SOURCES.md)；来源清单机器可读版见 [sources.json](sources.json)。
+逐来源的取材理由与陷阱见 [SOURCES.md](SOURCES.md)；机器可读清单见 [sources.json](sources.json)。
 
-### 2.2 中文侧：1 个来源，7,872 条
+### 2.2 中文侧：1 个原生来源 + 4 个补充来源
 
-| 来源 | HF 链接 | 许可 | 固定 revision | 说明 | 条数 |
+| 来源 | 链接 | 许可 | 固定 revision | 说明 | 条数 |
 |---|---|---|---|---:|
-| Deepexi 函数调用 | [Deepexi/openai-formate-function-calling-small](https://huggingface.co/datasets/Deepexi/openai-formate-function-calling-small) | apache-2.0 | 6d1dc02a2549 | 中文用户请求 + 候选工具菜单 + 正确工具；从 5,454 个唯一请求按变体抽到 33% 占比 | 7,872 |
+| Deepexi 函数调用（**A 层**） | [Deepexi/openai-formate-function-calling-small](https://huggingface.co/datasets/Deepexi/openai-formate-function-calling-small) | apache-2.0 | 6d1dc02a2549 | 中文用户请求 + 候选工具菜单 + 正确工具；从 5,454 个唯一请求按变体抽到 33% | 7,872 |
+| BEncoderRT/User_Intent_Risk_Triage（**B 层**） | [BEncoderRT/User_Intent_Risk_Triage](https://huggingface.co/datasets/BEncoderRT/User_Intent_Risk_Triage) | 见 sources.zh.json | 见 sources.zh.json | 中文意图/风险分类 → 补充 noul / score，**只进 train** | 2,061 |
+| textdetox/multilingual_toxicity_dataset（**B 层**） | [textdetox/multilingual_toxicity_dataset](https://huggingface.co/datasets/textdetox/multilingual_toxicity_dataset) | 同上 | 同上 | 同上 | 543 |
+| chenhaodev/med-guard-safety-synth（**B 层**） | [chenhaodev/med-guard-safety-synth](https://huggingface.co/datasets/chenhaodev/med-guard-safety-synth) | 同上 | 同上 | 同上 | 472 |
+| vanila434/multilingual-elder-safety-msgs（**B 层**） | [vanila434/multilingual-elder-safety-msgs](https://huggingface.co/datasets/vanila434/multilingual-elder-safety-msgs) | 同上 | 同上 | 同上 | 72 |
 
-中文侧调研与准入见 [zh-survey.md](zh-survey.md)、构建说明见 [zh-build-report.md](zh-build-report.md)、
-清单见 [sources.zh.json](sources.zh.json)。
+中文侧的调研与准入见 [zh-survey.md](zh-survey.md)、构建见 [zh-build-report.md](zh-build-report.md)、
+清单（含逐条许可与 revision）见 [sources.zh.json](sources.zh.json)。
 
 ### 2.3 真实例子（取自最终语料，长文本标 [截断]）
 
@@ -110,7 +143,7 @@ train / test / validation / benchmark 四个分区。
     targets["category"]: {"answer":"account_login_permission",
                           "probs":{"account_login_permission":1.0,"bug_report_the_user_is_r":0.0, ...}}   ← 来源给的是分布
 
-**例 2 · 英文 choice：来源只有硬标签，就只写 answer + 单点分布（systemone-lite-general）**
+**例 2 · 英文 choice（硬标签 → 单点分布，属 §1.6 的"伪 one-hot"）：systemone-lite-general**
 
     state: "{\"ticket\": {\"subject\": \"Production outage: checkout broken\", \"tier\": \"enterprise\", ...}}"
     questions[0]: key="ticket.urgency"  kind=choice
@@ -119,6 +152,7 @@ train / test / validation / benchmark 四个分区。
                 {"key":"2_high_immediate","label":"2: high — immediate"}]
     targets["ticket.urgency"]: {"answer":"2_high_immediate",
                                 "probs":{"1_medium_same_day":0.0,"0_low_can_wait":0.0,"2_high_immediate":1.0}}
+    ← 来源只有硬标签，这个 probs 是单点分布、不是真概率；任何分布类损失都要先过滤（见 §1.6）
 
 **例 3 · 英文 noul 与 score：保留来源自己的档位（jev-distill-corpus-v3）**
 
@@ -129,8 +163,14 @@ train / test / validation / benchmark 四个分区。
 
     score: state "A statistic in the draft attributes to a study that says the opposite [截断]"
            key "Rate claim reliability for this scenario on a 0-5 scale."  kind=score
-           scale {"min":0,"max":5,"labels":["0","1","2","3","4","5"]}                  ← 六档原样保留，不压成 0-4
+           scale {"min":0,"max":5,"labels":["0","1","2","3","4","5"]}                  ← 六档原样，不压成 0-4
            target {"answer":"4","probs":{"0":0.01,"1":0.01,"2":0.05,"3":0.41,"4":0.51,"5":0.01}}
+
+    对比 · score 的 labels 是描述文字时（Open-Jev 的 bug_severity，3 档）：
+           scale {"min":0,"max":2,"labels":["Cosmetic; no impact to functionality",
+                                            "Broken or degraded feature; workaround exists",
+                                            "Blocking issue; no workaround exists"]}
+           target {"answer":"0","probs":{"0":1.0,"1":0.0,"2":0.0}}                     ← 键是数字下标，不是 labels 文字
 
 **例 4 · 英文：一条条目挂多个问题（procedural-typed-decisions，一次覆盖三种原语）**
 
@@ -144,87 +184,117 @@ train / test / validation / benchmark 四个分区。
                within_budget    kind=noul    "Does the order fit within a budget of €62?"
     targets: largest_line {"answer":"vase","probs":{"drill":0.0,"vase":1.0,"tent":0.0}}
              lines_above  {"answer":"1","probs":{"0":0.0,"1":1.0,"2":0.0, ...}}
-             random_line_bulk {"answer":"yes","probs":{"yes":0.666667,"no":0.333333}}      ← 真概率，不是凑的
+             random_line_bulk {"answer":"yes","probs":{"yes":0.666667,"no":0.333333}}      ← 真概率
 
-**例 5 · 中文 choice：候选菜单来自来源（顺序已确定性打散），答案是硬标签（Deepexi）**
+**例 5 · 中文 choice：候选集与答案来自来源，题面由我们编写（Deepexi，A 层）**
 
     state: "20210101的短信发送状态如何？"
     group_id: "zhgrp-104f0514ee19"        ← 同一请求的多个变体共用一个 group_id（切分按组，不拆开）
     questions[0]: key="next_step_candidate"  kind=choice
+      prompt: "以下候选中，哪一个是正确的下一步？"     ← 中文侧题面是我们写的；候选与答案来自来源
       options: [{"key":"ListMessages","label":"ListMessages：按指定过滤条件获取指定日期的短信发送状态。"},
                 {"key":"UpdateDISyncTask","label":"UpdateDISyncTask：更新数据集成同步任务。"},
                 {"key":"GenerateDISyncTaskConfigForCreating","label":"GenerateDISyncTaskConfigForCreating：异步生成同时任务的JSON。"}]
     targets["next_step_candidate"]: {"answer":"ListMessages"}    ← 来源只给了硬标签，就不编概率
 
-（中文侧的 **noul / score 例子**要等中文补充数据 task-21 交付后补上，见下一节。）
+**例 6 · 中文补充（B 层，只进 train）：单标签 + 同一标签集凑选项**
 
-### 2.4 补充数据（中文 noul / score）：只进 train
-
-中文侧目前只有 choice（Deepexi 一个来源）。为补 noul / score，正在做**单标签转换**的补充集
-（中文分类数据 + documented 映射，属于第 1.5 节的 **B 层**）：
-
-- **只进 train**，不进 validation / test / **benchmark**；
-- 训练时必须与 A 层（原生四元组）分开报告，便于消融；
-- 本轮 README 先写约定，数字等交付后补。
+    state（中文分类数据的原文）→ 由 taxonomy 命题成 noul / score，从该数据集**自己的标签集**取选项；
+    origin=taxonomy、tier=derived，**不进 validation / test / benchmark**（实测 benchmark 内 origin=taxonomy 为 0 条）。
 
 ## 3. 划分信息
 
-四分区按**请求分组**切分（不是按行），种子 **20261005**，两次运行逐字节一致。
+四分区按**请求分组**切分，种子 **20261005**。
 
-| 分区 | 条目 | 占比 | 请求组 | 英文 | 中文 |
-|---|---:|---:|---:|---:|---:|
-| train | 14,310 | 60.0% | 14,310 | 9,588 (67%) | 4,722 (33%) |
-| test | 4,771 | 20.0% | 4,771 | 3,197 (67%) | 1,574 (33%) |
-| validation | 2,385 | 10.0% | 2,385 | 1,598 (67%) | 787 (33%) |
-| benchmark | 2,389 | 10.0% | 2,389 | 1,600 (67%) | 789 (33%) |
-| 合计 | 23,855 | 100% | 21,376 | 15,983 | 7,872 |
+> ⚠️ **补充集是切分完成后追加到 train 的**（不是重切）：所以 train 不是纯 60%，
+> 目标比例 6:2:1:1 只在**追加之前**成立；test / validation / benchmark 的 sha256 未变。
 
-域与原语分布（各区内部占比）：
+| 分区 | 条目 | 占比 | 请求组 | 英文 | 中文 | 其中补充（B 层） |
+|---|---:|---:|---:|---:|---:|---:|
+| train | 17,458 | 64.7% | 6,348 | 9,588 | 7,870 | 3,148 |
+| test | 4,771 | 17.7% | 1,245 | 3,197 | 1,574 | 0 |
+| validation | 2,385 | 8.8% | 626 | 1,598 | 787 | 0 |
+| benchmark | 2,389 | 8.8% | 631 | 1,600 | 789 | 0 |
+| **合计** | **27,003** | 100% | 8,850 | 15,983 | 11,020 | 3,148 |
 
-| 维度 | train | test | validation | benchmark |
-|---|---|---|---|---|
-| decision_mechanics | 11,677 (82%) | 3,893 (82%) | 1,946 (82%) | 1,949 (82%) |
-| knowledge_reasoning | 2,633 (18%) | 878 (18%) | 439 (18%) | 440 (18%) |
-| choice | 10,706 (75%) | 3,545 (74%) | 1,780 (75%) | 1,784 (75%) |
-| noul | 3,977 (28%) | 1,342 (28%) | 668 (28%) | 680 (28%) |
-| score | 2,236 (16%) | 742 (16%) | 367 (15%) | 380 (16%) |
+**域分布（这一节必须看，否则会做出错误结论）**：
 
-（同一条目可挂多个问题，所以 kind 占比之和超过 100%。）
+| domain | train | test | validation | benchmark |
+|---|---:|---:|---:|---:|
+| decision_mechanics | 11,677 | 3,893 | 1,946 | 1,949 |
+| knowledge_reasoning | 2,633 | 878 | 439 | 440 |
+| risk_harm | 2,605 | **0** | **0** | **0** |
+| human_judgment | 543 | **0** | **0** | **0** |
+
+> 🔴 **risk_harm 与 human_judgment 只存在于 train**（它们全部来自中文补充集 B 层）。
+> 因此 **train 与 test / validation / benchmark 的域分布不可比**：
+> 任何"某域在训练里如何、在测试里如何"的对比都会被这个结构差异污染。
+> 需要域间对比时，请在 train 内部再切一个与评测区同构的子集（只用 A 层），或只比较两区共有的两个域。
+
+**原语分布（条目级：一条条目至少含一个该原语）**：
+
+| kind | train | test | validation | benchmark |
+|---|---:|---:|---:|---:|
+| choice | 10,706 | 3,545 | 1,780 | 1,784 |
+| noul | 5,608 | 1,342 | 668 | 680 |
+| score | 3,753 | 742 | 367 | 380 |
+
+（同一条目可挂多个问题，所以一行内多列不互斥、也不等于条目数。）
 
 **为什么必须整组切**：中文侧的多个变体来自**同一个请求**、state 逐字相同，只是候选顺序不同。
-按行随机切会把同一请求的变体分到 train 和 test 两侧，**静默泄漏**——测试分数会虚高。
-切分器的做法是并查集合并：显式分组键（group_id / request_id，中英两侧都读）与**归一化 state**
-各自连边，同一连通分量的条目整组进同一分区。实测：显式分组键 8,664 条，靠 state 或 id 兜底的 15,191 条，
-共 21,376 组；多条目组 2,479 个（最大 2 条）。
+按行随机切会把同一请求的变体分到 train 和 test 两侧，**静默泄漏**。切分器的做法是并查集合并：
+显式分组键（group_id / request_id）与**归一化 state** 各自连边，同一连通分量的条目整组进同一分区。
 
-**泄漏检查（必须为空，实测为空）**：跨分区的组 0、跨分区的同一 state 0、跨分区的 id 0；
-复核范围 21,376 组 / 21,376 个不同 state。
+**泄漏检查（我在四个分区文件上复算，全部为 0）**：
 
-**复现**：
+| 组合 | id 重叠 | 组重叠 | 归一化 state 重叠 |
+|---|---:|---:|---:|
+| train ∩ test | 0 | 0 | 0 |
+| train ∩ validation | 0 | 0 | 0 |
+| train ∩ benchmark | 0 | 0 | 0 |
+| test ∩ validation、test ∩ benchmark、validation ∩ benchmark | 0 | 0 | 0 |
 
+复核范围：27,003 条 / 8,850 组 / 23,980 个不同归一化 state。
+切分产物树哈希 **618826416149312e**…，种子 20261005；详见 [split-report.md](split-report.md) 与
+[data/splits/split-manifest.json](data/splits/split-manifest.json)。
+
+**复现（注意两个坑）**：
+
+    # 1) 旗标是 --input（不是 --items），可重复给多个文件
+    # 2) 默认 --out/--report 指向交付目录：不加参数直接跑会【覆盖 train 并丢掉追加的 3,148 条补充】、
+    #    并【覆盖 split-report.md】。重跑务必先把 --out/--report 指到仓库外，或先备份。
     uv run --no-project --offline python datasets/general/data/splits/split.py \
-        --items datasets/general/data/items.final.jsonl --out datasets/general/data/splits --seed 20261005
+        --input datasets/general/data/items.final.jsonl \
+        --out <仓库外目录> --report <仓库外目录>/split-report.md --seed 20261005
 
-产物与哈希见 [data/splits/split-manifest.json](data/splits/split-manifest.json)；
-产物树哈希 2c3fa92c323edbf38147325dd6605220ed9a7b1a64cc0d935201f514533c62f4。
-完整报告见 [split-report.md](split-report.md)。
+实测：照抄 README 旧命令里的 --items 会直接报 unrecognized arguments、退出码 2（不会覆盖，但也没跑成）。
 
-### 3.1 内部 benchmark 的隐私约定
+### 3.1 内部 benchmark 的保密约定（正在整改，当前形态不达标）
 
-- **不得进公开仓库**：benchmark 分区（2,389 条）与可上传目录 data/splits/benchmark-dataset/ 已在 .gitignore 里；
-- **上传时设为 private**，不要放到任何公开分支、fork、PR、日志或截图里；
+- **不得进公开仓库**：benchmark 分区与 data/splits/benchmark-dataset/ 已在 .gitignore；
+- **上传时设为 private**；不要放进公开分支、fork、PR、日志或截图；
 - **其他人不要引用其内容**：看过逐例答案就不能再自称在它上面是盲测；
-- 它只含 A 层（原生四元组），**不含**第 1.5 节 B 层的补充数据。
+- 它**只含 A 层**（原生四元组，实测 origin=taxonomy 为 0 条）；
+- ⚠️ **当前保密性不达标，正在整改**：独立复核发现"仓库内公开文件 + 公开种子"可以逐字节重建
+  benchmark，且曾有一份 5,454 行的中文答案索引与 9 条 benchmark 记录进入版本库。
+  整改方向（db-schema 执行）：私盐重切 + 完整语料移出版本控制 + 不把完整语料与三区同时发布。
+  **整改完成前，请把现有 benchmark 视为已泄漏。**
 
-## 4. 文件在哪
+## 4. 文件在哪（对外发布面待定）
 
 | 文件 | 内容 |
 |---|---|
-| [data/items.final.jsonl.gz](data/items.final.jsonl.gz) | **最终语料** 23,855 条（明文同名去 .gz，体积大不入库） |
-| [data/items.native.jsonl.gz](data/items.native.jsonl.gz) | 英文侧主产物 15,983 条 |
-| data/splits/train.jsonl(.gz) 等四份 | 切分产物（benchmark 那份勿公开） |
+| data/items.final.jsonl(.gz) | 切分输入语料 23,855 条（英文 15,983 + 中文 7,872） |
+| data/zh-supplement/items.jsonl | 中文补充 3,148 条（只进 train） |
+| data/splits/train·test·validation·benchmark.jsonl(.gz) | 四个分区（benchmark 那份勿公开） |
+| data/items.native.jsonl.gz | 英文侧主产物 15,983 条 |
 | data/items.jsonl(.gz) / items.bilingual.jsonl(.gz) | 早期"模板命题"版（37,124 条），**留作对照，不再是训练首选** |
 
-原始下载在仓库外（D:\pol2-raw\）。检查：
+> 保密整改会调整"哪些文件随仓库发布"，因此上表**只描述本机工作区**；以 Lead 最终确认的公开面为准。
+
+检查（注意：6 域配额是按**已退役**的混合语料定的，对当前语料会报 NG）：
 
     uv run --no-project --offline python tools/check.py
+    # 实测：items.final 在 human_judgment / social_moral / risk_harm 三域为 0 → 3 项不通过；
+    # items.native 另有单一来源 jev-distill 占 48.5% > 40% → 4 项不通过。配额口径需随语料重定。
+    uv run --no-project --offline python datasets/general/coverage.py --items datasets/general/data/items.final.jsonl

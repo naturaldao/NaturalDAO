@@ -7,6 +7,8 @@
 - 输入文件：1 个
   - datasets/general/data/items.final.jsonl：23855 条
 - 条目总数：23855；请求组 21376 个
+- 保密：本次运行使用 仓外私盐（盐值不记录、不派生进任何公开产物）
+- benchmark 语言白名单：en（白名单外的语言只进 train/test/validation）
 
 ## 1. 切分算法
 
@@ -17,20 +19,24 @@
    - 中文侧分组 id 门禁（zh）：已通过
 2. **分层**：按 (domain, lang) 分层；层内组按种子洗牌，benchmark 先按 10% 预留，其余组按 6:2:1 用「目标条数 - 已分配条数」最大缺口贪心分配。
 3. **benchmark 保底**：对每个 lang x kind、每个 domain、每个 lang 设下限，不足时从其余组整组补足；该类总量不足下限时取全部并在下表标「是」。
-4. **确定性**：随机数来自 random.Random("seed|阶段|domain|lang")；分区内条目按 id 排序；gzip 以 mtime=0 写入 → 同一输入重跑逐字节一致。
+4. **确定性**：随机数来自 random.Random("公开种子|盐token|阶段|domain|lang")；分区内条目按 id 排序；gzip 以 mtime=0 写入 → 同一输入 + 同一私盐重跑逐字节一致。
+5. **保密**：盐token = 仓外私盐文件内容的 sha256 前 16 位；盐值与盐的哈希都不写入任何公开产物。只用公开脚本 + 公开种子（--public-demo）得到的是**另一套**分配，见第 10 节。
 
 ## 2. 分区规模
 
 | 分区 | 条目 | 占比 | 目标占比 | 请求组 |
 |---|---:|---:|---:|---:|
-| train | 17458 | 64.7% | 60% | 15419 |
-| test | 4771 | 17.7% | 20% | 4771 |
-| validation | 2385 | 8.8% | 10% | 2385 |
-| benchmark | 2389 | 8.8% | 10% | 2389 |
+| train | 17984 | 66.6% | 60% | 15801 |
+| test | 4946 | 18.3% | 20% | 4946 |
+| validation | 2473 | 9.2% | 10% | 2473 |
+| benchmark | 1600 | 5.9% | 10% | 1600 |
 
-> **train 高于 60% 是刻意安排**：切分完成后按裁定**只向 train 追加**了 3,148 条中文降级补充
-> （origin=taxonomy、benchmark_eligible=false，仅 train），未触碰其它分区。合计条目由 23,855 变为 27,003。
-> 追加前后的哈希与 origin 构成见第 10 节。
+> **三处刻意的偏离，别当成 bug**：
+> 1. **train 高于 60%（66.6%）**：切分完成后按裁定只向 train 追加了 3,148 条中文降级补充
+>    （origin=taxonomy、benchmark_eligible=false，仅 train）；合计条目 23,855 → 27,003。
+> 2. **benchmark 只有 1,600 条（5.9% 而非 10%）**：本次只允许**英文**进 benchmark（中文侧见第 10 节），
+>    1,600 ≈ 英文侧（15,983）的 10%。
+> 3. **benchmark 全是英文**，因此第 4.4 节 benchmark 一行的分层漂移必然偏大（zh 全在公开三区）。
 
 ## 3. 数据成色与已知缺口（用户决策必读）
 
@@ -48,8 +54,9 @@
 - **noul 只来自 en**，zh 侧没有 noul 形态的原生数据。
 - **score 只来自 en**，zh 侧没有 score 形态的原生数据。
 - **zh 侧只有单一来源** Deepexi/openai-formate-function-calling-small（7872 条，占全语料 33%）——低于契约 40% 上限，但**没有第二来源兜底**，跨来源去偏能力有限，训练决策请按单一来源对待。
-- 可选补强路径：中文 noul/score 目前没有原生来源；task-14 的中文分类衍生池（42,436 条，单标签 + documented 映射，**非原生四元组**）可作补强，属成色降级，需用户确认后另行引入——**本轮未引入**。train 里现有 3,148 条同类降级补充（仅 train、benchmark_eligible=false），见第 10 节。
-- 出题方：英文原生与中文原生的 questions 均已带 origin=source；中文侧在 2026-10-05 修复后 source_key 也逐问齐全。
+- **中文侧不进内部 benchmark**（本轮裁定）：中文答案曾以 (group_id → 正确工具) 索引进入公开版本库，
+  换盐、换种子、重切都挡不住——该映射对任何从同批请求生成的题都有效。恢复条件见第 10.3 节。
+- 可选补强路径：中文 noul/score 目前没有原生来源；task-14 的中文分类衍生池（42,436 条，单标签 + documented 映射，**非原生四元组**）可作补强，属成色降级，需用户确认后另行引入——**本轮未引入**。
 
 ## 4. 分布（每区内部占比）
 
@@ -57,45 +64,43 @@
 
 | lang | train | test | validation | benchmark |
 |---|---:|---:|---:|---:|
-| en | 9588 (67%) | 3197 (67%) | 1598 (67%) | 1600 (67%) |
-| zh | 4722 (33%) | 1574 (33%) | 787 (33%) | 789 (33%) |
+| en | 9588 (65%) | 3197 (65%) | 1598 (65%) | 1600 (100%) |
+| zh | 5248 (35%) | 1749 (35%) | 875 (35%) | 0 (0%) |
 
 ### 4.2 domain
 
 | domain | train | test | validation | benchmark |
 |---|---:|---:|---:|---:|
-| decision_mechanics | 11677 (82%) | 3893 (82%) | 1946 (82%) | 1949 (82%) |
-| knowledge_reasoning | 2633 (18%) | 878 (18%) | 439 (18%) | 440 (18%) |
+| decision_mechanics | 12203 (82%) | 4068 (82%) | 2034 (82%) | 1160 (72%) |
+| knowledge_reasoning | 2633 (18%) | 878 (18%) | 439 (18%) | 440 (28%) |
 
 ### 4.3 kind
 
 | kind | train | test | validation | benchmark |
 |---|---:|---:|---:|---:|
-| choice | 10706 (75%) | 3545 (74%) | 1780 (75%) | 1784 (75%) |
-| noul | 3977 (28%) | 1342 (28%) | 668 (28%) | 680 (28%) |
-| score | 2236 (16%) | 742 (16%) | 367 (15%) | 380 (16%) |
+| choice | 11187 (75%) | 3763 (76%) | 1868 (76%) | 997 (62%) |
+| noul | 4019 (27%) | 1324 (27%) | 672 (27%) | 652 (41%) |
+| score | 2222 (15%) | 757 (15%) | 349 (14%) | 397 (25%) |
 
 ### 4.4 分层漂移（各区内 (domain, lang) 占比 vs 全局占比）
 
 | 分区 | 最大占比差 | 该层 |
 |---|---:|---|
-| train | 0.0% | decision_mechanics/en |
-| test | 0.0% | decision_mechanics/en |
-| validation | 0.0% | knowledge_reasoning/en |
-| benchmark | 0.0% | decision_mechanics/en |
+| train | 2.4% | decision_mechanics/zh |
+| test | 2.4% | decision_mechanics/zh |
+| validation | 2.4% | decision_mechanics/zh |
+| benchmark | 33.0% | decision_mechanics/zh |
 
 ## 5. benchmark 保底配额
 
 | 单元 | 下限 | 实际 | 该类不足（取全部） |
 |---|---:|---:|---|
-| domain=decision_mechanics | 100 | 1949 | 否 |
+| domain=decision_mechanics | 100 | 1160 | 否 |
 | domain=knowledge_reasoning | 100 | 440 | 否 |
 | lang=en | 100 | 1600 | 否 |
-| lang=zh | 100 | 789 | 否 |
-| lang=en,kind=choice | 100 | 995 | 否 |
-| lang=en,kind=noul | 100 | 682 | 否 |
-| lang=en,kind=score | 100 | 382 | 否 |
-| lang=zh,kind=choice | 100 | 789 | 否 |
+| lang=en,kind=choice | 100 | 998 | 否 |
+| lang=en,kind=noul | 100 | 652 | 否 |
+| lang=en,kind=score | 100 | 398 | 否 |
 
 ## 6. 泄漏检查（必须为空）
 
@@ -109,20 +114,19 @@
 
 | dataset | revision | license | 条目 |
 |---|---|---|---:|
-| Deepexi/openai-formate-function-calling-small | 6d1dc02a2549 | apache-2.0 | 789 |
-| SargeDev/jev-distill-corpus-v3 | fc99c6357a9f | apache-2.0 | 781 |
-| samatv256/jev-decisions-v1 | c12aadf1f01c | cc-by-4.0 | 391 |
-| tasksource/procedural-typed-decisions | 609513a3fadd | apache-2.0 | 159 |
-| dwidlee/systemone-lite-general | c14eb7f7518f | mit | 143 |
-| ZefanCai/Open-Jev | c67699e13d0a | cc0-1.0 | 76 |
+| SargeDev/jev-distill-corpus-v3 | fc99c6357a9f | apache-2.0 | 753 |
+| samatv256/jev-decisions-v1 | c12aadf1f01c | cc-by-4.0 | 438 |
+| tasksource/procedural-typed-decisions | 609513a3fadd | apache-2.0 | 144 |
+| dwidlee/systemone-lite-general | c14eb7f7518f | mit | 135 |
+| ZefanCai/Open-Jev | c67699e13d0a | cc0-1.0 | 80 |
 | kaivoss/system-one-270m-data | f31d5a3f3da8 | apache-2.0 | 50 |
 
 ## 8. 产物
 
-- data/splits/train.jsonl（+.gz）：17458 条（含 3,148 条降级补充，仅 train；见第 10 节）
-- data/splits/test.jsonl（+.gz）：4771 条
-- data/splits/validation.jsonl（+.gz）：2385 条
-- data/splits/benchmark.jsonl（+.gz）：2389 条（**内部，勿公开**）
+- data/splits/train.jsonl（+.gz）：17984 条（含 3,148 条降级补充，仅 train；见第 10 节）
+- data/splits/test.jsonl（+.gz）：4946 条
+- data/splits/validation.jsonl（+.gz）：2473 条
+- data/splits/benchmark.jsonl（+.gz）：1600 条（**内部，勿公开**；全部英文，v2）
 - data/splits/benchmark-dataset/：可直接上传 HF 的 private benchmark（dataset card + benchmark.jsonl(.gz) + manifest.json）
 - data/splits/split-manifest.json：各产物 sha256 与复跑校验结果（机器可读）
 
@@ -132,63 +136,81 @@
 - 分区内条目按 id 排序；gzip 以 mtime=0 写入（gzip 头不含时间戳，否则两次压缩不会逐字节相同）。
 - 输出把裸 U+2028 / U+2029 / U+0085 统一写成 \uXXXX 转义（无损）：它们在 JSON 里合法，但用 str.splitlines() 读会被当成换行、把记录劈开。
 - 本次运行额外完整复跑一遍并写到独立临时目录，比对 12 个产物文件：**逐字节一致**。
-- 产物树哈希（sha256 over 文件名+文件哈希）：618826416149312e023cbb719c3944b868276a6c84f697e0fbb3b6a63230101c
-- 比对范围：train.jsonl、train.jsonl.gz、test.jsonl、test.jsonl.gz、validation.jsonl、validation.jsonl.gz、benchmark.jsonl、benchmark.jsonl.gz、benchmark-dataset/README.md、benchmark-dataset/benchmark.jsonl、benchmark-dataset/benchmark.jsonl.gz、benchmark-dataset/manifest.json
-- 上述复跑校验与外部两遍比对（13 个文件含报告）均在**追加补充集之前**完成；追加只改 train 的两个文件（见第 10 节）。
+- 另起一次同条件 CLI（同样带盐、同样未追加补充）到第三个目录：**13 个文件（含报告）0 处不一致**。
+- 产物树哈希（sha256 over 文件名+文件哈希）：7635cfbbd01b1f7310808d6aedaa79fb55334bdfbcd56681dde65ca88d6cbfb1
+- 注意：带盐后**旧四区（未加盐那版）与本次四区是两套**，旧版全部作废（见第 10.1 节）。
 
-## 10. 中文 origin 修复后的整体重跑 + train 追加降级补充（task-21）
+## 10. benchmark 保密修复（task-24）：加盐重切 + 移出泄漏文件 + v1 作废
 
-背景：契约规定「questions[].origin 缺省即视为 taxonomy」，而中文原生（Deepexi）条目此前未标 origin，
-会被读成降级数据（方向反了）。pol2-replay 修复后（每问补 origin=source + source_key），
-按裁定**整条链重跑**：重合并 items.final → 重切分四区（种子 20261005）→ 只向 train 追加 3,148 条降级补充。
+### 10.1 新旧是两套，v1 作废
 
-### 10.1 重跑后的四区哈希
-
-| 分区 | sha256（明文） | sha256（.gz） |
+| 版本 | 内容 | 状态 |
 |---|---|---|
-| train（追加前） | 29870a4eacca2aa440cfb2ff96d2fb30f2aa43881d9c2a93b8902418f1e94dad | 1d42925502b72eeeac39d2877c2534ae388dbf7593900be1aecab3c7e863fbda |
-| train（**追加后**） | **52ed2ff6c2987002092dc9fbdb4ad0e59b4db3608f1de68802e8065a71264894** | **dbf6c00b01ab607f2df0a64b46f80fa23372f23f18eae5b7b12d0bc594047382** |
-| test | 308d58028c43680a17f7908438ff6c27dab01b33dbb07018c856809048aaee49 | 0182019c397a5fa306e76e0681387c466ff5fb4d64bca8c72a5fc3f554435138 |
-| validation | 24c2addec2f8b4ba8869bb69715705b517e62cace0c0c1530778a8b874734b6d | 99d88f3762b0fca1a984952f7cf53a9ae564bae0ffb5f89b293faf7490ff1cb5 |
-| benchmark | 43937e09a6fdde62c7290bd6f5217d6928f4fd7809f1f2f1a4808f43c495b3d9 | 4a7f75bc1f799127bceccfb71ada826305686273b4c4adf2882c046ad7cc03b3 |
+| v1（本报告早些时候的四区） | 公开种子 20261005、无盐；benchmark 2,389 条（含中文 789） | **作废**：可用仓库公开的脚本 + 语料 + 种子逐字节重建（benchmark.jsonl sha256 43937e09a6fdde62…） |
+| **v2（本次）** | **仓外私盐** + 只允许英文进 benchmark；benchmark 1,600 条 | 现行交付件；四区哈希见 10.5 |
 
-输入语料 items.final.jsonl：23,855 条（en 15,983 + zh 7,872），sha256 21f11fe3dc39edd9d82680b7461b45883bb73d15a1d9611f3b2e80f4bd7e9f9f。
+**v1 与 v2 不可拼接、不可混用计分**；v1 的 benchmark 与 test/validation 均已作废。
 
-### 10.2 口径一致性交叉验证（重跑前 vs 重跑后）
+### 10.2 三条泄漏路径与对应修复
 
-按"算法与种子不变、只多 origin/source_key 字段"的论断，重跑后各分区的 **id 集合**应与重跑前一致：
+| 路径 | 证据 | 修复 |
+|---|---|---|
+| 算法路：公开脚本 + 公开语料 + 公开种子 → 重建 benchmark | v1 可逐字节重建 | **仓外私盐**折进所有 RNG 种子；无盐只能 public-demo（写仓库外），产出的是另一套 |
+| 内容路：被跟踪的语料里直接含 benchmark 正文 | items.final.jsonl.gz 含全 2,389 条且逐字段相同；items.native.jsonl.gz 含全 1,600 条英文条目 | 七件含 benchmark 或答案索引的文件**移出版本控制**（清单见 10.4），公开侧不再有完整语料 |
+| 减法路：公开语料 − 公开三区 = benchmark | 语料在仓库里时成立 | 同上（公开侧没有完整语料）；对外只发布 train/test/validation |
 
-| 分区 | 重跑前基线 | 重跑后 | 结论 |
-|---|---:|---:|---|
-| test | 4,771 | 4,771 | id 集合**完全一致** |
-| validation | 2,385 | 2,385 | id 集合**完全一致** |
-| benchmark | 2,389 | 2,389 | id 集合**完全一致** |
-| train | 14,310（盘上 17,458 − 3,148 补充） | 14,310 | id 集合**完全一致**（对称差 0） |
+### 10.3 中文侧为什么不进 benchmark（本轮裁定）
 
-即：本次重跑只带来字段新增，没有任何条目换区。泄漏检查仍为 **0/0/0**。
+- 泄漏的不是"哪几条"，而是 **(group_id → 正确工具) 的映射**（zh-group-index.jsonl，5,454 行，覆盖中文全部组），
+  它对**任何**从同批请求生成的题都有效——换盐、换种子、重切都挡不住。
+- 未选择"重写 git 历史"：这是共享仓库、已有协作者分支，无法确认没有外部 clone 或已推送副本，历史重写不可逆。
+- 未选择"保留但标注已泄漏"：一个已知不可信的 benchmark 比一个小而干净的更糟，会给出看似可信的分数。
+- **恢复条件**：接入一个全新的中文来源；或在确认无外部副本后，由维护者协调重写仓库历史清除该索引。
 
-### 10.3 追加后 train 的 origin 构成（三类）
+### 10.4 移出版本控制的文件（仓库外 D:/pol2-raw/general-private/）
 
-| origin | 条目 | 占 train | 说明 |
-|---|---:|---:|---|
-| source（英文原生） | 9,588 | 54.9% | 英文原生四元组，questions[].origin=source |
-| source（中文原生） | 4,722 | 27.1% | 中文原生（Deepexi）四元组；修复后 questions[].origin=source 且 source_key 齐全 |
-| taxonomy（**降级补充**） | **3,148** | **18.0%** | 中文分类数据 + documented 映射生成；meta.tier=derived、benchmark_eligible=false、**仅 train** |
-| 未标 | **0** | 0.0% | 重跑后已无缺 origin 的条目 |
+| 文件 | 原因 |
+|---|---|
+| data/items.final.jsonl.gz | 含 benchmark 全部 2,389 条且逐字段相同（完整语料） |
+| data/items.native.jsonl.gz | 含英文侧 benchmark 全部 1,600 条且逐字段相同 |
+| data/items.native.slim.jsonl.gz | 字段精简版，正文仍在（同 1,600 条） |
+| data/items.bilingual.jsonl.gz | 旧 schema，同一批 state/答案（减法路原料） |
+| data/items.jsonl.gz | 旧 taxonomy 版，同一批 state/答案 |
+| data/zh/zh-group-index.jsonl | 5,454 行答案索引（group_id → 正确工具） |
+| data/zh/zh-items.sample.jsonl | 200 行中含 9 行与 benchmark 逐字段相同 |
 
-- train 合计 **17,458**：其中 **3,148 条（18.0%）是降级补充**，与原生条目混在同一分区，
-  训练配比与损失权重请据此调整，不要把它们当作原生四元组。
-- 降级补充 kind：noul 1,631 + score 1,517；来源 4 个（BEncoderRT/User_Intent_Risk_Triage 2,061、
-  textdetox/multilingual_toxicity_dataset 543、chenhaodev/med-guard-safety-synth 472、
-  vanila434/multilingual-elder-safety-msgs 72）；来源文件 sha256 f2d87c3893d2e138b1443140a67d30c545cd47bebb05c5d9d629fed4f7422c8a。
-- train 追加后：请求组 15,419；kind（条目集合）choice 10,706 / noul 5,608 / score 3,753；语言 en 9,588 / zh 7,870。
-- **降级补充不得进入 test / validation / benchmark**：三区保持纯原生，本次追加未触碰。
+从版本库删除跟踪记录（git rm --cached）与提交由 Lead 执行；我这边只做"移出 + 清单 + 验证"。
+护栏测试会逐个扫描**被 git 跟踪**的文件，要求对 benchmark 的 id 与正文**零命中**。
 
-### 10.4 注意
+### 10.5 本次（v2）四个分区的哈希
 
-- 本节是一次性补丁：若以后重跑 datasets/general/data/splits/split.py，四个分区会由纯原生语料重新生成，
-  本次追加需重新执行。
-- 第 5 节保底表的"实际"按**组**计（同一请求组内条目一并计入），因此会比该 kind 的真实条目数略高
-  （例如 en/noul 显示 682，而按条目复算是 680）；真实条目数以 benchmark 包 manifest 的 verifiable_counts 为准。
-  这是报表口径问题，不影响分区成员。
+| 分区 | 条目 | sha256（明文） |
+|---|---:|---|
+| train（追加补充后） | 17,984 | 0d04c0445ea0a64ee9aefbcea87686abfd4de48ce3fb0a98e8030d3a85b706e2 |
+| test | 4,946 | 95e6633914f08ad6…（完整值见 split-manifest.json） |
+| validation | 2,473 | 55c11de812d3177c… |
+| benchmark | 1,600 | f5ae670811c33200…（v2，私盐版） |
 
+### 10.6 追加后 train 的 origin 构成
+
+| origin | 条目 | 占 train |
+|---|---:|---:|
+| source（英文原生） | 9,588 | 53.3% |
+| source（中文原生） | 5,248 | 29.2% |
+| taxonomy（**降级补充**，仅 train） | 3,148 | 17.5% |
+| 未标 | 0 | 0.0% |
+
+train 其他聚合：请求组 15,801；语言 en 9,588 / zh 8,396；kind（条目集合）choice 11,187 / noul 5,650 / score 3,739；
+域 decision_mechanics 12,203 / knowledge_reasoning 2,633 / risk_harm 2,605 / human_judgment 543。
+**risk_harm 与 human_judgment 只出现在 train**，因此 train 与 test/validation/benchmark 的域分布不可比。
+
+### 10.7 机器可验证的保密性（test_split.py 的 SecrecyTest）
+
+1. 同一语料 + 两个不同盐 → benchmark 集合不同；
+2. 同盐两次 → 完全一致（可复现）；
+3. 语言白名单：非白名单语言不得进 benchmark；
+4. **无盐 public-demo 跑法与交付件不同**（集成测试，语料存在时执行）；
+5. **所有被 git 跟踪的文件对 benchmark 记录零命中**（护栏）；
+6. 拒绝性：盐文件在仓库内 / 无盐且非 public-demo / public-demo 写到仓库内 → 均非零退出。
+
+- 比对范围：train.jsonl、train.jsonl.gz、test.jsonl、test.jsonl.gz、validation.jsonl、validation.jsonl.gz、benchmark.jsonl、benchmark.jsonl.gz、benchmark-dataset/README.md、benchmark-dataset/benchmark.jsonl、benchmark-dataset/benchmark.jsonl.gz、benchmark-dataset/manifest.json

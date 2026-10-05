@@ -4,7 +4,7 @@
 
 **结论**：只保留**原生就是 (state, question, options, target) 四元组**的 System-1 来源。这类数据集自带问题和选项，直接用它们的原生问题；把传统数据集套上我们自己的问题模板是跑偏的——那会把"选一个"变成"按我们的口径重新解释别人的数据"。传统数据集里只有答案简练、选项封闭的才值得改造成选择题少量引入（第 3 节）。
 
-口径：条数取自 [data/convert-report.json](data/convert-report.json) 的 units[].items / units[].with_targets；样例全部来自 D:\pol2-raw\ 下各来源 rows.jsonl 的真实行（长文本标 [截断]）。样例是原文节选：**引号里都是源数据原样内容**，中文键名（如"候选数""问题数"）是本文的注释、不是源字段。推荐保留合计 **15,915 条**，其中 **7,017 条带原生真值**。
+口径：**条数与真值数取自 [data/items.native.report.json](data/items.native.report.json) 的 units[].items / units[].with_targets**（原生四元组线；data/convert-report.json 是已退役的模板线报告，不要用它的数字）；样例全部来自 D:\pol2-raw\ 下各来源 rows.jsonl 的真实行（长文本标 [截断]）。样例是原文节选：**引号里都是源数据原样内容**，中文键名（如"候选数""问题数"）是本文的注释、不是源字段。推荐保留合计 **15,915 条**，其中 **7,017 条带原生真值**。
 
 ## 1. 推荐保留：7 个抓取单元 / 6 个数据集（按重要性排序）
 
@@ -31,7 +31,8 @@
      "question": "Choose a direction to keep the snake alive and collect food. [截断]",
      "options": ["up", "right", "down"], "target": [0.0, 0.5, 0.5], "state": "{\"coordinates\": \"x increases right; y increases down\", \"direction\": \"right\", \"food\": [5, 5], [截断]"}
 
-保留 **7,756 条**（带原生 target 1,053）。它是唯一撑得起知识推理能力的来源；真值率低是因为大量行是 **0–5 六档的 score**——不要压成五档，直接用它的原生打分。
+保留 **7,756 条**（**100% 带来源自带答案**）。它是唯一撑得起知识推理能力的来源；它的 score 是 **0–5 六档**——不要压成五档，直接用它的原生打分。
+实测这 7,756 个 target 的形态：真分布 5,395 / 均匀 1,647 / 伪 one-hot 714（判断方法见 [CONTRACT.md](CONTRACT.md) §2.3；**均匀的那 1,647 条没有信息量**，做校准目标前先剔除）。
 
 ### 1.2 open-jev — 规范最好的多问题来源（ZefanCai/Open-Jev）
 
@@ -78,7 +79,7 @@ default 配置一条：
      "candidates[:3]": [{"id": "tool::diagnose_equipment", "name": "diagnose_equipment"}, {"id": "tool::order_replacement_parts", "name": "order_replacement_parts"}, {"id": "tool::schedule_field_service", "name": "schedule_field_service"}],
      "候选数": 9, "target": {"candidate_id": "tool::schedule_field_service", "action_name": "schedule_field_service"}}
 
-保留 **3,802 条**（general-clean-50k，带真值 1,980）+ **139 条**（default 浅窗口，带真值 61）。
+保留 **3,802 条**（general-clean-50k）+ **207 条**（default 浅窗口），两者都 **100% 带来源自带答案**（硬标签 → 单点分布，见 CONTRACT §2.3）。
 候选数常在 12–20 个（实测 17 最常见）。**截断候选会改变题目**，建议只取候选较少的行为训练子集，而不是硬砍到 16。
 
 
@@ -101,7 +102,7 @@ default 配置一条：
      "letters": ["A", "B"], "target": [0.9999, 0.0001], "label": "migration", "qtype": "choice",
      "domain": "forum question", "state_id": "3e1c3d5968ae4037bb12d556a345675a", "entropy": 0.001473}
 
-保留 **447 条**（1,500 行按 state_id 聚合成 447 个情境，带真值 377）。
+保留 **447 条**（1,500 行按 state_id 聚合成 447 个情境，**100% 带来源自带答案**）。
 
 ### 1.6 procedural-typed-decisions — 一个情境多个类型化问题（tasksource/procedural-typed-decisions）
 
@@ -115,22 +116,24 @@ default 配置一条：
     {"question_key": "largest_quantity", "spec": {"type": "choice", "criteria": {"purple drill": "purple drill", "blue clock": "blue clock", "brown rope": "brown rope", [截断]}, "instructions": "Among the kitchen items, which has the largest quantity?"},
      "answer": {"type": "choice", "choice": "brown rope", "probabilities": {"purple drill": 0.0, "blue clock": 0.0, "brown rope": 1.0, [截断]}, "confidence": 1.0}}
 
-保留 **1,500 条**（带真值 1,275）。
+保留 **1,500 条**（**100% 带来源自带答案**）。一个情境挂多个问题，英文侧共 4,691 个 target：伪 one-hot 3,696 / 真分布 432 / 只有 answer 545 / 均匀 18。
 
 ## 2. 合计与目标
 
-| 数据集 | 保留条数 | 带原生真值 |
+| 数据集 | 保留条数 | 带来源自带答案 |
 |---|---:|---:|
-| jev-distill-v3 | 7,756 | 1,053 |
-| open-jev | 792 | 792 |
-| jev-decisions（两个配置合计） | 3,941 | 2,041 |
+| jev-distill-v3 | 7,756 | 7,756 |
+| jev-decisions（两个配置合计） | 4,009 | 4,009 |
+| procedural-typed-decisions | 1,500 | 1,500 |
 | systemone-lite-general | 1,479 | 1,479 |
-| procedural-typed-decisions | 1,500 | 1,275 |
-| system-one-270m | 447 | 377 |
-| **合计** | **15,915** | **7,017** |
+| open-jev | 792 | 792 |
+| system-one-270m | 447 | 447 |
+| **合计** | **15,983** | **15,983（100%）** |
 
-- 契约总量下限 10,000 条：**只用 System-1 来源就到 15,915 条，不需要靠传统数据集凑数。**
-- 真值率 44%（7,017 / 15,915），且带得动校准训练：jev-distill、open-jev、system-one-270m、procedural 给完整概率分布；jev-decisions、systemone-lite 给硬标签。
+- 契约总量下限 10,000 条：**只用 System-1 来源就到 15,983 条，不需要靠传统数据集凑数。**
+- **每个条目都带来源自己的答案（100%）**，但要分清形态（见 [CONTRACT.md](CONTRACT.md) §2.3）：真分布与硬标签单点分布
+  在字段上长得一样，**不能一律当概率用**。本目录实测：真分布 7,520 个问题 / 伪 one-hot 14,119 / 均匀 1,730 / 只有 answer 11,565
+  英文侧 23,914 个 target 的形态分布为 真分布 7,520 / 伪 one-hot 14,119 / 均匀 1,730 / 只有 answer 545，中文侧 11,020 个 target 全部是「只有 answer」。）
 - 已知空洞：以上全是英文情境，**PoL2 的判定轴（爱/恨、同意撤回、批评与人格等）不在其中**——由 PoL2 专项语料承担，不要用通用数据集硬凑。
 
 **现状**：原生版本已经落地——**items.native.jsonl，15,983 条，100% 带原生真值**（23,914 个问题 / 3,729 个来源原生键；条目直接使用来源的 state / question / options / target，键名就是来源自己的问题名）。模板版 **items.jsonl（37,124 条）**与 **items.bilingual.jsonl** 保留作对照，已不是训练首选。

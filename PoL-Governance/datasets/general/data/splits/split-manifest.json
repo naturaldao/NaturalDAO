@@ -1,23 +1,23 @@
 {
   "counts": {
-    "benchmark": 2389,
-    "test": 4771,
-    "train": 17458,
-    "validation": 2385
+    "benchmark": 1600,
+    "test": 4946,
+    "train": 17984,
+    "validation": 2473
   },
   "digests": {
-    "benchmark-dataset/README.md": "5572ab4ed82b52694086c7f59dd2400a5cdd14daa0e2e17c8d475b8ccc9f83a5",
-    "benchmark-dataset/benchmark.jsonl": "43937e09a6fdde62c7290bd6f5217d6928f4fd7809f1f2f1a4808f43c495b3d9",
-    "benchmark-dataset/benchmark.jsonl.gz": "4a7f75bc1f799127bceccfb71ada826305686273b4c4adf2882c046ad7cc03b3",
-    "benchmark-dataset/manifest.json": "e434c9d01df09bd7e73f487d1d446c4436aa8ec1d29f8a74c0b104a141c7066d",
-    "benchmark.jsonl": "43937e09a6fdde62c7290bd6f5217d6928f4fd7809f1f2f1a4808f43c495b3d9",
-    "benchmark.jsonl.gz": "4a7f75bc1f799127bceccfb71ada826305686273b4c4adf2882c046ad7cc03b3",
-    "test.jsonl": "308d58028c43680a17f7908438ff6c27dab01b33dbb07018c856809048aaee49",
-    "test.jsonl.gz": "0182019c397a5fa306e76e0681387c466ff5fb4d64bca8c72a5fc3f554435138",
-    "train.jsonl": "52ed2ff6c2987002092dc9fbdb4ad0e59b4db3608f1de68802e8065a71264894",
-    "train.jsonl.gz": "dbf6c00b01ab607f2df0a64b46f80fa23372f23f18eae5b7b12d0bc594047382",
-    "validation.jsonl": "24c2addec2f8b4ba8869bb69715705b517e62cace0c0c1530778a8b874734b6d",
-    "validation.jsonl.gz": "99d88f3762b0fca1a984952f7cf53a9ae564bae0ffb5f89b293faf7490ff1cb5"
+    "benchmark-dataset/README.md": "88164c7be3e72caf98830d3608824b08da23e12edc38a810a074e258780c051e",
+    "benchmark-dataset/benchmark.jsonl": "f5ae670811c332002deb82ab98bed8d25ef66281aeb622691a50147ee6e70a2a",
+    "benchmark-dataset/benchmark.jsonl.gz": "3f67285adeec301f698401bc48e2e37bb72f243efc0c62a6eba3489dedb0d0a5",
+    "benchmark-dataset/manifest.json": "3a9adf762673c065fa08500abc7b7f0bd89c5ceb3e9f10a49cb884c6e229b578",
+    "benchmark.jsonl": "f5ae670811c332002deb82ab98bed8d25ef66281aeb622691a50147ee6e70a2a",
+    "benchmark.jsonl.gz": "3f67285adeec301f698401bc48e2e37bb72f243efc0c62a6eba3489dedb0d0a5",
+    "test.jsonl": "95e6633914f08ad664cdc1cb26da6068a8c164a24c92398b82b634113560bd70",
+    "test.jsonl.gz": "c3661a59b63d2414548aa54ff7e2d47dcf8eaae34ca1cacf8cd7d329e7f5a23f",
+    "train.jsonl": "0d04c0445ea0a64ee9aefbcea87686abfd4de48ce3fb0a98e8030d3a85b706e2",
+    "train.jsonl.gz": "66e0cfe393f8dc13f10f60f080c3e22ea7677fc611057ebf3c120c4cedde5369",
+    "validation.jsonl": "55c11de812d3177cc952297325f91c0a78056c3642ce9bb5d8445b074fecfc04",
+    "validation.jsonl.gz": "8cae7ad9a4288d38e1860f5cdff62f54ff89b8bf972cf876470d8e6f35151d95"
   },
   "inputs": [
     "datasets/general/data/items.final.jsonl"
@@ -32,8 +32,15 @@
   "rerun": {
     "files": 12,
     "identical": true,
-    "note": "该复跑校验完成于 task-21 追加补充集之前；train 的两个文件已按追加结果更新，其余 10 个文件未变",
-    "tree_sha256": "618826416149312e023cbb719c3944b868276a6c84f697e0fbb3b6a63230101c"
+    "note": "该复跑校验完成于追加补充集之前；train 的两个文件已按追加结果更新，其余 10 个文件未变",
+    "tree_sha256": "7635cfbbd01b1f7310808d6aedaa79fb55334bdfbcd56681dde65ca88d6cbfb1"
+  },
+  "salt_policy": {
+    "benchmark_langs": [
+      "en"
+    ],
+    "note": "交付件使用仓库外私盐；盐值与盐的哈希都不记录、不派生进任何公开产物。只凭本 manifest 的公开种子无法复现交付件；无盐跑法（--public-demo）产出的是另一套。",
+    "salted": true
   },
   "schema": "pol-split-manifest/0.1",
   "seed": 20261005,

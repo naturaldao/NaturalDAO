@@ -40,11 +40,17 @@
 - `taxonomy`：来源本身没有原生问题，由本地 taxonomy 生成题面。**这是次选**，只在来源确实不含问题时使用。
   此时 `key` 取自 taxonomy 的问题键表。
 
+> **`origin=source` 的准确含义**：它表示**候选集与答案来自来源**，**不表示题面文字也来自来源**。
+> 英文侧（6 个 System-1 来源）的 prompt 就是来源自己的问题原文，键名也是来源的原生问题名；
+> **中文侧（Deepexi 7,872 条）来源没有 question 字段**：prompt 只有一种措辞（"以下候选中，哪一个是正确的下一步？"）、
+> key 一律是 `next_step_candidate`，**题面措辞是我们编写的**，来源提供的是请求文本、候选菜单与正确答案。
+> 想区分"题面是否原生"，看 `lang` 与 `source.slug`，或看 `meta.key_source`（`native-name` / `native-text`）。
+
 `origin` **缺省即视为 `taxonomy`**：只有原生四元组的条目才写 `origin: "source"`。
 早期按模板命题的语料因此不必回填该字段，也能被正确解读。`coverage.py` 按 `origin` 分别统计：
 `source` 的原生键不在 taxonomy 词表内属正常，不应报 schema 警告。
 
-**当前主产物是 [data/items.native.jsonl.gz](data/items.native.jsonl.gz)**（15,983 条，全部 `origin=source`，100% 带原生真值；
+**当前主产物是 data/items.native.jsonl.gz（已移出版本控制）**（15,983 条，全部 `origin=source`，100% 带原生真值；
 明文同名去 `.gz`，体积大故不入库）。
 `items.jsonl` 与 `items.bilingual.jsonl` 是按模板命题的早期版本，留作对照，不再是训练首选。
 
@@ -57,8 +63,13 @@
 |---|---|---|
 | `noul` 选项 | 固定 `[{"key":"yes"},{"key":"no"}]` | 恰好 2 个非空选项，`false/true`、`no/yes` 均可，顺序任意 |
 | `choice` 选项数 | 2–16 | ≥2，**不设上限**（实测最多 57 个） |
-| `score` 量程 | `{min:0,max:4,labels:…}` | 用自带 `scale` 自洽即可（实测最多 0–9 十档） |
+| `score` 量程 | `{min:0,max:4,labels:…}` | 用自带 `scale` 自洽即可（实测 3 / 6 / 10 / **11 档**，最高 `max=10`） |
 | 答案与概率 | 按 taxonomy 规范选项校验 | 按**该题自带**的 options/scale 校验 |
+
+**score 的取值口径陷阱**：`scale.labels` 是**给人看的档位文字**，而 `targets[key].probs` 的键
+**始终是数字下标** `"0".."max"`。实测 6,752 道 score 题里 **4,661 道**的 labels 是描述文字
+（如 Open-Jev 的 `bug_severity` 三档："Cosmetic; no impact to functionality" …），只有 2,091 道是 `"0".."max"`。
+照 `labels` 去建输出词表会**静默全 0 或 KeyError**；建词表要用 `range(min, max+1)`。
 
 ### 2.2 答案 `answers.<source>.jsonl`
 
@@ -79,6 +90,40 @@
 | `created_at` | string | 是 | ISO 8601 带时区 |
 
 **失败不写 ok。** 外部答案源（含官方 Jev）没接通时必须显式报错退出，不得静默降级成"跳过"。
+
+## 2.3 真值形态与 provenance（训练前必读）
+
+字段层面**长得一样**，但 `targets[key].probs` 有三种来源完全不同的形态，必须先用下表判别：
+
+| 形态 | 判别方法 | 全语料问题数 | 其中 benchmark | 能不能当概率用 |
+|---|---|---:|---:|---|
+| **真分布** | probs 有多个不同取值 | 7,520 | 757 | ✅ 可以 |
+| **伪 one-hot** | 恰好一个 1.0、其余 0.0 | 14,119 | 1,398 | ❌ 是硬标签的单点分布 |
+| **均匀分布** | 各项相等（如 0.5/0.5） | 1,730 | 180 | ❌ 无信息 |
+| 只有 answer | 没有 probs 字段 | 11,565 | 854 | — 只有硬标签 |
+
+**规则**：`probs` 只在来源**真的给了分布**时使用；由硬标签转换出来的**单点分布**必须能被识别，
+**不允许**把它当作校准目标（本契约第 1 节第 3 条）。判别方法（无歧义）：
+
+    def target_shapes(targets):
+        """返回每个问题的形态：real / one_hot / uniform / answer_only"""
+        def classify(t):
+            probs = t.get("probs")
+            if not probs:
+                return "answer_only"
+            values = list(probs.values())
+            if max(values) == min(values):
+                return "uniform"
+            return "one_hot" if sum(1 for v in values if v) == 1 else "real"
+        return {key: classify(value) for key, value in (targets or {}).items()}
+
+**已知冲突（待数据侧修复，不要靠这份文档猜测）**：历史产物里 14,119 个问题是**伪 one-hot**，
+它们与第 1 节"不允许把单标签伪装成概率"直接冲突。建议的修法是**加问题级 provenance**：
+`targets[key].provenance ∈ {source_distribution, source_hard_label, derived_single_point}`，
+在字段层面就能区分；在此之前，请按上表过滤，或只把 `answer` 当标签用。
+
+**均匀分布没有信息量**（多来自教师模型的低置信样本），用它做监督等于教模型"别确定"：
+报告指标时建议同时给"排除均匀目标"的子集分数。
 
 ## 3. 覆盖域（每个域设下限配额，宁缺毋滥）
 
@@ -132,10 +177,31 @@
    处理口径：**不硬塞档位**，原生问答与分布保留在 meta.source_record，条目按该域的 CORE 键提问、targets 留空等外部答案源。
    转换汇总必须分别报告 native_target_rate（带真值的条目占比）与待作答条目数。
 5. 语义近重复与同情节跨区检测、跨文件/跨来源 id 去重，本阶段均未实现。
+6. **伪 one-hot 与"不伪装概率"冲突**：14,119 个问题的 probs 是硬标签造的单点分布（benchmark 内 1,398），
+   判别与修法见 §2.3。训练时若不先过滤，分布类损失（KL / 软交叉熵 / 校准）会学到退化解。
+7. **均匀分布 target 无信息**：1,730 个问题（benchmark 内 180）各项概率相等，建议排除后再报分。
+8. **train 与评测区的域分布不可比**：risk_harm（2,605）与 human_judgment（543）**只存在于 train**
+   （全部来自中文补充集），test / validation / benchmark 在这两域为 0。任何跨区的域间对比都会被该结构差异污染。
+9. **内部 benchmark 保密性当前不达标，正在整改**：复核确认"仓库内公开文件 + 公开种子"可逐字节重建 benchmark，
+   且曾有 5,454 行中文答案索引与 9 条 benchmark 记录进入版本库。整改方向：私盐重切 + 完整语料移出版本控制
+   + 不把完整语料与三个公开分区同时发布。**整改完成前请视为已泄漏。**
+10. **split-manifest 有 2 条摘要与磁盘不符**（benchmark-dataset/README.md、benchmark-dataset/manifest.json），
+    属于切分侧待修项（随整改一并重生成）。
+11. **配额口径与当前语料不匹配**：六域下限是按已退役的混合语料定的；当前语料实测
+    items.final 在 human_judgment / social_moral / risk_harm 三域为 0，items.native 另有单一来源占 48.5% > 40%。
+    配额需随语料重定，见 §7。
 
 ## 7. 检查
 
-```powershell
-uv run --no-project --offline python tools/check.py
-uv run --no-project --offline python datasets/general/coverage.py --items datasets/general/data/items.jsonl
-```
+    uv run --no-project --offline python tools/check.py
+
+    # 覆盖与配额。注意：六域配额是按【已退役】的模板语料定的，对当前语料会报 NG（见 §6 第 11 条）：
+    #   items.final → human_judgment / social_moral / risk_harm 三域为 0，报 3 项不通过；
+    #   items.native → 另有单一来源 jev-distill 占 48.5% > 40%，报 4 项不通过。
+    uv run --no-project --offline python datasets/general/coverage.py --items datasets/general/data/items.final.jsonl
+
+    # 切分复现。两个坑：旗标是 --input；默认 --out/--report 指向交付目录，会把 train（含追加的 3,148 条
+    # 中文补充）与 split-report.md 一起覆盖，必须显式指到仓库外。
+    uv run --no-project --offline python datasets/general/data/splits/split.py \
+        --input datasets/general/data/items.final.jsonl \
+        --out <仓库外目录> --report <仓库外目录>/split-report.md --seed 20261005

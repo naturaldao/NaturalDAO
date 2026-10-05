@@ -40,6 +40,7 @@ import hashlib
 import json
 import random
 import re
+import subprocess
 import sys
 import tempfile
 from collections import Counter, defaultdict
@@ -61,6 +62,11 @@ DEFAULT_INPUTS = (
 ZH_PATH_MARKER = "data/zh/"
 #: 内部 benchmark 的保底配额（每个 lang x kind / 每个 domain / 每个 lang），可用命令行覆盖
 DEFAULT_BENCHMARK_MIN_PER_CELL = 100
+#: 无盐跑（--public-demo）时折进种子的固定标记：任何人用公开信息跑出来的都是这一套，
+#: 因此**永远与交付件不同**（交付件用的是仓外私盐）。
+PUBLIC_DEMO_SALT = "public-demo"
+#: 环境变量里也可以放盐文件路径（优先级低于 --salt-file）
+SALT_ENV = "POL_SPLIT_SALT_FILE"
 _WS = re.compile(r"\s+")
 
 
@@ -301,20 +307,68 @@ def _targets(items_count: int, ratios: dict, splits) -> dict:
     return {s: items_count * ratios[s] / total_ratio for s in splits}
 
 
-def _shuffled(labels, seed: int, *parts) -> list[str]:
+def git_repo_root(start: Path) -> Path | None:
+    """返回包含 start 的 git 仓库根；不是仓库或没有 git 时返回 None。"""
+    try:
+        completed = subprocess.run(["git", "-C", str(start), "rev-parse", "--show-toplevel"],
+                                   capture_output=True, text=True, encoding="utf-8", errors="replace")
+    except (OSError, FileNotFoundError):
+        return None
+    if completed.returncode != 0:
+        return None
+    return Path(completed.stdout.strip())
+
+
+def path_inside(root: Path | None, path: Path) -> bool:
+    """path 是否位于 root 之内（root 为 None 时恒 False）。"""
+    if root is None:
+        return False
+    try:
+        Path(path).resolve().relative_to(Path(root).resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def read_salt(salt_file, *, repo_root: Path | None) -> str:
+    """读**仓库外**私盐，返回折进种子的 token（sha256 前 16 位）。
+
+    硬要求：盐文件必须在仓库外——盐一旦进仓库，"公开脚本 + 公开种子无法复现 benchmark"就不成立。
+    """
+    path = Path(salt_file)
+    if not path.is_file():
+        raise SplitError(f"盐文件不存在：{path}")
+    if path_inside(repo_root, path):
+        raise SplitError(f"盐文件必须在仓库外（当前在仓库内）：{path}")
+    data = path.read_bytes()
+    if len(data) < 16:
+        raise SplitError(f"盐文件太短（{len(data)} B）：请至少放 16 字节随机内容")
+    return hashlib.sha256(data).hexdigest()[:16]
+
+
+def _shuffled(labels, seed: int, salt, *parts) -> list[str]:
+    """确定性洗牌：种子 = 公开 seed + 盐 token（无盐时用固定标记 public-demo）。"""
     ordered = sorted(labels)
-    random.Random("|".join([str(seed), *parts])).shuffle(ordered)
+    random.Random("|".join([str(seed), salt or PUBLIC_DEMO_SALT, *parts])).shuffle(ordered)
     return ordered
 
 
-def reserve_benchmark(records_by_group, ratios: dict, seed: int,
+def reserve_benchmark(records_by_group, ratios: dict, seed: int, salt=None, *,
+                      benchmark_langs=None,
                       min_per_domain: int, min_per_lang: int, min_per_kind: int):
-    """第一阶段：按 10% 预留 benchmark，再按保底配额补齐（lang x kind / domain / lang）。"""
+    """第一阶段：按 10% 预留 benchmark，再按保底配额补齐（lang x kind / domain / lang）。
+
+    benchmark_langs 限定哪些语言可以进 benchmark（其余语言不预留、不设保底，全部分到公开三区）。
+    """
     total = sum(len(group) for group in records_by_group.values())
     target = total * ratios["benchmark"]
+    allowed = tuple(benchmark_langs) if benchmark_langs else None
     by_stratum: dict = defaultdict(list)
     for label, group in records_by_group.items():
-        by_stratum[group_stratum(group)].append(label)
+        stratum = group_stratum(group)
+        if allowed is not None and stratum[1] not in allowed:
+            continue
+        by_stratum[stratum].append(label)
 
     reserved: set = set()
     reserved_total = 0
@@ -324,7 +378,7 @@ def reserve_benchmark(records_by_group, ratios: dict, seed: int,
         stratum_items = sum(len(records_by_group[label]) for label in labels)
         need = target * (stratum_items / total) if total else 0
         taken = 0
-        for label in _shuffled(labels, seed, "bench", *stratum):
+        for label in _shuffled(labels, seed, salt, "bench", *stratum):
             size = len(records_by_group[label])
             if taken >= need:
                 break
@@ -338,9 +392,11 @@ def reserve_benchmark(records_by_group, ratios: dict, seed: int,
         return sum(len(records_by_group[label]) for label in reserved if predicate(label))
 
     domains = sorted({record["domain"] for group in records_by_group.values() for record in group})
-    langs = sorted({record["lang"] for group in records_by_group.values() for record in group})
+    langs = sorted({record["lang"] for group in records_by_group.values() for record in group
+                    if allowed is None or record["lang"] in allowed})
     pairs = sorted({(record["lang"], kind) for group in records_by_group.values()
-                    for record in group for kind in record["kinds"]})
+                    for record in group for kind in record["kinds"]
+                    if allowed is None or record["lang"] in allowed})
     definitions = []
     for domain in domains:
         definitions.append((min_per_domain, f"domain={domain}",
@@ -362,7 +418,7 @@ def reserve_benchmark(records_by_group, ratios: dict, seed: int,
         candidates = [label for label in records_by_group if label not in reserved and predicate(label)]
         available = sum(len(records_by_group[label]) for label in candidates)
         added = 0
-        for label in _shuffled(candidates, seed, "floor", name):
+        for label in _shuffled(candidates, seed, salt, "floor", name):
             if cell_items(predicate) >= required:
                 break
             reserved.add(label)
@@ -373,7 +429,7 @@ def reserve_benchmark(records_by_group, ratios: dict, seed: int,
     return reserved, floors
 
 
-def assign_grouped(groups_by_stratum, records_by_group, ratios: dict, seed: int) -> dict:
+def assign_grouped(groups_by_stratum, records_by_group, ratios: dict, seed: int, salt=None) -> dict:
     """第二阶段：未预留的组按 6:2:1 分到 train/test/validation（层内最大缺口贪心）。"""
     assignment: dict = {}
     order = list(GROUPED_SPLITS)
@@ -382,37 +438,46 @@ def assign_grouped(groups_by_stratum, records_by_group, ratios: dict, seed: int)
         stratum_items = sum(len(records_by_group[label]) for label in labels)
         targets = _targets(stratum_items, ratios, GROUPED_SPLITS)
         assigned = {split: 0 for split in GROUPED_SPLITS}
-        for label in _shuffled(labels, seed, "split", *stratum):
+        for label in _shuffled(labels, seed, salt, "split", *stratum):
             best = max(order, key=lambda split: (targets[split] - assigned[split], -order.index(split)))
             assignment[label] = best
             assigned[best] += len(records_by_group[label])
     return assignment
 
 
-def assign_all(records, *, ratios: dict, seed: int, use_state: bool = True,
+def assign_all(records, *, ratios: dict, seed: int, salt=None, benchmark_langs=None,
+               use_state: bool = True,
                min_per_domain: int = DEFAULT_BENCHMARK_MIN_PER_CELL,
                min_per_lang: int = DEFAULT_BENCHMARK_MIN_PER_CELL,
                min_per_kind: int = DEFAULT_BENCHMARK_MIN_PER_CELL):
-    """完整切分；返回 (每条目分区, 组标签, 统计, 保底明细)。"""
+    """完整切分；返回 (每条目分区, 组标签, 统计, 保底明细)。
+
+    salt 为 None 表示 public-demo（无盐）跑法：结果确定但与带盐交付件不同。
+    """
     labels, group_stats = build_groups(records, use_state=use_state)
     grouped: dict = defaultdict(list)
     for record, label in zip(records, labels):
         grouped[label].append(record)
     records_by_group = dict(grouped)
 
-    reserved, floors = reserve_benchmark(records_by_group, ratios, seed,
-                                         min_per_domain, min_per_lang, min_per_kind)
+    reserved, floors = reserve_benchmark(records_by_group, ratios, seed, salt,
+                                         benchmark_langs=benchmark_langs,
+                                         min_per_domain=min_per_domain,
+                                         min_per_lang=min_per_lang,
+                                         min_per_kind=min_per_kind)
     by_stratum: dict = defaultdict(list)
     for label, group in records_by_group.items():
         if label not in reserved:
             by_stratum[group_stratum(group)].append(label)
-    assignment = assign_grouped(by_stratum, records_by_group, ratios, seed)
+    assignment = assign_grouped(by_stratum, records_by_group, ratios, seed, salt)
     for label in reserved:
         assignment[label] = "benchmark"
 
     split_of_item = [assignment[label] for label in labels]
     stats = {"groups": group_stats, "benchmark_reserved_groups": len(reserved),
-             "benchmark_floors": floors}
+             "benchmark_floors": floors,
+             "salted": salt is not None,
+             "benchmark_langs": sorted(benchmark_langs) if benchmark_langs else None}
     return split_of_item, labels, stats, floors
 
 
@@ -662,6 +727,12 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
     for entry in stats["input"]["files"]:
         lines.append(f"  - {entry['path']}：{entry['items']} 条")
     lines.append(f"- 条目总数：{total}；请求组 {stats['groups']['groups']} 个")
+    salt_state = "仓外私盐（盐值不记录、不派生进任何公开产物）" if stats.get("salted") \
+        else "无盐 public-demo（**不是交付件**；公开脚本+公开种子跑出的就是这一套）"
+    lines.append(f"- 保密：本次运行使用 {salt_state}")
+    if stats.get("benchmark_langs"):
+        lines.append("- benchmark 语言白名单：" + ", ".join(stats["benchmark_langs"])
+                     + "（白名单外的语言只进 train/test/validation）")
     lines.append("")
     lines.append("## 1. 切分算法")
     lines.append("")
@@ -848,6 +919,12 @@ def run(argv=None) -> int:
                         help="危险：允许中文侧缺分组 id（会退化成按行切，只用于探索）")
     parser.add_argument("--no-verify-rerun", action="store_true",
                         help="跳过复跑逐字节校验（默认会完整跑第二遍写到临时目录并比对）")
+    parser.add_argument("--salt-file", type=Path, default=None,
+                        help="仓库外私盐文件（交付件必须给；盐的 sha256 前 16 位折进所有随机种子）")
+    parser.add_argument("--public-demo", action="store_true",
+                        help="无盐跑法：结果确定但**不是交付件**，且必须写到仓库外（保密性测试用）")
+    parser.add_argument("--benchmark-lang", action="append", default=None, metavar="LANG",
+                        help="只允许这些语言进 benchmark（可重复；不写=不限。本轮交付用 en）")
     parser.add_argument("--dry-run", action="store_true", help="只算不写（检查输入与比例）")
     args = parser.parse_args(argv)
 
@@ -861,13 +938,39 @@ def run(argv=None) -> int:
 
     required_langs = tuple(args.require_group_id_lang) if args.require_group_id_lang else ("zh",)
     ignored_inputs: list = []
+    repo_root = git_repo_root(Path(__file__).resolve().parent)
+
+    # ---- 保密门禁：交付件必须带仓外私盐 ----
+    salt = None
+    if args.salt_file is not None:
+        try:
+            salt = read_salt(args.salt_file, repo_root=repo_root)
+        except SplitError as exc:
+            print(f"拒绝切分：{exc}", file=sys.stderr)
+            return 3
+    elif not args.dry_run and not args.public_demo:
+        print("拒绝切分：交付件必须用仓外私盐（--salt-file）。", file=sys.stderr)
+        print("  公开脚本 + 公开种子若能复现 benchmark，保密就不成立；"
+              "只想看流程请加 --dry-run，或显式 --public-demo（输出必须写到仓库外，且不是交付件）。",
+              file=sys.stderr)
+        return 3
+    if salt is None and not args.dry_run and args.public_demo:
+        for label, path in (("--out", args.out), ("--report", args.report)):
+            if path_inside(repo_root, path):
+                print(f"拒绝切分：--public-demo 的 {label} 必须写在仓库外（当前 {path} 在仓库内）。",
+                      file=sys.stderr)
+                return 3
+    if salt is None and args.dry_run:
+        print("提示：dry-run 无盐，结果与交付件不同（仅用于检查输入与比例）。", file=sys.stderr)
 
     def pipeline():
         """一次完整流水线：读 → 分组/门禁 → 切分 → 派生分区与统计（复跑校验会再调一次）。"""
         items_, records_, load_ = load_records(paths, allow_duplicates=args.allow_duplicates)
         gaps_ = group_id_gaps(records_, required_langs=required_langs)
         splits_, labels_, stats_, _ = assign_all(
-            records_, ratios=ratios, seed=args.seed, use_state=not args.no_state_grouping,
+            records_, ratios=ratios, seed=args.seed, salt=salt,
+            benchmark_langs=tuple(args.benchmark_lang) if args.benchmark_lang else None,
+            use_state=not args.no_state_grouping,
             min_per_domain=args.benchmark_min_per_domain,
             min_per_lang=args.benchmark_min_per_lang,
             min_per_kind=args.benchmark_min_per_kind)
@@ -959,6 +1062,14 @@ def run(argv=None) -> int:
         "inputs": [path.as_posix() for path in paths],
         "items": len(first["items"]),
         "counts": {split: counts["items"][split] for split in SPLITS},
+        "salt_policy": {
+            "salted": salt is not None,
+            "benchmark_langs": sorted(args.benchmark_lang) if args.benchmark_lang else None,
+            "note": "交付件使用仓库外私盐；盐值与盐的哈希都不记录、不派生进任何公开产物。"
+                    "只凭本 manifest 的公开种子无法复现交付件；无盐跑法（--public-demo）产出的是另一套。"
+                    if salt is not None else
+                    "本次为无盐 public-demo 运行，不是交付件。",
+        },
         "rerun": None if rerun is None else {"files": rerun["files"], "identical": rerun["identical"],
                                              "tree_sha256": rerun["tree_sha256"]},
         "digests": {} if rerun is None else rerun["digests"],

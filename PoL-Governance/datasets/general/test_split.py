@@ -10,6 +10,7 @@ import gzip
 import hashlib
 import io
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -88,6 +89,10 @@ def write_input(directory: Path, items) -> Path:
 
 
 def run_quiet(argv) -> int:
+    """测试统一走 public-demo 跑法（无盐、输出在临时目录=仓库外）：交付件必须带仓外私盐。"""
+    argv = list(argv)
+    if "--public-demo" not in argv and "--salt-file" not in argv:
+        argv.append("--public-demo")
     with contextlib.redirect_stdout(io.StringIO()):
         return sp.run(argv)
 
@@ -252,6 +257,123 @@ class LineSeparatorTest(unittest.TestCase):
             for state in states:
                 for char in ("\u2028", "\u2029", "\u0085"):
                     self.assertIn(char, state, repr(state))
+
+
+class SecrecyTest(unittest.TestCase):
+    """保密性必须是机器可验证的性质，而不是靠人记得。
+
+    1) 私盐改变分配（恒可跑）；2) 同盐可复现；3) 无盐跑法复现不出交付件（集成，语料存在时跑）；
+    4) 公开面扫描：所有被 git 跟踪的文件对 benchmark 记录零命中；5) 拒绝性：盐在仓内/无盐非 demo/demo 写仓内。
+    """
+
+    def bench_ids(self, items, splits):
+        return {it["id"] for it, split in zip(items, splits) if split == "benchmark"}
+
+    def test_salt_changes_benchmark(self):
+        items = corpus(groups=40, variants=2)
+        records = records_for(items)
+        kwargs = dict(ratios=sp.DEFAULT_RATIOS, seed=7, min_per_domain=0, min_per_lang=0, min_per_kind=0)
+        a = self.bench_ids(items, sp.assign_all(records, salt="salt-A", **kwargs)[0])
+        b = self.bench_ids(items, sp.assign_all(records, salt="salt-B", **kwargs)[0])
+        c = self.bench_ids(items, sp.assign_all(records, salt=None, **kwargs)[0])
+        self.assertTrue(a and b and c)
+        self.assertNotEqual(a, b, "换盐必须改变 benchmark 分配")
+        self.assertNotEqual(a, c, "无盐跑法必须与带盐交付件不同")
+
+    def test_same_salt_is_reproducible(self):
+        items = corpus(groups=30, variants=2)
+        records = records_for(items)
+        kwargs = dict(ratios=sp.DEFAULT_RATIOS, seed=11, salt="same-salt",
+                      min_per_domain=0, min_per_lang=0, min_per_kind=0)
+        first = self.bench_ids(items, sp.assign_all(records, **kwargs)[0])
+        second = self.bench_ids(items, sp.assign_all(records, **kwargs)[0])
+        self.assertEqual(first, second)
+
+    def test_benchmark_lang_whitelist(self):
+        items = corpus(groups=40, variants=2, langs=("en", "zh"))
+        records = records_for(items)
+        splits, _labels, _stats, _ = sp.assign_all(records, ratios=sp.DEFAULT_RATIOS, seed=3,
+                                                   salt="s", benchmark_langs=("en",),
+                                                   min_per_domain=0, min_per_lang=0, min_per_kind=0)
+        zh_in_bench = [r for r, s in zip(records, splits) if s == "benchmark" and r["lang"] == "zh"]
+        en_in_bench = [r for r, s in zip(records, splits) if s == "benchmark" and r["lang"] == "en"]
+        self.assertEqual(zh_in_bench, [], "白名单外语言不得进 benchmark")
+        self.assertTrue(en_in_bench)
+
+    def test_salt_file_inside_repo_is_refused(self):
+        inside = Path(sp.__file__).resolve().parent / "split.py"
+        with self.assertRaises(sp.SplitError):
+            sp.read_salt(inside, repo_root=sp.git_repo_root(inside.parent))
+
+    def test_short_salt_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            path = Path(workspace) / "salt.txt"
+            path.write_bytes(b"short")
+            with self.assertRaises(sp.SplitError):
+                sp.read_salt(path, repo_root=sp.git_repo_root(Path.cwd()))
+
+    def test_no_salt_without_public_demo_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            source = write_input(root, corpus(groups=4, variants=2))
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                code = sp.run(["--input", str(source), "--out", str(root / "out"),
+                               "--report", str(root / "r.md")])
+            self.assertEqual(code, 3)
+            self.assertFalse((root / "out").exists())
+
+    def test_public_demo_inside_repo_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            source = write_input(Path(workspace), corpus(groups=4, variants=2))
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                code = sp.run(["--input", str(source), "--public-demo",
+                               "--out", str(sp.DEFAULT_OUT), "--report", str(sp.DEFAULT_REPORT)])
+            self.assertEqual(code, 3)
+
+    def test_public_run_does_not_reproduce_delivered_benchmark(self):
+        corpus_path = Path("datasets/general/data/items.final.jsonl")
+        delivered_path = Path("datasets/general/data/splits/benchmark.jsonl")
+        if not corpus_path.is_file() or not delivered_path.is_file():
+            self.skipTest("私有语料或交付件不在本机（已移出版本控制）")
+        delivered = {json.loads(line)["id"] for line in
+                     delivered_path.read_text(encoding="utf-8").split("\n") if line.strip()}
+        with tempfile.TemporaryDirectory() as workspace:
+            out_dir = Path(workspace) / "public-run"
+            code = run_quiet(["--input", str(corpus_path), "--out", str(out_dir),
+                              "--report", str(Path(workspace) / "report.md"),
+                              "--benchmark-min-per-domain", "0", "--benchmark-min-per-lang", "0",
+                              "--benchmark-min-per-kind", "0"])
+            self.assertEqual(code, 0)
+            public = {json.loads(line)["id"] for line in
+                      (out_dir / "benchmark.jsonl").read_text(encoding="utf-8").split("\n") if line.strip()}
+        self.assertTrue(public)
+        self.assertNotEqual(public, delivered,
+                            "只用仓库公开信息就能复现交付 benchmark——保密失效")
+
+    def test_tracked_files_contain_no_benchmark_records(self):
+        """护栏：所有被 git 跟踪的文件都不得出现 benchmark 的 id 或正文。"""
+        delivered_path = Path("datasets/general/data/splits/benchmark.jsonl")
+        if not delivered_path.is_file():
+            self.skipTest("交付件不在本机（已移出版本控制）")
+        rows = [json.loads(line) for line in
+                delivered_path.read_text(encoding="utf-8").split("\n") if line.strip()]
+        ids = [str(row["id"]).encode("utf-8") for row in rows]
+        repo_root = sp.git_repo_root(Path.cwd())
+        if repo_root is None:
+            self.skipTest("不在 git 仓库内")
+        tracked = subprocess.run(["git", "-C", str(repo_root), "ls-files"], capture_output=True,
+                                 text=True, encoding="utf-8", errors="replace").stdout.split()
+        hits = []
+        for relative in tracked:
+            path = repo_root / relative
+            if not path.is_file() or path.suffix not in (".jsonl", ".gz", ".json"):
+                continue
+            data = path.read_bytes()
+            for item_id in ids:
+                if item_id in data:
+                    hits.append(f"{relative}: 命中 benchmark id {item_id.decode()}")
+                    break
+        self.assertEqual(hits, [], "被跟踪文件里出现了 benchmark 记录：" + "; ".join(hits[:5]))
 
 
 class BenchmarkFloorTest(unittest.TestCase):
@@ -500,8 +622,9 @@ class InputValidationTest(unittest.TestCase):
 
     def test_missing_input_returns_two(self):
         with tempfile.TemporaryDirectory() as workspace:
-            code = run_quiet(["--input", str(Path(workspace) / "nope.jsonl"),
-                              "--out", str(Path(workspace) / "out")])
+            root = Path(workspace)
+            code = run_quiet(["--input", str(root / "nope.jsonl"),
+                              "--out", str(root / "out"), "--report", str(root / "r.md")])
             self.assertEqual(code, 2)
 
     def test_bad_ratios_return_two(self):
