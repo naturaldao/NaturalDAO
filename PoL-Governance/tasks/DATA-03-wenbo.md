@@ -7,12 +7,12 @@
 - 更新时间：2026-09-30 19:20 UTC+8
 - 分支：pol/DATA-02/wenbo（本任务与 DATA-02 共用一个工作分支：五个 Agent 共享同一 checkout，切换分支会打断在写的文件。待两条线稳定后再按规范拆出 pol/DATA-03/wenbo，届时本页随分支迁移）
 - 起点 commit / 依赖分支与 commit：main bf2636c；依赖 DATA-02 的契约与来源审计（datasets/pol2/replay/survey.md）
-- 目标与交付路径：`datasets/decision-base/`；构建产物 `datasets/decision-base/data/items.jsonl`；原始下载放仓库外 `D:\pol2-raw\`
-- 本次改动范围：新增 datasets/decision-base 与本任务页；TASKS.md 增一行。不改动他人已有文件
+- 目标与交付路径：`datasets/general/`；构建产物 `datasets/general/data/items.jsonl`；原始下载放仓库外 `D:\pol2-raw\`
+- 本次改动范围：新增 datasets/general 与本任务页；TASKS.md 增一行。不改动他人已有文件
 - 下一步：db-schema 先定稿 taxonomy；db-hf 用 --limit 200 打通 3 个来源；db-ask 交付可续跑的 Jev 作答 harness；db-luna 打通清洗路径。之后由 Lead 汇总 10k+ 条目并跑覆盖校验
 - 阻塞 / 需要谁帮助：官方 Jev 的 endpoint、版本与密钥待 Wenbo 提供（接口骨架已就绪，缺参即退出码 2，不静默降级）
 - 环境 / 输出路径 / 资源预算：Python 3.12 + uv，仅标准库；HF 走 datasets-server 分页接口；生成走 sub/gpt-6-luna；磁盘 C 盘剩约 35GB、D 盘剩约 823GB，原始数据落 D 盘
-- 数据版本与可用分区：decision-base v0.1；只做通用底座，不掺入 PoL 专项数据；`Praveenrajus/jev-bench` 全部划分为 test，仅作外部评测，不进训练
+- 数据版本与可用分区：general v0.1；只做通用底座，不掺入 PoL 专项数据；`Praveenrajus/jev-bench` 全部划分为 test，仅作外部评测，不进训练
 
 状态：待领取 / 进行中 / 阻塞 / 暂停 / 待集成 / 完成。左格写负责的人与实际执行 Agent（换 Agent 时更新）；右格以状态开头，接一句当前事实，不用虚构百分比。保留表头，单元格内不用竖线，以便看板读取。
 
@@ -24,6 +24,6 @@
 
 ## 交付或交接
 
-- 待交付：`datasets/decision-base/` 的 taxonomy、fetch/convert、ask harness、Luna 清洗，以及构建后的 items.jsonl 与覆盖报告
-- 复现与检查：`uv run --no-project --offline python tools/check.py` 与 `python datasets/decision-base/coverage.py --items ...`
+- 待交付：`datasets/general/` 的 taxonomy、fetch/convert、ask harness、Luna 清洗，以及构建后的 items.jsonl 与覆盖报告
+- 复现与检查：`uv run --no-project --offline python tools/check.py` 与 `python datasets/general/coverage.py --items ...`
 - 未测项：尚未产生任何真实条目；Jev 未接入；覆盖配额未实测

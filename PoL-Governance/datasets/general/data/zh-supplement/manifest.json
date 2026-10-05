@@ -1,7 +1,7 @@
 {
  "task": "task-21",
  "converter": "build_supp.py",
- "created_at": "2026-10-05T18:31:04+08:00",
+ "created_at": "2026-10-05T18:45:00+08:00",
  "sources": [
   [
    "BEncoderRT/User_Intent_Risk_Triage",
@@ -25,8 +25,8 @@
   ]
  ],
  "items": 3148,
- "bytes": 8595371,
- "sha256": "9f45b8cea1ea6f2090584f83d76e7b77fd9c39fb06d286ed9793dee3cb172a55",
+ "bytes": 8664627,
+ "sha256": "f2d87c3893d2e138b1443140a67d30c545cd47bebb05c5d9d629fed4f7422c8a",
  "train_only": true,
  "benchmark_eligible": false,
  "origin": "taxonomy"

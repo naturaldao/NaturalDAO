@@ -57,7 +57,7 @@
   "zh_source_share_note": "Deepexi 是唯一中文来源，因此中文占比即该来源占比；取 33% 而非 40%，是给'单一来源 ≤40%'留余量，且多取的变体来自同一批请求、边际信息量递减。",
   "gzip": {
     "path": "datasets\\general\\data\\items.final.jsonl.gz",
-    "bytes": 10751674,
-    "sha256": "2e45a2e726f8e07586d15db9f1063f72b069c22f4f6bf5f24996469006c7fb2c"
+    "bytes": 10816365,
+    "sha256": "ba615c96c0dc13cbc4caa8b0f83ac1326abc13700bde98579f2ebb9f38bdaece"
   }
 }

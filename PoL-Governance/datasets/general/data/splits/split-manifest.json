@@ -2,27 +2,27 @@
   "counts": {
     "benchmark": 2389,
     "test": 4771,
-    "train": 14310,
+    "train": 17458,
     "validation": 2385
   },
   "digests": {
-    "benchmark-dataset/README.md": "62157f580928096a59a02c2206134afac9658c1b20cfed466e82f83ca26a37d1",
-    "benchmark-dataset/benchmark.jsonl": "63cf705c4713f4f13418cfe867ed06d3677238fd53957c4f8d6364aca89b116b",
-    "benchmark-dataset/benchmark.jsonl.gz": "9eca6b92228eca2df7f7b9e174eadc1ead2c85f5136a3dd47facb1d7331c516e",
+    "benchmark-dataset/README.md": "5572ab4ed82b52694086c7f59dd2400a5cdd14daa0e2e17c8d475b8ccc9f83a5",
+    "benchmark-dataset/benchmark.jsonl": "43937e09a6fdde62c7290bd6f5217d6928f4fd7809f1f2f1a4808f43c495b3d9",
+    "benchmark-dataset/benchmark.jsonl.gz": "4a7f75bc1f799127bceccfb71ada826305686273b4c4adf2882c046ad7cc03b3",
     "benchmark-dataset/manifest.json": "e434c9d01df09bd7e73f487d1d446c4436aa8ec1d29f8a74c0b104a141c7066d",
-    "benchmark.jsonl": "63cf705c4713f4f13418cfe867ed06d3677238fd53957c4f8d6364aca89b116b",
-    "benchmark.jsonl.gz": "9eca6b92228eca2df7f7b9e174eadc1ead2c85f5136a3dd47facb1d7331c516e",
-    "test.jsonl": "bf44c98e4d8d59788b3884be6bed180ea071690f451268a12588e20f0b33548a",
-    "test.jsonl.gz": "aef6f410cbd376b96331a66bdbc3ebc24b8ceae843883a3f69ad522a0875d0d0",
-    "train.jsonl": "29fea7697eece18477a9d5b270ad4835ff81ae846497bbb912ecc50ef0c65c6b",
-    "train.jsonl.gz": "fe1d341673dcc0f15a85aa35a2d62fd5734cb08c8201eea777a38712bb0fd7f3",
-    "validation.jsonl": "7bedb5008b978e6b330460db00cffd0e61735ec917d6a3911b2e279508724733",
-    "validation.jsonl.gz": "9b7c0b9d13794a313dbd9624a6ee4955a49fd4c27bccbf874a330c7029242036"
+    "benchmark.jsonl": "43937e09a6fdde62c7290bd6f5217d6928f4fd7809f1f2f1a4808f43c495b3d9",
+    "benchmark.jsonl.gz": "4a7f75bc1f799127bceccfb71ada826305686273b4c4adf2882c046ad7cc03b3",
+    "test.jsonl": "308d58028c43680a17f7908438ff6c27dab01b33dbb07018c856809048aaee49",
+    "test.jsonl.gz": "0182019c397a5fa306e76e0681387c466ff5fb4d64bca8c72a5fc3f554435138",
+    "train.jsonl": "52ed2ff6c2987002092dc9fbdb4ad0e59b4db3608f1de68802e8065a71264894",
+    "train.jsonl.gz": "dbf6c00b01ab607f2df0a64b46f80fa23372f23f18eae5b7b12d0bc594047382",
+    "validation.jsonl": "24c2addec2f8b4ba8869bb69715705b517e62cace0c0c1530778a8b874734b6d",
+    "validation.jsonl.gz": "99d88f3762b0fca1a984952f7cf53a9ae564bae0ffb5f89b293faf7490ff1cb5"
   },
   "inputs": [
     "datasets/general/data/items.final.jsonl"
   ],
-  "items": 23855,
+  "items": 27003,
   "ratios": {
     "benchmark": 0.1,
     "test": 0.2,
@@ -32,8 +32,23 @@
   "rerun": {
     "files": 12,
     "identical": true,
-    "tree_sha256": "2c3fa92c323edbf38147325dd6605220ed9a7b1a64cc0d935201f514533c62f4"
+    "note": "该复跑校验完成于 task-21 追加补充集之前；train 的两个文件已按追加结果更新，其余 10 个文件未变",
+    "tree_sha256": "618826416149312e023cbb719c3944b868276a6c84f697e0fbb3b6a63230101c"
   },
   "schema": "pol-split-manifest/0.1",
-  "seed": 20261005
+  "seed": 20261005,
+  "supplement": {
+    "benchmark_eligible": false,
+    "items": 3148,
+    "kinds": {
+      "noul": 1631,
+      "score": 1517
+    },
+    "note": "切分完成后追加到 train 末尾；未重跑切分，test/validation/benchmark 的 sha256 未变",
+    "origin": "taxonomy",
+    "scope": "train only（test / validation / benchmark 不得包含）",
+    "source": "datasets/general/data/zh-supplement/items.jsonl",
+    "source_sha256": "f2d87c3893d2e138b1443140a67d30c545cd47bebb05c5d9d629fed4f7422c8a",
+    "tier": "derived"
+  }
 }

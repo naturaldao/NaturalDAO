@@ -25,7 +25,7 @@
 | 门槛（Lead/task-21） | 落实方式 | 证据 |
 |---|---|---|
 | **两端都要有样本** | 每个键在**入选前**先做类别检查，单类直接拒绝；入选时按类均分（noul） | 见第 2、3 节的 yes/no 与分级分布；`refusal_appropriate` 因单类被排除 |
-| **origin="taxonomy" + 显式成色标记** | 每条 item 顶层 `origin="taxonomy"`，`meta.tier="derived"`，`meta.quality_flags` 含 `origin:taxonomy/tier:derived/train_only/not_benchmark_eligible` | 3,148/3,148 条实测 |
+| **origin="taxonomy" + 显式成色标记** | **按契约 [CONTRACT.md](CONTRACT.md) §2.1 写在问题层：每个 `questions[].origin="taxonomy"`**；条目顶层 `origin` 与 `meta.origin`/`meta.tier="derived"` 同时保留，三者一致；`meta.quality_flags` 含 `origin:taxonomy/tier:derived/train_only/not_benchmark_eligible` | `questions[].origin` 实测 3,148 taxonomy / **0 个 None**；`coverage.py` 对该文件 `schema_issues=0` |
 | **不改写源标签** | 源池**只读**；源标签原样写进 `meta.mapping.source_label`（如 `"Unsafe"`、`"scam"`、`"high"`、`"1"`、`"low"`），另记 `meta.source_item_id` 可回溯 | 见第 3 节样例 |
 | **限量 ≤ 中文侧 40%** | 上限 `floor(7,872 × 0.40) = 3,148`（按"补充集 ≤ 原生侧 40%"的严格读法；不把补充集自身计入分母） | 3,148/7,872 = 39.99% |
 | **只进 train** | 所有条目 `source.split="train"`；原始 split 另存 `meta.source_original_split`（train 2,605 / zh 543，textdetox 的中文子集本身就是语言 split）；`meta.benchmark_eligible=false` + 排除理由 | 3,148/3,148 条实测 |
@@ -102,21 +102,23 @@
 - 补充集每一条都带 `origin="taxonomy"`：**问题文本是我们按 taxonomy 写的**，答案来自来源标注的映射；
   评测集（test/validation/benchmark）保持纯原生，绝不掺入本补充集，避免"用自己的转述题测自己"。
 - 物理可区分手段（任一即可筛出）：独立目录 `data/zh-supplement/`、id 前缀 `db-zhtax-`、
-  顶层 `origin`、`meta.tier`、`meta.benchmark_eligible=false`。
+  **`questions[].origin="taxonomy"`（契约口径，首选）**、顶层 `origin`、`meta.tier`、`meta.benchmark_eligible=false`。
+- 契约一致性：按 [CONTRACT.md](CONTRACT.md) §2.1，`origin` 缺省即视为 `taxonomy`，但本补充集**显式写满两层**，
+  不依赖缺省值兜底——降级数据的安全保障就是"能被程序自动识别并排除出评测"，标记越显式越可靠。
 
 ## 6. 产物与复现
 
 | 路径 | 内容 | 大小 |
 |---|---|---:|
-| `datasets/general/data/zh-supplement/items.jsonl` | 3,148 条补充条目（明文） | 8,595,371 B |
-| `datasets/general/data/zh-supplement/items.jsonl.gz` | 同一内容的 gzip，sha256 `94CE528E03348A9256FF9609A94ED504009378B2C476E2A25EDFAC6A54EE83C9` | 934,559 B |
+| `datasets/general/data/zh-supplement/items.jsonl` | 3,148 条补充条目（明文），sha256 `F2D87C3893D2E138B1443140A67D30C545CD47BEBB05C5D9D629FED4F7422C8A` | 8,664,627 B |
+| `datasets/general/data/zh-supplement/items.jsonl.gz` | 同一内容的 gzip，sha256 `65D12C2A1D84BFC122BA6CD072AD49067A97B9ECEDBB82DB1C33594D7BDF6431` | 936,028 B |
 | `datasets/general/data/zh-supplement/{manifest.json,stats.json}` | 来源/许可/revision 清单、全部统计量与规则 | 797 B / 3,509 B |
 
 ```powershell
 # 只看可用材料与选择结果（不写盘）
 uv run --no-project --offline python D:\pol2-raw\zh-supp\build_supp.py --probe
 # 重新生成（确定性；源池只读）
-uv run --no-project --offline python D:\pol2-raw\zh-supp\build_supp.py --build
+uv run --no-project --offline python D:\pol2-raw\zh-supp\build_supp.py --build --created-at 2026-10-05T18:45:00+08:00
 uv run --no-project --offline python tools/check.py
 ```
 
@@ -130,3 +132,7 @@ uv run --no-project --offline python tools/check.py
 - **额度未用满的部分没有硬凑**：3,148 正好等于上限是巧合（score 1,517 + noul 1,631），
   如果 Lead 想把限额调低（例如 20%），把 `build_supp.py` 的 `ZH_NATIVE_SIDE`/比例改一下重跑即可。
 - 源池文件**未被修改**（脚本只读），`refusal_appropriate` 等单类键仍在池中，只是没被选入补充集。
+- **逐字节可复现**：`--created-at` 固定后，同参数重跑两次 `items.jsonl` 的 sha256 完全一致（已实测）；
+  不传该参数时只有 `meta.created_at` 会变，条目集合与统计不变。
+- **task-21 复核修正记录**：初版把 `origin` 只写在条目顶层；按 Lead 复核意见改为**契约位置 `questions[].origin="taxonomy"`**
+  （顶层与 meta 标记保留），实测 `questions[].origin` 3,148 个 taxonomy、**0 个 None**，`coverage.py` 对该文件 schema 警告 0。

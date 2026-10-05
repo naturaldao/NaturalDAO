@@ -161,12 +161,22 @@ p=0.345 → 位置分布与均匀分布无显著差异，伪影消除。原始�
 
 ## 8. 契约映射与切分接口
 
+> **修订（task-21 复核后）**：新增 `questions[].origin="source"` 与 `source_key="function"`（见下），
+> 并要求用 `--created-at` 构建以保证逐字节可复现。当前全量文件
+> `D:\pol2-raw\zh-final\items.zh.jsonl`：22,372 条、139,611,239 B、
+> sha256 `44c9084be08a3453929a0c97ae947b90e619494f46b7d07e7e3ae1a8c133a21d`，
+> 构建命令 `python build_zh.py --build --created-at 2026-10-05T19:10:00+08:00`（同参数重跑两次哈希一致）。
+
 每条 item 的形状（`taxonomy.item_errors` = 0，22,372/22,372）：
 
 - `domain = "decision_mechanics"`，`lang = "zh"`（同组同域同语言，满足切分方的分层要求）
 - `state` = **用户请求文本本身**（不含候选集，不写结论）；实测 **5,454/5,454 组的 state 逐字相同**
 - `questions[0]` = `next_step_candidate`（choice，`options_from_state=True`），
   `options` = 该行的候选函数（`{key: 函数名, label: "函数名：中文描述(≤120字)"}`），2–6 个，已打散
+- **`questions[0].origin = "source"`**（契约 [CONTRACT.md](CONTRACT.md) §2.1 的位置，**必须显式写**：
+  缺省即视为 `taxonomy`，会把这批原生四元组误读成我们出题的降级数据）+ `questions[0].source_key = "function"`
+  （来源自身的答案字段名）；条目顶层 `origin="source"` 与 `meta.origin/question_origin/source_question_key` 同时保留。
+  实测 `questions[].origin` = **source 22,372 / taxonomy 0 / None 0**
 - `targets.next_step_candidate.answer` = 被选中的函数名（与 options 的 key 对应）
 - `meta.source_record.candidates` = 完整函数定义（name/description/raw，raw 截断 2,000 字）
 - 函数参数（arguments/parameters）本契约无对应键，按"不硬塞"只进 meta
@@ -181,6 +191,31 @@ p=0.345 → 位置分布与均匀分布无显著差异，伪影消除。原始�
 
 - 同组变体共享 group_id；**state 也逐字相同**（双保险：即使分组键解析失败，按归一化 state 合并也不会拆散）。
 - 预期切分方报告：多条目组数 = **5,454**、最大组条数 = **20**。若多条目组数为 0，说明分组键没被读到。
+
+### 8.1 原生程度披露：哪些是来源原文、哪些是我们写的
+
+这批 **`origin="source"`**，但它是**混合来源**的，必须按字段拆开说清楚，读者才不会被"source"这个词误导：
+
+| 字段 | 谁写的 | 说明 |
+|---|---|---|
+| `state` | **来源原文** | Deepexi 的 `userPrompt`，一字未改（只做空白归一化用于分组） |
+| `questions[0].options` | **来源原文** | 候选函数集来自该行 `systemPrompt` 的函数定义，键即函数名，标签只做了"函数名：中文描述(≤120字)"的截断 |
+| `targets.next_step_candidate.answer` | **来源原文** | 该行 `assistantResponse` 里被选中的函数名 |
+| `questions[0].prompt` | **我们写的** | "以下候选中，哪一个是正确的下一步？"——taxonomy 的固定句式 |
+| `questions[0].key` | **我们写的** | 规范键名 `next_step_candidate` |
+| `questions[0].source_key` | 记录来源事实 | `"function"`，即来源自身答案字段名 |
+
+**`key` 与 `source_key` 不同是有意为之，不是遗漏**：`key` 用规范名是为了保住"这是同一类决策（从封闭候选里选一个）"的归一性，
+使中文函数选择与其它 choice 键在同一张词表下可统计；`source_key="function"` 负责溯源到来源的原生字段。
+（Lead 裁定：契约的 `origin` 回答的是"这道题在**决定什么**"，而不是"这句话谁写的"——候选与答案完全来自来源、
+句式只是把来源本来就有的结构读出来、无编辑裁量，故维持 `origin="source"`。）
+
+**因此这批的原生程度低于英文侧**：英文 6 个来源自带 `question` 字段（问题本身就是数据的一部分），
+中文 Deepexi 只有"候选集 + 答案"这个结构，提问句式由我们补齐。做"只用 100% 原生四元组"的分析时，
+应按 `questions[].source_key` 是否存在、或按数据卡声明来区分，而不是只看 `origin`。
+
+（对应的契约补充由 Lead 在 [CONTRACT.md](CONTRACT.md) 落地：`origin=source` 时 `key` 可用规范名，
+但 `source_key` 必须记录来源原生字段名，且问题措辞由谁写要在数据卡里声明。）
 
 ## 9. 产物清单与复现
 

@@ -1,5 +1,5 @@
 {
- "created_at": "2026-10-05T18:31:04+08:00",
+ "created_at": "2026-10-05T18:45:00+08:00",
  "converter": "build_supp.py",
  "converter_version": "0.1",
  "pool_key_distributions": {
@@ -156,6 +156,7 @@
  "rules": {
   "origin": "taxonomy",
   "tier": "derived",
+  "origin_placement": "questions[].origin 显式写 taxonomy（CONTRACT.md §2.1 的契约位置）；条目顶层 origin 与 meta.origin 同时保留，不依赖缺省值",
   "train_only": true,
   "benchmark_eligible": false,
   "id_prefix": "db-zhtax-",
