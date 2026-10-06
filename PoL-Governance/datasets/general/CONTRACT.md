@@ -182,9 +182,9 @@
 7. **均匀分布 target 无信息**：1,730 个问题（benchmark 内 180）各项概率相等，建议排除后再报分。
 8. **train 与评测区的域分布不可比**：risk_harm（2,605）与 human_judgment（543）**只存在于 train**
    （全部来自中文补充集），test / validation / benchmark 在这两域为 0。任何跨区的域间对比都会被该结构差异污染。
-9. **内部 benchmark 保密性当前不达标，正在整改**：复核确认"仓库内公开文件 + 公开种子"可逐字节重建 benchmark，
-   且曾有 5,454 行中文答案索引与 9 条 benchmark 记录进入版本库。整改方向：私盐重切 + 完整语料移出版本控制
-   + 不把完整语料与三个公开分区同时发布。**整改完成前请视为已泄漏。**
+9. **内部 benchmark 已加盐重切（v2），旧版（v1）作废**：v1 可被仓库公开文件逐字节重建（已确认），
+   现已改为**仓外私盐**分配并移出七件含正文/答案索引的语料；benchmark 只放英文（1,600 条），
+   **中文侧因答案索引进过 git 历史而不进 benchmark**。v1 与 v2 的四区**不可拼接**。详见 split-report.md §10。
 10. **split-manifest 有 2 条摘要与磁盘不符**（benchmark-dataset/README.md、benchmark-dataset/manifest.json），
     属于切分侧待修项（随整改一并重生成）。
 11. **配额口径与当前语料不匹配**：六域下限是按已退役的混合语料定的；当前语料实测
@@ -204,4 +204,8 @@
     # 中文补充）与 split-report.md 一起覆盖，必须显式指到仓库外。
     uv run --no-project --offline python datasets/general/data/splits/split.py \
         --input datasets/general/data/items.final.jsonl \
-        --out <仓库外目录> --report <仓库外目录>/split-report.md --seed 20261005
+        --out <仓库外目录> --report <仓库外目录>/split-report.md \
+        --salt-file <仓库外盐文件> --seed 20261005
+
+    # 保密门禁（无盐 = 退出 3）：交付件必须带仓外私盐；盐文件在仓库内或短于 16 字节同样退出 3。
+    # 只看流程用 --dry-run；跑公开可复现的演示用 --public-demo 且 --out 必须在仓库外（结果不是交付件）。

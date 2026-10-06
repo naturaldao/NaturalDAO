@@ -20,8 +20,9 @@
 | 每条记录省了多少字段（manifest + 紧凑引用） | [slim-report.md](slim-report.md) |
 | 目录里每个脚本干什么、哪些已过时 | [ARCHIVE.md](ARCHIVE.md) |
 
-> **对外发布面待定**：本仓库正在做 benchmark 保密整改（私盐重切 + 完整语料与分区发布面的调整），
-> 因此本文里的路径都是**本机工作区路径**，不代表最终对外公开的内容。见 §3.1。
+> **对外发布面（2026-10-05 定）**：仓库内**只发布三个分区** train / test / validation 及其报告与清单；
+> **完整语料与内部 benchmark 都不对外**（七件语料已移出版本控制，仓外留存 D:\pol2-raw\general-private\）。
+> benchmark 现在必须用**仓外私盐**才能重建，见 §3.1。
 
 ## 1. 我们用了什么思路
 
@@ -79,12 +80,14 @@
 
 每条问题下 target 可能是三类之一，字段层面**长得一样**，必须先判形态再用：
 
-| 形态 | 怎么识别 | 全语料问题数 | 其中 benchmark |
-|---|---:|---:|---:|
-| **真分布** | probs 有多个不同取值 | 7,520 | 757 |
-| **伪 one-hot** | probs 恰好一个 1.0、其余 0.0（由硬标签造出来） | **14,119** | **1,398** |
-| **均匀分布** | probs 各项相等（如 0.5/0.5）→ **无信息** | 1,730 | 180 |
-| 只有 answer | 没有 probs 字段 | 11,565 | 854 |
+| 形态 | 怎么识别 | 全语料 | train | test | validation | benchmark |
+|---|---|---:|---:|---:|---:|---:|
+| **真分布** | probs 有多个不同取值 | 7,520 | 4,527 | 1,536 | 706 | 751 |
+| **伪 one-hot** | probs 恰好一个 1.0、其余 0.0（由硬标签造出来） | **14,119** | 8,397 | 2,883 | 1,425 | **1,414** |
+| **均匀分布** | probs 各项相等（如 0.5/0.5）→ **无信息** | 1,730 | 1,038 | 340 | 179 | 173 |
+| 只有 answer | 没有 probs 字段 | 11,565 | 8,737 | 1,845 | 922 | 61 |
+
+（形态是**语料级**属性：v1/v2 只是把同一批 27,003 条重新分配，形态统计不变；上表的 benchmark 列已按 v2 的 1,600 条重算。）
 
 - 伪 one-hot 与 [CONTRACT.md](CONTRACT.md) 的"不允许把单标签伪装成概率"是**已知冲突**：
   判别方法与建议的 provenance 字段见 CONTRACT §2.3；训练时若要按真分布做 KL / 校准目标，**请先按上表过滤**。
@@ -206,22 +209,34 @@
 
 四分区按**请求分组**切分，种子 **20261005**。
 
-> ⚠️ **补充集是切分完成后追加到 train 的**（不是重切）：所以 train 不是纯 60%，
-> 目标比例 6:2:1:1 只在**追加之前**成立；test / validation / benchmark 的 sha256 未变。
+**v2（加盐重切，2026-10-05）**。三处刻意的偏离，别当 bug：
 
-| 分区 | 条目 | 占比 | 请求组 | 英文 | 中文 | 其中补充（B 层） |
-|---|---:|---:|---:|---:|---:|---:|
-| train | 17,458 | 64.7% | 6,348 | 9,588 | 7,870 | 3,148 |
-| test | 4,771 | 17.7% | 1,245 | 3,197 | 1,574 | 0 |
-| validation | 2,385 | 8.8% | 626 | 1,598 | 787 | 0 |
-| benchmark | 2,389 | 8.8% | 631 | 1,600 | 789 | 0 |
-| **合计** | **27,003** | 100% | 8,850 | 15,983 | 11,020 | 3,148 |
+1. **train 高于 60%（66.6%）**：切分后按裁定只向 train 追加了 3,148 条中文降级补充；
+2. **benchmark 只有 5.9%**：本轮**只允许英文进 benchmark**（中文侧见 §3.1），1,600 ≈ 英文侧 15,983 的 10%；
+3. **benchmark 全英文**，所以它的 (domain, lang) 分层占比天然与公开三区不同。
+
+| 分区 | 条目 | 占比 | 英文 | 中文 | 其中降级补充（B 层） |
+|---|---:|---:|---:|---:|---:|
+| train | 17,984 | 66.6% | 9,588 | 8,396 | 3,148 |
+| test | 4,946 | 18.3% | 3,197 | 1,749 | 0 |
+| validation | 2,473 | 9.2% | 1,598 | 875 | 0 |
+| benchmark | 1,600 | 5.9% | 1,600 | 0 | 0 |
+| **合计** | **27,003** | 100% | 15,983 | 11,020 | 3,148 |
+
+**train 的 origin 构成（条目级，决定"哪些是真原生"）**：
+
+| origin | 条目 | 占 train | 说明 |
+|---|---:|---:|---|
+| source（英文原生） | 9,588 | 53.3% | 6 个英文来源，原生四元组 |
+| source（中文原生） | 5,248 | 29.2% | Deepexi 请求 + 候选菜单 + 正确工具 |
+| taxonomy（**降级补充**） | 3,148 | 17.5% | 单标签转换，仅 train |
+| 未标 | 0 | 0.0% | — |
 
 **域分布（这一节必须看，否则会做出错误结论）**：
 
 | domain | train | test | validation | benchmark |
 |---|---:|---:|---:|---:|
-| decision_mechanics | 11,677 | 3,893 | 1,946 | 1,949 |
+| decision_mechanics | 12,203 | 4,068 | 2,034 | 1,160 |
 | knowledge_reasoning | 2,633 | 878 | 439 | 440 |
 | risk_harm | 2,605 | **0** | **0** | **0** |
 | human_judgment | 543 | **0** | **0** | **0** |
@@ -235,9 +250,9 @@
 
 | kind | train | test | validation | benchmark |
 |---|---:|---:|---:|---:|
-| choice | 10,706 | 3,545 | 1,780 | 1,784 |
-| noul | 5,608 | 1,342 | 668 | 680 |
-| score | 3,753 | 742 | 367 | 380 |
+| choice | 11,187 | 3,763 | 1,868 | 997 |
+| noul | 5,650 | 1,324 | 672 | 652 |
+| score | 3,739 | 757 | 349 | 397 |
 
 （同一条目可挂多个问题，所以一行内多列不互斥、也不等于条目数。）
 
@@ -254,43 +269,67 @@
 | train ∩ benchmark | 0 | 0 | 0 |
 | test ∩ validation、test ∩ benchmark、validation ∩ benchmark | 0 | 0 | 0 |
 
-复核范围：27,003 条 / 8,850 组 / 23,980 个不同归一化 state。
-切分产物树哈希 **618826416149312e**…，种子 20261005；详见 [split-report.md](split-report.md) 与
+复核范围：27,003 条 / 21,376 组（切分器口径）/ 23,980 个不同归一化 state（我按 state 归一化后复算）。
+切分产物树哈希 **7635cfbbd01b1f73**…（v2 私盐版），种子 20261005；详见 [split-report.md](split-report.md) 与
 [data/splits/split-manifest.json](data/splits/split-manifest.json)。
 
-**复现（注意两个坑）**：
+> **v1 四区已作废**：v1（benchmark 2,389 条、sha256 43937e09…）是公开种子**无盐**跑出来的，
+> 用仓库里公开的脚本 + 语料 + 种子就能逐字节重建，已确认不可保密。**v1 与 v2 不可拼接使用。**
 
-    # 1) 旗标是 --input（不是 --items），可重复给多个文件
-    # 2) 默认 --out/--report 指向交付目录：不加参数直接跑会【覆盖 train 并丢掉追加的 3,148 条补充】、
-    #    并【覆盖 split-report.md】。重跑务必先把 --out/--report 指到仓库外，或先备份。
+**复现（三个坑）**：
+
+    # 1) 旗标是 --input（不是 --items）
+    # 2) 默认 --out/--report 指向交付目录：不加参数直接跑会【覆盖 train（含追加的 3,148 条补充）】
+    #    并覆盖 split-report.md，必须显式指到仓库外
+    # 3) 【必须带 --salt-file，且盐文件必须在仓库外】：无盐直接退出 3（"交付件必须用仓外私盐"）
     uv run --no-project --offline python datasets/general/data/splits/split.py \
         --input datasets/general/data/items.final.jsonl \
-        --out <仓库外目录> --report <仓库外目录>/split-report.md --seed 20261005
+        --out <仓库外目录> --report <仓库外目录>/split-report.md \
+        --salt-file <仓库外盐文件> --seed 20261005
 
-实测：照抄 README 旧命令里的 --items 会直接报 unrecognized arguments、退出码 2（不会覆盖，但也没跑成）。
+    # 只看流程：--dry-run（无盐可跑、不写盘）
+    # 跑"公开可复现的演示"：--public-demo，且 --out 必须在仓库外；结果与交付件不同，不是交付件
+    # 盐文件放在仓库内、或短于 16 字节 → 同样退出 3
 
-### 3.1 内部 benchmark 的保密约定（正在整改，当前形态不达标）
+实测：照抄旧命令里的 --items 报 unrecognized arguments（退出码 2）；不带 --salt-file 退出码 3。
+
+### 3.1 内部 benchmark（v2，私盐版）
+
+| | v1（作废） | **v2（现行）** |
+|---|---|---|
+| benchmark 条数 | 2,389（含中文 789） | **1,600（全英文）** |
+| 语言 | en + zh | **仅 en** |
+| 重建方式 | 公开脚本 + 公开种子即可 | 必须**仓外私盐**（盐的 sha256 前 16 位折进所有随机种子） |
+| sha256（明文） | 43937e09a6fdde62… | f5ae670811c33200… |
+| 状态 | **作废**，与 v2 不可拼接 | 现行交付件 |
 
 - **不得进公开仓库**：benchmark 分区与 data/splits/benchmark-dataset/ 已在 .gitignore；
 - **上传时设为 private**；不要放进公开分支、fork、PR、日志或截图；
 - **其他人不要引用其内容**：看过逐例答案就不能再自称在它上面是盲测；
-- 它**只含 A 层**（原生四元组，实测 origin=taxonomy 为 0 条）；
-- ⚠️ **当前保密性不达标，正在整改**：独立复核发现"仓库内公开文件 + 公开种子"可以逐字节重建
-  benchmark，且曾有一份 5,454 行的中文答案索引与 9 条 benchmark 记录进入版本库。
-  整改方向（db-schema 执行）：私盐重切 + 完整语料移出版本控制 + 不把完整语料与三区同时发布。
-  **整改完成前，请把现有 benchmark 视为已泄漏。**
+- **只含 A 层**（原生四元组；实测 1,600 条全部 origin=source，且全部英文）；
+- **中文侧不进 benchmark（本轮裁定）**：中文答案曾以 (group_id → 正确工具) 索引的形式进过公开版本库，
+  **换盐、换种子、重切都挡不住**——该映射对任何从同批请求生成的题都有效。
+  恢复条件：接入一个**全新的中文来源**，或在确认无外部副本后由维护者**协调重写仓库历史**清除该索引。
+- 保密现在是**机器可验证**的（test_split.py 的 SecrecyTest）：两个不同盐 → benchmark 不同；同盐两次 → 完全一致；
+  非白名单语言不得进 benchmark；无盐 public-demo 结果与交付件不同；**被 git 跟踪的文件对 benchmark 记录零命中**；
+  盐文件在仓库内 / 无盐且非 public-demo / public-demo 写到仓库内 → 均非零退出。
 
-## 4. 文件在哪（对外发布面待定）
+## 4. 文件在哪（对外只发三区 + 报告）
 
-| 文件 | 内容 |
-|---|---|
-| data/items.final.jsonl(.gz) | 切分输入语料 23,855 条（英文 15,983 + 中文 7,872） |
-| data/zh-supplement/items.jsonl | 中文补充 3,148 条（只进 train） |
-| data/splits/train·test·validation·benchmark.jsonl(.gz) | 四个分区（benchmark 那份勿公开） |
-| data/items.native.jsonl.gz | 英文侧主产物 15,983 条 |
-| data/items.jsonl(.gz) / items.bilingual.jsonl(.gz) | 早期"模板命题"版（37,124 条），**留作对照，不再是训练首选** |
+**对外发布（仓库内）**：只有三个公开分区 + 报告与清单。
 
-> 保密整改会调整"哪些文件随仓库发布"，因此上表**只描述本机工作区**；以 Lead 最终确认的公开面为准。
+| 文件 | 内容 | 对外 |
+|---|---|---|
+| data/splits/train.jsonl(.gz) | 17,984 条（含 3,148 条降级补充） | ✅ |
+| data/splits/test.jsonl(.gz) | 4,946 条 | ✅ |
+| data/splits/validation.jsonl(.gz) | 2,473 条 | ✅ |
+| data/splits/split-manifest.json、split-report.md | 哈希与聚合报告（不含样本） | ✅ |
+| data/splits/benchmark.jsonl(.gz)、benchmark-dataset/ | 内部 benchmark 1,600 条 | ❌ private 托管 |
+| data/items.final.jsonl、items.native.jsonl、items.native.slim.jsonl、items.bilingual.jsonl、items.jsonl | 完整语料（明文，本机保留；items.final 是切分输入 23,855 条） | ❌ **已移出版本控制** |
+| 上述五件的 .gz、data/zh/zh-group-index.jsonl、data/zh/zh-items.sample.jsonl | 含 benchmark 正文或中文答案索引 | ❌ **已移出版本控制**，仓外留存 D:\pol2-raw\general-private\ |
+
+- **七件语料已移出版本控制**（原因：含 benchmark 正文或中文答案索引），清单见 [split-report.md](split-report.md) §10.4；
+- data/zh-supplement/items.jsonl(.gz)（3,148 条补充）仍在仓库内。
 
 检查（注意：6 域配额是按**已退役**的混合语料定的，对当前语料会报 NG）：
 

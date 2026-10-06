@@ -4,7 +4,7 @@
 - 执行：pol2-replay（DSH Agent Team），共享任务 task-14
 - 契约：[README.md](CONTRACT.md)；问题键：[taxonomy.py](taxonomy.py)；中文来源：[sources.zh.json](sources.zh.json) + [zh-survey.md](zh-survey.md)
 - 英文来源：[sources.json](sources.json) + [data/convert-report.json](data/convert-report.json)；抓取/转换：[convert_zh.py](convert_zh.py)
-- 产物：**`data/items.bilingual.jsonl`**（明文，已 gitignore）与 **`data/items.bilingual.jsonl.gz`**（入库）；
+- 产物：**`data/items.bilingual.jsonl`**（明文，已 gitignore）与 **`data/items.bilingual.jsonl.gz`**（**已移出版本控制，仓外留存 D:\pol2-raw\general-private\**）；
   机器可读报告 `data/items.bilingual.report.json`
 
 ## 0. 结论摘要
@@ -32,7 +32,7 @@
 | 文件 | 说明 |
 |---|---|
 | `data/items.bilingual.jsonl` | 54,594 行；前 37,124 行是英文条目（原文件顺序、逐字节内容未改），其后是抽样后的中文条目（按 id 排序） |
-| `data/items.bilingual.jsonl.gz` | 同一内容的 gzip（入库件）；明文由根目录 .gitignore 的 `*.items.jsonl` 与 `data/.gitignore` 双重忽略 |
+| `data/items.bilingual.jsonl.gz` | 同一内容的 gzip；**已移出版本控制**（原因：含 benchmark 正文的旧 schema 同源数据），仓外留存 D:\pol2-raw\general-private\ |
 | `data/items.bilingual.report.json` | 机器可读：语言/域分布、逐来源保留数、抽样参数、sha256 |
 
 复算（不改任何数据，只读）：
