@@ -1,0 +1,39 @@
+name: 理论 / 文档问题 · Theory or document issue
+description: 对 PoL、PoLEn 或开发规划中的概念、论证、措辞、翻译、链接提出问题或修改建议
+title: "[文档] "
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: 位置 · Location
+      description: 文件路径和章节，例如 PoL/3. PoL2之冥想智慧公理.md
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 类型 · Type
+      options:
+        - 概念或论证问题
+        - 术语 / 翻译不一致
+        - 中英文版本不一致
+        - 错别字 / 格式 / 链接
+        - 缺少出处或署名
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题 · What is wrong
+      description: 引用原文并说明问题。
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 建议 · Suggested change
+      description: 如有，请写出建议的修改或依据（来源、链接、DOI）。
+    validations:
+      required: false

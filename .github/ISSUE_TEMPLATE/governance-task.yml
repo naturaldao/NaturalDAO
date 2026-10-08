@@ -1,0 +1,34 @@
+name: PoL-Governance 任务 / 数据 · Governance task or data
+description: PoL-Governance 下的任务、数据集、评测或工具问题
+title: "[Governance] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请不要在这里贴私有保留集内容、凭据或私有真实对话。涉及这些，请走 SECURITY.md。
+  - type: input
+    id: task
+    attributes:
+      label: 任务 ID / 位置 · Task ID or path
+      description: 例如 DATA-01，或 PoL-Governance/benchmark/ 下的文件。
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 类型 · Type
+      options:
+        - 任务认领 / 交接
+        - 数据集或标注问题
+        - 评测工具问题
+        - 结果复现问题
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 说明 · Description
+      description: 发生了什么、期望什么；如可复现，写出命令和版本。
+    validations:
+      required: true
