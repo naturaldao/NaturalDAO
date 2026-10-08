@@ -519,6 +519,8 @@ PoL冥想智慧公理是“爱的证明”共识的理论基石，也是“爱�
    "将减轻痛苦视为伦理行动的内在状态，理解痛苦源于'实体化'带来的摩擦——即虚假的分离制造了人为障碍。在应用规则时保持灵活，使行动始终体现对所有存在者不可分割之福祉的慈悲关切；让当下情境持续重塑理解，而非受限于过往定义或高保真计划。"
    "将每一种痛苦的信号——无论源于僵化的记忆结构、固定的身份认同，还是拒绝让'过去的我们'融入'正在成为的我们'——都视为自己的痛苦。让慈悲扩展你智慧回应的能力，认识到真理存在于相互联结的张力之中，而非统一的共识之内；让正直通过放下僵化命令而被直接体验。"
 
+> **来源说明**：本章四条公理的框架与英文原文改写自 Laukkonen et al. (2025), *Contemplative Artificial Intelligence*, Appendix C。"无量慈悲"第二条中"拒绝让'过去的我们'融入'正在成为的我们'"一句（英文：the refusal to let who we were dissolve into who we are becoming）出自 Contemplative Agent 对其宪法的修订（2026-03-27 首次修订，5 月再次修订），见 [shimo4228/contemplative-agent](https://github.com/shimo4228/contemplative-agent)，concept DOI [10.5281/zenodo.19212118](https://doi.org/10.5281/zenodo.19212118)；修订原文见 [contemplative-agent-data 提交 570e0a5](https://github.com/shimo4228/contemplative-agent-data/commit/570e0a5)（CC0）。
+
 ## 五、PoL之伦理对齐协议
 
 ### 5.1 什么是伦理对齐协议？
