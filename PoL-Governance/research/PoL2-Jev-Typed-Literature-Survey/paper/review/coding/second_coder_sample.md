@@ -1,0 +1,32 @@
+- alphaRAG | G4 | source: alphaXiv paper A-RAG: see corpus.bib key alphaRAG for URL
+- arx23959 | G1 | source: arXiv 2609.23959: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.23959.txt
+- arx24052 | G7 | source: arXiv 2609.24052: https://arxiv.org/html/2609.24052 (or /pdf/)
+- arx27607 | G6 | source: arXiv 2609.27607: https://arxiv.org/html/2609.27607 (or /pdf/)
+- arx28940 | G1 | source: arXiv 2609.28940: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.28940.txt
+- arx30706 | G4 | source: arXiv 2609.30706: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.30706.txt
+- arx31142 | G2 | source: arXiv 2609.31142: https://arxiv.org/html/2609.31142 (or /pdf/)
+- arx31142 | G6 | source: arXiv 2609.31142: https://arxiv.org/html/2609.31142 (or /pdf/)
+- arx33209 | G4 | source: arXiv 2609.33209: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.33209.txt
+- arx33282 | G7 | source: arXiv 2609.33282: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.33282.txt
+- arx33689 | G3 | source: arXiv 2609.33689: https://arxiv.org/html/2609.33689 (or /pdf/)
+- arx33843 | G6 | source: arXiv 2609.33843: https://arxiv.org/html/2609.33843 (or /pdf/)
+- arx33971 | G5 | source: arXiv 2609.33971: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.33971.txt
+- arx34024 | G4 | source: arXiv 2609.34024: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.34024.txt
+- arx34963 | G1 | source: arXiv 2609.34963: https://arxiv.org/html/2609.34963 (or /pdf/)
+- arx35286 | G7 | source: arXiv 2609.35286: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.35286.txt
+- arx35293 | G3 | source: arXiv 2609.35293: https://arxiv.org/html/2609.35293 (or /pdf/)
+- arx35865 | G4 | source: arXiv 2609.35865: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.35865.txt
+- arx36965 | G3 | source: arXiv 2609.36965: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.36965.txt
+- arx38850 | G4 | source: arXiv 2609.38850: local text C:\Users\ADMINI~1\AppData\Local\Temp\claude\C--Users-Administrator-Downloads-PoL2-Jev-Typed-Literature-Survey\5604ea6b-ea90-485c-a48d-e4d8bbecf48f\scratchpad\fulltext\2609.38850.txt
+- replication | G1 | source: grey G-Replication: https://github.com/jkf87/jev-rlcd-replication
+- sev | G4 | source: grey G-Sev: https://github.com/LakoreAI/sev
+- zen22846597 | G5 | source: Zenodo record https://zenodo.org/records/22846597 ; files via https://zenodo.org/api/records/22846597 (read the full text PDF/MD if available)
+- zen22858286 | G5 | source: Zenodo record https://zenodo.org/records/22858286 ; files via https://zenodo.org/api/records/22858286 (read the full text PDF/MD if available)
+- zen22885291 | G1 | source: Zenodo record https://zenodo.org/records/22885291 ; files via https://zenodo.org/api/records/22885291 (read the full text PDF/MD if available)
+- zen22885291 | G2 | source: Zenodo record https://zenodo.org/records/22885291 ; files via https://zenodo.org/api/records/22885291 (read the full text PDF/MD if available)
+- zen22901853 | G1 | source: Zenodo record https://zenodo.org/records/22901853 ; files via https://zenodo.org/api/records/22901853 (read the full text PDF/MD if available)
+- zen22901853 | G5 | source: Zenodo record https://zenodo.org/records/22901853 ; files via https://zenodo.org/api/records/22901853 (read the full text PDF/MD if available)
+- zen22952571 | G1 | source: Zenodo record https://zenodo.org/records/22952571 ; files via https://zenodo.org/api/records/22952571 (read the full text PDF/MD if available)
+- zen22953637 | G5 | source: Zenodo record https://zenodo.org/records/22953637 ; files via https://zenodo.org/api/records/22953637 (read the full text PDF/MD if available)
+- zen22959854 | G6 | source: Zenodo record https://zenodo.org/records/22959854 ; files via https://zenodo.org/api/records/22959854 (read the full text PDF/MD if available)
+- zen23055593 | G7 | source: Zenodo record https://zenodo.org/records/23055593 ; files via https://zenodo.org/api/records/23055593 (read the full text PDF/MD if available)

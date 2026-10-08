@@ -1,0 +1,24 @@
+\documentclass[11pt,UTF8,fontset=windows,zihao=5]{ctexart}
+\input{preamble_zh}
+\InputIfFileExists{main_labels}{}{}
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\hypersetup{pdftitle={补充材料：类型化决策模型能否承担 PoL 治理中的自动化保障职能？——基于早期证据的爱2证明（PoL2）规范逐条分析}}
+\title{\textbf{补充材料}\\[4pt]\large 类型化决策模型能否承担 PoL 治理中的自动化保障职能？\\——基于早期证据的爱2证明（\pol{}）规范逐条分析}
+\author{[作者姓名]}
+\date{2026 年 10 月 8 日\\[2pt]{\small 中文译稿（英文版为正式版本）}}
+\begin{document}
+\maketitle
+\noindent 本补充材料包含正文所引用的补充材料 S1--S5。节、表和图以 S 为前缀编号；对正文各节的引用使用正文的编号。数据与脚本见正文的数据声明。
+
+\crefalias{section}{supplement}
+\crefalias{subsection}{supplement}
+\input{sections/A_concordance}
+\input{sections/B_evidence}
+\input{sections/C_catalogue}
+\input{sections/D_corrections}
+\input{sections/E_codebook}
+\bibliographystyle{unsrtnat}
+\bibliography{../pol2,../corpus,../corpus_update,../grey,../background}
+\end{document}

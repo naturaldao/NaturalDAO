@@ -31,4 +31,4 @@
 
 ## 分支与 PR
 
-遵循上级目录的 [协作约定](../../AGENTS.md)：从主仓库开 `pol/LIT-01/<短名>` 分支，在 [`tasks/`](../../tasks/TEMPLATE.md) 下建立或更新自己的任务页，日常更新不需要 PR；准备纳入公共基线时再开 PR 到 `main`。提交前在 `PoL-Governance/` 运行 `python tools/check.py`，在本目录运行 `python scripts/check.py`。
+在主仓库新建分支，例如 `lit/pol2-jev/<短名>`，提交后开 PR 到 `main`。如果 [PR #15](https://github.com/naturaldao/NaturalDAO/pull/15) 的 `PoL-Governance/` 协作约定已合并，也可以按其 `pol/<任务ID>/<短名>` 规则开任务分支。

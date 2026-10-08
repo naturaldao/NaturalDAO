@@ -1,0 +1,15 @@
+Title:
+Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 (PoL2) Specification Against Early Evidence
+
+Authors:
+[Author Name]
+
+Abstract (1916 characters; arXiv limit 1920: OK):
+Typed decision models return a probability over declared options, not text, so screening all messages is cheap. We ask whether they can serve as safeguards for PoL governance under Proof of Love2 (PoL2), an open text prescribing a "safety valve" against hate language, AI-only adjudication of welfare disputes and per-person assessment. We derive seven testable requirements from its clauses and assess them against 107 studies and 7 grey sources on the first such model, Jev, and open counterparts in its first 17 days; author-directed AI agents read in full, appraised and coded the 85 that bear on them (blind second coding: kappa = 0.72). The evidence supports typed models as detectors under added conditions: they rank risky content well at a fraction of LLM evaluators' cost, and in one preregistered study on simulated data accepting low-risk verdicts only when an independently built rule agreed lost no accuracy, though disguised attacks passed. It does not support them as judges: thresholds do not transfer, decisions can follow option names and be steered by an inserted opinion, "I don't know" or "none" options are chosen inconsistently, and peer evaluators repeated almost all of a typed model's confident errors. Typed models were not generally worse than LLM evaluators, but most failures lack a comparison; an update to 8 October reversed no answer. Five tensions in the text follow, set against EU law: emotion recognition, binary verdicts, closed-model transparency, AI-only adjudication and per-person scoring. Our verdict for PoL2, at low or very low certainty: on current evidence Jev is not a suitable tool for any function that decides and can serve the safety valve only as a recorded, three-valued, locally calibrated detector whose consequential decisions end with a person, as we propose; even that extrapolates from English benchmarks, as no study measures PoL2's construct in Chinese.
+
+Comments:
+Policy analysis with a documented evidence assessment. 67 pages, 6 figures; supplementary material (40 pages) as an ancillary file. Data, evidence coding, review logs and scripts: https://github.com/naturaldao/NaturalDAO (PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey)
+
+Primary category (suggested): cs.CY (Computers and Society)
+Cross-list (suggested): cs.AI
+License (suggested): CC BY 4.0

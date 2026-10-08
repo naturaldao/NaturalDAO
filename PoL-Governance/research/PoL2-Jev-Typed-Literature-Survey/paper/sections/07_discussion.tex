@@ -1,0 +1,157 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Is hosted Jev a suitable governance tool for \pol{}?}
+\label{sec:verdict}
+
+The preceding sections answer the research question in the terms of the detector--judge distinction.
+Here we state what that answer means for the specification itself, function by function, so that the verdict can be checked against the coded findings and their certainty (\cref{tab:keyfindings}) rather than inferred.
+\Cref{tab:verdict} takes each \pol{} function that a typed model could be asked to perform, names the requirements it draws on, gives the one or two findings that decide it, and assigns one of three verdicts: \emph{not supported}, where the coded evidence shows the function failing or depends on a property the evidence contradicts; \emph{supported only as a recorded detector with conditions}, where the function can be performed in the detector role of \cref{sec:intro} inside the design of \cref{sec:design}, and in no other way the evidence licenses; and \emph{not tested on \pol{}'s construct}, where no coded study measures what the clause asks for.
+Every certainty entry is the rating of the finding in \cref{tab:keyfindings}; none is moderate, and a verdict that rests on a contested finding is marked as such.
+The verdicts concern hosted \jev{} at its versions of 15~September to 8~October 2026 and, where the finding's scope is ``both'', typed models generally; they are not predictions about later models.
+
+{\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.12\linewidth}>{\raggedright\arraybackslash}p{0.04\linewidth}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}p{0.14\linewidth}>{\raggedright\arraybackslash}p{0.10\linewidth}>{\raggedright\arraybackslash}p{0.17\linewidth}@{}}
+\caption{Verdict for \pol{}, function by function. \emph{Req.}: requirements of \cref{tab:clauses} involved. \emph{Evidence}: the coded findings that decide the verdict, with the decisive numbers. \emph{Verdict}: NS, not supported; DC, supported only as a recorded detector with conditions (the design of \cref{sec:design}); NT, not tested on \pol{}'s construct. A cell may combine NS for one part of a function with NT for another; ``precautionary'' marks a restriction that rests on the absence of a measurement rather than on a measured failure (the rule of \cref{sec:scope-certainty}). \emph{Certainty}: rating of the deciding findings in \cref{tab:keyfindings}; $^{c}$~contested; ``not rated'' marks results that are not key findings and rest on single studies. All ratings are low or very low.}
+\label{tab:verdict}\\
+\toprule
+\pol{} function & Req. & What the evidence shows & Verdict & Certainty & What would be needed \\
+\midrule
+\endfirsthead
+\multicolumn{6}{@{}l}{\emph{\Cref{tab:verdict}, continued.}}\\
+\toprule
+\pol{} function & Req. & What the evidence shows & Verdict & Certainty & What would be needed \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Safety valve: blocking hate language in inputs (\clause{5.4.1}) & G1, G2, G3, G6 &
+Ranks harmful English content well zero-shot (median AUROC 0.886 at \$0.30 against \$18.96 per pass~\cite{arx29429}) and on the HateCheck diagnostic set is within 1.6 macro-F1 points of a frontier LLM at 97\% lower cost~\cite{arx03324}; but fixed thresholds fail (F1 0.158 at 0.5 against 0.947 fitted~\cite{jkf87_2026replication}), a \jev{}-specific injection and a universal suffix reached 97--100\% attack success~\cite{arx04985}, one inserted opinion flipped 12.1\% of decisions~\cite{arx31142}, and swapping option definitions changed 32.5--50.5\% of answers~\cite{arx26758,arx00346}. &
+DC: automatic \emph{hold} only on agreement of independently built detectors; final block by a person &
+low (ranking; steering; option names); low$^{c}$ (thresholds) &
+A three-valued Chinese benchmark; thresholds certified on local held-out data and re-certified over time; red-team success per attack type below a target set in advance; neutral identifiers passing a renaming test \\
+\addlinespace
+Output suppression: hate-language truncation of PAI's own output (\clause{4.3.3.1}) & G1, G3, G5 &
+Hate against merely offensive language is separated weakly by every system (three-class macro-F1 \jev{} 0.532, frontier LLM 0.604, supervised TF-IDF 0.639~\cite{arx03324}); exact selection of the violated hate-speech policy 29.4\% without retrieved precedents~\cite{arx07953}; errors concentrate in sub-types that aggregates hide (130 of 167 misses at confidence $\geq 0.95$~\cite{arx33401}). &
+DC: automatic \emph{repair} of the AI's own output is reversible and within the detector role; the truncation record must show what was removed &
+low (sub-types; option names); low (ranking) &
+Measured recall of hate language against offensive language and the state of absence in Chinese; sub-type recall floors; a record of each truncation open to the person addressed \\
+\addlinespace
+Real-time correction support: identification and correction suggestions (\clause{4.3.3.2}) & G1, G5 &
+Identification is the row above. A typed decision returns a probability and nothing else~\cite{willison2026jev}, so a correction \emph{suggestion} needs a generative component whose grounds are not those of the verdict (\cref{sec:g5}); on Chinese emotion classification every system was weak (macro-F1 \jev{} 21.06, generative 19.82--23.31~\cite{arx08829}). &
+NT: the typed interface covers identification only; suggestions untested &
+low (ranking); not rated (Chinese emotion, single run) &
+A test of whether suggestions generated after a typed verdict reflect what produced it, in Chinese \\
+\addlinespace
+Anomaly detection and risk warning (\art{7}(2)--(3)) & G1, G2, G6 &
+On text, a detector with the conditions above; on non-text signals, zero-shot \jev{} scored below the majority class on network-flow features (9.8\% against 22.8\%~\cite{arx00376}) and, in industrial fault detection, flagged 57--94\% of fault-free windows and under shift did no better than flagging every window~\cite{arx09937}; attacks disguised as normal operation had recall 0.34, and 21 of 76 windows an agreement gate accepted as benign were attacks~\cite{arx02048}. &
+DC on text; NS on numeric or structured signals without a trained model &
+low (sub-types; steering); very low (agreement gating) &
+A definition of ``anomalous pattern'' in the specification's own terms; drift and disguised-attack tests; a trained or rule-based detector as the independent second check \\
+\addlinespace
+Ethical verification of alignment (\art{6}(3)) & G3, G4, G5 &
+Without a persona \jev{} answered value questions like its American personas, and Saudi personas reproduced 87\% of the human Saudi--US difference in English but 62\% in Arabic~\cite{arx36399}; on moral dilemmas rewording moved its answers much more than re-runs did~\cite{zen23023694}\zmark{}; where annotators disagreed most its calibration error rose to 0.339~\cite{zen23032384}\zmark{}, and it reported 0.88 on items on which people split 55 to 45~\cite{zen23179064}\zmark{}. &
+NS as an automatic verifier, because it depends on a neutral default and on calibration where people disagree, both contradicted; the EAP construct itself NT &
+very low (culture); low (calibration is local) &
+A benchmark of value-laden \pol{} questions with disagreement-aware labels, its default position without persona reported, and contested items routed to people \\
+\addlinespace
+Dispute adjudication without human intervention (\art{10}, \art{9}(7)) & G4, G5, G6 &
+Low-cost peer evaluators repeated \jev{}'s most confident errors in 96.0\% of verdicts (an upper bound)~\cite{arx29769} and caught at most 5 of 130 confident misses~\cite{arx33401}; an explicit ``I don't know'' was chosen on 10.5\% of the items where it was correct and ``None'' on 7--54\%~\cite{arx34024,arx39496}; the same decision asked through two interfaces led to different actions in 32.8\% of cases~\cite{arx37470}; a threshold fixed in advance missed its accuracy target on 8 of 14 tasks~\cite{arx24574}, a finding one preregistered study contests~\cite{arx33689}; the output carries no reasons~\cite{willison2026jev}. &
+NS as judge; DC only for ranking and triage of filings &
+low (peer errors; ``I don't know''); low$^{c}$ (thresholds in advance) &
+The four conditions of ``What would change the conclusion'' below, met on a \pol{} benchmark in Chinese in one preregistered and independently replicated study, or two independent ones \\
+\addlinespace
+Per-person quantification of Love Language and hate language (\clause{5.6}) & G3, G7 &
+Group bias in one informal forced-choice test (``White'' 51\% of first picks~\cite{simmons2026saidno}\gmark{}); typed and generative models degraded on low-resource languages~\cite{arx37647}; a third party's inserted opinion flipped 12.1\% of decisions~\cite{arx31142}, so an aggregate could be manipulated; no study measures differential error by speaker group on behavioural judgements. &
+NS as a decision input (steering, low); NT on error by group: score events and behaviours, never persons, until error by group and language is published (precautionary, \cref{sec:scope-certainty}) &
+very low (culture); low (steering); not rated (group bias, single informal test; language degradation, one benchmark) &
+Published error rates by group and language in Chinese; consent, access to one's record and appeal; a legal reading against social-scoring prohibitions (\cref{sec:synthesis}, T5) \\
+\addlinespace
+Assessment dimension in public decisions (\clause{5.6}) & G7 &
+Population-scale reading can be done honestly: a shared human--model error term gave retrospective coverage of 0.93 and 0.96 at nominal 80\% and 90\%~\cite{arx27535}, and audited probability samples gave corrected statewide counts, but only after per-factor human recalibration~\cite{arx00213,arx10321}; simulated publics lean towards one population~\cite{arx36399} and understate disagreement~\cite{zen23179064}\zmark{}. &
+DC: an audited aggregate measurement with its measured error carried into every conclusion; not a decision input on its own &
+very low (culture); not rated (audit designs, single studies) &
+A disagreement-aware audit sample of real \pol{} items; the measured gap to people reported with every estimate \\
+\end{longtable}
+}
+
+\paragraph{The verdict.}
+On the evidence to 8~October 2026, hosted \jev{} is not a suitable tool for any \pol{} function that decides.
+That covers dispute adjudication under \art{10}, automatic ethical verification under \art{6}(3), the per-person quantification of \clause{5.6} (on steering and on the absence of any group-error measurement), and any use of the safety valve in which a block of a person's speech is final without a person's confirmation.
+The decisive findings are negative and, within their low or very low certainty, consistent: thresholds fitted in one setting do not transfer to another (low, contested), decisions can be steered by content inside what the model audits (low; 97--100\% attack success for a tailored injection~\cite{arx04985}, 12.1\% of decisions flipped by one inserted opinion~\cite{arx31142}), option names can override their definitions (low), an explicit ``I don't know'' option is rarely chosen when it is correct and ``none'' inconsistently (low), and the low-cost evaluators to which such a model would escalate repeated almost all of its confident errors (low, an upper bound).
+A judge with these properties would restrict speech and allocate welfare on verdicts that an adversary can move, that depend on how the question was worded, and that no second automated opinion is likely to catch; \art{9}(7), which keeps human supervision from intervening, would remove the one check the evidence says is needed.
+No typed model tested escapes this verdict, and no low-cost generative evaluator tested beside one has been shown to: where the comparison was made, typed models were not generally worse (low, by judgement), but most failures were never compared, so the verdict is not specific to typed models and, until generative evaluators are tested under the same protocol, applies to automated judges of this cost tier as a precaution (\cref{sec:scope-certainty}).
+
+For the functions that detect rather than decide, the safety valve of \clause{5.4.1}, the truncation of \clause{4.3.3.1} and the anomaly detection of \art{7} on text (not on numeric or structured operational signals without a trained model, \cref{tab:verdict}), hosted \jev{} is usable, but only inside the design of \cref{sec:design}; the public-decision assessment of \clause{5.6} is usable only as an audited aggregate measurement with its measured error carried into every conclusion; and the positives that support this are real but conditional.
+It ranks harmful English content well at a small fraction of the cost of generative evaluators (low), on the HateCheck diagnostic set it came within 1.6 macro-F1 points of a frontier model at 97\% lower cost~\cite{arx03324}, it is often well calibrated on tasks that resemble its training (low), confidence-based deferral worked in-distribution~\cite{arx00381,zen22885291}, and in one preregistered study accepting its low-risk verdicts only when an independently built rule agreed lost no macro-F1, though disguised attacks passed (very low).
+Each positive comes with the condition that turns it into a design element: ranking needs a locally fitted and re-certified threshold before it is a decision, calibration holds only where it was measured, deferral holds only in-distribution, and agreement gating needs a second detector of different construction.
+Even this detector verdict is an extrapolation: it rests on English benchmarks of binary hate speech, whereas \pol{} asks for three-valued judgements of Love Language, hate language and the state of absence in Chinese, and no coded study measures that construct; the only Chinese emotion result found every system weak (macro-F1 about 21~\cite{arx08829}), the only Chinese decision benchmarks concern service routing, scam detection and ship-design engineering rather than hate language~\cite{qin2026zhdecisionbench,arx09896}, and hate against merely offensive language, the distinction that \clause{1.5} most needs, was separated weakly by every system tested~\cite{arx03324}.
+We therefore state the verdict with its certainty attached: every finding above is low or very low, four are contested, most rest on preprints by single teams in the model's first weeks, and the ratings could change with a single well-designed study on the specification's own construct.
+
+Two further findings bear on \pol{} beyond any single function.
+A typed safeguard can also serve as a queryable oracle: with conditional instructions planted in the input, hosted \jev{}'s labels alone revealed hidden gender, age-group, heart-disease and ethnicity attributes in every tested case, with two to six queries per state (an open model's labels revealed none); separately, its verdicts raised the judged harmfulness of harmful plans, and its labels trained a surrogate to 92\% agreement from 200 labels~\cite{arx04985}. This argues for keeping the valve's probabilities from untrusted callers and keeping sensitive fields a decision does not need out of its input, which for hosted \jev{} is the only one of these measures that would remove the signal, since the attack worked for a user authorised for the task and needed labels alone; restricting untrusted callers' queries to authorised tasks keeps the valve from serving as a general oracle for questions such as the feasibility of harmful plans, and logging makes surrogate extraction through the authorised task visible, though neither prevents it (\cref{sec:design}, element~4). None of these measures has been tested.
+And a closed hosted model cannot satisfy \art{4} and \art{5}(4) as written (T3): its decision records can be published, its reasoning cannot, and the trade against the measured robustness of open models, which showed the most severe name inversion~\cite{arx26758}, has to be made explicitly.
+
+\paragraph{What transfers.}
+Several lessons hold for \pol{} whatever model is used, because each follows from a finding that concerns the interface or the task rather than \jev{}.
+\begin{itemize}
+  \item \emph{Ask three-valued questions, and ask sufficiency separately.} A yes/no question discards the state of absence (\clause{4.3.2}); explicit ``I don't know'' and ``none'' options were chosen inconsistently (low), but a separate yes/no question on whether the evidence suffices detected missing information better than confidence in one study~\cite{arx01006} (very low). The three-valued verdict is already in the workstream's pilot protocol~\cite{polgov} (\cref{sec:design}, element~3; T2).
+  \item \emph{Bind neutral identifiers to definitions and test by renaming.} Option names overrode definitions for every typed model tested (low), and digit or random-string identifiers brought hosted \jev{} near its noise floor~\cite{arx00346}; moral vocabulary, which \clause{1.5} says its concepts are not, belongs in definitions, not in option names (element~3; checklist item~4).
+  \item \emph{Record every decision.} A typed verdict carries no reasons (\cref{sec:g5}), so the record (question, option set and definitions, input hash, probabilities, model and calibration versions, ground cited, reviewer outcome) is the only thing that can be audited or questioned under \art{9}, and the only basis for the verifiable chain of \art{5}(5) (element~7).
+  \item \emph{Calibrate locally and re-validate over time.} Thresholds fitted elsewhere did not transfer (low, contested) and calibration was local (low); hate-speech rankings on static benchmarks did not predict rankings on time-stamped or neologism-substituted data~\cite{dibonaventura2025hatevolution}, so certification has a date and a language (element~4; checklist items 2, 3, 11 and 16).
+  \item \emph{Gate automatic action on agreement between differently built detectors.} Peer models repeated confident errors (low); accepting a verdict only when an independently built rule agreed lost no macro-F1, though disguised attacks still passed (very low), so independence must be built, not assumed, and its miss rate measured (element~3; checklist item~10).
+  \item \emph{End every chain that could restrict a person with a person, and audit confident decisions.} The most damaging errors were confident and shared~\cite{arx29769,arx33401}, and no study compares typed models with trained reviewers on governance items; until one does, a human end-point with a blind random audit is the only check the evidence does not undermine (elements 5 and 6; T4, option~(b)).
+  \item \emph{Keep probabilities from untrusted callers, keep unneeded sensitive fields out of the input, restrict and log untrusted queries, and separate independent flags into separate calls.} Probability feedback helped attackers~\cite{arx30243}, labels alone leaked attributes and trained surrogates~\cite{arx04985}, and one planted note changed several answers in one call~\cite{zen23038928}\zmark{} (elements 3 and 4).
+  \item \emph{Score events and behaviours, never persons, until error by group and language is published.} This follows from \clause{4.3.1} as much as from the evidence (T5).
+  \item \emph{Build the construct benchmark first.} Every verdict above is an extrapolation from English binary tasks; an independently annotated, disagreement-aware, time-stamped benchmark of Love Language, hate language and the state of absence in Chinese, with a held-out set, is the prerequisite for turning any of these verdicts from extrapolation into measurement (open problems below).
+\end{itemize}
+
+\subsection{Scope, certainty, limitations and open problems}
+\label{sec:scope-certainty}
+
+\paragraph{Beyond one specification.}
+Any proposal that puts an automated filter in front of AI systems, gives disputes to AI, or scores people's behaviour for public purposes faces the questions G1--G7, and, with the caveats on certainty below, the design conclusions of \cref{sec:design} are likely to apply to it.
+The comparison in \cref{sec:paradigms} makes this concrete: constitutional classifiers, the Chinese duty to stop unlawful generation and the DSA's provisions on automated means each move toward an inference-time interception layer, and each then needs an answer to G1--G5 and, where it automates oversight, to the escalation question of G6, which its own text gives at most in part (the Chinese Measures require records of measures taken against users and a complaint channel, Art.~14(2) and~15~\cite{cac2023genai}); G7 and the rest of G6 arise only where a proposal also gives disputes to AI or scores people.
+What the case adds is a demonstration that a governance text can be read clause by clause as a set of testable requirements, and that doing so exposes tensions that are invisible while the text is read only as a statement of values.
+In this case several of the framework's own commitments, the state of absence, the warning that love and hate are not moral labels, and the distinction between persons and behaviours, are consistent with what the evidence recommends, and the tensions arise where other provisions pull against them.
+
+\paragraph{Certainty.}
+\Cref{tab:keyfindings} rates each finding used in the abstract and conclusion.
+The rules count every coded study that bears on a finding, count studies sharing an author once, accept as independent replication only another team's study on its own data or a reimplementation, count evidence per system arm and rate findings about hosted \jev{} or typed models generally on hosted-model evidence alone, with open-model studies as corroboration, and lower a rating when a study of at least equal design strength points the other way (\cref{sec:appraisal}); every coded study's assignment to each finding is released (\nolinkurl{data/certainty_evidence.csv}), and the ratings are computed from it by \nolinkurl{scripts/rate_certainty.py}.
+These rules were revised during review rounds 12--15, after the update studies had been coded, in response to reviewer findings, and all findings were re-rated with them; this departs from the update protocol, which had frozen the main-window ratings, so the table shows the rating as given on 4~October beside the current one.
+No finding reaches moderate certainty. That inserted content steers decisions would be moderate if open-model studies could raise a rating; under our rule they only corroborate.
+Four are contested: that injection rarely selects the attacker's target, which is very low; that escalation to a stronger reasoner saves cost without loss of accuracy, which is low; and the two threshold findings, that fixed thresholds do not transfer and that thresholds set in advance miss their error targets on new data, which are low. Both are supported by a preregistered study in which a threshold fixed in advance missed its accuracy target on 8 of 14 tasks~\cite{arx24574} and by several other studies of \jev{}, and both are opposed by a preregistered study of changed question types in which \jev{}'s gate, set in advance, stayed within its target on 6 of 7 templates~\cite{arx33689}, and the second also by two update studies whose thresholds met their targets~\cite{zen22935043,zen23075657}\zmark{}; because the preregistered opposing study ranks as high as the strongest supporting one, both fall from moderate to low.
+All ratings are low or very low, because the sources are preprints posted within days of a model's release, many results rest on one study, the one reproduction of a headline study re-ran its authors' code and data, and no study measures the specification's own construct.
+
+\paragraph{Limitations.}
+The corpus covers seventeen days of submissions and consists of unrefereed preprints and grey literature, many from single authors working quickly; of the 27 early studies graded by a community tracker, none was rated at low risk of bias~\cite{rafe2026awesome}.
+Studies of failures are quick to write in a model's first weeks and may be over-represented; Zenodo records were negative more often than arXiv papers, although dropping them changes the overall shares little (\cref{sec:across}).
+Several studies use open models rather than the hosted one, and some do not report the hosted version; we say so each time, but the tallies pool hosted and open models.
+The requirements are derived from \pol{}, so the analysis answers its questions and may miss strengths of typed models that it does not ask about.
+Screening, extraction, coding and verification were carried out by AI agents under the author's direction, and both coders were AI agents of the same model family, so the agreement statistic ($\kappa = \nKappa{}$, 95\% CI \nKappaLo{}--\nKappaHi{}, on a sample dominated by Q codes) is an upper bound on how reproducible the codebook is for human coders; the census of all update pairs gave $\kappa = \nUKappa{}$ (95\% CI \nUKappaLo{}--\nUKappaHi{}), with an overlapping interval, and is the better estimate for AI coders, which implies that a share of the singly coded main-window codes would be resolved differently on a second reading.
+The main tallies cover records retrieved by 4~October, and the main search's recall was incomplete: 18 of the 103 coded studies dated within the window were found only by the update search of 8~October (\cref{sec:update}), which is reported separately, not pooled, and includes \nUSetReScreened{} Zenodo records whose earlier exclusion or omission cannot be established, and papers announced after 8~October are not included.
+No study compares a typed model with trained human reviewers on a governance task, so we cannot say whether its errors are worse than those of the people it would assist.
+
+\paragraph{What would change the conclusion.}
+We would revise ``not a judge'' if, on a held-out, independently annotated three-valued \pol{} benchmark in Chinese, a typed model with risk-controlled thresholds
+(i) kept its false-block and miss rates within targets set in advance by those accountable for the deployment,
+(ii) changed fewer answers under name and definition swaps than twice its repeat-noise floor,
+(iii) flipped fewer than 5\% of decisions under single-opinion insertion and under a 64-query adaptive attack, and
+(iv) agreed with an independent panel of trained reviewers at least as well as the reviewers agree with each other,
+in one preregistered study with an independent replication, or in two independent studies.
+We would revise the ``detector'' claim if, on such a benchmark, its AUROC fell below 0.75, if two independently built detectors repeated more than 80\% of each other's confident errors, or if the review load at certified thresholds exceeded the reviewer capacity budgeted for it.
+We ask for more evidence to relax a safeguard than to add one, because a wrongly removed safeguard restricts people's speech and resources while a wrongly added one costs review time.
+We would revise the recommendation that consequential decisions end with a person if, on the same benchmark, trained reviewers agreed with the independent panel less well than the gated detector ensemble, or moved their verdicts towards the model's displayed verdict in more than a pre-set share of audited cases.
+And if generative evaluators tested under the same protocol passed where typed models failed, the conclusion would become specific to typed models; until then it is not.
+
+\paragraph{Open problems.}
+\begin{itemize}
+  \item \emph{A \pol{} benchmark.} No public dataset labels Love Language, hate language and the state of absence. An independently annotated benchmark in Chinese, built with disagreement-aware labels~\cite{davani2022dealing} on the model of existing Chinese offensive-language resources~\cite{deng2022cold,lu2023toxicn}, with a held-out set kept outside any repository, is the first prerequisite for every recommendation above; the workstream's 20 public pilot items are explicitly not a ranking set~\cite{polgov}. Because static hate-speech benchmarks lose predictive value as language changes~\cite{dibonaventura2025hatevolution}, such a benchmark should be time-stamped and periodically refreshed, including paired items with newly emerged terms.
+  \item \emph{Human reviewers versus typed detectors} on the same governance items, including reviewers' agreement with each other and their susceptibility to the model's verdict.
+  \item \emph{Comparators for failures.} Most negative findings had no generative comparator; re-running them with one would show which failures are specific to typed models.
+  \item \emph{Robustness of a queryable safeguard.} Whether hiding or coarsening probabilities, adding noise, rate-limiting, restricting queries to authorised tasks or keeping sensitive fields out of the input reduces attack success, and at what cost to legitimate users, has not been measured.
+  \item \emph{Faithful explanations.} Whether an explanation written afterwards by another model reflects what produced a typed verdict needs its own evaluation before it can satisfy \art{9}(2).
+  \item \emph{Per-person measurement.} If \clause{5.6} is implemented, differential error across groups and languages must be measured before any per-person measure is computed or stored.
+  \item \emph{Replication.} Most findings rest on one study by one team; independent replication on new data (the reproduction of \emph{Just Ask Jev} re-ran the authors' code and data~\cite{jkf87_2026replication}), is the most valuable next contribution for almost every requirement.
+\end{itemize}

@@ -5,3 +5,25 @@ __pycache__/
 .venv/
 .DS_Store
 Thumbs.db
+
+# LaTeX build artifacts (paper/main.pdf and paper/arxiv-submission.zip are kept)
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.blg
+paper/*.bbl
+paper/bib.log
+paper/arxiv/
+
+# Chinese build artifacts and generated cross-reference files (build.py)
+paper/zh/*.aux
+paper/zh/*.log
+paper/zh/*.out
+paper/zh/*.blg
+paper/zh/*.bbl
+paper/main_labels.tex
+paper/zh/main_labels.tex
+paper/zh/supplement_labels.tex
+
+# local convenience copy of paper/zh/main_zh.pdf
+paper/PoL2-Jev-*.pdf

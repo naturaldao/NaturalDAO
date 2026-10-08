@@ -1,7 +1,6 @@
 """Check that the survey directory is self-consistent and portable.
 
-  - every relative Markdown link resolves (inside this directory, or inside the
-    enclosing PoL-Governance/ directory when placed under PoL-Governance/research/);
+  - every relative Markdown link resolves inside this directory;
   - every PDF in papers/ is listed in data/papers.csv with a Creative Commons licence;
   - every row marked pdf_in_repo=yes has its PDF;
   - no PDF under an arXiv default (non-redistributable) licence is tracked in papers/;
@@ -17,8 +16,6 @@ from pathlib import Path
 from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
-# Links may also point into the enclosing PoL-Governance/ collaboration directory.
-LINK_ROOT = ROOT.parents[1] if ROOT.parent.name == 'research' else ROOT
 SKIP = {'.git', '_local', '__pycache__'}
 
 
@@ -32,7 +29,7 @@ def main():
             if '://' in link or link.startswith(('#', 'mailto:')):
                 continue
             target = (md.parent / unquote(link.split('#')[0])).resolve()
-            if not target.is_relative_to(LINK_ROOT) or not target.exists():
+            if not target.is_relative_to(ROOT) or not target.exists():
                 errors.append(f'broken or non-portable link: {md.relative_to(ROOT)} -> {link}')
             links += 1
 

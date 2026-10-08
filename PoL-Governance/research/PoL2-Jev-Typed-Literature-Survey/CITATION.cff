@@ -1,12 +1,12 @@
 cff-version: 1.2.0
-title: "PoL2 × Jev Typed Decision Models: A Literature Survey"
-message: "If you use this survey or its data, please cite it as below. The papers in papers/ must be cited separately under their own licences."
+title: "Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 (PoL2) Specification Against Early Evidence"
+message: "If you use this paper or its data, please cite it as below. The papers in papers/ must be cited separately under their own licences."
 type: dataset
 authors:
-  - name: "鄢申涛 Shenton"
-  - name: "NaturalDAO contributors"
-date-released: 2026-09-29
-version: 0.1.0
+  - family-names: "Yan"
+    given-names: "Shentao"
+date-released: 2026-10-09
+version: 0.4.0
 license: CC0-1.0
 repository-code: "https://github.com/naturaldao/NaturalDAO"
 keywords:

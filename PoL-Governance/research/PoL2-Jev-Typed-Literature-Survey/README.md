@@ -1,90 +1,88 @@
 # PoL2-Jev-Typed-Literature-Survey
 
-**爱2证明（PoL2）× Jev 类型化决策模型：文献综述与数据**
+**类型化决策模型能否承担 PoL 治理中的自动化保障职能？——基于早期证据的爱2证明（PoL2）规范逐条分析**
 
-Jev 是 TypeSafe AI 于 2026-09-15 发布的第一个"System One 决策模型"：它不生成文字，只对给定问题返回选择、分级评分或是非概率。PoL2 的工程策略需要一个对每次输入输出都做"动态审计与拦截"的**安全阀**，而 Jev 这类模型在形态上正适合这个位置。本目录收集 Jev 发布后两周内的研究，逐条对照 PoL2 正文的治理条款，回答一个问题：**这类模型能在多大程度上、以什么前提承担 PoL2 治理层的判断工作？**
+Jev 是 TypeSafe AI 于 2026-09-15 发布的第一个“System One 决策模型”：它不生成文字，只对给定问题返回选择、分级评分或是非概率。PoL2 的工程策略需要一个对每次输入输出都做“动态审计与拦截”的**安全阀**，而 Jev 这类模型在形态上正适合这个位置。本目录围绕 PoL 治理，把 PoL2 中要求或约束机器判断的条款转写为七条可检验的要求（G1–G7），用 Jev 发布后的研究逐条检验，回答一个问题：**这类模型能在多大程度上、以什么前提承担 PoL2 治理层的判断工作？**
 
-> 本目录是参考文献整理，不是 PoL2 正文，也不代表协作者的共同立场。标 ★ 的建议需要团队讨论确认。
+> 本目录是研究材料，不是 PoL2 正文，也不代表协作者的共同立场。整理者是 PoL2 的贡献者之一，立场声明见论文“Positionality and competing interests”一节。
 
 ## 从这里开始
 
 | 你想要 | 去哪里 |
 |---|---|
-| 读综述正文（中文） | [docs/survey.zh.md](docs/survey.zh.md) |
-| 按 PoL2 条款查论文 | [docs/survey.zh.md 第 1 节对照框架](docs/survey.zh.md#1-对照框架pol2-条款--工程问题--文献) |
-| 最重要的负面结果 | [docs/survey.zh.md 第 3 节](docs/survey.zh.md#3-负面结果汇总) |
-| 给 NaturalDAO 的工程建议 ★ | [docs/survey.zh.md 第 4 节](docs/survey.zh.md#4-对-naturaldao-工程的建议草案-) |
-| 论文全文 PDF | [papers/](papers/)（许可见 [papers/LICENSES.md](papers/LICENSES.md)） |
-| 机器可读的数据 | [data/](data/)，见下表 |
+| 读论文（英文，arXiv 格式，v0.4） | [paper/main.pdf](paper/main.pdf)；补充材料 S1–S5 见 [paper/supplement.pdf](paper/supplement.pdf) |
+| 读论文中文译稿（英文版为正式版本） | [paper/zh/main_zh.pdf](paper/zh/main_zh.pdf)；补充材料见 [paper/zh/supplement_zh.pdf](paper/zh/supplement_zh.pdf) |
+| 看结论（Jev 是否适合作为 PoL2 的治理工具） | 论文 §7.1 与表 “Verdict for PoL2” |
+| 看 PoL2 与其他 AI 治理范式的比较 | 论文 §2.3 |
+| 看审稿与修订记录 | [paper/review/REVIEW.md](paper/review/REVIEW.md)、[paper/review/AUDIT.md](paper/review/AUDIT.md) |
+| 机器可读的数据（编码、质量评价、确定性证据） | [data/](data/)，见下文 |
+| 早期中文综述（v0.1，37 篇，主要依据摘要，已被论文取代） | [docs/survey.zh.md](docs/survey.zh.md) |
+| 论文全文 PDF（CC 许可部分） | [papers/](papers/)（许可见 [papers/LICENSES.md](papers/LICENSES.md)） |
 
-## 主要发现
+## 主要发现（证据截至 2026-10-08，所有结论的确定性均为“低”或“极低”）
 
-1. **安全阀可以用，但只能做"探测器"。** 零样本检测十类对齐失效的 AUROC 中位数达 0.886，但默认阈值 0.5 下的 F1 可以低到 0.158，阈值必须按任务本地拟合。
-2. **安全阀本身会被输入内容操纵。** 借助概率反馈优化出的、读来自然的语境短句，可把 61.4% 原本正确的决策翻转成错误；多轮自适应攻击 27 次攻破 25 次。
-3. **"类型安全"不等于"判断正确"。** 只把选项名从 0/1 改成 no/yes，开源 Jev 类模型的 AUC 就从 0.94 翻转到 0.23，Jev 本身从 0.81 降到 0.58，而类型错误率始终是 0%——模型跟随的是选项的名字，而不是我们写给它的定义。
-4. **模型不会主动说"不知道"。** 有研究提出，二元问题会把"不知道"压成"是 / 否"；按这一假设补回第三真值，软准确率从 0.771 升到 0.978。这与 PoL2"非爱非恨的不在场"状态直接相关。
-5. **把疑难样本升级给另一个 AI，未必能纠错。** 升级给推理型模型时效果不错，但同档的 LLM 评判器几乎重复了 Jev 最自信的错误；升级链的末端必须有人。
+1. **结论：按现有证据，托管 Jev 不适合承担 PoL2 中任何“做决定”的功能**（争议裁决、自动伦理验证、逐人量化、任何不经人确认的最终拦截）。对安全阀、恨语截断和文本异常检测，它只能作为**有记录、三值、经本地校准的检测器**，并放在论文 §6 的设计中、由人终结有后果的决定；即便如此，这也是从英文二值基准外推出来的，没有任何研究测过 PoL2 的中文三值构念。
+2. **作为检测器有可用之处。** 在英文基准上对有害内容排序良好，成本仅为 LLM 评估器的一小部分；在一项基于模拟数据的预注册研究中，只在独立构建的规则同意时才接受其低风险判定，准确率没有损失，但伪装攻击仍能通过。
+3. **不能作为裁决者。** 阈值换场景就失效；判定会跟随选项名称而非定义；被审内容中插入的观点能操纵判定；在一项研究的三个任务中，针对 Jev 的注入攻击成功率达 97–100%；“不知道”“以上皆非”这类选项的选择不稳定；同档评估器几乎重复了它最自信的错误。
+4. **结论并非专门针对类型化模型。** 在做过对比之处，类型化模型总体上并不比生成式评估器差；但大多数失效从未对比，证据既不表明失效为类型化模型独有，也不表明二者共有，所以这一结论出于审慎同样适用于低成本生成式评估器。
+5. **可借鉴之处**（不依赖具体模型）：三值提问并单独问“证据是否足够”；中性的选项标识；每次判定留记录；本地校准并定期做时间再验证；只在独立构建的检测器一致时自动行动；决策用不到的敏感字段不进入检测器；对事件评分而不对人评分；链条以人结束；先建 PoL2 自己的中文构念基准。
+6. **为什么以 PoL2 为案例**（论文 §2.3）：在比较的治理范式中，PoL2 与网信办《生成式人工智能服务管理暂行办法》是同时规定了推理期拦截、所用标准与判定义务的两份文本；PoL2 的构念（三值、不作道德标签）和拦截点写在可引用的条款里，因此能推导出可检验的要求，其缺口（如单次拦截没有规定理由、记录或申诉）也看得见。选择它不是因为它独一无二。
 
 ## 目录结构
 
 ```
 PoL2-Jev-Typed-Literature-Survey/
 ├── README.md                 本文件
-├── docs/
-│   └── survey.zh.md          综述正文（中文）
+├── paper/                    论文（LaTeX）
+│   ├── main.tex / main.pdf   正文；preamble.tex 为共享导言
+│   ├── supplement.tex / .pdf 补充材料 S1–S5（条款对照、证据表、研究目录、更正与确定性评级、编码手册与检索）
+│   ├── build.py              编译正文与补充材料并互相导入交叉引用（python paper/build.py；中文加 --zh）
+│   ├── sections/             各章节；B_evidence.tex、C_catalogue.tex 由脚本生成
+│   ├── figures/              图（PDF）；src/ 为绘图脚本
+│   ├── *.bib                 文献；corpus.bib、corpus_update.bib 由脚本生成
+│   ├── make_arxiv.py         打包 arXiv 提交文件（补充材料作为 anc/ 附属文件）
+│   ├── make_metadata.py      生成 arXiv 表单所需的标题、摘要与备注
+│   ├── zh/                   中文译稿（xelatex；GLOSSARY.md 为术语表）
+│   └── review/               审稿与修订记录（43 轮），编码手册与编码过程文件
 ├── data/
-│   ├── papers.csv / .json    论文目录（生成文件）：层级、PoL2 轴线、要点、许可、摘要
-│   ├── pol2_mapping.csv      人工维护：每篇论文的层级、轴线与一句话要点 ← 改归类改这里
-│   ├── pol2_axes.json        G1–G7 七条轴线的定义及对应的 PoL2 正文条款
-│   ├── grey_literature.csv   灰色文献（博客、技术报告、开源仓库）
-│   └── sources/
-│       └── arxiv_meta.csv    arXiv 元数据原始快照（由脚本抓取）
-├── papers/
-│   ├── 2609.xxxxx.pdf        Creative Commons 许可的论文全文
-│   └── LICENSES.md           每篇 PDF 的许可（生成文件）
-├── scripts/
-│   ├── fetch_papers.ps1      抓取元数据、许可与 PDF（Windows PowerShell）
-│   ├── build_catalog.py      生成 papers.csv/json、LICENSES.md 与综述中的目录表
-│   └── check.py              一致性检查
+│   ├── evidence_coding.csv           主窗口证据编码（研究 × 要求，S/Q/N）
+│   ├── evidence_coding_update_*.csv  2026-10-08 补充检索的编码
+│   ├── quality_appraisal*.csv        设计质量评价
+│   ├── certainty_evidence.csv        每条关键结论的支持与相反证据（确定性评级由脚本计算）
+│   ├── coder_agreement*.csv          盲法第二编码与裁定
+│   ├── papers.csv / .json            论文目录（生成文件）
+│   ├── zenodo_preprints.csv、grey_literature.csv、excluded_records*.csv、search_rerun_*.csv
+│   └── pol2_mapping.csv、pol2_axes.json、sources/arxiv_meta.csv
+├── scripts/                  检索、编码合并、确定性评级（rate_certainty.py --check）、目录生成与检查
+├── docs/survey.zh.md         早期中文综述（v0.1）
+├── papers/                   Creative Commons 许可的论文全文与 LICENSES.md
 ├── CONTRIBUTING.md  CHANGELOG.md  CITATION.cff  LICENSE
 ```
 
-本目录位于 `PoL-Governance/research/` 下，除了与上级协作目录的少量链接外不依赖仓库其他部分，可整体复制到独立仓库使用。
+本目录不依赖仓库其他部分，可整体复制到独立仓库使用。
 
-## 数据字段（`data/papers.csv`）
+## 复现
 
-| 字段 | 含义 |
-|---|---|
-| `id` | `P-xxxxx`（arXiv 2609.xxxxx）或 `A-xxx`（仅 alphaXiv） |
-| `tier` | `核心` 直接对应 PoL2 治理条款 · `相关` 提供补充证据 · `背景` 工程与其他领域 |
-| `pol_axes` | 空格分隔的 G1–G7，定义见 `pol2_axes.json` |
-| `license` / `license_url` | 作者在 arXiv 上选择的许可 |
-| `pdf_in_repo` | `yes` 表示全文已收入 `papers/` |
-| `note_zh` | 一句话要点 |
-| `abstract` | arXiv 原文摘要 |
-
-## 更新与复现
-
-需要 Python 3.10+（仅标准库）；抓取脚本需要 Windows PowerShell 5.1 或 PowerShell 7。
+需要 Python 3.10+（仅标准库）与 TeX Live 或 MiKTeX（pdflatex、xelatex、bibtex）。
 
 ```powershell
-# 1. 在 data/pol2_mapping.csv 增删论文或修改归类
-# 2. 抓取元数据、许可与 PDF（arXiv 需要代理时加 -Proxy "http://127.0.0.1:7890"）
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\fetch_papers.ps1
-# 3. 重新生成目录并检查
-python scripts/build_catalog.py
-python scripts/check.py
+python scripts/merge_coding.py          # 主窗口编码 → data/evidence_coding.csv 与 paper/counts.tex
+python scripts/merge_update.py          # 补充检索编码 → data/*_update_*.csv 与 paper/counts_update.tex
+python scripts/rate_certainty.py --check  # 确定性评级，并核对论文表格
+python paper/build.py                   # 英文正文与补充材料
+python paper/build.py --zh              # 中文译稿
+python paper/make_metadata.py; python paper/make_arxiv.py
 ```
 
-`fetch_papers.ps1` 会把 arXiv 默认许可的论文下载到 `papers/_local/`，该文件夹已被 `.gitignore` 忽略，不会被提交。
+`scripts/fetch_papers.ps1` 会把 arXiv 默认许可的论文下载到 `papers/_local/`，该文件夹已被 `.gitignore` 忽略，不会被提交。
 
 ## 与 NaturalDAO 其他项目的关系
 
-- **PoL2 正文**：[`PoL/`](https://github.com/naturaldao/NaturalDAO/tree/main/PoL)。本综述的条款编号依据 commit `2e094d3`（2026-09-27）。
+- **PoL2 正文**：[`PoL/`](https://github.com/naturaldao/NaturalDAO/tree/main/PoL)。论文的条款编号依据 commit `5791ae3`（2026-09-30）；早期中文综述依据 `2e094d3`（2026-09-27）。
 - **PoL 治理层协作**：本目录是 [`PoL-Governance/`](../../README.md) 的文献调研部分，任务编号 `LIT-01`，进度见任务页 [`tasks/LIT-01-shenton.md`](../../tasks/LIT-01-shenton.md)。
-  - 可作为 [`MODEL-01`](../../TASKS.md) 模型调研与 [模型清单](../../models/CATALOG.md) 的文献依据：例如第 2 节 G3、G4 对选项措辞敏感性、校准与"不知道"的证据，可直接转为候选模型的淘汰检查项；
-  - 可作为 `EVAL-01` 评估设计的参考：[`P-32160`](docs/survey.zh.md) 提出的 14 项评估清单、[`P-26758`](docs/survey.zh.md) 的选项换名测试、[`P-33209`](docs/survey.zh.md) 的无标签一致性检验，都可以纳入 [benchmark](../../benchmark/README.md) 的协议；
-  - `data/papers.json` 为机器可读目录，可被其工具直接读取。
+  - 可作为 [`MODEL-01`](../../TASKS.md) 模型调研与[模型清单](../../models/CATALOG.md)的文献依据：论文 §6 的 16 项验收清单可直接转为候选模型的淘汰检查项；
+  - 可作为 `EVAL-01` 评估设计的参考：选项换名测试、时间再验证（新词替换句对）、按子类报告召回率等，都可以纳入 [benchmark](../../benchmark/README.md) 的协议；
+  - `data/papers.json` 与 `data/evidence_coding*.csv` 为机器可读数据，可被其工具直接读取。
 
 ## 许可
 
