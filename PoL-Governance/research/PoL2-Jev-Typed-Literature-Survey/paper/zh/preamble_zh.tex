@@ -1,0 +1,65 @@
+% Shared preamble of main_zh.tex and supplement_zh.tex.
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\graphicspath{{../}}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{subcaption}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{xurl}
+\usepackage[section]{placeins}
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\hypersetup{pdftitle={类型化决策模型能否承担 PoL 治理中的自动化保障职能？——基于早期证据的爱2证明（PoL2）规范逐条分析},pdfauthor={[作者姓名]}}
+\usepackage{cleveref}
+% cleveref in Chinese: one helper sets every format for a label type.
+\newcommand{\zhcref}[3]{%
+  \crefformat{#1}{##2#2~##1~#3##3}\Crefformat{#1}{##2#2~##1~#3##3}%
+  \crefrangeformat{#1}{##3#2~##1~#3##4至##5#2~##2~#3##6}\Crefrangeformat{#1}{##3#2~##1~#3##4至##5#2~##2~#3##6}%
+  \crefmultiformat{#1}{##2#2~##1~#3##3}{和##2#2~##1~#3##3}{、##2#2~##1~#3##3}{和##2#2~##1~#3##3}%
+  \Crefmultiformat{#1}{##2#2~##1~#3##3}{和##2#2~##1~#3##3}{、##2#2~##1~#3##3}{和##2#2~##1~#3##3}%
+  \crefrangemultiformat{#1}{##3#2~##1~#3##4至##5#2~##2~#3##6}{和##3#2~##1~#3##4至##5#2~##2~#3##6}{、##3#2~##1~#3##4至##5#2~##2~#3##6}{和##3#2~##1~#3##4至##5#2~##2~#3##6}%
+  \Crefrangemultiformat{#1}{##3#2~##1~#3##4至##5#2~##2~#3##6}{和##3#2~##1~#3##4至##5#2~##2~#3##6}{、##3#2~##1~#3##4至##5#2~##2~#3##6}{和##3#2~##1~#3##4至##5#2~##2~#3##6}}
+\zhcref{section}{第}{节}
+\zhcref{subsection}{第}{节}
+\zhcref{subsubsection}{第}{节}
+\zhcref{appendix}{附录}{}
+\zhcref{figure}{图}{}
+\zhcref{table}{表}{}
+\zhcref{enumi}{第}{项}
+\zhcref{supplement}{补充材料}{}
+\definecolor{f4pblue}{HTML}{0F4D92}
+\definecolor{f4pred}{HTML}{B64342}
+\definecolor{f4pgreen}{HTML}{8BCF8B}
+% CJK passages need no special handling under xelatex/ctex.
+\newcommand{\zh}[1]{#1}
+\newcommand{\axis}[1]{\textbf{#1}}
+\newcommand{\jev}{\textsc{Jev}}
+\newcommand{\pol}{PoL2}
+\newcommand{\clause}[1]{\S\,#1}
+\newcommand{\Clause}[1]{\S\,#1}
+\newcommand{\art}[1]{第~#1~条}
+\newcommand{\Art}[1]{第~#1~条}
+% 来源标记：Zenodo 记录（未经预印本服务器审核）；灰色文献（博客、厂商页面、代码仓库）
+\newcommand{\zmark}{\textsuperscript{$\ddagger$}}
+\newcommand{\gmark}{\textsuperscript{$\dagger$}}
+\input{../counts}
+% Two counts are English phrases in counts.tex; Chinese forms here (keep in sync).
+\renewcommand{\nKappaAgree}{30 对中的 26 对}
+\renewcommand{\nKappaMarg}{S 3、Q 23、N 4}
+\input{../counts_update}
+% English phrase in counts_update.tex; Chinese form here (keep in sync).
+\renewcommand{\nUKappaAgree}{118 对中的 97 对}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\setlist{itemsep=2pt,topsep=4pt}
+\newtcolorbox{answerbox}{breakable,enhanced,colback=f4pblue!5,colframe=f4pblue!60,boxrule=0.6pt,
+  arc=1.5pt,left=6pt,right=6pt,top=4pt,bottom=4pt,before skip=6pt,after skip=8pt,
+  title={\small\bfseries 简要回答},fonttitle=\small\bfseries,coltitle=white,colbacktitle=f4pblue!80}
+\renewcommand{\abstractname}{摘\quad 要}

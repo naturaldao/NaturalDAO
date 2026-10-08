@@ -1,0 +1,92 @@
+file	key	provenance
+background.bib	guo2017calibration	note      = {verified via arXiv API (authors, title; comment "ICML 2017") and OpenAlex API; PMLR volume/pages from proceedings, not API-confirmed}
+background.bib	naeini2015obtaining	note      = {verified via Crossref API}
+background.bib	kadavath2022language	note      = {verified via arXiv API (36 authors; first 10 listed)}
+background.bib	jiang2021can	note      = {verified via Crossref API}
+background.bib	zhao2021calibrate	note      = {verified via arXiv API (comment "ICML 2021") and OpenAlex API; PMLR pages not API-confirmed}
+background.bib	tian2023just	note      = {verified via Crossref API}
+background.bib	xiong2024can	note      = {verified via arXiv API (comment "accepted by ICLR 2024")}
+background.bib	brier1950verification	note      = {verified via Crossref API}
+background.bib	platt1999probabilistic	note      = {verified via OpenAlex API (title, author, 1999); no DOI; book/editor/pages from standard citation, not API-confirmed}
+background.bib	chow1970optimum	note      = {verified via Crossref API}
+background.bib	geifman2017selective	note      = {verified via arXiv API and OpenAlex API (venue Neural Information Processing Systems 2017); pages not API-confirmed}
+background.bib	kamath2020selective	note      = {verified via Crossref API}
+background.bib	wen2025know	note      = {verified via Crossref API and OpenAlex API (arXiv version 2407.18418)}
+background.bib	lu2022fantastically	note      = {verified via Crossref API}
+background.bib	pezeshkpour2024large	note      = {verified via Crossref API}
+background.bib	zheng2024large	note      = {verified via arXiv API (comment "ICLR 2024 Spotlight") and OpenAlex API}
+background.bib	sclar2024quantifying	note      = {verified via arXiv API (comment "ICLR 2024 Camera Ready") and OpenAlex API}
+background.bib	wei2023larger	note      = {verified via arXiv API}
+background.bib	zheng2023judging	note      = {verified via arXiv API (comment "NeurIPS 2023 Datasets and Benchmarks Track")}
+background.bib	chen2023frugalgpt	note      = {verified via arXiv API and OpenAlex API; a later journal version (TMLR) was not API-confirmed, so cited as preprint}
+background.bib	jung2025trust	note      = {verified via arXiv API and OpenAlex API (preprint record); ICLR 2025 venue taken from the brief and not confirmed by an API -- check before camera-ready}
+background.bib	verga2024replacing	note      = {verified via arXiv API}
+background.bib	panickssery2024llm	note      = {verified via Crossref API and arXiv API}
+background.bib	goel2025great	note      = {verified via arXiv API and OpenAlex API; an ICML 2025 version was not API-confirmed, so cited as preprint}
+background.bib	inan2023llama	note      = {verified via arXiv API}
+background.bib	markov2023holistic	note      = {verified via Crossref API and arXiv API}
+background.bib	rebedea2023nemo	note      = {verified via Crossref API}
+background.bib	sharma2025constitutional	note      = {verified via arXiv API (43 authors; first 10 listed)}
+background.bib	bai2022constitutional	note      = {verified via arXiv API (51 authors; first 10 listed)}
+background.bib	greshake2023not	note      = {verified via Crossref API}
+background.bib	perez2022ignore	note      = {verified via arXiv API (comment "ML Safety Workshop NeurIPS 2022")}
+background.bib	zhan2024injecagent	note      = {verified via Crossref API}
+background.bib	zou2023universal	note      = {verified via arXiv API}
+background.bib	toyer2024tensor	note      = {verified via arXiv API and OpenAlex API (preprint record); ICLR 2024 venue from the brief, not API-confirmed}
+background.bib	kahneman2011thinking	note      = {verified via OpenAlex API (title, author, 2011); no DOI; publisher and ISBN from the standard edition record}
+background.bib	sap2019risk	note      = {verified via Crossref API}
+background.bib	davidson2019racial	note      = {verified via Crossref API}
+background.bib	rottger2021hatecheck	note      = {verified via Crossref API}
+background.bib	doshivelez2017towards	note      = {verified via arXiv API}
+background.bib	wachter2018counterfactual	note      = {verified via Crossref API (SSRN preprint DOI, 2017); Harvard JOLT volume/pages from the journal citation, not API-confirmed}
+background.bib	euaiact2024	note         = {verified via EUR-Lex (ELI URL returns HTTP 200) and web search confirming OJ publication 12.7.2024; Art. 13 (Transparency and provision of information to deployers) and Art. 14 (Human oversight)}
+background.bib	nist2023airmf	note        = {verified via Crossref API (Crossref lists Tabassi, Elham as author)}
+background.bib	bansal2021whole	note      = {verified via Crossref API}
+background.bib	green2022flaws	note      = {verified via Crossref API}
+background.bib	green2019principles	note      = {verified via Crossref API}
+background.bib	hassan2021decentralized	note      = {verified via Crossref API}
+background.bib	ostrom1990governing	note      = {verified via Crossref API}
+background.bib	buterin2014ethereum	note         = {verified via ethereum.org (page title "Ethereum Whitepaper", author Vitalik Buterin, 2014); no DOI}
+background.bib	santana2022blockchain	note      = {verified via Crossref API}
+background.bib	danaher2016threat	note      = {verified via Crossref API}
+background.bib	liang2023holistic	note      = {verified via arXiv API (journal_ref "Published in Transactions on Machine Learning Research") and OpenAlex API}
+background.bib	mitchell2019model	note      = {verified via Crossref API and arXiv API (1810.03993)}
+background.bib	gebru2021datasheets	note      = {verified via Crossref API}
+background.bib	bates2021distribution	verified via Crossref DOI 10.1145/3478535
+background.bib	angelopoulos2024conformal	verified via arXiv abs page 2208.02814 (authors, title); ICLR 2024 venue from standard citation
+background.bib	plank2022problem	verified via Crossref DOI
+background.bib	pavlick2019inherent	verified via Crossref DOI
+background.bib	parasuraman2010complacency	verified via Crossref DOI
+background.bib	dsa2022	EUR-Lex ELI (standard citation)
+background.bib	gdpr2016	EUR-Lex ELI (standard citation)
+background.bib	santaclara2021	website (standard citation)
+background.bib	barrett2019emotional	Crossref DOI 10.1177/1529100619832930 (title, authors, venue); checked 2026-10-04
+background.bib	stark2021ethics	Crossref DOI 10.1145/3442188.3445939; checked 2026-10-04
+background.bib	gorwa2020algorithmic	Crossref DOI 10.1177/2053951719897945; checked 2026-10-04
+background.bib	gillespie2018custodians	Crossref DOI 10.12987/9780300235029; checked 2026-10-04
+background.bib	sap2022annotators	Crossref DOI 10.18653/v1/2022.naacl-main.431; checked 2026-10-04
+background.bib	davani2022dealing	Crossref DOI 10.1162/tacl_a_00449; checked 2026-10-04
+background.bib	deng2022cold	Crossref DOI 10.18653/v1/2022.emnlp-main.796; checked 2026-10-04
+background.bib	lu2023toxicn	Crossref DOI 10.18653/v1/2023.acl-long.898; checked 2026-10-04
+background.bib	jiang2022swsr	Crossref DOI 10.1016/j.osnem.2021.100182; checked 2026-10-04
+background.bib	madras2018predict	arXiv API 1711.06664 (title, authors); checked 2026-10-04
+background.bib	mozannar2020consistent	arXiv API 2006.01862 (title, authors); checked 2026-10-04
+background.bib	ovadia2019trust	arXiv API 1906.02530 (title, authors); checked 2026-10-04
+background.bib	hebertjohnson2018multicalibration	arXiv API 1711.08513 (title, authors); checked 2026-10-04
+background.bib	wang2024fair	Crossref DOI 10.18653/v1/2024.acl-long.511; checked 2026-10-04
+background.bib	citron2008technological	not machine-verified: law review without DOI; standard citation; checked 2026-10-04
+background.bib	elish2019moral	Crossref DOI 10.17351/ests2019.260; checked 2026-10-04
+background.bib	liang2018constructing	Crossref DOI 10.1002/poi3.183; checked 2026-10-04
+background.bib	creemers2018social	Crossref DOI 10.2139/ssrn.3175792; checked 2026-10-04
+background.bib	page2021prisma	Crossref DOI 10.1136/bmj.n71; checked 2026-10-04
+background.bib	garritty2021cochrane	Crossref DOI 10.1016/j.jclinepi.2020.10.007; checked 2026-10-04
+background.bib	guyatt2008grade	Crossref DOI 10.1136/bmj.39489.470347.ad; checked 2026-10-04
+background.bib	campbell2020swim	Crossref DOI 10.1136/bmj.l6890 (title, first eight authors); checked 2026-10-04
+background.bib	openai2025modelspec	model-spec.openai.com/2025-02-12.html fetched (title, date, CC0); version list from github.com/openai/model_spec CHANGELOG.md (2024-05-08 ... 2026-08-18); checked 2026-10-08
+background.bib	huang2024collective	Crossref DOI 10.1145/3630106.3658979 (authors, title, FAccT '24, pp. 1395-1417, Rio de Janeiro); checked 2026-10-08
+background.bib	guan2024deliberative	arXiv abs 2412.16339 (15 authors, title, v1 20 Dec 2024, cs.CL); checked 2026-10-08
+background.bib	klonick2020oversight	yalelawjournal.org feature page (title, author, vol. 129, June 2020) + journal PDF (82 pp., starts p. 2418 => 2418-2499); issue no. 8 inferred from June issue, not page-confirmed; checked 2026-10-08
+background.bib	cac2023genai	cac.gov.cn official text (Chinese title, 7 issuing bodies, Decree No. 15, issued 2023-07-10, effective 2023-08-15); chinalawtranslate.com translation URL from search listing (page itself 403); checked 2026-10-08
+background.bib	iso42001	committee.iso.org/standard/42001 (designation, title, ed. 1, 2023-12-18, JTC 1/SC 42, 51 pp.); iso.org/standard/81230.html returned 403; checked 2026-10-08
+background.bib	dong2025safeguarding	Crossref DOI 10.1007/s10462-025-11389-2 (12 authors, AI Review vol. 58 art. 382, 2025) + arXiv abs 2406.02622 (v1 3 Jun 2024, cs.CR); checked 2026-10-08
+background.bib	makridis2025polycentric	Crossref DOI 10.1007/s11138-025-00708-z (authors, title, Rev. Austrian Econ., online 22 Oct 2025; volume/pages not yet assigned); Springer page redirected to login, not read; checked 2026-10-08

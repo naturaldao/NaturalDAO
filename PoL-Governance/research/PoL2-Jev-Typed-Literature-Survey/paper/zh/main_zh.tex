@@ -1,0 +1,31 @@
+\documentclass[11pt,UTF8,fontset=windows,zihao=5]{ctexart}
+% ---------------------------------------------------------------------------
+% Chinese translation of main.tex. Build with xelatex (not for arXiv).
+%   xelatex main_zh && bibtex main_zh && xelatex main_zh && xelatex main_zh
+% Shares counts.tex, the .bib files and figures/ with the English version.
+% ---------------------------------------------------------------------------
+\input{preamble_zh}
+\InputIfFileExists{supplement_labels}{}{}
+\title{\textbf{类型化决策模型能否承担\\ PoL 治理中的自动化保障职能？}\\[4pt]
+\large ——基于早期证据的爱2证明（\pol{}）规范逐条分析}
+% 作者信息暂时留空（格式占位）
+\author{[作者姓名]\\[2pt]
+  {\normalsize [单位]}\\
+  {\normalsize\texttt{[电子邮箱]}}}
+\def\UrlBreaks{\do\/}
+\date{2026 年 10 月 8 日\\[2pt]{\small 中文译稿（英文版为正式版本）}\\[2pt]{\small 补充材料 S1--S5：\url{https://github.com/naturaldao/NaturalDAO/blob/main/PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey/paper/zh/supplement_zh.pdf}；英文版亦见 arXiv 附属文件 \texttt{anc/supplement.pdf}}}
+\begin{document}
+\maketitle
+\input{sections/00_abstract}
+\input{sections/01_introduction}
+\input{sections/02_background}
+\input{sections/03_method}
+\input{sections/04_evidence}
+\input{sections/05_synthesis}
+\input{sections/06_design}
+\input{sections/07_discussion}
+\input{sections/08_conclusion}
+\input{sections/09_statements}
+\bibliographystyle{unsrtnat}
+\bibliography{../pol2,../corpus,../corpus_update,../grey,../background}
+\end{document}

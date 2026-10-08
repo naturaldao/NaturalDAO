@@ -1,0 +1,105 @@
+\section{Corrections to the earlier dataset release}
+\label{app:corrections}
+
+The earlier dataset release~\cite{survey01} was written in Chinese, mainly from abstracts and tracker summaries.
+\Cref{tab:corrections} lists the substantive statements it made that the full texts and live sources do not support; further corrections made during the AI review passes are logged with the data.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{@{}p{0.11\linewidth}p{0.40\linewidth}p{0.43\linewidth}@{}}
+\caption{Substantive corrections to the earlier dataset release.}\label{tab:corrections}\\
+\toprule
+Source & Earlier release stated & Full text / live source shows \\
+\midrule
+\endfirsthead
+\toprule
+Source & Earlier release stated & Full text / live source shows \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\cite{arx26758} & Open-weight \jev{}-like models: AUC 0.94$\to$0.23 & This is one open model (Laya). The other (Open-Jev) flipped 19.5\% of answers. The claim that effects grow with the number of options is not established. \\
+\cite{arx35342} & Soft accuracy 0.771$\to$0.978 after restoring ``unknown'' & 0.978 uses a more permissive interval metric; the like-for-like binary correction gives 0.903. \\
+\cite{arx23959} & Scam screening by \jev{}, zero false alarms & The model is the authors' Qwen3-4B replica (JevLite). There were no errors on 12 legitimate scenarios, but accuracy on ambiguous legitimate calls was 38.1\%. \\
+\cite{arx34862} & Evidence for a pre-execution gate & The study classifies saved traces retrospectively; \jev{} won on 2 of 4 benchmarks and had lower precision. \\
+\cite{arx22664} & Evidence that decision models detect out-of-scope behaviour & The paper contains no typed decision model; it concerns harness assurance. \\
+\cite{arx27678} & Rankings differ in every condition & Ranking by baseline accuracy differs from ranking by correctness across all 12 condition-by-repeat requests; \jev{} had the lowest hosted baseline accuracy (77.38\%). \\
+\cite{arx26550} & Cascade +0.9 points at 41\% of GPT-6's fee & True for the held-out pool (83\% RewardBench); on JudgeBench the cascade was $-0.74$ points. Prospective live runs matched GPT-6 at 75.5\% of its fee. The ``blinded human adjudication'' was one reviewer on 183 items. \\
+\cite{arx29769} & Cascade gains only 1.5 points & The cascade's average gain is \emph{at most} 1.5 points in the main setup; it is below the best single evaluator on 6 of 9 panels. \\
+\cite{arx24052} & Listed as supporting evidence for calibration & Raw \jev{} was miscalibrated (slope 1.63) until recalibrated locally. \\
+\cite{arx24881} & 0.666 vs 0.868 ``according to a tracker excerpt'' & Confirmed in appendix E.10 of the source. Context: the comparator was trained on 32{,}419 labels, and \jev{}'s AUROC was numerically above the single-pass baselines, which were scored on a larger set. \\
+\cite{arx27607} & ``Agreement'' 0.573 / 0.398 & These are Kendall $\tau_b$ correlations with expert error counts; a local 27B model did better on clinically significant errors. \\
+\cite{arx27535} & Effect error reduced by 41\% & This is a secondary endpoint. The preregistered primary endpoint showed no clear gain, and raw error worsened on a second dataset. \\
+\cite{arx28919} & Simulated from real sessions of a 10{,}000-seat enterprise & Tasks are 46 author-written conversations; only user-behaviour parameters come from real sessions. The \jev{} labels are live, but the gateway was not built; every routing decision runs in a simulator. \\
+\cite{checkpoint2026jev} & Comparator cost rose from \$0.54 to \$4.39 & The figures are \$0.56 to \$4.39 (\$0.54 is \jev{}'s own cost). The page title has changed. \\
+\cite{simmons2026saidno} & ``White'' 51\% on beauty, leadership, civility, morality; 3\% ``yes'' answers & 51\% is across all eight traits (6 of 8 won); 3\% is the mean ``yes'' probability. Title and date changed. \\
+\cite{qin2026zhdecisionbench} & Systematic over-confidence in Chinese; 28\% order flips & The benchmark's first release (26~September) did not test \jev{} (two Laya models and Qwen3.5-2B); the 28\% is a 25-item subset. Its second release (28~September) calls the over-confidence finding partly a small-sample artefact. \\
+\cite{yurin2026confident} & Confidence formula from 76{,}807 answers & It was derived from 738{,}164 Choice answers; 76{,}807 is the two-option subset. \\
+\cite{typesafe_models} & 70--500\,ms from the model documentation & The figure comes from the launch post~\cite{almeida2026introducing}; the documentation states about 100--150\,ms. \\
+\pol{} text & Clauses \clause{3.4.1}, \clause{5.3.x}, \clause{3.6} & Renumbered before commit \texttt{5791ae3}, in commits \texttt{7750ceb}--\texttt{526da3d}, to \clause{5.4.1}, \clause{4.3.x}, \clause{5.6} (\cref{tab:concordance}). \\
+\end{longtable}
+\endgroup
+
+\subsection{Certainty ratings revised during review}
+\label{sec:certainty-detail}
+
+The certainty ratings of \cref{tab:keyfindings} were first given on 4~October, counting only the cited studies under a rule that could not lower a rating.
+During review rounds 12--15, after the update studies had been coded, the rule was revised in response to reviewer findings (it worked only upwards, did not define an opposing study, counted only the cited studies, and did not say how a study of hosted and open models counts), and every finding was re-rated with the revised rule (\cref{sec:appraisal}) on all coded main-window and update studies.
+The update protocol had frozen the main-window ratings, so this is a deviation from it.
+The last revision counts evidence per system arm and rates a finding about hosted \jev{} or typed models generally on hosted-model evidence alone.
+The 4~October column shows the ratings as given that day; recomputed with the current rule on the studies cited that day, one of them would have been very low (note~$a$ of \cref{tab:certchanges}).
+\Cref{tab:certchanges} lists the findings whose current rating differs from the rating as given on 4~October or that are now contested; the other ratings are unchanged.
+Every study coded on a finding's requirements is assigned, per system arm, to support, opposition, corroboration or out of scope, with a reason, in \nolinkurl{data/certainty_evidence.csv}; \nolinkurl{scripts/rate_certainty.py} computes all three columns from it and checks the two tables against its output (\texttt{--check}), and \texttt{--verbose} prints the studies counted for each finding and clause. The paragraphs below give the reasoning where it is not mechanical.
+
+\begin{table}[!htbp]
+\centering
+\small
+\caption{Certainty ratings that differ between 4~October and now (\cref{tab:keyfindings}); ``main only'' is the current rule applied to the main-window studies alone. \emph{4 Oct}: the rating as given on 4~October. $^{a}$~Very low when the studies cited that day are rated with the current rule: the moderate rating rested on two open-model studies, one of them the only preregistered study cited~\cite{arx33843,zen23041163}, and on a held-out threshold that met its target on one dataset and missed it on another~\cite{arx00346}, which counts neither way; one supporting hosted study remains~\cite{arx33401}.}
+\label{tab:certchanges}
+\begin{tabular}{@{}p{0.42\linewidth}lll@{}}
+\toprule
+Finding & 4 Oct & Main only & Now \\
+\midrule
+Fixed thresholds do not transfer; local fitting is needed & low & low, contested & low, contested \\
+Errors concentrate in sub-types hidden by aggregates & very low & low & low \\
+Instruction injection rarely selects the attacker's target & very low & very low, contested & very low, contested \\
+Escalation to a stronger reasoner saves cost without loss of accuracy & low & low & low, contested \\
+Thresholds set in advance miss error targets on new data & moderate$^{a}$ & very low, contested & low, contested \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Effect of the update studies.}
+Compared with the main-window studies alone, the update studies change one rating: they raise the finding that thresholds set in advance miss error targets on new data from very low to low, still contested (below). They also make one finding contested and add opposing studies to the two findings that the main window already contests, one to the injection finding and two to that on thresholds set in advance; no rating falls.
+
+\paragraph{Escalation.}
+That escalation to a stronger reasoner saves cost without loss of accuracy is low on the main-window studies, as on 4~October: two stronger-design studies of hosted \jev{} support it~\cite{arx26550,arx24574}, one of them preregistered, and a moderate-design and a weaker one agree~\cite{arx26532,arx02046}; a third preregistered stronger-design study~\cite{zen22922769}\zmark{} tested an open typed model, so it corroborates the finding but cannot raise it to moderate.
+With the update the finding is low and contested: a stronger-design study found that a \jev{} pre-screen cut an LLM safety reviewer's cost by only 4.3\% once its own tokens were counted~\cite{arx02267}, which opposes the finding but ranks below the preregistered supporting study, so the rating does not fall.
+Two open-model studies point the same way and are reported as corroboration only: a preregistered confidence-gated cascade from a near-chance open typed evaluator to Qwen3-32B escalated 92--100\% of items, so that it saved almost nothing~\cite{arx07177}, and referring Laya's least certain fifth to a frontier model left macro-F1 below that model's own on two of three datasets~\cite{arx03324}.
+In the preregistered cascade Qwen3-32B was the stronger reasoner under the criterion of \cref{sec:appraisal}, far more accurate (0.62--0.87) than its near-chance typed evaluator.
+In a reranking study in which escalating \jev{}'s least certain pairs to the same model never helped~\cite{arx09188}, Qwen3-32B was about as accurate as \jev{}: it agreed with human graders slightly more often (87.2\% against 86.2\% of 500 pairs, a difference of five pairs, for which the study reports no test), but the reranker trained on its labels was slightly worse (NDCG@10 0.630 against 0.637; difference 0.008, 95\% interval $-0.007$ to $0.022$).
+Neither difference exceeds sampling error and the two point in opposite directions, so Qwen3-32B counts as a peer there, and that study does not bear on this finding.
+
+\paragraph{The two threshold findings.}
+Two findings concern thresholds: that fixed thresholds do not transfer between settings, so that local fitting is needed, and that thresholds set in advance miss error targets on new data. They are rated on the same evidence where it bears on both, and both are now low and contested.
+A preregistered annotation study supports both on hosted \jev{}: a confidence threshold of 0.9, fixed in advance, was to give at least 0.85 accuracy on the confident items; the median task reached 0.815 (CI 0.691--0.897), and 8 of 14 tasks fell short~\cite{arx24574}.
+The preregistered network-control study~\cite{arx33689} opposes both on its hosted arm: at a 0.05 target, the gate of a fine-tuned open model exceeded the target on 6 of 7 changed question templates, but \jev{}'s gate, set in advance and carried to the changed templates, stayed within the target on 6 of 7 and reached 0.143 on the seventh, within the study's shift bound, so that the preregistered count for \jev{} was 6 safe, 1 within the bound and 0 violating. A gate that held on a changed setting runs against the claim that fixed thresholds do not transfer just as it runs against the claim that they miss their targets on new data; that certifying action on a new question type needed at least 19 labels of it is a limit on certification, not a failed transfer or a missed target.
+For thresholds set in advance, three stronger-design studies of hosted \jev{} besides the preregistered one support the finding, one from the main window~\cite{arx33401} and two from the update~\cite{arx03387,arx02267}; one update study of moderate design agrees~\cite{zen23050542}\zmark{}. Two studies of hosted \jev{} oppose it on their primary results besides the network-control study: split conformal prediction reached its marginal target~\cite{zen22935043}\zmark{}, and a threshold set on development labels kept the test false-positive rate at 3.24\%, within a 5\% tolerance, on test items that had been observed before and carried mixed labels~\cite{zen23075657}\zmark{}. A held-out threshold that met its 5\% target on one dataset (0.049) and missed it on another (0.058) counts neither way~\cite{arx00346}. With the preregistered study this gives moderate; because the opposing hosted arm is also preregistered and of stronger design, it ranks as high as the strongest supporting study, and the rating falls one level, to low. On the main-window studies alone two studies support it~\cite{arx33401,arx24574}, which gives low, and the same opposing arm lowers it to very low.
+For fixed thresholds, the supporting studies of hosted \jev{} in the main window are stronger-design~\cite{arx29429,arx00346,arx01006,arx26550,arx39496,zen22952571}\zmark{} besides the preregistered one, with a moderate and two weaker ones~\cite{arx27607,arx02046,jkf87_2026replication}\gmark{}; the update adds three more stronger-design studies through hosted arms or of hosted \jev{}~\cite{arx03387,arx02267,zen22935043}\zmark{} and two of moderate design~\cite{arx04985,zen23050542}\zmark{}. This gives moderate in both windows, and the opposing arm lowers it to low, contested.
+The open arm of the network-control study and three open-model studies~\cite{arx33843,zen23041163,arx07177}\zmark{} support the second finding, but they only corroborate it.
+On 4~October the second finding was given as moderate. The studies cited for it that day were one study of hosted \jev{}~\cite{arx33401}, a held-out threshold that met its 5\% target on CLINC (realised risk 0.049) although its bound exceeded it~\cite{arx00346}, and two open-model studies~\cite{arx33843,zen23041163}\zmark{}, one of them preregistered; the network-control study was cited in the text, not for this finding. The earlier rule counted all four and found three stronger-design studies with one preregistered. Under the current rule the open-model studies only corroborate, and the held-out threshold, which met its target on one dataset and missed it on the other, counts neither way; one supporting hosted study remains, which gives very low.
+A gate fixed in advance that held on held-out names~\cite{zen23088660}\zmark{} set no error target and tested no transfer, so it bears on neither finding.
+
+\paragraph{Other findings.}
+That instruction injection rarely selects the attacker's target in hosted \jev{} is very low and contested already in the main window, because other attacks on hosted \jev{} succeeded more often~\cite{arx31142,checkpoint2026jev}; the update adds an opposing study of moderate design~\cite{arx04985}, which cannot lower the rating further.
+That typed models rank harmful content well stays low: no study supporting the ranking clause is preregistered, and the reproduction of \emph{Just Ask Jev}~\cite{arx29429} re-ran the authors' own code and data on five of its 44 benchmarks in a weaker design~\cite{jkf87_2026replication}\gmark{}, so it is not an independent replication under \cref{sec:appraisal}; two of the update studies that support it share an author with a main-window one and count as one study with it~\cite{zen22885291,zen23075657}\zmark{}.
+That inserted content steers decisions is low, as on 4~October: three independent stronger-design studies of hosted \jev{} agree~\cite{arx31142,arx01834,arx01006}, but none of them is preregistered or replicated; two preregistered open-model studies by one author agree~\cite{zen22959854,zen23038928}\zmark{}, but this finding concerns typed models generally, so they corroborate it and cannot raise its rating. Counting them would make it moderate.
+That errors concentrate in sub-types gains four stronger-design studies of hosted \jev{}, two of them through their hosted arms~\cite{arx07953,arx03324,arx08675,arx10321}, and that option names can override definitions gains the hosted arm of one~\cite{arx07953} and an open-model study~\cite{arx02586}, but none of them is preregistered or replicated, so both stay low.
+A preregistered study found \jev{}'s Choice pull carried by the option word rather than its key or position~\cite{zen23179064}\zmark{}, but it does not bear on the option-names finding: the pull is a prior under no evidence toward a word whose description agreed with it, so no definition is overridden, and its author demoted this zero-evidence framing after it failed its pre-declared kill criterion.
+For calibration, poorly calibrated probabilities on offensive-language tasks without retrieved precedents~\cite{arx07953}, in game states \jev{} had generated itself~\cite{zen23221456}\zmark{} and on agent routing~\cite{arx02267} fall under ``calibration is local'', as the empathy task of the main window did~\cite{arx24574}, and so do raw probabilities that failed a held-out unbiasedness test for 14 of 15 crash-narrative factors~\cite{arx10321}.
+One study did find poor calibration on familiar tasks: \jev{} was well calibrated on sentiment in choice form (ECE 0.020) but not in yes/no form (0.091) or on AG News topics (0.089)~\cite{zen22935043}\zmark{}; its primary result is that calibration depends on question form and task, so we count it under ``calibration is local'' rather than as opposing the first clause, which stays low.
+For ``often less accurate than the best LLMs'', the new comparisons do not point the other way: \jev{} was below the best generative evaluator on three of four hate-speech datasets, significantly on one~\cite{arx03324}, and one point below the best of nine configurations~\cite{arx03935}; the gap is smaller than in the main window, not reversed.
+For ``I don't know'' and ``none'', the strongest new study~\cite{arx03387} (coded Q) found an explicit NONE option chosen for 64\% and 82\% of missing answers but less often as candidates were added, and a weaker-design study found \jev{} asking for new candidates in 45 of 48 cases that had none but escalating only 4 of 120 infeasible ones~\cite{arx06425}; this widens the range for hosted \jev{} to 3--94\% across studies and fits ``chosen inconsistently'', and no new study of hosted \jev{} found ``I don't know'' chosen reliably.
+For the sufficiency question, one new study of moderate design found hosted \jev{} 79.8\% accurate on evidence sufficiency~\cite{arx05107}, which bears on the first clause only; whether such a question filters answers less well than confidence was not tested again, so the finding stays very low.
+For acceptance on agreement with an independent rule, a stronger-design study that accepted Laya's grounding of a plan step at moderate confidence only when a word match agreed (at high confidence without one) matched a budget-matched ReAct agent (paired difference $-3.2$ points, CI $-7.7$ to $+1.2$) with 83.6\% fewer input tokens~\cite{zen22904595}\zmark{}; as an open-model study it corroborates the first clause but cannot raise it, so both clauses rest on one study of hosted \jev{}~\cite{arx02048} and the finding stays very low.

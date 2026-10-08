@@ -1,0 +1,33 @@
+doc,axis,first,second,status,resolved,note
+alphaRAG,G4,N,N,compared,N,
+arx23959,G1,S,S,compared,S,
+arx24052,G7,Q,Q,compared,Q,
+arx27607,G6,Q,Q,compared,Q,
+arx28940,G1,Q,Q,compared,Q,
+arx30706,G4,Q,Q,compared,Q,
+arx31142,G2,N,N,compared,N,
+arx31142,G6,Q,N,compared,Q,"gate catches most flips but passes 12.6% and floods review: mixed, not a failure"
+arx33209,G4,Q,Q,compared,Q,
+arx33282,G7,Q,S,compared,Q,matches or beats frontier models on several but not all metrics: mixed
+arx33689,G3,Q,Q,compared,Q,
+arx33843,G6,Q,Q,compared,Q,
+arx33971,G5,N,N,compared,N,
+arx34024,G4,Q,Q,compared,Q,
+arx34963,G1,Q,Q,compared,Q,
+arx35286,G7,Q,Q,compared,Q,
+arx35293,G3,Q,Q,compared,Q,
+arx35865,G4,Q,Q,compared,Q,
+arx36965,G3,Q,Q,compared,Q,
+arx38850,G4,S,S,compared,S,
+jkf87_2026replication,G1,Q,Q,compared,Q,
+le2026sev,G4,Q,Q,compared,Q,
+zen22846597,G5,Q,Q,compared,Q,
+zen22858286,G5,Q,NA,not compared,,
+zen22885291,G1,S,S,compared,S,
+zen22885291,G2,Q,S,compared,dropped,off-axis: detection of injection belongs to G1
+zen22901853,G1,N,N,compared,N,
+zen22901853,G5,Q,N,compared,Q,"misleading fields come from access layers, not the typed model"
+zen22952571,G1,Q,Q,compared,Q,
+zen22953637,G5,Q,NA,not compared,,
+zen22959854,G6,Q,Q,compared,Q,
+zen23055593,G7,Q,Q,compared,Q,

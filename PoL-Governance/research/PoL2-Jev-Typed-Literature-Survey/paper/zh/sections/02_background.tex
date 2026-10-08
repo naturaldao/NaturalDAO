@@ -1,0 +1,76 @@
+\section{背景}
+\label{sec:background}
+
+\subsection{类型化决策模型}
+\label{sec:tdm}
+
+\paragraph{接口。}
+类型化决策模型接收一个\emph{状态}（文本或结构化数据）以及一个或多个问题，每个问题都带有调用方声明的选项集。
+对每个问题，它恰好在这些选项上返回一个概率分布，且不生成任何自由文本~\cite{arx23886,arx26758,arx32160}。
+\jev{} 提供三种问题类型~\cite{typesafe_intro,arx32160}：
+\emph{Choice} 在所列选项（最多 255 个）中进行选择，返回概率和一个置信度值；
+\emph{Score} 依据有序的评分细则等级对状态进行评分；
+\emph{Noul} 询问某一陈述是否为真，并返回“是”的概率。
+关于同一状态的多个问题可在一次调用中得到回答~\cite{arx29429,arx28919}。
+在一项对截至 9 月 22 日使用 \jev{} 的 2{,}170 个公开项目的普查中，Choice 出现在 81.0\% 的项目中，Noul 为 72.2\%，Score 为 45.4\%~\cite{arx30216}。
+
+\paragraph{读出与训练。}
+托管模型是封闭的。
+TypeSafe 描述了一种“并行采样器”以及基于\emph{面向校准决策的强化学习}（RLCD）的训练，并公布了该训练所针对的校准性质（在被赋予概率 $p$ 的结果中，实际发生的比例应接近 $p$），但未公布架构、奖励、数据或权重~\cite{almeida2026introducing,typesafe_primer,arx24574,arx28919}。
+具有相同接口的开放权重模型在数日内出现，使其机制可被检视。
+它们分为三类读出方式~\cite{arx32160}：
+（i）解码器：在指定答案位置将隐藏状态与选项标签的嵌入进行打分，并仅在所声明的选项上归一化（this-that-model-1.0、JevLite、SemIf、Visual Jev）~\cite{arx23886,arx23959,arx22753,arx25845}；
+（ii）编码器：读取置于每个选项处的标记词元（Laya，一种 ModernBERT 模型）~\cite{arx26758}；
+（iii）编码器：对选项名称及其定义进行池化（Open-Jev，一种 DeBERTa 模型）~\cite{arx26758}。
+同类读出也可以在不进一步训练的情况下从冻结的指令微调 LLM 中获得~\cite{arx00831,arx02076}。
+两个开源模型使用交叉熵加 Brier 分数项进行训练~\cite{arx23886,arx23959}；RLCD 的一个开源实现采用 REINFORCE 循环，其奖励为结果减去赋予所选选项的概率~\cite{arx24574}。
+
+\paragraph{“类型安全”保证了什么。}
+在开源模型中，所声明集合之外选项的分数在归一化之前被屏蔽，因此每个答案在构造上都是选项集中的有效成员；对于托管的 \jev{}，这是其文档所述的行为~\cite{arx26758,typesafe_intro}。
+这保证的是\emph{形式}，而非\emph{正确性}~\cite{arx26758}；校准是另一项经验性质（\cref{sec:g4}）。
+托管的 \jev{} 不具有确定性：相同的重复请求会改变一小部分标签，且概率以两位小数的网格报告~\cite{arx32160,arx01006}。
+厂商文档列出了 \texttt{jev-1.13} 的九种已知失效模式，包括字面化理解、算术、日期、间接表述、大量无关状态、对抗性内容和相互矛盾的指令；该页面 9 月 20 日存档的版本还给出了一个例子，其中某一陈述与其互补陈述分别获得 0.72 和 0.47 的概率~\cite{typesafe_jaggedness}。
+
+\paragraph{成本与延迟。}
+厂商标价为每百万输入词元 0.042 美元，输出免费~\cite{typesafe_models}；其发布博文引用的单次调用耗时为 70--500\,ms~\cite{almeida2026introducing}。
+独立测得的客户端中位数约为 140 至 500\,ms，取决于工作负载和请求规模~\cite{arx26550,arx27535,arx28919,arx22753,arx23136,arx27331,arx00346}。
+相对于生成式评估器，所报告的成本降幅从数倍到两个数量级不等，取决于对照模型和所假定的定价：在对齐失效检测中，按标价汇总为 63$\times$，但在保守的重新定价下约为 12$\times$~\cite{arx29429}；在群体模拟中，相对于中端模型为 8$\times$，相对于旗舰模型为 312--455$\times$~\cite{arx27535}。
+这一优势并不普遍：在一项边缘编排研究中，一个托管的低成本生成式模型的计费低于 \jev{}~\cite{arx23136}；而在多步智能体循环中，托管模型的端到端耗时（含 API 调用）是本地开源打分器的 1.4--2.1 倍~\cite{arx00437}。
+
+\input{sections/02b_pol2}
+
+\subsection{相关工作}
+\label{sec:related}
+
+类型化保障机制所引发的问题是一些较早问题的新实例，我们借助早期文献来判断哪些发现是新的。
+
+\paragraph{自动化内容审核。}
+平台审核长期以来将自动分类器与人工审查相结合；批评者已表明，自动化将有争议的政策选择隐藏于技术系统之中，将错误成本转嫁给用户，并且难以问责~\cite{gorwa2020algorithmic,gillespie2018custodians}。
+读取词元概率的安全分类器，如 Llama Guard~\cite{inan2023llama}、审核模型~\cite{markov2023holistic}和宪法分类器~\cite{sharma2025constitutional}，以及可编程护栏~\cite{rebedea2023nemo}，是类型化安全阀在技术上最接近的前身；提示注入~\cite{perez2022ignore,greshake2023not,zhan2024injecagent}和自适应对抗攻击~\cite{zou2023universal,toyer2024tensor}则是相应的威胁。
+
+\paragraph{仇恨言论、标注者分歧与中文资源。}
+自动化仇恨言论检测存在种族和方言偏差~\cite{sap2019risk,davidson2019racial}，在针对性的功能测试中失败~\cite{rottger2021hatecheck}，并依赖于标注者的信念与身份~\cite{sap2022annotators}。
+在标注者存在分歧时，以多数投票聚合标签会丢弃保障机制所需的信息~\cite{davani2022dealing,plank2022problem,pavlick2019inherent}。
+中文冒犯性语言与毒性基准已经存在~\cite{deng2022cold,lu2023toxicn,jiang2022swsr}，但均未标注 \pol{} 的构念。
+
+\paragraph{情绪识别。}
+从可观察信号推断情绪状态的科学基础薄弱~\cite{barrett2019emotional}；AI 系统进行情绪识别带来了操纵他人和误读他人的特殊伦理风险~\cite{stark2021ethics}；欧盟《人工智能法》禁止在工作场所和教育中基于生物特征数据进行情绪识别，而这一定义并不涵盖仅从文本进行的推断~\cite{euaiact2024}。
+
+\paragraph{校准、弃权与暂缓判定。}
+概率预测的校准有着悠久的研究历史，从 Brier 分数~\cite{brier1950verification}和 Platt 缩放~\cite{platt1999probabilistic}，到现代神经网络~\cite{guo2017calibration,naeini2015obtaining}和语言模型~\cite{jiang2021can,kadavath2022language,tian2023just,xiong2024can}的校准失准；校准在分布偏移下会退化~\cite{ovadia2019trust}，且可能在平均意义上成立而在子群体上失效~\cite{hebertjohnson2018multicalibration}。
+弃权可追溯至 Chow 的拒识选项~\cite{chow1970optimum}和选择性分类~\cite{geifman2017selective,kamath2020selective,wen2025know}；学习暂缓判定（learning to defer）将模型何时应把案例交给人类专家这一问题形式化~\cite{madras2018predict,mozannar2020consistent}，共形风险控制则在可交换性条件下给出与分布无关的误差保证~\cite{bates2021distribution,angelopoulos2024conformal}。
+
+\paragraph{敏感性与评估器可靠性。}
+语言模型对选项顺序、标签名称和提示格式敏感~\cite{zhao2021calibrate,lu2022fantastically,zheng2024large,pezeshkpour2024large,sclar2024quantifying,wei2023larger}，这也是整体性评估报告多种场景和指标而非单一分数的原因之一~\cite{liang2023holistic}。
+LLM 评估器表现出位置偏差~\cite{wang2024fair}，偏好自身的输出~\cite{panickssery2024llm}，并会犯相关性错误~\cite{goel2025great}；由多样化评估器组成的评审组~\cite{verga2024replacing}以及将不确定条目升级至更强模型的级联~\cite{zheng2023judging,chen2023frugalgpt,jung2025trust}是公认的补救手段。
+类型化设定消除了生成环节，但如\cref{sec:evidence}所示，并未消除这些问题。
+
+\paragraph{人类监督与正当程序。}
+对自动化决策的人类监督常常失效：人们过度依赖表现出高置信度的系统~\cite{parasuraman2010complacency}，监督政策预设了审核者并不具备的能力~\cite{green2022flaws,green2019principles}，人机团队并不能可靠地胜过其中较强的一方~\cite{bansal2021whole}，责任也可能被转嫁给离得最近的人类操作者~\cite{elish2019moral}。
+自动化裁决还威胁到告知、说明理由和提出异议的机会~\cite{citron2008technological,wachter2018counterfactual,doshivelez2017towards}，数据保护、平台和 AI 法律如今已对此作出部分规定~\cite{gdpr2016,dsa2022,euaiact2024,santaclara2021}，此外还有风险管理框架~\cite{nist2023airmf}。
+模型与数据集的文档实践~\cite{mitchell2019model,gebru2021datasheets}为决策记录应包含哪些内容提供了参考。
+
+\paragraph{算法治理、DAO 与社会评分。}
+去中心化自治组织将治理编码于软件之中~\cite{buterin2014ethereum,hassan2021decentralized,santana2022blockchain}，延续了关于公共资源治理的早期研究~\cite{ostrom1990governing}，并引发了算法统治会压缩人类参与空间的担忧~\cite{danaher2016threat}。
+面向 AI 的价值规范，如训练中使用的宪法~\cite{bai2022constitutional}，是与 \pol{} 伦理对齐协议最接近的类比。
+为公共目的对个人行为进行评分的系统，如中国的社会信用体系，展示了此类评分如何成为控制的基础设施~\cite{creemers2018social,liang2018constructing}。

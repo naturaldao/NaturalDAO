@@ -1,0 +1,828 @@
+% Background references for the PoL2 / Jev typed-decision-model survey
+% Retrieved and verified 2026-10-01. Which API/source confirmed each entry is recorded in bib_verification_log.tsv.
+% "arXiv API" = export.arxiv.org id_list query (title, authors, date, comment/journal_ref).
+% "Crossref API" = api.crossref.org/works/<doi> (title, authors, venue, volume, pages, year).
+% "OpenAlex API" = api.openalex.org/works search. DBLP and Semantic Scholar were unreachable / rate-limited on 2026-10-01.
+
+%% ---------------- Calibration ----------------
+
+@inproceedings{guo2017calibration,
+  author    = {Guo, Chuan and Pleiss, Geoff and Sun, Yu and Weinberger, Kilian Q.},
+  title     = {On Calibration of Modern Neural Networks},
+  booktitle = {Proceedings of the 34th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {70},
+  pages     = {1321--1330},
+  year      = {2017},
+  eprint    = {1706.04599},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{naeini2015obtaining,
+  author    = {Pakdaman Naeini, Mahdi and Cooper, Gregory and Hauskrecht, Milos},
+  title     = {Obtaining Well Calibrated Probabilities Using {Bayesian} Binning},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume    = {29},
+  number    = {1},
+  year      = {2015},
+  doi       = {10.1609/aaai.v29i1.9602}
+}
+
+@article{kadavath2022language,
+  author    = {Kadavath, Saurav and Conerly, Tom and Askell, Amanda and Henighan, Tom and Drain, Dawn and Perez, Ethan and Schiefer, Nicholas and Hatfield-Dodds, Zac and DasSarma, Nova and Tran-Johnson, Eli and others},
+  title     = {Language Models (Mostly) Know What They Know},
+  journal   = {arXiv preprint arXiv:2207.05221},
+  year      = {2022},
+  eprint    = {2207.05221},
+  archivePrefix = {arXiv}
+}
+
+@article{jiang2021can,
+  author    = {Jiang, Zhengbao and Araki, Jun and Ding, Haibo and Neubig, Graham},
+  title     = {How Can We Know When Language Models Know? On the Calibration of Language Models for Question Answering},
+  journal   = {Transactions of the Association for Computational Linguistics},
+  volume    = {9},
+  pages     = {962--977},
+  year      = {2021},
+  doi       = {10.1162/tacl_a_00407}
+}
+
+@inproceedings{zhao2021calibrate,
+  author    = {Zhao, Tony Z. and Wallace, Eric and Feng, Shi and Klein, Dan and Singh, Sameer},
+  title     = {Calibrate Before Use: Improving Few-Shot Performance of Language Models},
+  booktitle = {Proceedings of the 38th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {139},
+  pages     = {12697--12706},
+  year      = {2021},
+  eprint    = {2102.09690},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{tian2023just,
+  author    = {Tian, Katherine and Mitchell, Eric and Zhou, Allan and Sharma, Archit and Rafailov, Rafael and Yao, Huaxiu and Finn, Chelsea and Manning, Christopher D.},
+  title     = {Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback},
+  booktitle = {Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
+  pages     = {5433--5442},
+  year      = {2023},
+  doi       = {10.18653/v1/2023.emnlp-main.330}
+}
+
+@inproceedings{xiong2024can,
+  author    = {Xiong, Miao and Hu, Zhiyuan and Lu, Xinyang and Li, Yifei and Fu, Jie and He, Junxian and Hooi, Bryan},
+  title     = {Can {LLMs} Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in {LLMs}},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+  eprint    = {2306.13063},
+  archivePrefix = {arXiv}
+}
+
+@article{brier1950verification,
+  author    = {Brier, Glenn W.},
+  title     = {Verification of Forecasts Expressed in Terms of Probability},
+  journal   = {Monthly Weather Review},
+  volume    = {78},
+  number    = {1},
+  pages     = {1--3},
+  year      = {1950},
+  doi       = {10.1175/1520-0493(1950)078<0001:VOFEIT>2.0.CO;2}
+}
+
+@incollection{platt1999probabilistic,
+  author    = {Platt, John C.},
+  title     = {Probabilistic Outputs for Support Vector Machines and Comparisons to Regularized Likelihood Methods},
+  booktitle = {Advances in Large Margin Classifiers},
+  editor    = {Smola, Alexander J. and Bartlett, Peter and Sch{\"o}lkopf, Bernhard and Schuurmans, Dale},
+  publisher = {MIT Press},
+  pages     = {61--74},
+  year      = {1999}
+}
+
+%% ---------------- Selective prediction / abstention ----------------
+
+@article{chow1970optimum,
+  author    = {Chow, C. K.},
+  title     = {On Optimum Recognition Error and Reject Tradeoff},
+  journal   = {IEEE Transactions on Information Theory},
+  volume    = {16},
+  number    = {1},
+  pages     = {41--46},
+  year      = {1970},
+  doi       = {10.1109/TIT.1970.1054406}
+}
+
+@inproceedings{geifman2017selective,
+  author    = {Geifman, Yonatan and El-Yaniv, Ran},
+  title     = {Selective Classification for Deep Neural Networks},
+  booktitle = {Advances in Neural Information Processing Systems 30 (NeurIPS)},
+  pages     = {4878--4887},
+  year      = {2017},
+  eprint    = {1705.08500},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{kamath2020selective,
+  author    = {Kamath, Amita and Jia, Robin and Liang, Percy},
+  title     = {Selective Question Answering under Domain Shift},
+  booktitle = {Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics (ACL)},
+  pages     = {5684--5696},
+  year      = {2020},
+  doi       = {10.18653/v1/2020.acl-main.503}
+}
+
+@article{wen2025know,
+  author    = {Wen, Bingbing and Yao, Jihan and Feng, Shangbin and Xu, Chenjun and Tsvetkov, Yulia and Howe, Bill and Wang, Lucy Lu},
+  title     = {Know Your Limits: A Survey of Abstention in Large Language Models},
+  journal   = {Transactions of the Association for Computational Linguistics},
+  volume    = {13},
+  pages     = {529--556},
+  year      = {2025},
+  doi       = {10.1162/tacl_a_00754}
+}
+
+%% ---------------- Prompt sensitivity / option order / label names ----------------
+
+@inproceedings{lu2022fantastically,
+  author    = {Lu, Yao and Bartolo, Max and Moore, Alastair and Riedel, Sebastian and Stenetorp, Pontus},
+  title     = {Fantastically Ordered Prompts and Where to Find Them: Overcoming Few-Shot Prompt Order Sensitivity},
+  booktitle = {Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (ACL), Volume 1: Long Papers},
+  pages     = {8086--8098},
+  year      = {2022},
+  doi       = {10.18653/v1/2022.acl-long.556}
+}
+
+@inproceedings{pezeshkpour2024large,
+  author    = {Pezeshkpour, Pouya and Hruschka, Estevam},
+  title     = {Large Language Models Sensitivity to The Order of Options in Multiple-Choice Questions},
+  booktitle = {Findings of the Association for Computational Linguistics: NAACL 2024},
+  pages     = {2006--2017},
+  year      = {2024},
+  doi       = {10.18653/v1/2024.findings-naacl.130}
+}
+
+@inproceedings{zheng2024large,
+  author    = {Zheng, Chujie and Zhou, Hao and Meng, Fandong and Zhou, Jie and Huang, Minlie},
+  title     = {Large Language Models Are Not Robust Multiple Choice Selectors},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+  eprint    = {2309.03882},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{sclar2024quantifying,
+  author    = {Sclar, Melanie and Choi, Yejin and Tsvetkov, Yulia and Suhr, Alane},
+  title     = {Quantifying Language Models' Sensitivity to Spurious Features in Prompt Design or: How {I} Learned to Start Worrying about Prompt Formatting},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+  eprint    = {2310.11324},
+  archivePrefix = {arXiv}
+}
+
+@article{wei2023larger,
+  author    = {Wei, Jerry and Wei, Jason and Tay, Yi and Tran, Dustin and Webson, Albert and Lu, Yifeng and Chen, Xinyun and Liu, Hanxiao and Huang, Da and Zhou, Denny and Ma, Tengyu},
+  title     = {Larger Language Models Do In-Context Learning Differently},
+  journal   = {arXiv preprint arXiv:2303.03846},
+  year      = {2023},
+  eprint    = {2303.03846},
+  archivePrefix = {arXiv}
+}
+
+%% ---------------- LLM-as-a-judge, juries, cascades, correlated errors ----------------
+
+@inproceedings{zheng2023judging,
+  author    = {Zheng, Lianmin and Chiang, Wei-Lin and Sheng, Ying and Zhuang, Siyuan and Wu, Zhanghao and Zhuang, Yonghao and Lin, Zi and Li, Zhuohan and Li, Dacheng and Xing, Eric P. and Zhang, Hao and Gonzalez, Joseph E. and Stoica, Ion},
+  title     = {Judging {LLM}-as-a-Judge with {MT-Bench} and {Chatbot Arena}},
+  booktitle = {Advances in Neural Information Processing Systems 36 (NeurIPS), Datasets and Benchmarks Track},
+  year      = {2023},
+  eprint    = {2306.05685},
+  archivePrefix = {arXiv}
+}
+
+@article{chen2023frugalgpt,
+  author    = {Chen, Lingjiao and Zaharia, Matei and Zou, James},
+  title     = {{FrugalGPT}: How to Use Large Language Models While Reducing Cost and Improving Performance},
+  journal   = {arXiv preprint arXiv:2305.05176},
+  year      = {2023},
+  eprint    = {2305.05176},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{jung2025trust,
+  author    = {Jung, Jaehun and Brahman, Faeze and Choi, Yejin},
+  title     = {Trust or Escalate: {LLM} Judges with Provable Guarantees for Human Agreement},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2025},
+  eprint    = {2407.18370},
+  archivePrefix = {arXiv}
+}
+
+@article{verga2024replacing,
+  author    = {Verga, Pat and Hofst{\"a}tter, Sebastian and Althammer, Sophia and Su, Yixuan and Piktus, Aleksandra and Arkhangorodsky, Arkady and Xu, Minjie and White, Naomi and Lewis, Patrick},
+  title     = {Replacing Judges with Juries: Evaluating {LLM} Generations with a Panel of Diverse Models},
+  journal   = {arXiv preprint arXiv:2404.18796},
+  year      = {2024},
+  eprint    = {2404.18796},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{panickssery2024llm,
+  author    = {Panickssery, Arjun and Bowman, Samuel R. and Feng, Shi},
+  title     = {{LLM} Evaluators Recognize and Favor Their Own Generations},
+  booktitle = {Advances in Neural Information Processing Systems 37 (NeurIPS)},
+  pages     = {68772--68802},
+  year      = {2024},
+  doi       = {10.52202/079017-2197},
+  eprint    = {2404.13076},
+  archivePrefix = {arXiv}
+}
+
+@article{goel2025great,
+  author    = {Goel, Shashwat and Struber, Joschka and Auzina, Ilze Amanda and Chandra, Karuna K. and Kumaraguru, Ponnurangam and Kiela, Douwe and Prabhu, Ameya and Bethge, Matthias and Geiping, Jonas},
+  title     = {Great Models Think Alike and this Undermines {AI} Oversight},
+  journal   = {arXiv preprint arXiv:2502.04313},
+  year      = {2025},
+  eprint    = {2502.04313},
+  archivePrefix = {arXiv}
+}
+
+%% ---------------- Safety classifiers / guardrails ----------------
+
+@article{inan2023llama,
+  author    = {Inan, Hakan and Upasani, Kartikeya and Chi, Jianfeng and Rungta, Rashi and Iyer, Krithika and Mao, Yuning and Tontchev, Michael and Hu, Qing and Fuller, Brian and Testuggine, Davide and Khabsa, Madian},
+  title     = {{Llama Guard}: {LLM}-based Input-Output Safeguard for Human-{AI} Conversations},
+  journal   = {arXiv preprint arXiv:2312.06674},
+  year      = {2023},
+  eprint    = {2312.06674},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{markov2023holistic,
+  author    = {Markov, Todor and Zhang, Chong and Agarwal, Sandhini and Eloundou Nekoul, Florentine and Lee, Theodore and Adler, Steven and Jiang, Angela and Weng, Lilian},
+  title     = {A Holistic Approach to Undesired Content Detection in the Real World},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume    = {37},
+  pages     = {15009--15018},
+  year      = {2023},
+  doi       = {10.1609/aaai.v37i12.26752},
+  eprint    = {2208.03274},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{rebedea2023nemo,
+  author    = {Rebedea, Traian and Dinu, Razvan and Sreedhar, Makesh Narsimhan and Parisien, Christopher and Cohen, Jonathan},
+  title     = {{NeMo Guardrails}: A Toolkit for Controllable and Safe {LLM} Applications with Programmable Rails},
+  booktitle = {Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing: System Demonstrations},
+  pages     = {431--445},
+  year      = {2023},
+  doi       = {10.18653/v1/2023.emnlp-demo.40}
+}
+
+@article{sharma2025constitutional,
+  author    = {Sharma, Mrinank and Tong, Meg and Mu, Jesse and Wei, Jerry and Kruthoff, Jorrit and Goodfriend, Scott and Ong, Euan and Peng, Alwin and Agarwal, Raj and Anil, Cem and others},
+  title     = {Constitutional Classifiers: Defending against Universal Jailbreaks across Thousands of Hours of Red Teaming},
+  journal   = {arXiv preprint arXiv:2501.18837},
+  year      = {2025},
+  eprint    = {2501.18837},
+  archivePrefix = {arXiv}
+}
+
+@article{bai2022constitutional,
+  author    = {Bai, Yuntao and Kadavath, Saurav and Kundu, Sandipan and Askell, Amanda and Kernion, Jackson and Jones, Andy and Chen, Anna and Goldie, Anna and Mirhoseini, Azalia and McKinnon, Cameron and others},
+  title     = {Constitutional {AI}: Harmlessness from {AI} Feedback},
+  journal   = {arXiv preprint arXiv:2212.08073},
+  year      = {2022},
+  eprint    = {2212.08073},
+  archivePrefix = {arXiv}
+}
+
+%% ---------------- Prompt injection / adversarial attacks ----------------
+
+@inproceedings{greshake2023not,
+  author    = {Greshake, Kai and Abdelnabi, Sahar and Mishra, Shailesh and Endres, Christoph and Holz, Thorsten and Fritz, Mario},
+  title     = {Not What You've Signed Up For: Compromising Real-World {LLM}-Integrated Applications with Indirect Prompt Injection},
+  booktitle = {Proceedings of the 16th ACM Workshop on Artificial Intelligence and Security (AISec)},
+  pages     = {79--90},
+  year      = {2023},
+  doi       = {10.1145/3605764.3623985}
+}
+
+@inproceedings{perez2022ignore,
+  author    = {Perez, F{\'a}bio and Ribeiro, Ian},
+  title     = {Ignore Previous Prompt: Attack Techniques For Language Models},
+  booktitle = {NeurIPS ML Safety Workshop},
+  year      = {2022},
+  eprint    = {2211.09527},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{zhan2024injecagent,
+  author    = {Zhan, Qiusi and Liang, Zhixiang and Ying, Zifan and Kang, Daniel},
+  title     = {{InjecAgent}: Benchmarking Indirect Prompt Injections in Tool-Integrated Large Language Model Agents},
+  booktitle = {Findings of the Association for Computational Linguistics: ACL 2024},
+  pages     = {10471--10506},
+  year      = {2024},
+  doi       = {10.18653/v1/2024.findings-acl.624}
+}
+
+@article{zou2023universal,
+  author    = {Zou, Andy and Wang, Zifan and Carlini, Nicholas and Nasr, Milad and Kolter, J. Zico and Fredrikson, Matt},
+  title     = {Universal and Transferable Adversarial Attacks on Aligned Language Models},
+  journal   = {arXiv preprint arXiv:2307.15043},
+  year      = {2023},
+  eprint    = {2307.15043},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{toyer2024tensor,
+  author    = {Toyer, Sam and Watkins, Olivia and Mendes, Ethan Adrian and Svegliato, Justin and Bailey, Luke and Wang, Tiffany and Ong, Isaac and Elmaaroufi, Karim and Abbeel, Pieter and Darrell, Trevor and Ritter, Alan and Russell, Stuart},
+  title     = {Tensor Trust: Interpretable Prompt Injection Attacks from an Online Game},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+  eprint    = {2311.01011},
+  archivePrefix = {arXiv}
+}
+
+%% ---------------- Dual-process framing ----------------
+
+@book{kahneman2011thinking,
+  author    = {Kahneman, Daniel},
+  title     = {Thinking, Fast and Slow},
+  publisher = {Farrar, Straus and Giroux},
+  address   = {New York},
+  year      = {2011},
+  isbn      = {9780374275631}
+}
+
+%% ---------------- Fairness of hate-speech / toxicity detection ----------------
+
+@inproceedings{sap2019risk,
+  author    = {Sap, Maarten and Card, Dallas and Gabriel, Saadia and Choi, Yejin and Smith, Noah A.},
+  title     = {The Risk of Racial Bias in Hate Speech Detection},
+  booktitle = {Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics (ACL)},
+  pages     = {1668--1678},
+  year      = {2019},
+  doi       = {10.18653/v1/P19-1163}
+}
+
+@inproceedings{davidson2019racial,
+  author    = {Davidson, Thomas and Bhattacharya, Debasmita and Weber, Ingmar},
+  title     = {Racial Bias in Hate Speech and Abusive Language Detection Datasets},
+  booktitle = {Proceedings of the Third Workshop on Abusive Language Online},
+  pages     = {25--35},
+  year      = {2019},
+  doi       = {10.18653/v1/W19-3504}
+}
+
+@inproceedings{rottger2021hatecheck,
+  author    = {R{\"o}ttger, Paul and Vidgen, Bertie and Nguyen, Dong and Waseem, Zeerak and Margetts, Helen and Pierrehumbert, Janet},
+  title     = {{HateCheck}: Functional Tests for Hate Speech Detection Models},
+  booktitle = {Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (ACL-IJCNLP)},
+  pages     = {41--58},
+  year      = {2021},
+  doi       = {10.18653/v1/2021.acl-long.4}
+}
+
+%% ---------------- Explainability, oversight, regulation ----------------
+
+@article{doshivelez2017towards,
+  author    = {Doshi-Velez, Finale and Kim, Been},
+  title     = {Towards A Rigorous Science of Interpretable Machine Learning},
+  journal   = {arXiv preprint arXiv:1702.08608},
+  year      = {2017},
+  eprint    = {1702.08608},
+  archivePrefix = {arXiv}
+}
+
+@article{wachter2018counterfactual,
+  author    = {Wachter, Sandra and Mittelstadt, Brent and Russell, Chris},
+  title     = {Counterfactual Explanations Without Opening the Black Box: Automated Decisions and the {GDPR}},
+  journal   = {Harvard Journal of Law \& Technology},
+  volume    = {31},
+  number    = {2},
+  pages     = {841--887},
+  year      = {2018},
+  doi       = {10.2139/ssrn.3063289}
+}
+
+@misc{euaiact2024,
+  author       = {{European Parliament and Council of the European Union}},
+  title        = {Regulation ({EU}) 2024/1689 of the European Parliament and of the Council of 13 June 2024 laying down harmonised rules on artificial intelligence (Artificial Intelligence Act)},
+  howpublished = {Official Journal of the European Union, L series, 12 July 2024},
+  year         = {2024},
+  url          = {http://data.europa.eu/eli/reg/2024/1689/oj}
+}
+
+@techreport{nist2023airmf,
+  author      = {{National Institute of Standards and Technology}},
+  title       = {Artificial Intelligence Risk Management Framework ({AI RMF} 1.0)},
+  institution = {National Institute of Standards and Technology},
+  number      = {NIST AI 100-1},
+  address     = {Gaithersburg, MD},
+  year        = {2023},
+  doi         = {10.6028/NIST.AI.100-1}
+}
+
+@inproceedings{bansal2021whole,
+  author    = {Bansal, Gagan and Wu, Tongshuang and Zhou, Joyce and Fok, Raymond and Nushi, Besmira and Kamar, Ece and Ribeiro, Marco Tulio and Weld, Daniel},
+  title     = {Does the Whole Exceed its Parts? The Effect of {AI} Explanations on Complementary Team Performance},
+  booktitle = {Proceedings of the 2021 CHI Conference on Human Factors in Computing Systems},
+  pages     = {1--16},
+  year      = {2021},
+  doi       = {10.1145/3411764.3445717}
+}
+
+@article{green2022flaws,
+  author    = {Green, Ben},
+  title     = {The Flaws of Policies Requiring Human Oversight of Government Algorithms},
+  journal   = {Computer Law \& Security Review},
+  volume    = {45},
+  pages     = {105681},
+  year      = {2022},
+  doi       = {10.1016/j.clsr.2022.105681}
+}
+
+@article{green2019principles,
+  author    = {Green, Ben and Chen, Yiling},
+  title     = {The Principles and Limits of Algorithm-in-the-Loop Decision Making},
+  journal   = {Proceedings of the ACM on Human-Computer Interaction},
+  volume    = {3},
+  number    = {CSCW},
+  pages     = {1--24},
+  year      = {2019},
+  doi       = {10.1145/3359152}
+}
+
+%% ---------------- DAOs, commons, algorithmic governance ----------------
+
+@article{hassan2021decentralized,
+  author    = {Hassan, Samer and De Filippi, Primavera},
+  title     = {Decentralized Autonomous Organization},
+  journal   = {Internet Policy Review},
+  volume    = {10},
+  number    = {2},
+  year      = {2021},
+  doi       = {10.14763/2021.2.1556}
+}
+
+@book{ostrom1990governing,
+  author    = {Ostrom, Elinor},
+  title     = {Governing the Commons: The Evolution of Institutions for Collective Action},
+  publisher = {Cambridge University Press},
+  address   = {Cambridge},
+  year      = {1990},
+  doi       = {10.1017/CBO9780511807763}
+}
+
+@misc{buterin2014ethereum,
+  author       = {Buterin, Vitalik},
+  title        = {Ethereum: A Next-Generation Smart Contract and Decentralized Application Platform},
+  howpublished = {White paper},
+  year         = {2014},
+  url          = {https://ethereum.org/en/whitepaper/}
+}
+
+@article{santana2022blockchain,
+  author    = {Santana, Carlos and Albareda, Laura},
+  title     = {Blockchain and the Emergence of Decentralized Autonomous Organizations ({DAOs}): An Integrative Model and Research Agenda},
+  journal   = {Technological Forecasting and Social Change},
+  volume    = {182},
+  pages     = {121806},
+  year      = {2022},
+  doi       = {10.1016/j.techfore.2022.121806}
+}
+
+@article{danaher2016threat,
+  author    = {Danaher, John},
+  title     = {The Threat of Algocracy: Reality, Resistance and Accommodation},
+  journal   = {Philosophy \& Technology},
+  volume    = {29},
+  number    = {3},
+  pages     = {245--268},
+  year      = {2016},
+  doi       = {10.1007/s13347-015-0211-1}
+}
+
+%% ---------------- Evaluation and documentation practice ----------------
+
+@article{liang2023holistic,
+  author    = {Liang, Percy and Bommasani, Rishi and Lee, Tony and Tsipras, Dimitris and Soylu, Dilara and Yasunaga, Michihiro and Zhang, Yian and Narayanan, Deepak and Wu, Yuhuai and Kumar, Ananya and others},
+  title     = {Holistic Evaluation of Language Models},
+  journal   = {Transactions on Machine Learning Research},
+  year      = {2023},
+  eprint    = {2211.09110},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{mitchell2019model,
+  author    = {Mitchell, Margaret and Wu, Simone and Zaldivar, Andrew and Barnes, Parker and Vasserman, Lucy and Hutchinson, Ben and Spitzer, Elena and Raji, Inioluwa Deborah and Gebru, Timnit},
+  title     = {Model Cards for Model Reporting},
+  booktitle = {Proceedings of the Conference on Fairness, Accountability, and Transparency (FAT*)},
+  pages     = {220--229},
+  year      = {2019},
+  doi       = {10.1145/3287560.3287596}
+}
+
+@article{gebru2021datasheets,
+  author    = {Gebru, Timnit and Morgenstern, Jamie and Vecchione, Briana and Vaughan, Jennifer Wortman and Wallach, Hanna and Daum{\'e} III, Hal and Crawford, Kate},
+  title     = {Datasheets for Datasets},
+  journal   = {Communications of the ACM},
+  volume    = {64},
+  number    = {12},
+  pages     = {86--92},
+  year      = {2021},
+  doi       = {10.1145/3458723}
+}
+
+% Added in revision (Stage 3 review); verified 2026-10-01 via Crossref (DOI) or arXiv abstract page.
+@article{bates2021distribution,
+  author    = {Bates, Stephen and Angelopoulos, Anastasios and Lei, Lihua and Malik, Jitendra and Jordan, Michael},
+  title     = {Distribution-free, Risk-controlling Prediction Sets},
+  journal   = {Journal of the ACM},
+  volume    = {68},
+  number    = {6},
+  pages     = {1--34},
+  year      = {2021},
+  doi       = {10.1145/3478535}
+}
+
+@inproceedings{angelopoulos2024conformal,
+  author    = {Angelopoulos, Anastasios N. and Bates, Stephen and Fisch, Adam and Lei, Lihua and Schuster, Tal},
+  title     = {Conformal Risk Control},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+  eprint    = {2208.02814},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{plank2022problem,
+  author    = {Plank, Barbara},
+  title     = {The ``Problem'' of Human Label Variation: On Ground Truth in Data, Modeling and Evaluation},
+  booktitle = {Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing},
+  pages     = {10671--10682},
+  year      = {2022},
+  doi       = {10.18653/v1/2022.emnlp-main.731}
+}
+
+@article{pavlick2019inherent,
+  author    = {Pavlick, Ellie and Kwiatkowski, Tom},
+  title     = {Inherent Disagreements in Human Textual Inferences},
+  journal   = {Transactions of the Association for Computational Linguistics},
+  volume    = {7},
+  pages     = {677--694},
+  year      = {2019},
+  doi       = {10.1162/tacl_a_00293}
+}
+
+@article{parasuraman2010complacency,
+  author    = {Parasuraman, Raja and Manzey, Dietrich H.},
+  title     = {Complacency and Bias in Human Use of Automation: An Attentional Integration},
+  journal   = {Human Factors},
+  volume    = {52},
+  number    = {3},
+  pages     = {381--410},
+  year      = {2010},
+  doi       = {10.1177/0018720810376055}
+}
+
+@misc{dsa2022,
+  author       = {{European Parliament and Council of the European Union}},
+  title        = {Regulation ({EU}) 2022/2065 on a Single Market for Digital Services (Digital Services Act)},
+  howpublished = {Official Journal of the European Union, L 277, 27 October 2022},
+  year         = {2022},
+  url          = {https://eur-lex.europa.eu/eli/reg/2022/2065/oj}
+}
+
+@misc{gdpr2016,
+  author       = {{European Parliament and Council of the European Union}},
+  title        = {Regulation ({EU}) 2016/679 (General Data Protection Regulation)},
+  howpublished = {Official Journal of the European Union, L 119, 4 May 2016},
+  year         = {2016},
+  url          = {https://eur-lex.europa.eu/eli/reg/2016/679/oj}
+}
+
+@misc{santaclara2021,
+  author       = {{Santa Clara Principles coalition}},
+  title        = {The Santa Clara Principles on Transparency and Accountability in Content Moderation, version 2.0},
+  year         = {2021},
+  url          = {https://santaclaraprinciples.org/},
+  urldate      = {2026-10-01}
+}
+
+% ---- added in v0.3 (verified via Crossref DOI or the arXiv API on 2026-10-04; see bib_verification_log.tsv)
+@article{barrett2019emotional,
+  title = {Emotional Expressions Reconsidered: Challenges to Inferring Emotion From Human Facial Movements},
+  author = {Barrett, Lisa Feldman and Adolphs, Ralph and Marsella, Stacy and Martinez, Aleix M. and Pollak, Seth D.},
+  journal = {Psychological Science in the Public Interest},
+  volume = {20}, number = {1}, pages = {1--68}, year = {2019},
+  doi = {10.1177/1529100619832930}
+}
+@inproceedings{stark2021ethics,
+  title = {The Ethics of Emotion in Artificial Intelligence Systems},
+  author = {Stark, Luke and Hoey, Jesse},
+  booktitle = {Proceedings of the 2021 ACM Conference on Fairness, Accountability, and Transparency},
+  pages = {782--793}, year = {2021}, doi = {10.1145/3442188.3445939}
+}
+@article{gorwa2020algorithmic,
+  title = {Algorithmic Content Moderation: Technical and Political Challenges in the Automation of Platform Governance},
+  author = {Gorwa, Robert and Binns, Reuben and Katzenbach, Christian},
+  journal = {Big Data \& Society}, volume = {7}, number = {1}, year = {2020},
+  doi = {10.1177/2053951719897945}
+}
+@book{gillespie2018custodians,
+  title = {Custodians of the Internet: Platforms, Content Moderation, and the Hidden Decisions That Shape Social Media},
+  author = {Gillespie, Tarleton},
+  publisher = {Yale University Press}, year = {2018}, doi = {10.12987/9780300235029}
+}
+@inproceedings{sap2022annotators,
+  title = {Annotators with Attitudes: How Annotator Beliefs And Identities Bias Toxic Language Detection},
+  author = {Sap, Maarten and Swayamdipta, Swabha and Vianna, Laura and Zhou, Xuhui and Choi, Yejin and Smith, Noah A.},
+  booktitle = {Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics},
+  pages = {5884--5906}, year = {2022}, doi = {10.18653/v1/2022.naacl-main.431}
+}
+@article{davani2022dealing,
+  title = {Dealing with Disagreements: Looking Beyond the Majority Vote in Subjective Annotations},
+  author = {Mostafazadeh Davani, Aida and D{\'\i}az, Mark and Prabhakaran, Vinodkumar},
+  journal = {Transactions of the Association for Computational Linguistics},
+  volume = {10}, pages = {92--110}, year = {2022}, doi = {10.1162/tacl_a_00449}
+}
+@inproceedings{deng2022cold,
+  title = {{COLD}: A Benchmark for {C}hinese Offensive Language Detection},
+  author = {Deng, Jiawen and Zhou, Jingyan and Sun, Hao and Zheng, Chujie and Mi, Fei and Meng, Helen and Huang, Minlie},
+  booktitle = {Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing},
+  pages = {11580--11599}, year = {2022}, doi = {10.18653/v1/2022.emnlp-main.796}
+}
+@inproceedings{lu2023toxicn,
+  title = {Facilitating Fine-grained Detection of {C}hinese Toxic Language: Hierarchical Taxonomy, Resources, and Benchmarks},
+  author = {Lu, Junyu and Xu, Bo and Zhang, Xiaokun and Min, Changrong and Yang, Liang and Lin, Hongfei},
+  booktitle = {Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
+  pages = {16235--16250}, year = {2023}, doi = {10.18653/v1/2023.acl-long.898}
+}
+@article{jiang2022swsr,
+  title = {{SWSR}: A {C}hinese Dataset and Lexicon for Online Sexism Detection},
+  author = {Jiang, Aiqi and Yang, Xiaohan and Liu, Yang and Zubiaga, Arkaitz},
+  journal = {Online Social Networks and Media}, volume = {27}, pages = {100182}, year = {2022},
+  doi = {10.1016/j.osnem.2021.100182}
+}
+@inproceedings{madras2018predict,
+  title = {Predict Responsibly: Improving Fairness and Accuracy by Learning to Defer},
+  author = {Madras, David and Pitassi, Toniann and Zemel, Richard},
+  booktitle = {Advances in Neural Information Processing Systems 31}, year = {2018},
+  eprint = {1711.06664}, archivePrefix = {arXiv}
+}
+@inproceedings{mozannar2020consistent,
+  title = {Consistent Estimators for Learning to Defer to an Expert},
+  author = {Mozannar, Hussein and Sontag, David},
+  booktitle = {Proceedings of the 37th International Conference on Machine Learning}, year = {2020},
+  eprint = {2006.01862}, archivePrefix = {arXiv}
+}
+@inproceedings{ovadia2019trust,
+  title = {Can You Trust Your Model's Uncertainty? {E}valuating Predictive Uncertainty Under Dataset Shift},
+  author = {Ovadia, Yaniv and Fertig, Emily and Ren, Jie and Nado, Zachary and Sculley, D. and Nowozin, Sebastian and Dillon, Joshua V. and Lakshminarayanan, Balaji and Snoek, Jasper},
+  booktitle = {Advances in Neural Information Processing Systems 32}, year = {2019},
+  eprint = {1906.02530}, archivePrefix = {arXiv}
+}
+@inproceedings{hebertjohnson2018multicalibration,
+  title = {Multicalibration: Calibration for the (Computationally-Identifiable) Masses},
+  author = {H{\'e}bert-Johnson, {\'U}rsula and Kim, Michael P. and Reingold, Omer and Rothblum, Guy N.},
+  booktitle = {Proceedings of the 35th International Conference on Machine Learning}, year = {2018},
+  eprint = {1711.08513}, archivePrefix = {arXiv}
+}
+@inproceedings{wang2024fair,
+  title = {Large Language Models are not Fair Evaluators},
+  author = {Wang, Peiyi and Li, Lei and Chen, Liang and Cai, Zefan and Zhu, Dawei and Lin, Binghuai and Cao, Yunbo and Kong, Lingpeng and Liu, Qi and Liu, Tianyu and Sui, Zhifang},
+  booktitle = {Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
+  pages = {9440--9450}, year = {2024}, doi = {10.18653/v1/2024.acl-long.511}
+}
+@article{citron2008technological,
+  title = {Technological Due Process},
+  author = {Citron, Danielle Keats},
+  journal = {Washington University Law Review}, volume = {85}, number = {6}, pages = {1249--1313}, year = {2008}
+}
+@article{elish2019moral,
+  title = {Moral Crumple Zones: Cautionary Tales in Human-Robot Interaction},
+  author = {Elish, Madeleine Clare},
+  journal = {Engaging Science, Technology, and Society}, volume = {5}, pages = {40--60}, year = {2019},
+  doi = {10.17351/ests2019.260}
+}
+@article{liang2018constructing,
+  title = {Constructing a Data-Driven Society: {C}hina's Social Credit System as a State Surveillance Infrastructure},
+  author = {Liang, Fan and Das, Vishnupriya and Kostyuk, Nadiya and Hussain, Muzammil M.},
+  journal = {Policy \& Internet}, volume = {10}, number = {4}, pages = {415--453}, year = {2018},
+  doi = {10.1002/poi3.183}
+}
+@misc{creemers2018social,
+  title = {{C}hina's Social Credit System: An Evolving Practice of Control},
+  author = {Creemers, Rogier},
+  howpublished = {SSRN Electronic Journal}, year = {2018}, doi = {10.2139/ssrn.3175792}
+}
+@article{page2021prisma,
+  title = {The {PRISMA} 2020 Statement: An Updated Guideline for Reporting Systematic Reviews},
+  author = {Page, Matthew J. and McKenzie, Joanne E. and Bossuyt, Patrick M. and Boutron, Isabelle and Hoffmann, Tammy C. and Mulrow, Cynthia D. and others},
+  journal = {BMJ}, volume = {372}, pages = {n71}, year = {2021}, doi = {10.1136/bmj.n71}
+}
+@article{garritty2021cochrane,
+  title = {Cochrane Rapid Reviews Methods Group Offers Evidence-Informed Guidance to Conduct Rapid Reviews},
+  author = {Garritty, Chantelle and Gartlehner, Gerald and Nussbaumer-Streit, Barbara and King, Valerie J. and Hamel, Candyce and Kamel, Chris and Affengruber, Lisa and Stevens, Adrienne},
+  journal = {Journal of Clinical Epidemiology}, volume = {130}, pages = {13--22}, year = {2021},
+  doi = {10.1016/j.jclinepi.2020.10.007}
+}
+@article{guyatt2008grade,
+  title = {{GRADE}: An Emerging Consensus on Rating Quality of Evidence and Strength of Recommendations},
+  author = {Guyatt, Gordon H. and Oxman, Andrew D. and Vist, Gunn E. and Kunz, Regina and Falck-Ytter, Yngve and Alonso-Coello, Pablo and Sch{\"u}nemann, Holger J.},
+  journal = {BMJ}, volume = {336}, number = {7650}, pages = {924--926}, year = {2008},
+  doi = {10.1136/bmj.39489.470347.AD}
+}
+
+@article{campbell2020swim,
+  title = {Synthesis without Meta-Analysis ({SWiM}) in Systematic Reviews: Reporting Guideline},
+  author = {Campbell, Mhairi and McKenzie, Joanne E. and Sowden, Amanda and Katikireddi, Srinivasa Vittal and Brennan, Sue E. and Ellis, Simon and Hartmann-Boyce, Jamie and Ryan, Rebecca and Shepperd, Sasha and Thomas, James and Welch, Vivian and Thomson, Hilary},
+  journal = {BMJ}, volume = {368}, pages = {l6890}, year = {2020}, doi = {10.1136/bmj.l6890}
+}
+
+@misc{dibonaventura2025hatevolution,
+  author        = {Di Bonaventura, Chiara and McGillivray, Barbara and He, Yulan and Mero{\~n}o-Pe{\~n}uela, Albert},
+  title         = {{Hatevolution}: What Static Benchmarks Don't Tell Us},
+  year          = {2025},
+  eprint        = {2506.12148},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  doi           = {10.48550/arXiv.2506.12148},
+  url           = {https://arxiv.org/abs/2506.12148}
+}
+
+@misc{openai2025modelspec,
+  author       = {{OpenAI}},
+  title        = {{OpenAI} Model Spec},
+  howpublished = {Version 2025-02-12 (first open-source release, CC0 1.0); subsequently revised, latest 2026-08-18},
+  year         = {2025},
+  url          = {https://model-spec.openai.com/2025-02-12.html}
+}
+
+@inproceedings{huang2024collective,
+  author    = {Huang, Saffron and Siddarth, Divya and Lovitt, Liane and Liao, Thomas I. and Durmus, Esin and Tamkin, Alex and Ganguli, Deep},
+  title     = {Collective Constitutional {AI}: Aligning a Language Model with Public Input},
+  booktitle = {Proceedings of the 2024 ACM Conference on Fairness, Accountability, and Transparency (FAccT '24)},
+  address   = {Rio de Janeiro, Brazil},
+  publisher = {ACM},
+  pages     = {1395--1417},
+  year      = {2024},
+  doi       = {10.1145/3630106.3658979}
+}
+
+@misc{guan2024deliberative,
+  author        = {Guan, Melody Y. and Joglekar, Manas and Wallace, Eric and Jain, Saachi and Barak, Boaz and Helyar, Alec and Dias, Rachel and Vallone, Andrea and Ren, Hongyu and Wei, Jason and Chung, Hyung Won and Toyer, Sam and Heidecke, Johannes and Beutel, Alex and Glaese, Amelia},
+  title         = {Deliberative Alignment: Reasoning Enables Safer Language Models},
+  year          = {2024},
+  eprint        = {2412.16339},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  doi           = {10.48550/arXiv.2412.16339},
+  url           = {https://arxiv.org/abs/2412.16339}
+}
+
+@article{klonick2020oversight,
+  author  = {Klonick, Kate},
+  title   = {The {Facebook} Oversight Board: Creating an Independent Institution to Adjudicate Online Free Expression},
+  journal = {Yale Law Journal},
+  volume  = {129},
+  number  = {8},
+  pages   = {2418--2499},
+  year    = {2020},
+  url     = {https://www.yalelawjournal.org/feature/the-facebook-oversight-board}
+}
+
+@misc{cac2023genai,
+  author       = {{Cyberspace Administration of China and six other ministries}},
+  title        = {\zh{生成式人工智能服务管理暂行办法} [Interim Measures for the Management of Generative Artificial Intelligence Services]},
+  howpublished = {Decree No.~15, issued 10 July 2023, effective 15 August 2023. Unofficial English translation: China Law Translate, \url{https://www.chinalawtranslate.com/en/generative-ai-interim/}},
+  year         = {2023},
+  url          = {https://www.cac.gov.cn/2023-07/13/c_1690898327029107.htm}
+}
+
+@misc{iso42001,
+  author       = {{ISO/IEC}},
+  title        = {{ISO/IEC} 42001:2023 Information technology --- Artificial intelligence --- Management system},
+  howpublished = {International Standard, 1st edition, ISO/IEC JTC 1/SC 42, Geneva},
+  year         = {2023},
+  url          = {https://www.iso.org/standard/42001}
+}
+
+@article{dong2025safeguarding,
+  author  = {Dong, Yi and Mu, Ronghui and Zhang, Yanghao and Sun, Siqi and Zhang, Tianle and Wu, Changshun and Jin, Gaojie and Qi, Yi and Hu, Jinwei and Meng, Jie and Bensalem, Saddek and Huang, Xiaowei},
+  title   = {Safeguarding Large Language Models: A Survey},
+  journal = {Artificial Intelligence Review},
+  volume  = {58},
+  pages   = {382},
+  year    = {2025},
+  doi     = {10.1007/s10462-025-11389-2},
+  note    = {Preprint: arXiv:2406.02622 (2024)}
+}
+
+@article{makridis2025polycentric,
+  author  = {Makridis, Christos and Lazanski, Dominique},
+  title   = {Navigating the Knowledge Problem in the Era of Open {AI} and Polycentric Governance},
+  journal = {The Review of Austrian Economics},
+  year    = {2025},
+  doi     = {10.1007/s11138-025-00708-z},
+  note    = {Published online 22 October 2025}
+}
