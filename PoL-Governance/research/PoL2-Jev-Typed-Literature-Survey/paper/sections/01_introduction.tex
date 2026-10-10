@@ -2,56 +2,72 @@
 \label{sec:intro}
 
 Automated systems already decide which posts are removed, which accounts are suspended and which transactions are held, and a growing number of governance proposals would extend such decisions to AI systems acting with little or no human involvement~\cite{gorwa2020algorithmic,gillespie2018custodians,citron2008technological}.
-The practical obstacle has been cost and latency: a generative language model that reasons about each message is too slow and too expensive to sit in front of every input and output.
+The practical obstacle has been cost and latency, since a generative language model that reasons about each message is too slow and too expensive to sit in front of every input and output.
 On 15~September 2026 TypeSafe AI released \jev{}, a model that removes this obstacle by not generating text at all~\cite{almeida2026introducing,typesafe_intro}.
-Given an input and a question declared by the caller, it returns a choice among listed options, a score on a rubric, or the probability that a statement is true, each with probabilities that the vendor says are calibrated~\cite{typesafe_primer,typesafe_models}.
-Because the output is a value rather than prose, ordinary code can threshold it and act on it, at a small fraction of the latency and price of a generative call.
-We call such systems \emph{typed decision models}; the vendor's own term, ``System One'' models, borrows the dual-process metaphor of fast, intuitive judgement~\cite{kahneman2011thinking}.
-Within days, open-weight models with the same interface appeared, and by 1~October 2026 dozens of studies had evaluated them.
+Given an input and a question declared by the caller, it returns a choice among listed options, a score on a rubric or the probability that a statement is true, and the vendor says these probabilities are calibrated~\cite{typesafe_primer,typesafe_models}.
+We call such systems \emph{typed decision models}.
+Open-weight models with the same interface appeared within days, and by 1~October 2026 dozens of studies had evaluated them.
 
-Centred on PoL governance, that is, governance under the Proof of Love2 (\pol{}) specification, this paper asks whether typed decision models can serve as its automated safeguards, and under what conditions; because the specification makes machine judgement unusually concrete, the answer also bears on AI governance more widely.
-\pol{} is an open, versioned governance text~\cite{pol2text,pol2en} that places an \emph{inner governance layer} inside existing large language models (LLMs), with a \emph{safety valve} that audits and intercepts their inputs and outputs so that hate language is, ``where necessary'', blocked (\clause{5.4.1}).
-\Cref{sec:paradigms} shows, by comparison with regulatory, platform, training-time, guardrail and DAO paradigms, which of \pol{}'s properties make the question concrete and what each costs. China's 2023 Interim Measures on generative AI~\cite{cac2023genai} also join an intercept duty, the standard it applies and duties attached to decisions; what makes \pol{} a useful object of study is not uniqueness but that its construct and the point of interception (every input and output) are stated in citable clauses from which testable requirements can be derived, while how the valve works is left open, and that its gaps are visible.
-\pol{}'s public-welfare protocol makes an AI organisation, NaturalDAO, responsible for welfare decisions without human votes, for anomaly detection, for a verifiable decision chain and for adjudicating disputes, while human supervision ``does not directly intervene'' (\art{2}--\art{10}).
-Read as engineering requirements, these clauses ask for exactly the kind of fast, structured, recordable judgement that typed models provide, and they also raise the societal stakes plainly: the judgements would restrict speech, allocate welfare and settle disputes.
-Our research question is therefore:
-\begin{quote}
-\emph{To what extent, and under what conditions, can typed decision models perform the judgements that a clause-governed AI safeguard such as the \pol{} safety valve requires, and what does the evidence imply for how such a specification should be written and implemented?}
-\end{quote}
+\paragraph{PoL governance.}
+This paper is about PoL governance, meaning governance under the Proof of Love2 (\pol{}) specification, an open, versioned governance text~\cite{pol2text,pol2en}.
+\pol{} places an \emph{inner governance layer} inside existing large language models (LLMs), with a \emph{safety valve} that audits and intercepts their inputs and outputs so that hate language is, ``where necessary'', blocked (\clause{5.4.1}).
+Its public-welfare protocol makes an AI organisation, NaturalDAO, responsible for welfare decisions without human votes, for anomaly detection, for a verifiable decision chain and for adjudicating disputes, while human supervision ``does not directly intervene'' (\art{2}--\art{10}).
+Read as engineering requirements, these clauses ask for the kind of fast, structured and recordable judgement that typed models provide.
+The judgements at stake would restrict speech, allocate welfare and settle disputes.
+
+\paragraph{The gap.}
+Whether a model can perform a governance judgement cannot be answered against ``AI governance'' in general, because it depends on what the judgement is: which options it chooses among, what record it leaves, who acts on its output and what happens when it is wrong.
+Most governance texts specify actors and procedures rather than the judgement itself (\cref{sec:paradigms}).
+\pol{} is not unique, since China's 2023 Interim Measures on generative AI~\cite{cac2023genai} also join an intercept duty, the standard it applies and duties attached to decisions.
+It is a useful object of study because its construct and its point of interception (every input and output) are stated in citable clauses from which testable requirements can be derived, while how the valve works is left open.
+The evidence on typed models is scattered across dozens of preprints written in the model's first weeks and organised around model evaluation rather than around what a safeguard must do.
 
 \paragraph{Detector or judge.}
 Our conclusions turn on a distinction between two roles.
 A \emph{detector} produces a recorded signal that ranks, prioritises or triggers review, or that triggers only actions bounded in time and fully reversible.
 A \emph{judge} is any automated component or ensemble whose output, without contemporaneous human confirmation, determines an outcome that restricts a person's speech, resources or account beyond a short bounded period, or that cannot be fully reversed on appeal.
-An automatic \emph{allow} restricts no one and so remains within the detector role, but it is consequential for anyone the allowed content harms; we therefore treat it as a deliberate, audited exception: its miss rate is a governed quantity alongside the false-block rate, and allows are audited by random sampling.
-We use \emph{judge} in this sense only; where the literature speaks of ``LLM judges'' or ``LLM-as-a-judge'' we write \emph{LLM evaluators}, except in paper titles.
+An automatic \emph{allow} restricts no one and so remains within the detector role.
+It is still consequential for anyone the allowed content harms, so its miss rate is governed alongside the false-block rate.
+Where the literature speaks of ``LLM judges'' we write \emph{LLM evaluators}.
 
-\paragraph{Thesis.}
-Our thesis is conditional and comparative.
-The evidence retrieved by 4~October 2026 supports typed decision models as detectors under added conditions: they rank risky content well on English benchmarks at a fraction of the cost of LLM evaluators, and in one preregistered study on simulated data, accepting their low-risk verdicts only when an independently built rule agreed lost no accuracy relative to a frontier LLM, though disguised attacks still passed.
-It does not support them as judges: thresholds do not transfer between settings, decisions can follow the names of options rather than their definitions, an inserted opinion can steer them, an explicit ``I don't know'' option is rarely chosen when it is correct and ``none'' is chosen inconsistently, and, on rubric grading, low-cost peer evaluators repeated almost all of the errors on which a typed model was most confident.
-Where typed and generative evaluators were compared on the same requirement, typed models were not generally worse; but most of the failures were never compared, so the evidence neither singles out typed models nor shows that their failures are shared.
-No study yet measures the construct \pol{} needs, three-valued judgements of Love Language, hate language and the state of absence in Chinese, so even the detector claim is an extrapolation, and the certainty of every finding is low or very low (\cref{tab:keyfindings}).
-For \pol{} itself the verdict is therefore explicit (\cref{sec:verdict}): on current evidence hosted \jev{} is not a suitable tool for any function of the specification that decides, that is, dispute adjudication, automatic ethical verification, per-person quantification (on steering evidence and, since no study measures error by group, on precautionary grounds), or a final block of a person's speech; for the functions that detect, the safety valve, output truncation and anomaly detection on text (not on numeric or structured signals without a trained model), it is usable only as a recorded detector inside the design of \cref{sec:design}, and the public-decision assessment of \clause{5.6} only as an audited aggregate measurement with its measured error carried into every conclusion; that use is an extrapolation from English benchmarks.
-An update search to 8~October, reported separately (\cref{sec:update}), reversed none of these answers; it qualified one statement, on the accuracy of decomposed decision chains, raised one certainty rating, that thresholds set in advance miss their error targets on new data, from very low to low, and added a study that contests another finding, that escalation to a stronger reasoner saves cost without loss of accuracy.
+\paragraph{This work.}
+Our research question is:
+\begin{quote}
+\emph{To what extent, and under what conditions, can typed decision models perform the judgements that a clause-governed AI safeguard such as the \pol{} safety valve requires, and what does the evidence imply for how such a specification should be written and implemented?}
+\end{quote}
+We answer it in three steps (\cref{fig:framework}).
+We turn the clauses of \pol{} that require or constrain machine judgement into seven testable requirements, G1--G7 (\cref{sec:requirements}).
+We assess \nStudies{} studies and \nGreyAll{} grey-literature sources on typed models against them, reading every source that bears on a requirement in full and rating the certainty of each key finding (\cref{sec:method,sec:evidence}).
+Finally, we read the evidence back into the specification as five tensions, a reference design and a verdict, function by function (\cref{sec:implications}).
+
+\paragraph{Takeaways.}
+The evidence supports typed decision models as detectors under added conditions.
+They rank risky content well on English benchmarks at a fraction of the cost of LLM evaluators.
+In one preregistered study on simulated data, accepting their low-risk verdicts only when an independently built rule agreed lost no accuracy relative to a frontier LLM, though disguised attacks still passed.
+It does not support them as judges.
+Thresholds do not transfer between settings, decisions can follow the names of options instead of their definitions, and content inserted into what they audit can steer them.
+An explicit ``I don't know'' option is rarely chosen when it is correct, and ``none'' is chosen inconsistently.
+On rubric grading, low-cost peer evaluators repeated almost all of the errors on which a typed model was most confident.
+Where typed and generative evaluators were compared, typed models were not generally worse, but most failures were never compared, so the evidence neither singles out typed models nor shows that their failures are shared.
+Our verdict for \pol{} (\cref{sec:verdict}) is that on current evidence hosted \jev{} is not a suitable tool for any function of the specification that decides.
+For the functions that detect (the safety valve, output truncation, and anomaly detection on text but not on numeric or structured signals without a trained model), it can serve only as a recorded, three-valued, locally calibrated detector inside the design of \cref{sec:design}.
+For the public-decision assessment of \clause{5.6}, it can serve only as an audited aggregate measurement.
+No study yet measures the construct \pol{} needs, three-valued judgements of Love Language, hate language and the state of absence in Chinese.
+Even the detector claim is therefore an extrapolation, and the certainty of every finding is low or very low (\cref{tab:keyfindings}).
 
 \paragraph{Contributions.}
 \begin{enumerate}
-  \item \textbf{A requirements analysis of a governance specification.} We turn the clauses of \pol{} that require or constrain machine judgement into seven testable requirements, G1--G7 (\cref{sec:method}), and quote them, with the related passages we cite, in both languages (passages from \nPolClauses{} clauses, \cref{app:concordance}), and place the specification among five other governance paradigms to show which of its properties make its clauses readable as testable requirements for an inference-time safeguard, and what each costs (\cref{sec:paradigms}).
-  \item \textbf{A structured evidence assessment.} We assess \nPapers{} studies and \nGrey{} grey-literature sources against these requirements: every source that bears on a requirement is read in full, appraised, and coded with a symmetric codebook by AI agents under the author's direction, a random sample is double-coded blind by a second AI coder, and key findings carry a certainty rating (\cref{sec:method,sec:evidence}).
-  \item \textbf{A clause-level policy analysis.} The evidence sharpens five tensions within the specification, on emotion recognition, binary verdicts, transparency with closed models, non-intervention in AI adjudication, and per-person scoring, which we compare with the EU AI Act, the General Data Protection Regulation (GDPR), the Digital Services Act and content-moderation norms (\cref{sec:synthesis}).
-  \item \textbf{A reference design with acceptance criteria.} We propose a safeguard in which typed models are recorded, three-valued, locally calibrated detectors and consequential decisions end with a person, together with provisional pass criteria any model should meet before deployment (\cref{sec:design}), and an explicit verdict, function by function, on whether hosted \jev{} is a suitable tool for \pol{} on current evidence (\cref{sec:verdict}).
+  \item \textbf{A clause-level requirements analysis} of a governance specification: seven testable requirements, with every cited passage quoted in both languages (\cref{sec:requirements}; \oa{A}).
+  \item \textbf{A structured evidence assessment} of \nStudies{} studies and \nGreyAll{} grey sources against those requirements, with a symmetric codebook, blind second coding, quality appraisal and scripted certainty ratings (\cref{sec:method,sec:evidence}).
+  \item \textbf{A policy analysis} of five tensions in the specification, compared with the EU AI Act, the General Data Protection Regulation (GDPR) and the Digital Services Act (DSA) (\cref{sec:synthesis}).
+  \item \textbf{A reference design with acceptance tests}, and an explicit verdict, function by function, on whether hosted \jev{} is a suitable governance tool for \pol{} (\cref{sec:design,sec:verdict}).
 \end{enumerate}
-The evidence assessment is the method by which the policy questions are answered: we do not attempt a general review of typed decision models, and studies are discussed only insofar as they bear on G1--G7.
-
-\paragraph{Relation to prior work.}
-The closest prior work is an audit of the first 28 typed-model papers (19--24~September), which found that typed readout had not yet shown an independent accuracy advantage over reading label probabilities from a generative model, and proposed a 14-item evaluation checklist~\cite{arx32160}.
-We cover a later and larger window, including the first studies of opinion attacks, abstention, probabilistic coherence and gated cascades; we read every source in full; and we organise the evidence around a governance specification and its regulatory context rather than around model evaluation.
-Our evaluation checklist extends that of~\cite{arx32160} with pass criteria (\cref{tab:checklist}).
-An earlier dataset release~\cite{survey01} summarised studies mainly from their abstracts; this paper supersedes it, and \cref{app:corrections} lists the substantive corrections.
 
 \paragraph{Scope.}
-We take the \pol{} clauses as the starting specification and ask whether, and how, they can be implemented with current evidence.
-Where the evidence bears on whether a clause can be implemented as written, \cref{sec:synthesis} identifies the tension and offers options, at least one of which preserves the text; we do not evaluate \pol{}'s broader normative or political commitments.
+The closest prior work audited the first 28 typed-model papers and proposed a 14-item evaluation checklist~\cite{arx32160}.
+We cover a later and larger window, read every source in full, and organise the evidence around a governance specification and its regulatory context.
+An earlier, abstract-based dataset release~\cite{survey01} is superseded, and \oa{E} lists the corrections.
+We take the \pol{} clauses as the starting specification and do not evaluate its broader normative or political commitments.
 The author contributes to \pol{} (see \hyperref[sec:statements]{Positionality and competing interests}).
-Our conclusions apply to \texttt{jev-1.13} (or the unreported hosted version used in some studies) and to the open models available on 1~October 2026.
+Our conclusions apply to \texttt{jev-1.13} (or the unreported hosted version used in some studies) and to the open models available by 8~October 2026.
+An online appendix\footnote{\url{https://github.com/naturaldao/NaturalDAO/blob/main/PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey/paper/online_appendix.pdf}} gives the clause concordance (A), the search, selection and codebook (B), the derivation of every certainty rating (C), supporting tables (D) and the corrections to the earlier dataset release (E). The coding data, with a rationale and locator for every study--requirement pair, are released with it.

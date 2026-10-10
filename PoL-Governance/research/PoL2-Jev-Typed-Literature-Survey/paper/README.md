@@ -1,15 +1,17 @@
 # paper/ — 论文（arXiv 格式）
 
-**Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 (PoL2) Specification Against Early Evidence**（v0.4，2026-10-09）
+**Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 Specification**（v0.5，2026-10-10）
 
-正文：[main.pdf](main.pdf)；补充材料 S1–S5：[supplement.pdf](supplement.pdf)；中文译稿：[zh/main_zh.pdf](zh/main_zh.pdf)、[zh/supplement_zh.pdf](zh/supplement_zh.pdf)（英文版为正式版本）。arXiv 提交包：`arxiv-submission.zip`（由 `make_arxiv.py` 生成，补充材料作为 `anc/supplement.pdf` 附属文件，已在干净目录中单独编译通过）。提交表单所需的纯文本元数据：`arxiv_metadata.txt`。
+论文：[main.pdf](main.pdf)（投稿版，只含正文与参考文献，正文约 1.2 万词）。在线附录：[online_appendix.pdf](online_appendix.pdf)（27 页；A 条款中英对照、B 检索筛选与编码手册、C 每项确定性评级的推导表、D 治理范式对比表、验收清单与结论全表、E 对早期数据集的更正）。逐项研究的编码、理由与定位见 `../data/`。检索以 2026-10-08 为截止，正文按一次完整检索报告（各次运行日期见在线附录 B），计数由 `../scripts/merge_all.py` 合并生成。中文译稿 [zh/main_zh.pdf](zh/main_zh.pdf)、[zh/supplement_zh.pdf](zh/supplement_zh.pdf) 目前对应 v0.4.1 长版（英文版为正式版本）。arXiv 提交包：`arxiv-submission.zip`（由 `make_arxiv.py` 生成，只含正文，已在干净目录中单独编译通过）。提交表单所需的纯文本元数据：`arxiv_metadata.txt`。
 
 ## 文件
 
 | 路径 | 内容 |
 |---|---|
-| `main.tex` / `supplement.tex` / `preamble.tex` | 正文、补充材料（原附录 A–E，编号 S1–S5）与共享导言（pdflatex；中文引文用 CJKutf8） |
-| `build.py` | 编译正文与补充材料，并互相导入交叉引用（生成 `main_labels.tex`、`supplement_labels.tex`）；`--zh` 编译中文译稿 |
+| `main.tex` / `preamble.tex` | 论文（`sections/0*.tex`）与导言（pdflatex；中文引文用 CJKutf8；版式对标 COMPL-AI：Latin Modern 正文、无衬线粗体标题） |
+| `online_appendix.tex` | 在线附录；`online/certainty_derivation.tex` 由 `../scripts/rate_certainty.py --derivation` 生成 |
+| `counts_all.tex` | 全部检索合并后的计数，由 `../scripts/merge_all.py` 生成，勿手改 |
+| `build.py` | 编译论文（pdflatex、bibtex、pdflatex ×3）；`--zh` 编译中文译稿 |
 | `counts_update.tex` | 补充检索计数，由 `../scripts/merge_update.py` 生成 |
 | `zh/` | 中文译稿（xelatex）；`GLOSSARY.md` 术语表，`QA_LOG.md` 审校记录 |
 | `counts.tex` | 语料计数与一致性统计，由 `../scripts/merge_coding.py` 生成，勿手改 |
@@ -43,6 +45,6 @@ python make_arxiv.py
 
 - 定位：cs.CY 研究论文，不称“综述”；“judge”只用于文中定义的“裁决者”含义，泛指的 LLM-as-a-judge 写作 “LLM evaluators”。
 - 术语跟随 PoL2 官方英译（`PoLEn/`）：Love Language、hate language、state of absence、Public AI (PAI)、right of suggestion、universal questioning period。
-- 条款编号以 NaturalDAO commit `5791ae3` 为准；补充材料 S1 为中英逐字摘录与旧编号。
+- 条款编号以 NaturalDAO commit `5791ae3` 为准；在线附录 A 为中英逐字摘录与旧编号。
 - 标 ‡（`\zmark`）的是 Zenodo 记录，标 †（`\gmark`）的是灰色文献；所有来源均已全文阅读。
-- 证据编码（S/Q/N，针对“检测器”用途，对称规则 v3）在 `data/evidence_coding.csv`，规则见补充材料 S5；质量评估在 `data/quality_appraisal.csv`；盲法第二编码者结果在 `data/coder_agreement.csv`。
+- 证据编码（S/Q/N，针对“检测器”用途，对称规则 v3）在 `data/evidence_coding.csv`，规则见在线附录 B；质量评估在 `data/quality_appraisal.csv`；盲法第二编码者结果在 `data/coder_agreement.csv`。

@@ -1,0 +1,42 @@
+\section{Method}
+\label{sec:method}
+
+The evidence assessment answers the policy question. It is not a general review of typed decision models, and a study enters only if it bears on G1--G7.
+We follow PRISMA~2020~\cite{page2021prisma} and the Cochrane rapid-review guidance~\cite{garritty2021cochrane} where they apply.
+No protocol was registered in advance. The last search run followed a written protocol, and \oa{B} states where the analysis departs from it.
+\oa{B} gives the queries, the selection counts and the codebook.
+
+\paragraph{Eligibility and search.}
+We included studies whose object, experimental component or direct comparator is a typed decision model, defined as a model that returns a probability distribution over options declared by the caller, or a probability for a declared statement, without generating free text.
+The first public version had to be dated from 15~September (the release of \jev{}) to 8~October 2026, and any language and design was eligible.
+Grey literature, included when it reports original measurements of a typed model, was not searched systematically and is marked \gmark{}. Zenodo records are marked \zmark{}.
+We searched arXiv with 18 queries on 1, 4 and 8~October, Zenodo with 11 queries on 1 and 8~October, two community trackers~\cite{xiao2026allaboutjev,rafe2026awesome} before 1~October and on 8~October, and Hugging Face Papers, OpenReview, SSRN and the web before 1~October. The search was completed on 8~October 2026.
+After screening by title, abstract and full text, the corpus contains \nArxivAll{} arXiv papers, \nZenodoAll{} Zenodo records and one paper available only on alphaXiv (\nStudies{} studies in all), and \nGreyAll{} grey-literature sources.
+Of these, \nCodedAll{} report results that bear on at least one requirement and are coded. The others are engineering papers outside the requirements, tools without an evaluation, or non-empirical items.
+
+\paragraph{Coding.}
+Each pair of a study and a requirement it informs was coded for \emph{detector} use with a symmetric codebook.
+A pair is coded \emph{supports} (S) if the primary result shows the typed model performing the function at least as well as its comparators, or meeting the study's own criterion, without an extra condition the study had to add.
+It is \emph{negative} (N) if the model fails the function or does clearly worse than its comparators, and \emph{qualifies} (Q) if the result is mixed or depends on an added condition such as a locally fitted threshold, recalibration, a restriction of language or domain, or human review.
+Conditions that make up a requirement's test, such as adversarial content for G2 or name and order perturbations for G3, are not added conditions.
+We also recorded how the typed model compared with any generative comparator on that requirement.
+Studies differ in tasks, metrics and designs, so we do not pool effects. The codes count studies and are not effect sizes~\cite{campbell2020swim}.
+A second AI coder coded \nKappaNAll{} pairs blind to the first coding: 30 randomly sampled pairs from the records of the runs of 1 and 4~October and all 118 pairs from the records added by the run of 8~October. Agreement was \nKappaAgreeAll{} (Cohen's $\kappa = \nKappaAll{}$, bootstrap 95\% CI \nKappaAllLo{}--\nKappaAllHi{}), and disagreements were resolved by re-reading the source or by a third AI pass.
+
+\paragraph{Appraisal and certainty.}
+Each coded study and each non-empirical or context item was appraised on independence, design and the reporting of sample sizes and uncertainty.
+A study is of \emph{stronger design} if it was preregistered or held-out, reported sample sizes with intervals or tests, \emph{and} evaluated a system its authors did not build.
+It is of \emph{weaker design} if it was a single run, a case study or non-empirical, or reported neither sample sizes nor uncertainty, and \emph{moderate} otherwise.
+Of the \nAppraisedAll{} appraised sources, \nStrongerAll{} are of stronger design, \nModerateAll{} moderate and \nWeakerAll{} weaker. None is peer reviewed.
+For each key finding we rated the certainty of the evidence in the spirit of GRADE~\cite{guyatt2008grade}, which starts non-randomised evidence at \emph{low}.
+A finding is \emph{very low} if it rests on a single study, on studies none of which is of stronger design, or, when it concerns hosted \jev{} or typed models generally, on open-model evidence only.
+It is \emph{low} if at least two studies agree in direction and at least one is of stronger design, and \emph{moderate} if at least three independent stronger-design studies agree and at least one is preregistered or independently replicated.
+Studies sharing an author count as one.
+Findings about hosted \jev{} or typed models generally are rated on hosted-model evidence alone, with open-model studies as corroboration.
+A study that points the other way marks a finding \emph{contested}, and lowers its rating by one level if it ranks at least as high as the strongest supporting study.
+The ratings are computed by \nolinkurl{scripts/rate_certainty.py} from every coded study's assignment to each finding, and \oa{C} lists, for each finding, the studies counted for and against it.
+
+\paragraph{Reviewers and tools.}
+AI agents (Claude Opus 5.5, Anthropic) ran the searches, screened, extracted data from full texts with locators, coded, appraised, served as the blind second coder, and checked the numbers in the text against their sources in separate review passes.
+The author defined the research question, the requirements, the codebook and the decision rules, and is responsible for every judgement in the paper, but did not re-code or re-check individual codes by hand.
+No human screened or coded in duplicate.

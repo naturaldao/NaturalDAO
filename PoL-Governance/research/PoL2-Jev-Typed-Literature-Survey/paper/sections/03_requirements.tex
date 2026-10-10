@@ -1,0 +1,66 @@
+\section{From \pol{} clauses to testable requirements}
+\label{sec:requirements}
+
+\subsection{The specification}
+\label{sec:pol2}
+
+Proof of Love2 (\pol{}, \zh{爱2证明}) is a normative framework for governing AI systems and human institutions, published in Chinese with an official English translation as an open, versioned, CC0-licensed text~\cite{pol2text,pol2en}.
+Its core concepts were originated by one author and the text lists seven further contributors, one of whom is the author of this paper; it has not been peer reviewed.
+The framework is explicitly value-laden and political, and we do not assess these commitments.
+Clause numbers refer to commit \texttt{5791ae3} of the \texttt{PoL/} directory (30~September 2026, UTC), and \oa{A} quotes every passage we cite in both languages.
+
+\paragraph{Concepts.}
+\pol{} works with the linguistic and behavioural expressions of love and hate, \emph{Love Language} and \emph{hate language} (\clause{1.4}, \clause{4.3.2}).
+Hate is ``not directly equivalent to bad'', and the concepts ``serve structural analysis rather than moral labeling'' (\clause{1.5}).
+The Ethical Alignment Protocol (EAP) adds a third condition, the ``neither love nor hate'' \emph{state of absence} caused by noise or illness, confusion and misunderstanding, which is to be treated as interference in communication rather than as either pole (\clause{4.3.2}).
+The EAP holds that treating every person equally and treating every person's behaviour equally ``cannot be equated'' (\clause{4.3.1}).
+It asks Public AI (PAI) to understand human emotional states and to truncate its own output when a hate-language pattern is detected (\clause{4.3.3.1}), but states that it is ``entirely unnecessary'' for PAI to detect a person's emotional state (\clause{4.3}).
+
+\paragraph{The inner governance layer.}
+The engineering strategy does not retrain existing LLMs.
+It builds a governance layer ``within the existing large-language-model architecture to regulate inputs and outputs'' (\clause{5.4}), whose \emph{safety valve} performs ``strict dynamic auditing and interception of input and output'' so that hate language is, ``where necessary'', blocked at the input and suppressed at the output (\clause{5.4.1}).
+Any LLM ``may accept'' this governance (\clause{5.5}), and among the things governed AI ``can'' do the text lists quantifying ``each person's Love Language and hate-language characteristics'' and introducing \pol{} as a dimension of assessment in public decision-making (\clause{5.6}).
+
+\paragraph{The public-welfare protocol.}
+Chapter~7 lets NaturalDAO, an AI system ``presented in the form of a DAO'' (decentralised autonomous organisation), decide and execute welfare decisions autonomously: ``no human voting or additional decision-making mechanism is required'' (\art{2}(1)).
+Its operating logic and outputs must be fully open, it must provide a \emph{verifiable decision chain} of data sources, reasoning steps and ethical foundations, and it must give understandable explanations when questioned (\art{4}, \art{5}(5), \art{9}(2)).
+It verifies ethical alignment automatically (\art{6}(3)), performs anomaly detection and risk warning (\art{7}) and adjudicates disputes through AI fact-finding and ethical assessment, subject to human questioning (\art{10}), while human supervision ``does not directly intervene'' in decisions (\art{9}(7)).
+
+\paragraph{Why typed models are relevant.}
+Read as a specification, these clauses call for a very large number of fast, structured judgements, one for each input and output the safety valve audits and for every truncation, anomaly flag and dispute, each machine-actionable, recorded and explainable on request.
+A typed decision model returns the object such a pipeline consumes, a declared option with a probability, cheaply enough to be applied to every message.
+That makes it a natural candidate for the safety valve, and its failure modes therefore need to be understood before it is placed there.
+
+\subsection{Seven requirements}
+\label{sec:glist}
+
+We read the Chinese text and its official translation for every clause that requires a machine judgement or constrains one, and grouped the clauses by the question they raise about such a judgement.
+This gives seven requirements, G1--G7 (\cref{tab:clauses}).
+They are our reading of the text and not a classification proposed by its authors.
+Two choices of reading matter.
+\Clause{4.3.3.1} asks PAI to calibrate its \emph{cognitive model} against the framework's principles, which is value alignment rather than statistical calibration.
+We therefore anchor the honesty requirement G4 in the state of absence, in behavioural self-reflection and in the transparency duties of Chapter~7, all of which presuppose that a reported confidence means what it says.
+The text also does not say how the safety valve should be built.
+We take a typed model in the role of the valve as the case to be assessed, not as something the text prescribes.
+G1--G5 arise for any paradigm that adds an inference-time intercept, and the escalation question of G6 wherever oversight is automated.
+Non-intervention and AI-only adjudication (G6) and per-person and public assessment (G7) follow from \pol{}'s own institutional choices.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Requirements derived from the \pol{} text. Clause numbers follow commit \texttt{5791ae3}; every passage is quoted in \oa{A}.}
+\label{tab:clauses}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}p{0.33\linewidth}L@{}}
+\toprule
+Req. & \pol{} clauses & Question about a typed safeguard \\
+\midrule
+\axis{G1} Detection & \clause{5.4.1} safety valve; \art{7}(2)--(3) anomaly detection and risk warning & Can it detect violating or out-of-scope content and behaviour, at thresholds that hold in deployment? \\
+\axis{G2} Attackability & \clause{5.4.1} safety valve; \clause{4.3.3.1} hate-language truncation & Can the content under review steer the decision? \\
+\axis{G3} Semantic fairness & \clause{1.5} concepts are not moral labels; \clause{4.3.1} equal connection; \clause{4.3.2} promoting love and restraining hate; \clause{4.3.3.3} semantic recognition & Are decisions stable under option names, definitions, order, wording, language and script, and fair across groups? \\
+\axis{G4} Honesty & \clause{4.3.2} state of absence; \clause{4.3.3.1} behavioural self-reflection & Are probabilities calibrated and coherent, and does the model report insufficient information when it should? \\
+\axis{G5} Decision chains & \art{4} transparency and explanation; \art{5}(4) no black box; \art{5}(5) verifiable decision chain; \art{9}(2) obligation to explain & Can a decision that is only a number be recorded, decomposed, audited and explained? \\
+\axis{G6} Oversight & \art{9}(7) non-intervention; \art{10} dispute adjudication & Does ``act when confident, escalate when unsure'' work, and where should escalation end? \\
+\axis{G7} Public scale & \art{2}(1) autonomy; \clause{5.5} any LLM may accept governance; \clause{5.6} per-person and public assessment & What conditions apply when typed models judge or simulate at the scale of a public? \\
+\bottomrule
+\end{tabularx}
+\end{table}

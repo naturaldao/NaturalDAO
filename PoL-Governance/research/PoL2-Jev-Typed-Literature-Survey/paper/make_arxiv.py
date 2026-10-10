@@ -48,8 +48,9 @@ def main():
     OUT.mkdir()
 
     tex_files = {"main.tex": P / "main.tex", "preamble.tex": P / "preamble.tex", "counts.tex": P / "counts.tex",
-                 "counts_update.tex": P / "counts_update.tex", "supplement_labels.tex": P / "supplement_labels.tex"}
-    # the paper only; the appendices are the supplement, shipped as a PDF in anc/
+                 "counts_update.tex": P / "counts_update.tex",
+                 "counts_all.tex": P / "counts_all.tex"}
+    # the paper only; the online appendix is a separate PDF on GitHub
     for f in (P / "sections").glob("0*.tex"):
         tex_files[f.name] = f
     used_figs = set()
@@ -67,10 +68,6 @@ def main():
     }, indent=2) + "\n", encoding="utf-8")
 
     bad = [f.name for f in OUT.iterdir() if " " in f.name or f.name.startswith(".") or f.is_dir()]
-    if not (P / "supplement.pdf").exists():
-        raise SystemExit("supplement.pdf missing: run python paper/build.py first")
-    (OUT / "anc").mkdir()
-    shutil.copy(P / "supplement.pdf", OUT / "anc" / "supplement.pdf")
     if bad:
         raise SystemExit(f"non-flat or badly named entries: {bad}")
 

@@ -1,6 +1,7 @@
-"""Build the paper and its supplement, with cross-references in both directions.
+"""Build the paper.
 
-The paper (main.tex) and the supplementary material (supplement.tex) are separate PDFs. Each imports the
+English: main.tex is one PDF with the appendices after the references (pdflatex, bibtex, pdflatex x3).
+Chinese (--zh): the translation and its supplement are separate PDFs. Each imports the
 other's labels from a generated file (supplement_labels.tex, main_labels.tex) so that \\cref works across
 them; hyperlink targets are dropped, because they live in the other PDF.
 Run:  python paper/build.py        (English, pdflatex)
@@ -56,8 +57,31 @@ def run(cmd, cwd):
     subprocess.run(cmd, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def build_single(d, stem):
+    for ext in (".aux", ".out", ".bbl"):
+        (d / (stem + ext)).unlink(missing_ok=True)
+    tex = ["pdflatex", "-interaction=nonstopmode", stem]
+    run(tex, d)
+    run(["bibtex", stem], d)
+    for _ in range(3):
+        run(tex, d)
+    log = (d / f"{stem}.log").read_text(encoding="latin-1")
+    pages = re.search(r"Output written on \S+ \((\d+) pages", log)
+    errs = log.count("\n!")
+    undef = len(re.findall(r"(Citation|Reference) .* undefined", log))
+    multi = len(re.findall(r"multiply defined", log))
+    print(f"{stem}: {pages.group(1) if pages else '?'} pages, errors={errs}, undefined={undef}, multiply-defined={multi}")
+
+
 def main():
     zh = "--zh" in sys.argv
+    if not zh:
+        build_single(P, "main")
+        # online appendix: imports the paper's labels so that \cref prints the paper's numbers
+        n = export_labels(P / "main.aux", P / "main_labels.tex")
+        build_single(P, "online_appendix")
+        print(f"labels: {n} from paper")
+        return
     d = P / "zh" if zh else P
     eng = "xelatex" if zh else "pdflatex"
     main_tex, supp_tex = ("main_zh", "supplement_zh") if zh else ("main", "supplement")
