@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.5.0 — 2026-10-10
+
+- **按投稿规范重写正文**：以 COMPL-AI（arXiv 2410.07959）与 Policy-as-Prompt（arXiv 2502.18695，FAccT 2025）为结构对标，正文由约 2.86 万词压缩到约 1.2 万词（20 页正文 + 参考文献），摘要压到约 210 词；结构为 引言（含贡献）→ 背景与相关工作 → PoL2 条款到七项要求 → 方法 → 逐条结果 → 对 PoL2 的含义（张力、参考设计、结论表）→ 讨论与局限 → 结论。
+- **格式对齐对标论文**：标题页不再写日期与链接（日期由 arXiv 标注）；标题与各级标题改为无衬线粗体，正文 Latin Modern（对标 COMPL-AI）。PDF 只含正文与参考文献（31 页），附录压缩为 27 页的在线附录（`paper/online_appendix.pdf`，A 条款对照、B 检索与编码、C 评级推导表、D 支撑表格、E 更正），正文以 “Online Appendix B” 引用；逐项研究的证据表与研究目录只保留为 `data/` 中的 CSV。
+- **检索按一次完成报告**：检索截至 2026-10-08，10 月 1、4、8 日三次运行的记录合并为一个语料库（163 项研究、7 项灰色文献、133 项编码、279 个配对），正文不再单列“更新检索”；各要求的 S/Q/N 计数、与生成式评估器的比较、κ（合并 148 对，0.59）与图 1 均按合并数据重算（`scripts/merge_all.py` → `paper/counts_all.tex`）。确定性评级本来就以全部研究计算，未变。
+- **语言修订**：按 `paper/review/STYLE_GUIDE.md` 去除模板化表达（分号串联、“不是……而是……”、修辞性收尾等）；`paper/review/check_invariants.py` 逐文件核对数字、引用、交叉引用、条款号与引文均未改变。
+- 标题缩短为 “Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 Specification”。
+- 结论、确定性评级与数据均未改变（`rate_certainty.py --check` 通过）；中文译稿暂对应 v0.4.1 长版。
+
 ## 0.4.1 — 2026-10-10
 
 - 作者信息：Shentao Yan（鄢申涛），香港理工大学，shenton.yan@connect.polyu.hk，ORCID 0009-0004-2384-2240；中英文版、arXiv 元数据与 CITATION.cff 同步。

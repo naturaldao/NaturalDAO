@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 (PoL2) Specification Against Early Evidence"
+title: "Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 Specification"
 message: "If you use this paper or its data, please cite it as below. The papers in papers/ must be cited separately under their own licences."
 type: dataset
 authors:
@@ -9,7 +9,7 @@ authors:
     email: "shenton.yan@connect.polyu.hk"
     orcid: "https://orcid.org/0009-0004-2384-2240"
 date-released: 2026-10-10
-version: 0.4.1
+version: 0.5.0
 license: CC0-1.0
 repository-code: "https://github.com/naturaldao/NaturalDAO"
 keywords:

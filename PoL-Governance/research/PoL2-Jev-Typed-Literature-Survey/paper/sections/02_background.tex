@@ -1,76 +1,53 @@
-\section{Background}
+\section{Background and related work}
 \label{sec:background}
 
 \subsection{Typed decision models}
 \label{sec:tdm}
 
-\paragraph{Interface.}
-A typed decision model receives a \emph{state} (text or structured data) and one or more questions, each with an option set declared by the caller.
-For each question it returns a probability distribution over exactly those options and generates no free text~\cite{arx23886,arx26758,arx32160}.
-\jev{} offers three question types~\cite{typesafe_intro,arx32160}:
-\emph{Choice} selects among listed options (up to 255) and returns probabilities and a confidence value;
-\emph{Score} rates the state against ordered rubric levels;
-\emph{Noul} asks whether a statement is true and returns the probability of ``yes''.
-Many questions about one state can be answered in a single call~\cite{arx29429,arx28919}.
-In a census of 2{,}170 public projects using \jev{} by 22~September, Choice appeared in 81.0\% of projects, Noul in 72.2\% and Score in 45.4\%~\cite{arx30216}.
-
-\paragraph{Readout and training.}
-The hosted model is closed.
-TypeSafe describes a ``parallel sampler'' and training by \emph{reinforcement learning for calibrated decisions} (RLCD), and publishes the calibration property this training targets (among outcomes given probability $p$, a fraction close to $p$ should occur), but not the architecture, the reward, the data or the weights~\cite{almeida2026introducing,typesafe_primer,arx24574,arx28919}.
-Open-weight models with the same interface appeared within days and make the mechanism inspectable.
-They fall into three readout families~\cite{arx32160}:
-(i) decoders that score the hidden state at a designated answer position against the embeddings of the option labels and normalise over the declared options only (this-that-model-1.0, JevLite, SemIf, Visual Jev)~\cite{arx23886,arx23959,arx22753,arx25845};
-(ii) encoders that read a marker token placed at each option (Laya, a ModernBERT model)~\cite{arx26758}; and
-(iii) encoders that pool the option name and its definition (Open-Jev, a DeBERTa model)~\cite{arx26758}.
-Readouts of the same kind can also be taken from frozen instruction-tuned LLMs without further training~\cite{arx00831,arx02076}.
-Two open models train with cross-entropy plus a Brier-score term~\cite{arx23886,arx23959}, and one open implementation of RLCD uses a REINFORCE loop rewarding the outcome minus the probability placed on the chosen option~\cite{arx24574}.
-
-\paragraph{What ``type-safe'' guarantees.}
-In open models the scores of options outside the declared set are masked before normalisation, so every answer is a valid member of the option set by construction; for hosted \jev{} this is the documented behaviour~\cite{arx26758,typesafe_intro}.
-This guarantees \emph{form}, not \emph{correctness}~\cite{arx26758}; calibration is a separate empirical property (\cref{sec:g4}).
-Hosted \jev{} is not deterministic: identical repeated requests change a small share of labels, and probabilities are reported on a two-decimal grid~\cite{arx32160,arx01006}.
-The vendor's documentation lists nine known failure modes for \texttt{jev-1.13}, including literal reading, arithmetic, dates, indirection, large irrelevant state, adversarial content and contradictory instructions; a version of the page archived on 20~September also gave an example in which a statement and its complement received probabilities 0.72 and 0.47~\cite{typesafe_jaggedness}.
-
-\paragraph{Cost and latency.}
+A typed decision model receives a \emph{state} (text or structured data) and one or more questions, each with an option set declared by the caller, and for each question returns a probability distribution over exactly those options without generating free text~\cite{arx23886,arx26758,arx32160}.
+\jev{} offers three question types: \emph{Choice} selects among listed options, \emph{Score} rates the state against ordered rubric levels, and \emph{Noul} returns the probability that a statement is true~\cite{typesafe_intro,arx32160}.
+The hosted model is closed. TypeSafe describes training by \emph{reinforcement learning for calibrated decisions} (RLCD) but publishes neither the architecture, the reward, the data nor the weights~\cite{almeida2026introducing,typesafe_primer}.
+Open-weight models with the same interface, which read the hidden state against the option labels in a decoder or read option markers or definitions in an encoder~\cite{arx23886,arx23959,arx26758}, make the mechanism inspectable.
+Masking options outside the declared set makes every answer a valid option, which guarantees form but not correctness~\cite{arx26758}.
+Hosted \jev{} is not deterministic~\cite{arx32160,arx01006}.
 The vendor lists \$0.042 per million input tokens with free output~\cite{typesafe_models}, and its launch post cites 70--500\,ms per call~\cite{almeida2026introducing}.
-Independent client-side medians range from about 140 to 500\,ms depending on workload and request size~\cite{arx26550,arx27535,arx28919,arx22753,arx23136,arx27331,arx00346}.
-Relative to generative evaluators, reported cost reductions range from a few-fold to two orders of magnitude depending on the comparator and the pricing assumed: for alignment-failure detection, 63$\times$ pooled at list prices but about 12$\times$ under conservative repricing~\cite{arx29429}; for population simulation, 8$\times$ against a mid-tier model and 312--455$\times$ against a flagship model~\cite{arx27535}.
-The advantage is not universal: in one edge-orchestration study a hosted low-cost generative model was billed less than \jev{}~\cite{arx23136}, and inside a multi-step agent loop the hosted model took 1.4--2.1 times as long end to end, including API calls, as a local open scorer~\cite{arx00437}.
-
-\input{sections/02b_pol2}
+Reported cost reductions against generative evaluators range from a few-fold to two orders of magnitude, depending on the comparator and the pricing assumed~\cite{arx29429,arx27535}, and the advantage is not universal~\cite{arx23136,arx00437}.
 
 \subsection{Related work}
 \label{sec:related}
 
-The questions raised by typed safeguards are new instances of older problems, and we use the earlier literature to judge which findings are new.
+The questions raised by typed safeguards are new instances of older problems.
+Platform moderation has long combined automated classifiers with human review, and its critics have shown that automation hides contestable policy choices inside technical systems~\cite{gorwa2020algorithmic,gillespie2018custodians}.
+Safety classifiers that read token probabilities~\cite{inan2023llama,markov2023holistic,sharma2025constitutional} and programmable guardrails~\cite{rebedea2023nemo} are the closest technical precursors of a typed safety valve.
+Prompt injection~\cite{perez2022ignore,greshake2023not} and adversarial attacks~\cite{zou2023universal,toyer2024tensor} are the corresponding threats.
+Automated hate-speech detection shows racial and dialect bias~\cite{sap2019risk,davidson2019racial} and fails targeted functional tests~\cite{rottger2021hatecheck}.
+Aggregating annotators' labels by majority vote discards the disagreement a safeguard needs~\cite{davani2022dealing,plank2022problem}.
+Chinese offensive-language benchmarks exist~\cite{deng2022cold,lu2023toxicn}, but none labels the constructs of \pol{}.
+Inferring emotion from observable signals rests on weak scientific foundations~\cite{barrett2019emotional,stark2021ethics}.
+Calibration degrades under distribution shift~\cite{guo2017calibration,ovadia2019trust} and can hold on average while failing for subgroups~\cite{hebertjohnson2018multicalibration}.
+Abstention, learning to defer and conformal risk control formalise when a model should hand a case on~\cite{chow1970optimum,geifman2017selective,madras2018predict,angelopoulos2024conformal}.
+Language models are sensitive to option order, label names and prompt format~\cite{zhao2021calibrate,pezeshkpour2024large,sclar2024quantifying}, and LLM evaluators show position bias and correlated errors~\cite{wang2024fair,goel2025great}, for which panels and cascades are the established remedies~\cite{verga2024replacing,chen2023frugalgpt}.
+Human oversight of automated decisions often fails through over-reliance and misplaced responsibility~\cite{parasuraman2010complacency,green2022flaws,elish2019moral}, and automated adjudication threatens notice, reasons and the opportunity to contest~\cite{citron2008technological}, which data-protection, platform and AI law now partly codify~\cite{gdpr2016,dsa2022,euaiact2024,santaclara2021}.
 
-\paragraph{Automated content moderation.}
-Platform moderation has long combined automated classifiers with human review, and its critics have shown that automation hides contestable policy choices inside technical systems, shifts error costs onto users and resists accountability~\cite{gorwa2020algorithmic,gillespie2018custodians}.
-Safety classifiers that read token probabilities, such as Llama Guard~\cite{inan2023llama}, moderation models~\cite{markov2023holistic} and constitutional classifiers~\cite{sharma2025constitutional}, and programmable guardrails~\cite{rebedea2023nemo} are the closest technical precursors of a typed safety valve; prompt injection~\cite{perez2022ignore,greshake2023not,zhan2024injecagent} and adaptive adversarial attacks~\cite{zou2023universal,toyer2024tensor} are the corresponding threats.
+\subsection{\pol{} among AI-governance paradigms}
+\label{sec:paradigms}
 
-\paragraph{Hate speech, annotator disagreement and Chinese resources.}
-Automated hate-speech detection shows racial and dialect bias~\cite{sap2019risk,davidson2019racial}, fails targeted functional tests~\cite{rottger2021hatecheck}, and depends on annotators' beliefs and identities~\cite{sap2022annotators}.
-Where annotators disagree, aggregating labels by majority vote discards information that a safeguard needs~\cite{davani2022dealing,plank2022problem,pavlick2019inherent}.
-Chinese offensive-language and toxicity benchmarks exist~\cite{deng2022cold,lu2023toxicn,jiang2022swsr}, but none labels the constructs of \pol{}.
+\oa{D} compares \pol{}, as a text, with risk-based regulation, platform content governance, training-time alignment to a written constitution or spec, inference-time guardrails and decentralised governance, five paradigms under which automated judgement is already proposed or deployed.
+Most of them specify actors and procedures rather than the judgement itself.
+Risk-based regulation assigns duties by risk tier.
+The EU instruments prescribe no interception, while China's Interim Measures require providers to stop generating or transmitting unlawful content once found (Art.~14(1)), without specifying a mechanism~\cite{euaiact2024,cac2023genai}.
+Platform governance specifies notice, reasons and appeal around decisions whose criteria remain the platform's own policies~\cite{dsa2022,santaclara2021}.
+Training-time constitutions and specs state norms in natural language but implement them inside one vendor's model, and no output records which principle it followed~\cite{bai2022constitutional,openai2025modelspec}.
+Guardrails specify the intercept precisely, as code, but state no duty about reasons, records or the human role~\cite{inan2023llama,rebedea2023nemo}.
+DAOs specify how rules execute and who votes, but not how content or behaviour is judged~\cite{buterin2014ethereum,hassan2021decentralized}.
 
-\paragraph{Emotion recognition.}
-Inferring emotional states from observable signals rests on weak scientific foundations~\cite{barrett2019emotional}, and emotion recognition by AI systems raises distinct ethical risks of manipulation and of misreading people~\cite{stark2021ethics}; the EU AI Act prohibits emotion recognition from biometric data in workplaces and education, a definition that does not reach inference from text alone~\cite{euaiact2024}.
-
-\paragraph{Calibration, abstention and deferral.}
-Calibration of probabilistic predictions has a long literature, from Brier's score~\cite{brier1950verification} and Platt scaling~\cite{platt1999probabilistic} to the miscalibration of modern networks~\cite{guo2017calibration,naeini2015obtaining} and language models~\cite{jiang2021can,kadavath2022language,tian2023just,xiong2024can}; calibration degrades under distribution shift~\cite{ovadia2019trust} and can hold on average while failing for subgroups~\cite{hebertjohnson2018multicalibration}.
-Abstention goes back to Chow's reject option~\cite{chow1970optimum} and selective classification~\cite{geifman2017selective,kamath2020selective,wen2025know}; learning to defer formalises when a model should hand a case to a human expert~\cite{madras2018predict,mozannar2020consistent}, and conformal risk control gives distribution-free error guarantees under exchangeability~\cite{bates2021distribution,angelopoulos2024conformal}.
-
-\paragraph{Sensitivity and evaluator reliability.}
-Language models are sensitive to option order, label names and prompt format~\cite{zhao2021calibrate,lu2022fantastically,zheng2024large,pezeshkpour2024large,sclar2024quantifying,wei2023larger}, which is one reason holistic evaluation reports many scenarios and metrics rather than one score~\cite{liang2023holistic}.
-LLM evaluators show position bias~\cite{wang2024fair}, favour their own outputs~\cite{panickssery2024llm} and make correlated errors~\cite{goel2025great}; panels of diverse evaluators~\cite{verga2024replacing} and cascades that escalate uncertain items to a stronger model~\cite{zheng2023judging,chen2023frugalgpt,jung2025trust} are the established remedies.
-The typed setting removes generation but, as \cref{sec:evidence} shows, not these problems.
-
-\paragraph{Human oversight and due process.}
-Human oversight of automated decisions often fails: people over-rely on confident systems~\cite{parasuraman2010complacency}, oversight policies assume abilities reviewers lack~\cite{green2022flaws,green2019principles}, human--AI teams do not reliably beat the better member~\cite{bansal2021whole}, and responsibility can be shifted onto the nearest human operator~\cite{elish2019moral}.
-Automated adjudication also threatens notice, reasons and the opportunity to contest~\cite{citron2008technological,wachter2018counterfactual,doshivelez2017towards}, which data-protection, platform and AI law now partly codify~\cite{gdpr2016,dsa2022,euaiact2024,santaclara2021}, alongside risk-management frameworks~\cite{nist2023airmf}.
-Documentation practices for models and datasets~\cite{mitchell2019model,gebru2021datasheets} inform what a decision record should contain.
-
-\paragraph{Algorithmic governance, DAOs and social scoring.}
-Decentralised autonomous organisations encode governance in software~\cite{buterin2014ethereum,hassan2021decentralized,santana2022blockchain}, continuing older work on governing common resources~\cite{ostrom1990governing}, and raise the concern that rule by algorithm narrows human participation~\cite{danaher2016threat}.
-Value specifications for AI, such as constitutions used in training~\cite{bai2022constitutional}, are the nearest analogue to \pol{}'s Ethical Alignment Protocol.
-Systems that score individuals' behaviour for public purposes, such as China's social credit system, show how such scores become infrastructure for control~\cite{creemers2018social,liang2018constructing}.
+Five properties characterise \pol{} in this comparison, each with a cost.
+(i) It places a model-agnostic intercept inside existing LLMs (\clause{5.4}, \clause{5.5}) but leaves its mechanism, threshold and appeal unspecified.
+(ii) Its three-valued construct, Love Language, hate language and the state of absence, is declared not to be a set of moral labels (\clause{1.5}, \clause{4.3.2}) and has not been operationalised beyond 20 pilot items~\cite{polgov}.
+(iii) The text is open, versioned and citable, but it is controlled by its originator and has not been peer reviewed.
+(iv) Auditability duties for welfare decisions, a verifiable decision chain, explanation on request and access to all data and logs (\art{5}(5), \art{9}(2)--(3)), conflict with the privacy of the persons judged and with keeping decision probabilities from attackers.
+(v) Population-level aims appear in citable clauses: the text permits per-person quantification and provides for AI-only welfare decisions (\clause{5.6}, which says governed AI ``can'', not must, do the former; \art{2}(1), \art{9}(7)).
+AI-only welfare decisions sit against EU human-oversight provisions (directly for the systems they cover, by analogy otherwise), and per-person quantification resembles the social scoring that the AI Act prohibits.
+\pol{} and the Interim Measures are the two texts compared that join, in one instrument, an inference-time intercept, the construct it applies and duties attached to decisions.
+Both leave a gap at the individual block, since neither requires that a person whose content is blocked be told of the block.
+We study \pol{} for these properties, not for uniqueness.

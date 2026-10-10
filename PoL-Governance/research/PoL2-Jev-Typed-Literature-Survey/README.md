@@ -10,9 +10,9 @@ Jev 是 TypeSafe AI 于 2026-09-15 发布的第一个“System One 决策模型�
 
 | 你想要 | 去哪里 |
 |---|---|
-| 读论文（英文，arXiv 格式，v0.4） | [paper/main.pdf](paper/main.pdf)；补充材料 S1–S5 见 [paper/supplement.pdf](paper/supplement.pdf) |
-| 读论文中文译稿（英文版为正式版本） | [paper/zh/main_zh.pdf](paper/zh/main_zh.pdf)；补充材料见 [paper/zh/supplement_zh.pdf](paper/zh/supplement_zh.pdf) |
-| 看结论（Jev 是否适合作为 PoL2 的治理工具） | 论文 §7.1 与表 “Verdict for PoL2” |
+| 读论文（英文，arXiv 投稿版，v0.5） | [paper/main.pdf](paper/main.pdf)（只含正文与参考文献）；在线附录 [paper/online_appendix.pdf](paper/online_appendix.pdf)（A 条款中英对照、B 检索筛选与编码手册、C 每项确定性评级的推导表、D 治理范式对比表与验收清单与结论全表、E 对早期数据集的更正） |
+| 读论文中文译稿（对应 v0.4.1 长版；英文版为正式版本） | [paper/zh/main_zh.pdf](paper/zh/main_zh.pdf)；补充材料见 [paper/zh/supplement_zh.pdf](paper/zh/supplement_zh.pdf) |
+| 看结论（Jev 是否适合作为 PoL2 的治理工具） | 论文 §6.3 与表 “Verdict for PoL2”（全表见在线附录 D） |
 | 看 PoL2 与其他 AI 治理范式的比较 | 论文 §2.3 |
 | 看审稿与修订记录 | [paper/review/REVIEW.md](paper/review/REVIEW.md)、[paper/review/AUDIT.md](paper/review/AUDIT.md) |
 | 机器可读的数据（编码、质量评价、确定性证据） | [data/](data/)，见下文 |
@@ -35,12 +35,12 @@ PoL2-Jev-Typed-Literature-Survey/
 ├── README.md                 本文件
 ├── paper/                    论文（LaTeX）
 │   ├── main.tex / main.pdf   正文；preamble.tex 为共享导言
-│   ├── supplement.tex / .pdf 补充材料 S1–S5（条款对照、证据表、研究目录、更正与确定性评级、编码手册与检索）
-│   ├── build.py              编译正文与补充材料并互相导入交叉引用（python paper/build.py；中文加 --zh）
+│   ├── online_appendix.tex / .pdf  在线附录 A–E（单独 PDF，不进 arXiv 包）
+│   ├── build.py              编译论文（python paper/build.py；中文加 --zh）
 │   ├── sections/             各章节；B_evidence.tex、C_catalogue.tex 由脚本生成
 │   ├── figures/              图（PDF）；src/ 为绘图脚本
 │   ├── *.bib                 文献；corpus.bib、corpus_update.bib 由脚本生成
-│   ├── make_arxiv.py         打包 arXiv 提交文件（补充材料作为 anc/ 附属文件）
+│   ├── make_arxiv.py         打包 arXiv 提交文件（只含正文）
 │   ├── make_metadata.py      生成 arXiv 表单所需的标题、摘要与备注
 │   ├── zh/                   中文译稿（xelatex；GLOSSARY.md 为术语表）
 │   └── review/               审稿与修订记录（43 轮），编码手册与编码过程文件
@@ -69,7 +69,8 @@ PoL2-Jev-Typed-Literature-Survey/
 python scripts/merge_coding.py          # 主窗口编码 → data/evidence_coding.csv 与 paper/counts.tex
 python scripts/merge_update.py          # 补充检索编码 → data/*_update_*.csv 与 paper/counts_update.tex
 python scripts/rate_certainty.py --check  # 确定性评级，并核对论文表格
-python paper/build.py                   # 英文正文与补充材料
+python scripts/merge_all.py             # 全部检索合并后的计数 → paper/counts_all.tex
+python paper/build.py                   # 英文论文与在线附录
 python paper/build.py --zh              # 中文译稿
 python paper/make_metadata.py; python paper/make_arxiv.py
 ```

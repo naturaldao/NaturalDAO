@@ -25,11 +25,11 @@ Columns printed: given 4 Oct (as given that day), 4 Oct recomputed (main
 window, rows with cited_4oct == yes, current rule), main only (all main-window
 rows), now (main + update).
 
-``--check`` parses tab:keyfindings (paper/sections/04_evidence.tex) and
-tab:certchanges (paper/sections/D_corrections.tex) and exits non-zero if any
-rating cell disagrees, or if tab:certchanges does not list exactly the
-findings whose rating as given on 4 October differs from now or that are now
-contested.
+``--check`` parses tab:keyfindings (paper/sections/05_results.tex) and exits
+non-zero if any rating cell (last column) disagrees with the rating computed on
+all coded studies (search runs of 1, 4 and 8 October pooled).
+``--derivation FILE`` writes the per-finding derivation table (LaTeX longtable)
+for the online appendix.
 """
 import argparse
 import csv
@@ -232,8 +232,7 @@ def parse_cell(cell):
 def check(results):
     errors = []
     byid = {r['id']: r for r in results}
-    kf = table_rows(os.path.join(SECTIONS, '04_evidence.tex'), 'tab:keyfindings')
-    texts = {}
+    kf = table_rows(os.path.join(SECTIONS, '05_results.tex'), 'tab:keyfindings')
     for n, cells in enumerate(kf, 1):
         fid = str(n)
         if fid not in byid:
@@ -241,44 +240,76 @@ def check(results):
                 errors.append('tab:keyfindings row %s has a rating but no evidence rows' % fid)
             continue
         r = byid[fid]
-        texts[fid] = strip_tex(cells[0])
-        oct_r, oct_c, oct_m = parse_cell(cells[-2])
         now_r, now_c, now_m = parse_cell(cells[-1])
-        if oct_r != r['given'] or oct_c:
-            errors.append('row %s 4 Oct cell %r != given %r' % (fid, cells[-2], r['given']))
         exp_r, exp_c = r['now']
         if now_r != exp_r or now_c != exp_c or (('j' in now_m) != r['judgement']):
-            errors.append('row %s Now cell %r != computed %s' % (fid, cells[-1], fmt(exp_r, exp_c, r['judgement'])))
-    expected = {r['id'] for r in results if changed(r)}
-    cc = table_rows(os.path.join(SECTIONS, 'D_corrections.tex'), 'tab:certchanges')
-    listed = set()
-    for cells in cc:
-        name = strip_tex(cells[0])
-        match = [fid for fid, t in texts.items() if t.startswith(name)]
-        if len(match) != 1:
-            errors.append('tab:certchanges row %r matches %d keyfindings rows' % (name, len(match)))
-            continue
-        fid = match[0]
-        listed.add(fid)
-        r = byid[fid]
-        o = parse_cell(cells[1])
-        m = parse_cell(cells[2])
-        n = parse_cell(cells[3])
-        if o[0] != r['given'] or o[1]:
-            errors.append('certchanges %s 4 Oct %r != given %r' % (fid, cells[1], r['given']))
-        if (m[0], m[1]) != r['main']:
-            errors.append('certchanges %s Main only %r != computed %s' % (fid, cells[2], fmt(*r['main'])))
-        if (n[0], n[1]) != r['now']:
-            errors.append('certchanges %s Now %r != computed %s' % (fid, cells[3], fmt(*r['now'])))
-    if listed != expected:
-        errors.append('tab:certchanges lists %s; expected %s' % (sorted(listed, key=int), sorted(expected, key=int)))
+            errors.append('row %s rating cell %r != computed %s' % (fid, cells[-1], fmt(exp_r, exp_c, r['judgement'])))
     return errors
+
+
+DESIGN_TAG = {'stronger': 'S', 'moderate': 'M', 'weaker': 'W'}
+
+
+def tex_escape(t):
+    return (t.replace('\\', '\\textbackslash{}').replace('%', '\\%').replace('&', '\\&')
+            .replace('#', '\\#').replace('_', '\\_').replace("'", "'"))
+
+
+def write_derivation(path, results, evidence, quality):
+    """One row per finding clause: counted supporting and opposing studies (counted arm), design tag, rating."""
+    by_finding = {}
+    for r in evidence:
+        by_finding.setdefault(base_id(r['finding_id']), []).append(r)
+    out = []
+    for res in results:
+        fid = res['id']
+        rows = by_finding[fid]
+        scope = res['scope']
+        arm = 'open' if scope == 'open' else 'hosted'
+        if res['judgement']:
+            out.append('%s & %s & \\multicolumn{2}{l}{descriptive tally of comparator codes; rated by judgement} & %s \\\\' % (
+                fid, tex_escape(res['text']), res['now'][0]))
+            continue
+        clause_ids = sorted({r['finding_id'] for r in rows if r['finding_id'] != fid}) or [fid]
+        for c in clause_ids:
+            crow = [r for r in rows if r['finding_id'] == c and r['arm'] == arm and r['direction'] in ('support', 'oppose')]
+            text = rows[0]['finding'].split(' | clause:')[0]
+            for r in rows:
+                if r['finding_id'] == c and ' | clause:' in r['finding']:
+                    text = r['finding'].split(' | clause:')[1].strip()
+                    break
+
+            def tag(r):
+                q, pre = quality[r['doc']]
+                star = '*' if (pre or r['replicated_by'].strip()) else ''
+                return '\\cite{%s}\\,%s%s' % (r['doc'], DESIGN_TAG[q], star)
+            sup = sorted({tag(r) for r in crow if r['direction'] == 'support'})
+            opp = sorted({tag(r) for r in crow if r['direction'] == 'oppose'})
+            lv, ct = rate_clause([r for r in rows if r['finding_id'] == c], quality, scope)
+            rating = LEVELS[lv] + (', contested' if ct else '')
+            out.append('%s & %s (%s) & %s & %s & %s \\\\' % (
+                c, tex_escape(text), scope, ', '.join(sup) or '--', ', '.join(opp) or '--', rating))
+    body = '\n\\addlinespace\n'.join(out)
+    tex = ('% Generated by scripts/rate_certainty.py --derivation; do not edit by hand.\n'
+           '\\begingroup\\scriptsize\\setlength{\\tabcolsep}{3pt}\n'
+           '\\begin{longtable}{@{}>{\\raggedright\\arraybackslash}p{0.04\\linewidth}>{\\raggedright\\arraybackslash}p{0.25\\linewidth}'
+           '>{\\raggedright\\arraybackslash}p{0.36\\linewidth}>{\\raggedright\\arraybackslash}p{0.17\\linewidth}>{\\raggedright\\arraybackslash}p{0.10\\linewidth}@{}}\n'
+           '\\caption{Derivation of each certainty rating. For every finding (or clause of a finding), the studies counted '
+           'as supporting and opposing it on the counted system arm (hosted, unless the finding concerns open models), with their design '
+           '(S stronger, M moderate, W weaker; * preregistered or independently replicated). Studies sharing an author count once. '
+           'Rules in \\cref{oa:certainty}; a finding with several clauses takes its lowest clause. Source: \\nolinkurl{data/certainty_evidence.csv}.}'
+           '\\label{oa:derivation}\\\\\n\\toprule\nId & Finding (scope) & Supporting studies & Opposing studies & Rating \\\\\n\\midrule\n\\endfirsthead\n'
+           '\\toprule\nId & Finding (scope) & Supporting studies & Opposing studies & Rating \\\\\n\\midrule\n\\endhead\n\\bottomrule\n\\endfoot\n'
+           + body + '\n\\end{longtable}\n\\endgroup\n')
+    with open(path, 'w', encoding='utf-8') as fh:
+        fh.write(tex)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--check', action='store_true', help='assert that the .tex rating cells match')
     ap.add_argument('--verbose', action='store_true', help='print the counted studies for every clause')
+    ap.add_argument('--derivation', metavar='FILE', help='write the per-finding derivation table (LaTeX)')
     a = ap.parse_args()
     global VERBOSE
     if a.verbose:
@@ -287,6 +318,9 @@ def main():
     if a.verbose:
         print('\n'.join(VERBOSE) + '\n')
     print_table(results)
+    if a.derivation:
+        write_derivation(a.derivation, results, load_evidence(), load_quality())
+        print('wrote', a.derivation)
     if a.check:
         errs = check(results)
         if errs:
@@ -294,7 +328,7 @@ def main():
             for e in errs:
                 print('  ' + e)
             sys.exit(1)
-        print('\nCHECK PASSED: tab:keyfindings and tab:certchanges agree with the computed ratings.')
+        print('\nCHECK PASSED: tab:keyfindings agrees with the computed ratings.')
 
 
 if __name__ == '__main__':

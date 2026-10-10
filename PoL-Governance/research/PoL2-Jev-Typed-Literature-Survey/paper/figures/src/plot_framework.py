@@ -27,10 +27,12 @@ CLAUSES = [  # must match Table 1 (tab:clauses) in sections/03_method.tex
 def load_evidence():
     import csv
     ev = {}
-    with (DATA_DIR / "evidence_coding.csv").open(encoding="utf-8") as fh:
-        for r in csv.DictReader(fh):
-            if r["in_tally"] == "yes":
-                ev.setdefault(r["axis"], {})[r["doc"]] = r["code"]
+    # all search runs (1, 4 and 8 October 2026) pooled, as in the paper
+    for name in ("evidence_coding.csv", "evidence_coding_update_2026-10-08.csv"):
+        with (DATA_DIR / name).open(encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                if r["in_tally"] == "yes":
+                    ev.setdefault(r["axis"], {})[r["doc"]] = r["code"]
     return ev
 
 
