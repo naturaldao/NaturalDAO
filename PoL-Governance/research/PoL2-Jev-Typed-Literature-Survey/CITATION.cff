@@ -5,8 +5,11 @@ type: dataset
 authors:
   - family-names: "Yan"
     given-names: "Shentao"
-date-released: 2026-10-09
-version: 0.4.0
+    affiliation: "The Hong Kong Polytechnic University"
+    email: "shenton.yan@connect.polyu.hk"
+    orcid: "https://orcid.org/0009-0004-2384-2240"
+date-released: 2026-10-10
+version: 0.4.1
 license: CC0-1.0
 repository-code: "https://github.com/naturaldao/NaturalDAO"
 keywords:

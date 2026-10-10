@@ -12,7 +12,7 @@ LIMIT = 1920
 
 TITLE = ("Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? "
          "A Clause-Level Analysis of the Proof of Love2 (PoL2) Specification Against Early Evidence")
-AUTHORS = "[Author Name]"
+AUTHORS = "Shentao Yan"
 
 
 def counts():

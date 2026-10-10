@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.4.1 — 2026-10-10
+
+- 作者信息：Shentao Yan（鄢申涛），香港理工大学，shenton.yan@connect.polyu.hk，ORCID 0009-0004-2384-2240；中英文版、arXiv 元数据与 CITATION.cff 同步。
+- 致谢：感谢 NaturalDAO 的陈昌春、邓雯慧、周朝晖、吴文博提出的意见和建议。
+
 ## 0.4.0 — 2026-10-09
 
 - **标题统一围绕 PoL 治理**：“Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 (PoL2) Specification Against Early Evidence”；中文“类型化决策模型能否承担 PoL 治理中的自动化保障职能？——基于早期证据的爱2证明（PoL2）规范逐条分析”。作者信息暂为占位。
