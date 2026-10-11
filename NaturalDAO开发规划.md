@@ -180,7 +180,7 @@ NaturalDAO是一个建立在“爱的证明”共识之上，并由区块链和�
 
 NaturalDAO 是一个超大型的工程。它的主要构成为： 内置爱的证明治理共识层的大语言模型 + 智能合约层 +AI 应用层。
 
-![image](image/naturaldao.png)
+![image](image/NaturalDAO.png)
 
 - 为达到极致的安全性，NaturalDAO最终将会以去中心化（冗余分布式）星链部署于近地轨道。
 - 公链承载的智能合约可以使应用层的版本管理及其历史数据完全公开透明，且能够提供超越web1和web2应用的安全保障。
