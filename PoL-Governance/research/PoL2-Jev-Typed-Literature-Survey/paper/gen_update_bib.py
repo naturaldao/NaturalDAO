@@ -47,7 +47,7 @@ def arxiv_entry(key, aid):
     return (f"@misc{{{key},\n  title = {{{{{tex(meta('citation_title')[0])}}}}},\n  author = {{{tex(authors)}}},\n"
             f"  year = {{2026}},\n  eprint = {{{aid}}},\n  archivePrefix = {{arXiv}},\n"
             f"  primaryClass = {{{cls.group(1) if cls else 'cs.CL'}}},\n"
-            f"  note = {{arXiv:{aid}v{latest}, first submitted {v1}; update search of 2026-10-08}},\n"
+            f"  note = {{arXiv:{aid}v{latest}, first submitted {v1}}},\n"
             f"  url = {{https://arxiv.org/abs/{aid}v{latest}}}\n}}")
 
 
@@ -58,7 +58,7 @@ def zenodo_entry(key, rid):
     kind = md.get("resource_type", {}).get("title", "record")
     return (f"@misc{{{key},\n  title = {{{{{tex(md['title'])}}}}},\n  author = {{{authors}}},\n  year = {{2026}},\n"
             f"  howpublished = {{Zenodo {kind.lower()}, {md.get('publication_date', '')}}},\n"
-            f"  note = {{update search of 2026-10-08}},\n"
+            f"  note = {{retrieved 2026-10-08}},\n"
             f"  doi = {{10.5281/zenodo.{rid}}},\n  url = {{https://doi.org/10.5281/zenodo.{rid}}}\n}}")
 
 

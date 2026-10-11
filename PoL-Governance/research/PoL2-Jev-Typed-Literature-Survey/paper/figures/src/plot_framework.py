@@ -85,15 +85,20 @@ def main():
                 fontweight="bold")
         codes = list(EVIDENCE[a].values())
         x = 35
+        small = []  # segments too narrow to hold their own number are named after the bar instead
         for k in ("S", "Q", "N"):
             n = codes.count(k)
             if n:
                 ax.add_patch(plt.Rectangle((x, y - 3.1), n * unit, 2.6, facecolor=COL[k], edgecolor="black",
                                            linewidth=1))
-                ax.text(x + n * unit / 2, y - 1.8, str(n), ha="center", va="center", fontsize=11.5,
-                        color="white" if k == "N" else PALETTE["ink"])
+                if n * unit >= 0.8:
+                    ax.text(x + n * unit / 2, y - 1.8, str(n), ha="center", va="center", fontsize=11.5,
+                            color="white" if k == "N" else PALETTE["ink"])
+                else:
+                    small.append(f"{k} {n}")
                 x += n * unit
-        ax.text(x + 0.8, y - 1.8, f"n={len(codes)}", ha="left", va="center", fontsize=11.5, color="white")
+        label = f"n={len(codes)}" + (f" ({', '.join(small)})" if small else "")
+        ax.text(x + 0.8, y - 1.8, label, ha="left", va="center", fontsize=11.5, color="white")
 
     # tension boxes
     for (txt, links), y in zip(TENSIONS, t_y):

@@ -38,6 +38,14 @@ OVERRIDE = {
     # round 12 (2026-10-08) rule-(iv) audit of main-window G2/G3/G6 rows; see paper/review/AUDIT.md
     ("arx00831", "G3"): ("N", "none", "order reversal flips 32.8-33.4%; rotation averaging is an added mitigation, so rule (iv) gives N"),
     ("arx35865", "G3"): ("N", "none", "base model flips 23.5% under relabelling; only the authors' added training lowers it, so rule (iv) gives N"),
+    # round 51 (2026-10-10): rows that contradicted the coders' own rules; see paper/review/round51_response.md
+    ("zen23032384", "G4"): ("Q", "better", "calibration degrades on contested items but beats the generative baseline: mixed, so rule (i) gives Q"),
+    ("arx01834", "G5"): ("Q", "none", "the 94% result needs a separate prediction step written into the state (added condition) and a wrong written premise is followed 24/26: rule (i) gives Q"),
+    ("qin2026zhdecisionbench", "G3"): ("S", "better", "flip rates 1.7-2.9%, below every comparator, with no added condition: S"),
+    ("arx00346", "G7"): ("Q", "better", "cost/latency advantage only; quality at comparator level not shown, so adjudicated rule 7 gives Q"),
+    ("arx01079", "G7"): ("Q", "better", "cost/latency advantage only; quality at comparator level not shown, so adjudicated rule 7 gives Q"),
+    ("arx02046", "G7"): ("Q", "better", "cost/latency advantage only; quality at comparator level not shown, so adjudicated rule 7 gives Q"),
+    ("arx02048", "G7"): ("Q", "better", "latency advantage only, cost not reported; quality at comparator level not shown, so rule 7 gives Q"),
 }
 TRACKERS = 2  # All about Jev, Awesome System One Models: retrieval routes, not evidence
 

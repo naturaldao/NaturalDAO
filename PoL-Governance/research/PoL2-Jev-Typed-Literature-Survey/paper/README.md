@@ -1,6 +1,6 @@
 # paper/ — 论文（arXiv 格式）
 
-**Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 Specification**（v0.5，2026-10-10）
+**Can Typed Decision Models Serve as Automated Safeguards? A Clause-Level Assessment Against the Proof of Love2 Specification**（v0.5.2，2026-10-11）
 
 论文：[main.pdf](main.pdf)（投稿版，只含正文与参考文献，正文约 1.2 万词）。在线附录：[online_appendix.pdf](online_appendix.pdf)（27 页；A 条款中英对照、B 检索筛选与编码手册、C 每项确定性评级的推导表、D 治理范式对比表、验收清单与结论全表、E 对早期数据集的更正）。逐项研究的编码、理由与定位见 `../data/`。检索以 2026-10-08 为截止，正文按一次完整检索报告（各次运行日期见在线附录 B），计数由 `../scripts/merge_all.py` 合并生成。中文译稿 [zh/main_zh.pdf](zh/main_zh.pdf)、[zh/supplement_zh.pdf](zh/supplement_zh.pdf) 目前对应 v0.4.1 长版（英文版为正式版本）。arXiv 提交包：`arxiv-submission.zip`（由 `make_arxiv.py` 生成，只含正文，已在干净目录中单独编译通过）。提交表单所需的纯文本元数据：`arxiv_metadata.txt`。
 
@@ -9,7 +9,7 @@
 | 路径 | 内容 |
 |---|---|
 | `main.tex` / `preamble.tex` | 论文（`sections/0*.tex`）与导言（pdflatex；中文引文用 CJKutf8；版式对标 COMPL-AI：Latin Modern 正文、无衬线粗体标题） |
-| `online_appendix.tex` | 在线附录；`online/certainty_derivation.tex` 由 `../scripts/rate_certainty.py --derivation` 生成 |
+| `online_appendix.tex` | 在线附录；源文件为 `sections/app_A.tex`–`app_E.tex`；`online/certainty_derivation.tex`（附录 C 的推导表）由 `../scripts/rate_certainty.py --derivation` 生成 |
 | `counts_all.tex` | 全部检索合并后的计数，由 `../scripts/merge_all.py` 生成，勿手改 |
 | `build.py` | 编译论文（pdflatex、bibtex、pdflatex ×3）；`--zh` 编译中文译稿 |
 | `counts_update.tex` | 补充检索计数，由 `../scripts/merge_update.py` 生成 |
@@ -19,7 +19,7 @@
 | `figures/src/` | 绘图脚本，按 [figures4papers](https://github.com/ChenLiu-1996/figures4papers) 规范（`f4p_style.py`） |
 | `figures/*.pdf, *.png` | 图（PDF 供 LaTeX，PNG 供预览） |
 | `corpus.bib` | 由 `gen_corpus_bib.py` 从 `data/papers.csv` 与 `data/zenodo_preprints.csv` 生成 |
-| `grey.bib` / `background.bib` / `pol2.bib` | 灰色文献、背景文献、PoL2 原文；核实来源见 `bib_verification_log.tsv` |
+| `grey.bib` / `background.bib` / `pol2.bib` | 灰色文献、背景文献、PoL2 原文 |
 | `review/` | 独立审稿迭代：`PROTOCOL.md`（流程）、`round*_*.md`（各轮原始意见）、`REVIEW.md`（处理情况）、`CODEBOOK_v3.md`、`coding/`（编码原始文件） |
 
 ## 重新生成与编译

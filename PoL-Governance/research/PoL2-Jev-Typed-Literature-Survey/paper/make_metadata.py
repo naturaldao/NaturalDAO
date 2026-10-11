@@ -10,8 +10,8 @@ from pathlib import Path
 P = Path(__file__).resolve().parent
 LIMIT = 1920
 
-TITLE = ("Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? "
-         "A Clause-Level Analysis of the Proof of Love2 Specification")
+TITLE = ("Can Typed Decision Models Serve as Automated Safeguards? "
+         "A Clause-Level Assessment Against the Proof of Love2 Specification")
 AUTHORS = "Shentao Yan"
 
 

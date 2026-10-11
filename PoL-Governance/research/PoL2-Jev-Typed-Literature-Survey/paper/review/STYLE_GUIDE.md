@@ -16,7 +16,7 @@ This edit changes wording only. Content stays as it is.
   - the certainty levels.
 - **Claims:** do not add or strengthen any claim. Do not drop any qualification. Do not merge two findings so that one study seems to support both.
 - **Text kept as is:**
-  - British spelling and the paper's terms: Love Language, hate language, state of absence, detector, judge, LLM evaluators, typed decision models.
+  - British spelling and the paper's terms: Love Language, hate language, state of absence, detector, judge, generative evaluators (replaces "LLM evaluators" from v0.5.1), typed decision models (typed models).
   - Run-in headings (`\paragraph{...}`) and section titles. You may reword a title that sounds like a slogan.
 - **Length:** must not grow. A little shorter is welcome.
 

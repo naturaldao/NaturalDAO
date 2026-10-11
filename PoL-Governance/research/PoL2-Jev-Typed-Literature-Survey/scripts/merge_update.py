@@ -46,6 +46,12 @@ RESOLVED = {
     ("zen23221456", "G4"): ("N", "worse", "ECE 0.21, Brier 0.283 worse than constant; only generative Qwen beats constant"),
 }
 
+# round 51 (2026-10-10): codes changed after content review, applied after coder agreement is computed
+# (doc, axis) -> (code, comparator, note); see paper/review/round51_response.md
+OVERRIDE = {
+    ("zen23047544", "G4"): ("Q", "none", "the calibration outcome is undefined and the paper's numbers disagree, so S cannot follow: Q"),
+}
+
 
 def rating(q):
     """Same design-strength rule as merge_coding.py."""
@@ -88,6 +94,9 @@ def main():
             if res:
                 r["code"], r["comparator"] = res[0], res[1]
                 r["rationale"] += f" [Adjudicated: {res[2]}]"
+        if key in OVERRIDE:
+            r["code"], r["comparator"], note = OVERRIDE[key]
+            r["rationale"] += f" [Recoded in review: {note}]"
         tally = "yes" if r["empirical"] == "yes" and r["system"] not in ("", "none") else "no"
         out.append({"doc": key[0], "source": "zenodo" if key[0].startswith("zen") else "arxiv", "set": r["set"],
                     "axis": key[1], "code": r["code"], "empirical": r["empirical"], "in_tally": tally,

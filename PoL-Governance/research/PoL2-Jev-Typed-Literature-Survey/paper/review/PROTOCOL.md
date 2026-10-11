@@ -11,7 +11,6 @@ independent reviewer agents → numbered findings → one class of fix at a time
 | `round<N>_<lens>.md` | raw findings of one reviewer in round N (never edited after the round) |
 | `REVIEW.md` | consolidated issue list; each fixed item gets `<!-- FIXED: date, how -->`, rejected items `<!-- REJECTED: reason -->` |
 | `AUDIT.md` | one entry per fix: issue, before, rationale, after, re-check verdict, residual risk |
-| `../bib_verification_log.tsv` | provenance of bibliographic entries |
 | `../../data/evidence_coding.csv` | provenance of S/Q/N codes |
 
 ## Reviewer lenses

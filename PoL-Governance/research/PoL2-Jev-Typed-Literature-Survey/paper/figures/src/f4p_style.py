@@ -42,7 +42,8 @@ DATA_DIR = Path(__file__).resolve().parents[3] / "data"
 
 def apply_publication_style(font_size=16, axes_linewidth=2.0):
     plt.rcParams.update({
-        "font.family": ["Arial", "DejaVu Sans"],
+        # Liberation Sans is metric-compatible with Arial, so figures reproduce on machines without Arial.
+        "font.family": ["Arial", "Liberation Sans", "DejaVu Sans"],
         "font.size": font_size,
         "axes.spines.right": False,
         "axes.spines.top": False,

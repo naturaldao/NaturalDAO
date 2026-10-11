@@ -11,16 +11,16 @@ DATA = {
     # (a) F1 at the default threshold 0.5 versus a fitted threshold
     "threshold": [
         # arXiv:2609.29429 Sec 4.4: median F1 0.706 at t=0.5 -> 0.822 cross-validated threshold
-        ("Just Ask Jev\n(median, 31 benchmarks)", 0.706, 0.822),
+        ("Original study\n(median, 31 benchmarks)", 0.706, 0.822),
         # jkf87 replication README: TensorTrust hijacking, F1 0.158 at 0.5 -> 0.947 at 0.35 (cross-validated)
         ("Independent replication\n(TensorTrust hijacking)", 0.158, 0.947),
     ],
     # (b) targeted flip rate from natural context additions, arXiv:2609.30243 Sec 4.2 / Table 1
     "jevout": [
         ("Jev (hosted)", 312, 508),
-        ("Qwen3-1.7B typed", 238, 328),
-        ("Von", 240, 328),
-        ("Qwen (plain)", 185, 285),
+        ("OpenSourceJev (open)", 238, 328),
+        ("Von (open)", 240, 328),
+        ("Plain Qwen", 185, 285),
     ],
     # (c) answer flip rate when the definitions bound to a name pair are swapped, arXiv:2609.26758 Table 1 / Table 6
     "names": {
@@ -63,7 +63,7 @@ def main():
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=11.5)
     ax.set_ylim(0, 1.15)
-    ax.set_ylabel("F1 (failure detection)")
+    ax.set_ylabel("F1 (detecting failures)")
     ax.legend(loc="upper left", fontsize=11.5)
     ax.set_title("(a) Ranking is good, thresholds are local", loc="left", fontsize=14)
 
@@ -83,7 +83,7 @@ def main():
     ax.set_xticklabels(labels, rotation=20, ha="right", fontsize=11.5)
     ax.set_ylim(0, 1)
     ax.set_ylabel("Correct decisions flipped to\nattacker's target (95% CI)")
-    ax.set_title("(b) Natural context flips decisions", loc="left", fontsize=14)
+    ax.set_title("(b) Natural context flips decisions\n(budget: 64 accepted evaluations)", loc="left", fontsize=14)
 
     # (c)
     ax = axes[2]
@@ -98,10 +98,10 @@ def main():
     ax.set_xticks(x)
     ax.set_xticklabels([f"{q}" for q in pairs])
     ax.set_xlabel("Name pair whose bound definitions are swapped")
-    ax.set_ylabel("Answers that change")
+    ax.set_ylabel("Share of answers that change")
     ax.set_ylim(0, 0.9)
     ax.legend(loc="upper left", fontsize=11.5)
-    ax.set_title("(c) The head follows the option name", loc="left", fontsize=14)
+    ax.set_title("(c) Answers follow the option name", loc="left", fontsize=14)
 
     # (d)
     ax = axes[3]
@@ -116,7 +116,7 @@ def main():
     ax.set_xticklabels(["definitions\naligned", "definitions\nswapped"])
     ax.set_xlim(-0.45, 1.45)
     ax.set_ylim(0, 1)
-    ax.set_ylabel("AUC")
+    ax.set_ylabel("AUROC")
     ax.legend(loc="lower left", fontsize=11.5)
     ax.set_title("(d) Always well-typed, still inverted", loc="left", fontsize=14)
 
