@@ -1,4 +1,4 @@
-"""Re-run the documented arXiv queries (paper Appendix D) and list records not yet screened.
+"""Re-run the documented arXiv queries (Online Appendix B) and list records not yet screened.
 
 Writes data/search_rerun_<date>.csv with every record dated on/after the Jev release that is not in
 data/papers.csv, so that new candidates can be screened by title/abstract.

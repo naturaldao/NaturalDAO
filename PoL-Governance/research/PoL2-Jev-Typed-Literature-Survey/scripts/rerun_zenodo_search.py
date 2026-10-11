@@ -1,4 +1,4 @@
-"""Re-run the documented Zenodo queries (paper Appendix E) and list records not yet screened.
+"""Re-run the documented Zenodo queries (Online Appendix B) and list records not yet screened.
 
 Writes data/search_rerun_zenodo_<date>.csv with every record published on/after the Jev release
 that is not in data/zenodo_preprints.csv, so that new candidates can be screened by title/description.

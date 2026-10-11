@@ -1,0 +1,121 @@
+\section{Search, selection and coding}\label{app:B}
+
+This appendix documents how the studies were found (\cref{app:B1}), selected (\cref{app:B2}), coded (\cref{app:B3}) and appraised (\cref{app:B4}), how the second coding was done (\cref{app:B5}), and where the procedure departed from its plan (\cref{app:B6}).
+
+\subsection{Sources and queries}\label{app:B1}
+
+We included studies whose object, experimental component or direct comparator is a typed decision model, with a first public version dated from 15 September to 8 October 2026 (\cref{sec:method}). We searched arXiv and Zenodo with the queries below, two community trackers \cite{xiao2026allaboutjev,rafe2026awesome}, and Hugging Face Papers, OpenReview, SSRN and the web. On 8 October the arXiv API returned HTTP 429, so the arXiv queries were run through the advanced-search interface. For each arXiv query we read one results page of up to 200 records; the largest returned 91 records on 8 October, so none was truncated. The two arXiv interfaces are different search backends. The Zenodo script pages through the results until it reaches records dated before the release.
+
+\paragraph{arXiv.}
+Run through the arXiv API on 1 and 4~October and through arXiv's advanced-search interface on 8~October 2026 (\nolinkurl{scripts/rerun_arxiv_search.py}, \nolinkurl{scripts/rerun_arxiv_search_web.py}):
+\begin{itemize}[nosep,leftmargin=1.5em]
+  \item \nolinkurl{all:Jev}
+  \item \nolinkurl{abs:"typed decision"}
+  \item \nolinkurl{abs:"System One"}
+  \item \nolinkurl{abs:RLCD}
+  \item \nolinkurl{abs:"calibrated decisions"}
+  \item \nolinkurl{abs:"typed answers"}
+  \item \nolinkurl{abs:"TypeSafe"}
+  \item \nolinkurl{abs:"decision model" AND abs:typed}
+  \item \nolinkurl{abs:"System One model"}
+  \item \nolinkurl{abs:"System-One"}
+  \item \nolinkurl{abs:"direct-decision"}
+  \item \nolinkurl{abs:Laya AND abs:decision}
+  \item \nolinkurl{abs:"typed probabilistic"}
+  \item \nolinkurl{abs:"decision model" AND abs:calibrated}
+  \item \nolinkurl{abs:"this-that"}
+  \item \nolinkurl{abs:"Reinforcement Learning for Calibrated"}
+  \item \nolinkurl{abs:"typed decisions"}
+  \item \nolinkurl{abs:"single-pass decision"}
+\end{itemize}
+
+\paragraph{Zenodo.}
+Run through the Zenodo REST API on 1 and 8~October 2026 (\nolinkurl{scripts/rerun_zenodo_search.py}):
+\begin{itemize}[nosep,leftmargin=1.5em]
+  \item \nolinkurl{"Jev" AND (TypeSafe OR decision OR "System One")}
+  \item \nolinkurl{"System One model"}
+  \item \nolinkurl{"typed decision"}
+  \item \nolinkurl{"calibrated decisions"}
+  \item \nolinkurl{RLCD}
+  \item \nolinkurl{title:Jev}
+  \item \nolinkurl{title:JEV}
+  \item \nolinkurl{description:"TypeSafe"}
+  \item \nolinkurl{"Jev" AND (calibration OR typed OR noul)}
+  \item \nolinkurl{Laya AND "decision model"}
+  \item \nolinkurl{"System One" AND (typed OR calibrated) AND decision}
+\end{itemize}
+
+\subsection{Selection}\label{app:B2}
+
+Records were screened by title, abstract and full text.
+
+\paragraph{arXiv.} The run of 4 October returned 955 records (606 unique), 89 of them dated on or after the release. Of these, 63 had been included after the run of 1 October and one had been excluded then at full text, because its PDF contained a different manuscript. Of the remaining 25, 5 were excluded by title and 4 by abstract as name clashes or studies without a typed model, and 16 were read in full, of which one was excluded because its ``Jev'' is an unrelated generative model. Two included papers were found through the trackers rather than the queries, and one of them measures no typed model and is treated as context. The run of 8 October returned 125 unique records dated on or after the release, 46 of them not yet in the corpus. Ten of these had been excluded earlier and 4 were excluded by title or abstract; 32 were read in full, of which 1 was excluded and 31 were included. The corpus contains 110 arXiv papers.
+
+\paragraph{Zenodo.} On 1 October, 62 of about 330 records screened by title and description matched the keyword and date criteria. Of these, 21 were removed as duplicates (6), companion deposits (5), off-topic items (9) or records without a typed model (1). Of the remaining 41, 13 were applications or tools without an evaluation, and of the 28 records read in full one contained no typed model. On 8 October the queries returned 62 records dated on or after the release, 44 of them not among the included records. Because the screening of 1 October had kept only counts, all 44 were screened again: 7 were companion deposits of included studies, 3 duplicated arXiv records already in the corpus and 5 were excluded by title (2) or abstract (3). Of the 29 read in full, 4 were excluded and 25 included. One further record, found through a companion link, was read in full and included, and one included record was excluded during coding because it contains no evaluation of a typed model. The corpus contains 52 Zenodo records.
+
+\paragraph{Other sources.} One paper is available only on alphaXiv. The seven grey-literature sources came from the trackers and web searches. Two further commentaries without original measurements are cited as context only, and one vendor-only page was excluded.
+
+\paragraph{Corpus.} The corpus contains 163 studies (110 arXiv, 52 Zenodo, one alphaXiv) and 7 grey sources. Of these, 133 sources report results that bear on at least one requirement and are coded; the rest are engineering papers outside the requirements, tools or releases without an evaluation, and nine non-empirical items. The three denominators are not nested. \Cref{tab:B1} reconciles them: the 133 coded sources are 126 of the 163 studies plus the 7 grey sources, which lie outside the 163; the 148 appraised sources are those 126, 15 studies that were appraised but not coded, and the 7 grey sources; and the remaining 22 studies are background-tier arXiv records that are counted in the corpus but neither coded nor appraised.
+
+\begin{table}[ht]
+\centering
+\caption{Reconciliation of the three denominators. Each row gives a count and the groups of sources that add up to it; the groups are those of \cref{app:B2}.}\label{tab:B1}
+\small
+\begin{tabularx}{\textwidth}{@{}l r L@{}}
+\toprule
+Denominator & Count & Composition \\
+\midrule
+Studies in the corpus & 163 & 126 coded + 15 appraised only + 22 background tier \\
+Coded sources & 133 & 126 studies + 7 grey sources \\
+Appraised sources & 148 & 126 coded studies + 15 appraised only + 7 grey sources \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Excluded records with reasons are in \nolinkurl{data/excluded_records.csv} and \nolinkurl{data/excluded_records_update_2026-10-08.csv}, and the records returned by the search runs in \nolinkurl{data/search_rerun_*.csv}. For the Zenodo screening of 1 October only counts were recorded.
+
+\subsection{Codebook}\label{app:B3}
+
+Each study--requirement pair is coded once, by the study's primary finding for that requirement, for detector use as defined in \cref{sec:intro}. Judge use is never coded.
+
+\begin{description}[style=nextline,leftmargin=1.5em]
+\item[S (supports)] The primary result shows the typed model performing the function at least as well as its comparators under the study's own conditions, or, without a comparator, meeting the study's stated criterion, with no extra condition (local threshold fitting, recalibration, restriction to a language or domain, human review) that the study had to add. Example: an open typed scam detector non-inferior to an LLM evaluator \cite{arx23959}.
+\item[Q (qualifies)] The primary result is mixed across tasks or sub-types, or success depends on a condition the study had to add. Example: good zero-shot ranking but thresholds that must be fitted locally \cite{arx29429}.
+\item[N (negative)] The primary result shows the typed model failing the function (attack success on a substantial share, ranking inversion, systematic bias, calibration the study judges unusable, confident errors a gate cannot catch) or performing clearly worse than its comparators. Example: definition swaps that degrade or invert decisions \cite{arx26758}.
+\end{description}
+
+Decision rules:
+\begin{enumerate}[label=(\roman*)]
+\item If positive and negative findings are both primary, code Q.
+\item The same study can carry different codes for different requirements.
+\item Non-empirical items, and items that measure no typed model, are recorded but not tallied.
+\item Conditions that constitute a requirement's test (adversarial content for G2, name, order or language perturbations for G3, adversarially selected items for G6) are not added conditions, so a failure under them is coded N, while a success that needs a condition outside the test is coded Q.
+\end{enumerate}
+The synthesis counts the direction of each study's primary result, without pooling effects, following the SWiM guideline \cite{campbell2020swim}. For every row we also record the system measured (hosted, open, both), the reported \jev{} version, and the result relative to any generative comparator on that requirement (better, similar, worse, mixed, none), with a one-sentence rationale and a locator. Codes count studies and are not effect sizes.
+
+\subsection{Design appraisal}\label{app:B4}
+
+Coded studies and context items are appraised on three dimensions: independence (independent, authors evaluating a system they built, vendor-affiliated), design (preregistered; held-out evaluation, cross-validation or repeated runs; single run; case study; non-empirical) and reporting of sample sizes and uncertainty (sizes with intervals or tests, sizes only, none). Stronger design: preregistered or held-out design, sizes with intervals or tests, and a system the authors did not build. Weaker design: single run, case study, non-empirical, or neither sample sizes nor uncertainty reported. Moderate: otherwise.
+
+\subsection{Second coding}\label{app:B5}
+
+A second AI coder, blind to the first coding and working from the full texts and the codebook, coded 148 pairs: a random sample of 32 pairs from the records retrieved on 1 and 4 October, of which 30 were comparable (the second coder returned no code for two), and all 118 pairs from the records retrieved on 8 October. Agreement was 26 of 30 ($\kappa = 0.72$) and 97 of 118 ($\kappa = 0.55$) in the two sets, and 123 of 148 overall ($\kappa = 0.59$, bootstrap 95\% CI 0.44--0.72). The four disagreements in the first set were resolved by re-reading the source. The 21 in the second set were resolved by a third AI pass that had read both rationales, which sided with the first coder in 11 and with the second in 10. The adjudication overturned the first code on 10 of the 118 pairs (8\%). Both coders were AI agents of the same model family, which may inflate agreement. The other pairs were coded once, and a similar share of them may be coded wrongly. The second coder also filled the comparator field for every pair. On the same 148 pairs, the two coders' comparator values agreed on 120 of 148 ($\kappa = 0.72$, bootstrap 95\% CI 0.63--0.81; computed by \nolinkurl{scripts/merge_all.py}).
+
+\subsection{Procedural notes}\label{app:B6}
+
+\paragraph{Codebook file and rule (iv).} The released codebook file lacked two of the rules stated here until 8 October: rule (iv) and the independence condition of the stronger-design rating. The first and second coders of the records of 1 and 4 October worked from the file without the text of rule (iv). The first coders of the records of 8 October were told that the file contained it, although it did not, and the second coders and the adjudicator of those records applied it. An audit of all G2, G3 and G6 codes of the earlier records against rule (iv) recoded two G3 codes from Q to N \cite{arx00831,arx35865}. Design ratings were always computed by script with the independence condition. Because rule (iv) was absent for most of the coders whose agreement was measured, $\kappa$ measures an earlier state of the instrument, not the final codebook. Rule (iv) decides the most negative answers. If the test condition of G2 and G3 were instead treated as an added condition, at most every negative code there would become a qualification (G2: S 1, Q 10, N 0; G3: S 8, Q 39, N 0).
+
+\paragraph{Content-level review.} A content-level review on 10 October (rounds 50--51) recoded eight first-coder codes that contradicted the coders' own rules: one G3 code from Q to S \cite{qin2026zhdecisionbench}, two G4 codes to Q \cite{zen23032384,zen23047544}, one G5 code from S to Q, because the gain needs a separate prediction step written into the state and a wrong written premise was followed in 24 of 26 calls \cite{arx01834}, and four G7 codes from S to Q under a rule adjudicated in that review, by which a cost or latency advantage is S only if quality is at comparator level without added conditions \cite{arx00346,arx01079,arx02046,arx02048}. The recodes are applied by script and marked in the rationale of each row; no certainty rating changed.
+
+\paragraph{Certainty rules.} The certainty rules of \oa{C} were revised during internal review (rounds 12--15), after reviewers found that they worked only upwards, did not define an opposing study and counted only the studies cited in the text. Every finding was then re-rated on the whole corpus.
+
+\paragraph{Protocol and deviations.} The run of 8 October followed a written protocol (\nolinkurl{paper/review/UPDATE_SEARCH_2026-10-08.md}). It kept the window of the main analysis at 15 September to 1 October, planned to report the newly found records separately rather than pooling them into the tallies, and allowed a certainty rating to change only if the new records changed a finding's direction or rating. The paper departs from this protocol in five ways.
+\begin{enumerate}
+\item It extends the window to 8 October and pools all records, so the answers, the abstract and the conclusion are written for the pooled corpus.
+\item The certainty rules were revised after the records of 8 October had been coded, and every finding was re-rated with them.
+\item The protocol planned to re-screen Zenodo records dated by 1 October and defined two sets, records first posted 2--8 October and records dated in the window but not retrieved on 1 or 4 October; the 13 re-screened Zenodo records were instead reported as a third set, added after coding had begun, because their earlier screening outcome is unknown.
+\item The arXiv queries were run through the web interface instead of the API named in the protocol (see \cref{app:B1}).
+\item The codebook file that the protocol named lacked rule (iv) (see above).
+\end{enumerate}
+
+Of the 103 coded sources dated by 1 October (96 studies and 7 grey sources), 85 were in the corpus before the run of 8 October and 18 entered it only after that run: 5 arXiv papers not retrieved on 1 or 4 October, for which indexing delay cannot be told apart from the change of search backend, and the 13 re-screened Zenodo records. Analysed separately, as the protocol planned, the records of 8 October reversed no requirement's answer. They qualified one answer, on decomposed decision chains (G5), made the finding on escalation to a stronger reasoner contested, added an opposing study to the already contested injection finding, and, against the earlier records alone, raised one certainty rating, that thresholds set in advance miss their error targets on new data, from very low to low. Tallies for the records of 1 and 4 October alone remain reproducible from \nolinkurl{data/evidence_coding.csv}. No human screened, extracted or coded in duplicate, so the Cochrane recommendation of dual human screening of at least a fifth of records \cite{garritty2021cochrane} was not met. The review and audit logs are released with the data.

@@ -1,5 +1,26 @@
 # 更新记录
 
+## 0.5.2 — 2026-10-11
+
+- **采用重写稿的正文与附录文字**（Claude Sonnet 5.5 协助改写，作者审定）：开头的问题陈述、方法开头的“谁做了什么”、表 2 对齐各项分母（163 = 126 + 15 + 22）、引言中的相关工作与 Roadmap。版式保持不变：PDF 只含正文（35 页），附录 A–E 为单独的在线附录（29 页，源文件 `paper/sections/app_*.tex`）。
+- 标题改为 “Can Typed Decision Models Serve as Automated Safeguards? A Clause-Level Assessment Against the Proof of Love2 Specification”。
+- 合入时修正了重写稿的问题：arXiv 包缺三张图；正文同时称附录“在线”和“在参考文献之后”；摘要超出 arXiv 1920 字符上限（压到 1919，限定语不变）；“103 项”未说明来源（改为 85 + 18）；42 个引用键被改名（已按标题对回原键，178 条参考文献与 2026-10-11 核验过的完全一致）；附录 C 的推导表改回脚本生成。
+- 复核（两轮）另修正：附录 B 检索式被去掉空格且谎称“照原样印出”，已按脚本恢复；且原 `
+olinkurl` 排版本身会吞空格（旧版 PDF 也受影响），已在导言加 `obeyspaces` 修正；表 D3 交叉引用指错表；AI 声明不再声称“改写保留了每个数字”；“we” 的定义改为“作者及其指导下的 AI 智能体”；“103 项”改为“103 项已编码来源（96 项研究 + 7 项灰色文献）”；表 2 合计改为由计数宏计算。经核对原文，最接近的前作（arXiv 2609.32160 §5）确于 9 月 24、25 日检索。
+- 参考文献注释不再出现 “update search”（`gen_update_bib.py`、`corpus_update.bib`）。新增计数宏 nCodedStudies、nAppraisedOnly、nBackgroundTier（`scripts/merge_all.py`）。
+
+## 0.5.1 — 2026-10-11
+
+- **按第 50–51 轮内容审稿修订并重写正文**（`paper/review/round51_response.md`）：逐条对照原文 PDF 核实；修正 ECE 分母（22 个 Choice 数据集）、警方叙述数量（筛查约 500 万、模型读取约 50.6 万）、预注册门限结果（6 安全 / 1 在误差界内 / 0 违规）、级联在 JudgeBench 上的 0.74 点损失等；补充欧盟《人工智能法》附件三 8(a)、序言第 61 条、第 5(1)(c) 条、第 50(3) 条与 DSA 第 17(2) 条的适用限制。
+- **编码数据**：8 条与编码规则矛盾的记录经脚本改码（S 23 / Q 195 / N 61，共 279 对）；比较者字段一致性为 120/148（κ = 0.72），审稿报告中的 119/144、κ = 0.75 无法复现，已按可复现值报告；`rate_certainty.py` 新增 `contradict-open` 方向；确定性评级不变（0 中等、11 低、4 极低）。
+- 新增 6 篇经 Crossref 核验的文献；“检测器/裁决者”按“谁来复核输出”重新界定；结论区分证据与预防原则。
+- 图件：增加 Liberation Sans 字体回退，七张图全部重绘；图 2 面板标签与原文一致。
+- 按 sci-paper-writing 方法全文重写（`paper/review/skill_rewrite_plan.md`）：对标 COMPL-AI 与 Policy-as-Prompt 的段落功能、长度与贡献写法；AI 使用声明按 arXiv 政策改写；致谢中周朝晖（Derek.DAism）列首位。
+- 参考文献全面核查（arXiv 91 条、Zenodo 23 条、DOI 40 条、网址类 28 条，共 178 条，无虚构）：修正 2 条 arXiv 首次提交日期与 1 条 Zenodo 标题；文献核对日志不再随仓库发布。
+- 对标论文扩充为 8 篇（新增 BetterBench、Leakage、Fallacy of AI Functionality、Black-Box Access、AI auditing、REFORMS）：新增独立“局限”一节、法规分析按法律文件分小节、讨论中加入“本评估不能确立什么”。
+- 致谢改为 Derek.DAism（DD）。
+- 中文译稿仍对应 v0.4.1。
+
 ## 0.5.0 — 2026-10-10
 
 - **按投稿规范重写正文**：以 COMPL-AI（arXiv 2410.07959）与 Policy-as-Prompt（arXiv 2502.18695，FAccT 2025）为结构对标，正文由约 2.86 万词压缩到约 1.2 万词（20 页正文 + 参考文献），摘要压到约 210 词；结构为 引言（含贡献）→ 背景与相关工作 → PoL2 条款到七项要求 → 方法 → 逐条结果 → 对 PoL2 的含义（张力、参考设计、结论表）→ 讨论与局限 → 结论。

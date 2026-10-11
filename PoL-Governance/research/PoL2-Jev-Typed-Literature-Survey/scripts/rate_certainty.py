@@ -9,7 +9,11 @@ Rules (paper §3, sec:appraisal), applied mechanically:
   which must already satisfy D1) ranks above the rest.
 * Per-arm counting (D3'): a finding scoped ``hosted`` or ``both`` is rated on
   hosted-arm rows only; a finding scoped ``open`` on open-arm rows only.  Rows
-  marked ``corroborate`` or ``out-of-scope`` never enter the rating.
+  marked ``corroborate``, ``contradict-open`` or ``out-of-scope`` never enter
+  the rating.  ``contradict-open`` (round 51) records open-arm evidence that
+  points against a hosted/both finding, so that this opposition stays visible
+  in the data and in tab:keyfindings (``open, against``) without moving the
+  rating.
 * Studies sharing an author (same ``author_group``) count as one study.
 * very low: a single study, or no stronger-design study (or no in-scope
   evidence at all); low: >= 2 studies agree and >= 1 is stronger;
@@ -120,14 +124,15 @@ def rate_all(evidence, quality):
             assert r['scope'] == scope and r['given_4oct'] == given, (fid, r['doc'])
             assert r['arm'] in ('hosted', 'open'), r
             assert r['window'] in ('main', 'update'), r
-            assert r['direction'] in ('support', 'oppose', 'corroborate', 'out-of-scope', 'descriptive'), r
+            assert r['direction'] in ('support', 'oppose', 'corroborate', 'contradict-open', 'out-of-scope',
+                                      'descriptive'), r
             if r['arm'] == 'open' and scope != 'open':
-                assert r['direction'] in ('corroborate', 'out-of-scope'), \
+                assert r['direction'] in ('corroborate', 'contradict-open', 'out-of-scope'), \
                     'open arm cannot support/oppose a %s finding: %s %s' % (scope, fid, r['doc'])
         clause_ids = sorted({r['finding_id'] for r in rows if r['finding_id'] != fid})
         for r in rows:
             if r['finding_id'] == fid and clause_ids:
-                assert r['direction'] in ('out-of-scope', 'corroborate'), \
+                assert r['direction'] in ('out-of-scope', 'corroborate', 'contradict-open'), \
                     'finding %s has clauses; counted row %s must name a clause' % (fid, r['doc'])
         res = {'id': fid, 'text': text, 'scope': scope, 'given': given}
         if fid in JUDGEMENT:
@@ -297,8 +302,8 @@ def write_derivation(path, results, evidence, quality):
            '\\caption{Derivation of each certainty rating. For every finding (or clause of a finding), the studies counted '
            'as supporting and opposing it on the counted system arm (hosted, unless the finding concerns open models), with their design '
            '(S stronger, M moderate, W weaker; * preregistered or independently replicated). Studies sharing an author count once. '
-           'Rules in \\cref{oa:certainty}; a finding with several clauses takes its lowest clause. Source: \\nolinkurl{data/certainty_evidence.csv}.}'
-           '\\label{oa:derivation}\\\\\n\\toprule\nId & Finding (scope) & Supporting studies & Opposing studies & Rating \\\\\n\\midrule\n\\endfirsthead\n'
+           'Rules in \\oa{C}; a finding with several clauses takes its lowest clause. Source: \\nolinkurl{data/certainty_evidence.csv}.}'
+           '\\label{tab:C1}\\\\\n\\toprule\nId & Finding (scope) & Supporting studies & Opposing studies & Rating \\\\\n\\midrule\n\\endfirsthead\n'
            '\\toprule\nId & Finding (scope) & Supporting studies & Opposing studies & Rating \\\\\n\\midrule\n\\endhead\n\\bottomrule\n\\endfoot\n'
            + body + '\n\\end{longtable}\n\\endgroup\n')
     with open(path, 'w', encoding='utf-8') as fh:
