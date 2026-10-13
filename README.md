@@ -88,9 +88,9 @@ It represents the governance and application layer for the Proof-of-Love2 Civili
 
 ## ⚖️ 许可证 · License
 
-本项目遵循 [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) 许可证。
+本项目遵循爱2证明。
 
-This project is released under the [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) license.
+This project is released under the Proof of Love2.
 
 
 
