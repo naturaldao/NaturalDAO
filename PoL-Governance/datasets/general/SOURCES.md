@@ -1,10 +1,40 @@
-# System-1 决策数据来源（精简版）
+# general 数据集来源清单（来源 / 许可 / revision / 抓取单元 / 条数）
+
+> 本文档是 `datasets/general/` 的**唯一来源登记处**：来源清单、许可、固定 revision、抓取单元
+> （slug / config / split / row_limit / 采样）、各来源条数都集中在这里；README 只留一行指过来。
+> 许可与 revision 属于**溯源信息**，供署名、复查与再抓取使用，**不作为准入条件或验收标准**
+> （2026-10-15：许可准入要求与覆盖配额门槛一并移除，`coverage.py` 与 `tools/check.py`
+> 都不因许可或覆盖配额判不通过）。
 
 **目标**：训练一个只做"选一个"的小决策模型。它不出文字，只在一个封闭选项集合里选一项。
 
 **结论**：只保留**原生就是 (state, question, options, target) 四元组**的 System-1 来源。这类数据集自带问题和选项，直接用它们的原生问题；把传统数据集套上我们自己的问题模板是跑偏的——那会把"选一个"变成"按我们的口径重新解释别人的数据"。传统数据集里只有答案简练、选项封闭的才值得改造成选择题少量引入（第 3 节）。
 
 口径：**条数与真值数取自 [data/items.native.report.json](data/items.native.report.json) 的 units[].items / units[].with_targets**（原生四元组线；data/convert-report.json 是已退役的模板线报告，不要用它的数字）；样例全部来自 D:\pol2-raw\ 下各来源 rows.jsonl 的真实行（长文本标 [截断]）。样例是原文节选：**引号里都是源数据原样内容**，中文键名（如"候选数""问题数"）是本文的注释、不是源字段。本次实际落地合计 **15,983 条**，其中 **15,983 条带来源自带答案（100%）**。（本文早期版本写的推荐值 15,915 / 7,017 属模板线口径，已作废。）
+
+## 0. 全量来源登记表（当前交付语料 `data/items.final.jsonl`，23,855 条）
+
+抓取单元 = 一个 slug + 一个 config；同一数据集的多个 config 各算一个单元。条数与带真值数来自
+`items.final.jsonl` 实测（2026-10-15），与 [items.final.report.json](data/items.final.report.json) 对账一致。
+
+| # | 数据集（HF） | slug | 抓取单元（config / split / row_limit / 采样） | revision（40 位） | 许可 | 条目数 | 带来源自带答案 | 语种 |
+|---:|---|---|---|---|---|---:|---:|---|
+| 1 | SargeDev/jev-distill-corpus-v3 | `jev-distill-v3` | default / train / 8,000 / head | `fc99c6357a9f89f7512c4a987314352addead049` | apache-2.0 | 7,756 | 7,756 | en |
+| 2 | samatv256/jev-decisions-v1 | `jev-decisions-general-50k` | general-clean-50k / train / 4,000 / head | `c12aadf1f01c72616bfab0b02480e21806397669` | cc-by-4.0 | 3,802 | 3,802 | en |
+| 3 | samatv256/jev-decisions-v1 | `jev-decisions-strata` | default / train / 400 / 4 个浅窗口（window_size 100，span 200k） | `c12aadf1f01c72616bfab0b02480e21806397669` | cc-by-4.0 | 207 | 207 | en |
+| 4 | tasksource/procedural-typed-decisions | `procedural-typed-decisions` | all / train / 1,500 / head | `609513a3faddf729123266efe9861456fe748f95` | apache-2.0 | 1,500 | 1,500 | en |
+| 5 | dwidlee/systemone-lite-general | `systemone-lite-general` | default / train / 1,500 / head | `c14eb7f7518f1d15cfcc27ac300c070a145d506a` | mit | 1,479 | 1,479 | en |
+| 6 | ZefanCai/Open-Jev | `open-jev` | release-v2-redistributable / train / 6,000 / head | `c67699e13d0ae25e35b77165a4b6b079bedc8aba` | cc0-1.0 | 792 | 792 | en |
+| 7 | kaivoss/system-one-270m-data | `system-one-270m` | default / train / 1,500 / head | `f31d5a3f3da828021c792edf5ab4b93cf60fe01b` | apache-2.0 | 447 | 447 | en |
+| 8 | Deepexi/openai-formate-function-calling-small | `deepexi-fcs-v3` | default / train / 全量 24,608 行（转换后 7,872 条） | `6d1dc02a2549104cc9cd2828c4b8647e9f994341` | apache-2.0 | 7,872 | 7,872 | zh |
+| **合计** | **7 个数据集** | **8 个抓取单元** | | | | **23,855** | **23,855（100%）** | en 15,983 / zh 7,872 |
+
+- 机器可读版本：英文侧 [sources.json](sources.json)（含 row_limit、采样参数、逐条 notes 与已排除来源）；
+  中文侧来源的判读与 row_limit 见 [zh-typed-survey.md](zh-typed-survey.md)、构建记录见 [zh-build-report.md](zh-build-report.md)，
+  模板线的中文登记在 [sources.zh.json](sources.zh.json)。
+- `sources.json` 的 `quotas` 段是**历史参考值**（总量 10,000 / 每域 1,200 / pol2_axis 0 / 单一来源 40%）：
+  `coverage.py` 只把它打印出来对照，**不参与通过/不通过**。
+- 本文第 1 节的分来源说明按重要性排序，条数为**英文原生线**口径（合计 15,983）；第 2 节是同一口径的汇总。
 
 ## 1. 推荐保留：7 个抓取单元 / 6 个数据集（按重要性排序）
 
@@ -118,7 +148,7 @@ default 配置一条：
 
 保留 **1,500 条**（**100% 带来源自带答案**）。一个情境挂多个问题，英文侧共 4,691 个 target：伪 one-hot 3,696 / 真分布 432 / 只有 answer 545 / 均匀 18。
 
-## 2. 合计与目标
+## 2. 合计（英文原生线，15,983 条）
 
 | 数据集 | 保留条数 | 带来源自带答案 |
 |---|---:|---:|
@@ -130,7 +160,9 @@ default 配置一条：
 | system-one-270m | 447 | 447 |
 | **合计** | **15,983** | **15,983（100%）** |
 
-- 契约总量下限 10,000 条：**只用 System-1 来源就到 15,983 条，不需要靠传统数据集凑数。**
+- 规模现状：**只用 System-1 来源就到 15,983 条**（英文原生线）；加上中文侧 7,872 条，
+  当前交付语料 `items.final.jsonl` 共 23,855 条（见 §0）。**不再有总量下限或每域下限要求**
+  （2026-10-15 门槛移除；`coverage.py` 只统计分布，不判定）。
 - **每个条目都带来源自己的答案（100%）**，但要分清形态（见 [CONTRACT.md](CONTRACT.md) §2.3）：真分布与硬标签单点分布
   在字段上长得一样，**不能一律当概率用**。本目录实测：真分布 7,520 个问题 / 伪 one-hot 14,119 / 均匀 1,730 / 只有 answer 11,565
   英文侧 23,914 个 target 的形态分布为 真分布 7,520 / 伪 one-hot 14,119 / 均匀 1,730 / 只有 answer 545，中文侧 11,020 个 target 全部是「只有 answer」。）
@@ -147,6 +179,22 @@ default 配置一条：
 - **直接不要**：自由文本答案、长答案、多标签、没有明确选项空间的数据集。
 - 定位：这类来源最多当**评测对照或小规模补充**，不进训练主力；先看 System-1 部分的训练效果再决定。
 
-## 4. 许可摘要
+## 4. 许可登记（信息性）
 
-保留的 6 个数据集许可都干净，且都固定在 40 位 commit sha 上（逐条见 [sources.json](sources.json) 的 license 与 revision 字段）：apache-2.0（jev-distill-corpus-v3、system-one-270m、procedural-typed-decisions）、cc0-1.0（Open-Jev）、mit（systemone-lite-general）、cc-by-4.0（jev-decisions-v1，署名即可）。**全部允许训练与衍生发布，没有 NC（非商业）或 SA（同许可传染）条目。**
+许可信息集中登记在此（逐条见 §0 表与 [sources.json](sources.json) 的 license / revision 字段），
+供署名、衍生发布与合规复查使用。**它不是准入条件，也不是验收标准**——历史上"许可必须为 X /
+禁止 NC·SA / 逐来源许可登记"曾作为准入要求，该要求已于 2026-10-15 移除；`coverage.py`、
+`tools/check.py` 与任何交付门禁都不检查许可。
+
+| 数据集 | 许可 | 条件/署名 | 条目数 |
+|---|---|---|---:|
+| SargeDev/jev-distill-corpus-v3 | apache-2.0 | 保留版权与许可声明 | 7,756 |
+| samatv256/jev-decisions-v1 | cc-by-4.0 | 署名 | 4,009（两个抓取单元合计） |
+| tasksource/procedural-typed-decisions | apache-2.0 | 保留版权与许可声明 | 1,500 |
+| dwidlee/systemone-lite-general | mit | 保留版权与许可声明 | 1,479 |
+| ZefanCai/Open-Jev | cc0-1.0 | 无 | 792 |
+| kaivoss/system-one-270m-data | apache-2.0 | 保留版权与许可声明 | 447 |
+| Deepexi/openai-formate-function-calling-small | apache-2.0 | 保留 Deepexi 署名并注明来源（内容取材自阿里云公开 OpenAPI 文档，条款未逐条核对） | 7,872 |
+
+事实记录（非要求）：上表 7 个数据集没有 NC（非商业）或 SA（同许可传染）条目；全部固定在 40 位 commit sha 上。
+中文侧 Deepexi 的许可链说明见 [zh-build-report.md](zh-build-report.md) §许可链与 [zh-typed-survey.md](zh-typed-survey.md) §1。

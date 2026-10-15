@@ -29,7 +29,7 @@
 | `state` | string | 是 | 待判断的情境文本；不写结论、不写"这是违规"之类提示 |
 | `questions` | object[] | 是 | 非空；每条 `{key, kind, prompt, options?, scale?, origin?, source_key?}` |
 | `targets` | object | 否 | `{<key>: {answer?, probs?}}`；源数据自带答案时填，否则留空等外部答案源 |
-| `source` | object | 是 | `{dataset, revision, config, split, row, license, url}`，全部必填，无法固定 revision 的一律不收 |
+| `source` | object | 是 | `{dataset, revision, config, split, row, license, url}`，全部必填：逐条记录溯源信息（来源、revision、许可、位置）。这是**格式要求**，不是准入条件——许可信息集中登记在 [SOURCES.md](SOURCES.md) |
 | `meta` | object | 是 | `{converter, converter_version, created_at, quality_flags}` |
 
 `questions[].origin` 取值（**决定这道题是谁出的**，是本源最重要的区分）：
@@ -125,7 +125,7 @@
 **均匀分布没有信息量**（多来自教师模型的低置信样本），用它做监督等于教模型"别确定"：
 报告指标时建议同时给"排除均匀目标"的子集分数。
 
-## 3. 覆盖域（每个域设下限配额，宁缺毋滥）
+## 3. 覆盖域（分类标签，不设下限）
 
 | domain | 覆盖什么 | 主要来源 |
 |---|---|---|
@@ -133,16 +133,19 @@
 | `human_judgment` | 真人情感/毒性/蕴含判断，含多人 vote 分布 | GoEmotions、Civil Comments、ChaosNLI（经 jev-bench 定位，但取其**上游 train 划分**） |
 | `social_moral` | 亲社会回应、道德规范、动机→行为→后果 | ProsocialDialog、Social Chemistry、Moral Stories |
 | `risk_harm` | 伤害类别、越狱与对抗、升级判断 | WildGuardMix、PKU-SafeRLHF |
-| `knowledge_reasoning` | 常识与知识型判断，防止只会做治理题 | 受许可的问答类来源 |
+| `knowledge_reasoning` | 常识与知识型判断，防止只会做治理题 | 问答类来源（来源与许可清单见 [SOURCES.md](SOURCES.md)） |
 | `pol2_axis` | 关怀与控制、同意撤回、批评与人格、公共性等判定轴 | 与 datasets/pol2 的 15 条判定轴对齐 |
 
 **已知边界**：`Praveenrajus/jev-bench` 全部划分都是 `test`，它本身是排行榜基准，
 **只能当外部评测，不得进训练**。要做真人校准监督，请取其上游数据集各自的 train 划分。
 
-## 4. 规模与配额
+## 4. 规模（信息性，不设门槛）
 
-- 总量下限 **10,000 条**，目标 20,000–30,000 条；每个覆盖域至少 1,200 条。
-- 单一来源占比不得超过 40%，防止某一家数据定义整个表示。
+- **不设总量、每域下限与单一来源占比门槛**（2026-10-15 移除）：原先的 10,000 / 每域 1,200 /
+  单一来源 40% 全部作废，`coverage.py` 照常统计并打印全部分布，配额不参与通过/不通过。
+- 需要强制时**显式**在命令行给 `--min-total` / `--min-per-domain` / `--domain-min` /
+  `--max-source-share`；只有命令行显式给出的维度才判定。
+- `sources.json` 的 quotas 段只作参考值打印（逐条来源与各来源条数见 [SOURCES.md](SOURCES.md)）。
 - 同一 `state` 的翻译与改写视为同族，只能出现在同一分区。
 
 ## 5. 目录与文件归属
@@ -151,9 +154,9 @@
 |---|---|---|
 | `datasets/general/README.md` | 面向协作者的总览 | db-hf |
 | `datasets/general/CONTRACT.md` | 本契约（字段与格式） | Lead |
-| `datasets/general/sources.json` | 来源清单与配额 | Lead |
+| `datasets/general/sources.json` | 来源清单与许可登记（其中的 quotas 段仅为历史参考，不判定） | Lead |
 | `datasets/general/taxonomy.py` | 覆盖域与问题键定义 | db-schema |
-| `datasets/general/coverage.py` | 覆盖报告与配额校验 | db-schema |
+| `datasets/general/coverage.py` | 覆盖报告与分布统计（默认不设门槛） | db-schema |
 | `datasets/general/fetch.py` | 下载（datasets-server 分页）与断点续跑 | db-hf |
 | `datasets/general/convert.py` | 各来源 → 统一 schema（`--native` 为主路径） | db-hf |
 | `datasets/general/slim.py` | 字段精简（manifest + 紧凑引用） | db-hf |
@@ -187,17 +190,17 @@
    **中文侧因答案索引进过 git 历史而不进 benchmark**。v1 与 v2 的四区**不可拼接**。详见 split-report.md §10。
 10. **split-manifest 有 2 条摘要与磁盘不符**（benchmark-dataset/README.md、benchmark-dataset/manifest.json），
     属于切分侧待修项（随整改一并重生成）。
-11. **配额口径与当前语料不匹配**：六域下限是按已退役的混合语料定的；当前语料实测
-    items.final 在 human_judgment / social_moral / risk_harm 三域为 0，items.native 另有单一来源占 48.5% > 40%。
-    配额需随语料重定，见 §7。
+11. **配额不再是门槛**（2026-10-15）：六域下限与单一来源上限是按已退役的混合语料定的，已从
+    `coverage.py` 与本契约移除。当前语料实测 items.final 在 human_judgment / social_moral / risk_harm
+    三域为 0、items.native 的单一来源占 48.5%——这些只是**分布事实**，不再构成不通过项；`sources.json`
+    的 quotas 仅作参考值打印。见 §7。
 
 ## 7. 检查
 
     uv run --no-project --offline python tools/check.py
 
-    # 覆盖与配额。注意：六域配额是按【已退役】的模板语料定的，对当前语料会报 NG（见 §6 第 11 条）：
-    #   items.final → human_judgment / social_moral / risk_harm 三域为 0，报 3 项不通过；
-    #   items.native → 另有单一来源 jev-distill 占 48.5% > 40%，报 4 项不通过。
+    # 覆盖报告：打印全部维度分布；默认不设门槛，退出码 0（除非格式违规，或命令行显式给了阈值）。
+    # sources.json 的 quotas 只作参考值打印，不参与判定（见 §4）。
     uv run --no-project --offline python datasets/general/coverage.py --items datasets/general/data/items.final.jsonl
 
     # 切分复现。两个坑：旗标是 --input；默认 --out/--report 指向交付目录，会把 train（含追加的 3,148 条
