@@ -59,7 +59,7 @@ It represents the governance and application layer for the Proof-of-Love2 Civili
 
 ## 🛠️ 开发规划
 
-📄 [**自然道开发规划 Version 0.1**](https://github.com/naturaldao/NaturalDAO/blob/main/NaturalDAO%E5%BC%80%E5%8F%91%E8%A7%84%E5%88%92.md)
+📄 [**自然道开发规划 Version 0.1**](docs/development-plan.zh.md) · [English](docs/development-plan.en.md)
 
 ---
 
@@ -67,7 +67,20 @@ It represents the governance and application layer for the Proof-of-Love2 Civili
 
 | 文档 | 说明 |
 | :--- | :--- |
-| [爱2证明 version 1.0](https://github.com/naturaldao/NaturalDAO/tree/main/PoL) | 自然道的基础理论 |
+| [爱2证明 version 1.0](PoL/) | 自然道的基础理论（中文） |
+| [Proof of Love2 version 1.0](PoLEn/) | Foundational theory (English) |
+
+---
+
+## 🗂️ 仓库结构 · Repository Layout
+
+| 目录 | 内容 |
+| :--- | :--- |
+| `PoL/` · `PoLEn/` | 爱2证明理论文档（中文 / English），自动同步到 Wiki |
+| `PoL-Governance/` | AI 治理层协作：任务、数据、模型、评测 |
+| `Research/` | 研究综述与技术选型 |
+| `docs/` | 开发规划及存档文档 |
+| `media/` | 对外宣传物料：图片、视频、文案 |
 
 ---
 

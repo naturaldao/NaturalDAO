@@ -8,7 +8,7 @@ Thanks for contributing to NaturalDAO. The repository holds two kinds of content
 | :--- | :--- | :--- |
 | 理论文档（爱2证明） | `PoL/`（中文）、`PoLEn/`（English） | 见下文「理论文档」 |
 | AI 治理层协作（数据、评测、模型、任务） | `PoL-Governance/` | 见 [AGENTS.md](PoL-Governance/AGENTS.md) 和 [README](PoL-Governance/README.md) |
-| 开发规划 | `NaturalDAO开发规划.md`、`NaturalDAO Development Plan EN.md` | 与理论文档相同 |
+| 开发规划 | `docs/development-plan.zh.md`（中文）、`docs/development-plan.en.md`（English） | 与理论文档相同 |
 
 ## 理论文档 · Theory documents
 
