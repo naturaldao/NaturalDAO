@@ -444,6 +444,9 @@ def main(argv=None):
     api_names_zh = set()
     samples_cap = collections.defaultdict(list)
     samples_con = collections.defaultdict(list)
+    origin = collections.Counter()
+    origin_split = collections.defaultdict(collections.Counter)
+    domains = collections.Counter()
     ids_by_split = collections.defaultdict(set)
     groups_by_split = collections.defaultdict(set)
     states_by_split = collections.defaultdict(set)
@@ -465,6 +468,12 @@ def main(argv=None):
                 lang[item.get("lang")] += 1
                 lang_split[name][item.get("lang")] += 1
                 datasets[ds] += 1
+                om = item.get("meta") or {}
+                org = (om.get("origin") or item.get("origin")
+                       or om.get("question_origin") or "unknown")
+                origin[org] += 1
+                origin_split[org][name] += 1
+                domains[item.get("domain")] += 1
                 ids_by_split[name].add(item.get("id"))
                 gid = ((item.get("meta") or {}).get("group_id")
                        or (item.get("meta") or {}).get("request_id"))
@@ -544,6 +553,18 @@ def main(argv=None):
     w("| 英文条目 | %d（%s） |\n" % (lang.get("en", 0), pct(lang.get("en", 0), total)))
     w("| 中文条目 | %d（%s） |\n" % (lang.get("zh", 0), pct(lang.get("zh", 0), total)))
     w("| 能力维度未归类 | %d |\n" % cap.get("other", 0))
+    w("\n成色分层（meta.origin / meta.question_origin）：\n\n| 层级 | 条目 | 说明 |\n|---|---:|---|\n")
+    w("| source（原生四元组） | %d | 情境、候选与答案都来自来源原文 |\n" % origin.get("source", 0))
+    w("| taxonomy（单标签转换） | %d | 由单标签转换而来，只进 train |\n" % origin.get("taxonomy", 0))
+    if origin.get("unknown"):
+        w("| 未标注 | %d | |\n" % origin["unknown"])
+    w("\n其中 taxonomy 层按分区：%s\n" % "、".join(
+        "%s %d" % (k, origin_split["taxonomy"].get(k, 0))
+        for k in ("train", "test", "validation")))
+    w("\n记录里 domain 字段（机制口径，见 CONTRACT.md 第 3 节）的分布：\n\n")
+    w("| domain | 条目 | 占比 |\n|---|---:|---:|\n")
+    for d, n in domains.most_common():
+        w("| %s | %d | %s |\n" % (d, n, pct(n, total)))
     w("\n细分领域标签（meta.native_domain）取值数按来源：\n\n| 来源 | 取值数 |\n|---|---:|\n")
     for ds, labels in sorted(native_labels_by_ds.items(), key=lambda kv: -len(kv[1])):
         w("| %s | %d |\n" % (ds, len(labels)))
