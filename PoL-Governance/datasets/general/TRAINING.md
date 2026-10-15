@@ -5,12 +5,16 @@
 > 本页给出可直接复跑的过滤清单、分区剩余数与参考实现。
 >
 > 依据：[target 溯源报告](target-provenance.md) §6 的 R1–R13 规则表；机器可读路由见
-> [target-types.jsonl.gz](data/target-types.jsonl.gz)（31,786 行，每条 target 一行）。
+> [target-types.jsonl.gz](data/target-types.jsonl.gz)（28,667 行，每条 target 一行；**只含公开分区**，
+> 见 §1.1）。
 > **本页不修改任何语料、不动任何划分。**
 
 ---
 
 ## 0. 一页结论
+
+> 本节与 §3 的数字是**全量口径**（31,786 target，含内部保留集），用于与报告 §6.3 对账；
+> **落盘件只含公开分区**（28,667 行），见 §1.1。
 
 | | 条数 | 训练怎么办 | 能不能当校准参照 |
 |---|---:|---|---|
@@ -40,19 +44,50 @@ documented 精确概率键上的非退化取值（报告 §3.6 / §5）。其余
 
 | 交付物 | 说明 |
 |---|---|
-| [target-types.jsonl.gz](data/target-types.jsonl.gz) | 旁挂路由，31,786 行，每条 target 一行；明文 `data/target-types.jsonl` 由脚本生成（见 §8 的 .gitignore 说明） |
+| [target-types.jsonl.gz](data/target-types.jsonl.gz) | 旁挂路由，28,667 行，每条 target 一行，**只含公开分区**（§1.1）；明文 `data/target-types.jsonl` 由脚本生成（见 §8 的 .gitignore 说明） |
 | [target_types.py](target_types.py) | 生成器：实现 R1–R13，自带自检（对不上报告 §6.3 就非零退出） |
 | [filter_targets.py](filter_targets.py) | 过滤与路由的参考实现：只读，打印各分区过滤前后条数 |
 | [test_target_types.py](test_target_types.py) | 不变量测试（`tools/check.py` 的 unittest discovery 会收进来） |
 | 本页 | 过滤与路由规格 |
 
-不变量（由 `target_types.py --verify` 与测试共同保证）：
+不变量（由 `target_types.py --verify` 与测试共同保证。1–4 是**全量语料口径**——生成器在内存里
+对账报告 §6.3，不落盘；落盘件另受 §1.1 的公开分区约束）：
 
-1. **合计 = 31,786**，连接键 `(item_id, question_key)` 全局唯一；
-2. `target_type` 四类分布 = 报告 §6.3 的 15,919 / 8,417 / 5,488 / 1,962；
+1. **全量合计 = 31,786**，连接键 `(item_id, question_key)` 全局唯一；
+2. 全量 `target_type` 四类分布 = 报告 §6.3 的 15,919 / 8,417 / 5,488 / 1,962；
 3. 逐规则命中数与报告 §6.3 完全一致；
 4. `hard_label` ⇔ 转换器旗标 `hard_label_to_point_mass`（5,488 条）；
-5. **原语料字节不变**：旁挂文件只读语料，不写回（语料 sha256 见报告抬头）。
+5. **原语料字节不变**：旁挂文件只读语料，不写回（语料 sha256 见报告抬头）；
+6. **落盘件只含公开分区**：白名单外的 target 一条都不出现（§1.1）。
+
+### 1.1 旁挂文件只覆盖公开分区（内部保留集不入库）
+
+旁挂件按 `data/splits/{train,test,validation}` 的 item id **白名单**过滤，只写公开分区的 target：
+全量扫描 31,786 → 落盘 **28,667**（冻结语料 23,855 条里，**3,119 个 target 属于内部保留集，未落盘**）。
+
+**为什么**：旁挂文件本身不含答案，但它的 `item_id` 列等于一份**成员名单**。旧的 31,786 行版本里有
+3,119 个 id 属于内部 benchmark——配上仍在 git 历史里可达的语料，两者一拼即可精确还原保留集。
+换个说法：**成员身份本身就是敏感信息**，说得出「谁在保留集里」就等于交出了保留集。这与
+[AGENTS.md](../../AGENTS.md) 的数据边界一致：保留集不进入任何公开分支、fork、PR、日志、截图或
+训练 Agent 上下文。
+
+**保留集的路由怎么办**：**不入库，在仓外维护**。仓内生成器只认公开白名单，`--out` 也不改变这一点
+（连「读 benchmark 才能排除它」都避免——那等于把成员清单从旁挂文件搬到源码里）；需要保留集路由时，
+在仓外按同一套 R1–R13 规则复算，输出不要提交。
+
+**怎么防回流**（三条都盯**内容级**，不是「文件有没有被 git 跟踪」）：
+
+1. [target_types.py](target_types.py) 只认公开分区白名单，分区缺失即报错退出（fail closed），
+   绝不退回「全量落盘」；
+2. [test_target_types.py](test_target_types.py) 的 `BenchmarkIsolationTest` 分两层断言：层 1
+   `item_id ⊆ 公开分区`（干净检出与 CI 都生效，因为公开分区是入库的 `.gz`），层 2 与
+   `data/splits/benchmark.jsonl` 的 id 集合**交集为空**（保留集不在本机时跳过）；并用
+   「注入必红、未注入必绿」的副本演练自证护栏真的会拦；
+3. [filter_targets.py](filter_targets.py) 扫到保留集分区时**不做兜底路由估算**，只要求旁挂文件
+   覆盖 0 条——不估算才不会有「看起来合理的错数字」。
+
+§0 / §3 / §4.2 / §4.6 / §7 里出现的全量与保留集数字是**迁移前的口径**（保留集路由按本节约定不再
+入库），待划分重切落定后统一清理。
 
 ---
 
@@ -87,6 +122,9 @@ documented 精确概率键上的非退化取值（报告 §3.6 / §5）。其余
 ---
 
 ## 3. 全量分布（与报告 §6.3 对账）
+
+> **口径**：本节是**全量语料**（31,786 target，含内部保留集）的分布，是生成器内存自检的基准，
+> **不等于**已落盘的旁挂件（后者只含公开分区 28,667 行，见 §1.1）。
 
 ### 3.1 `target_type` 四类
 
@@ -361,9 +399,9 @@ R12/R13 是**覆盖规则**且继承语义。落盘时用 `rule_id`（R1–R11�
 **冲突 3｜R13 的「232」与字面形态的「234」。** 按「非负权重在正权重子集上等值」字面量，
 全语料有 **234** 条。多出的 2 条是**真实取值**而不是占位符：
 
-- `db-jev-distill-v3-6c8e967e`（`yuri_v3`）：`{no_issue 0, minor_deviation .5, reportable .5, emergency 0}`
+- 一条 `yuri_v3` 条目（id 从略，避免暴露内部基准成员）：`{no_issue 0, minor_deviation .5, reportable .5, emergency 0}`
   ——教师真的把质量放在两个选项上（排除了另两个），是信念不是构造伪影；
-- `db-procedural-typed-decisions-de59753c`（`policy_under_uncertainty / governing_policy`）：
+- 一条 `procedural-typed-decisions` 的 `policy_under_uncertainty / governing_policy` 条目（id 从略）：
   `{p1 .5, p2 0, none_default_deny .5}` ——规则精确算出的后验并列，本身就是「概率」。
 
 报告 §6.3 R13 的括注写的是「open-jev 与 openjev_v2 的并列行」= 201 + 31 = **232**。本实现据此把 R13
@@ -401,7 +439,7 @@ R12/R13 是**覆盖规则**且继承语义。落盘时用 `rule_id`（R1–R11�
 
 ## 8. 复算命令
 
-    # 1. 重算旁挂文件并与已落盘逐行比对（语料或规则一变就报错）
+    # 1. 重算旁挂文件并与已落盘逐字节比对（语料、规则或公开分区一变就报错）
     uv run --no-project --offline python datasets/general/target_types.py --verify
 
     # 2. 分区过滤前后 + 剔除理由计数（两种并列口径）
@@ -417,7 +455,12 @@ R12/R13 是**覆盖规则**且继承语义。落盘时用 `rule_id`（R1–R11�
 **入库形态**：`datasets/general/data/*.jsonl` 被 `.gitignore` 第 13 行挡住（明文属可复算的大体积派生文件），
 所以明文 `data/target-types.jsonl` 本机保留、**压缩版 [target-types.jsonl.gz](data/target-types.jsonl.gz)
 入库**——与 `data/splits/*.jsonl(.gz)` 同一套规矩。两版内容逐字节同源（gzip mtime = 0，可复现）。
-旁挂文件 31,786 行、明文 15.9 MB、压缩后约 514 KB。
+旁挂文件 **28,667 行**（只含公开分区，§1.1）、明文 15,142,212 字节、gzip 491,533 字节；每行是
+canonical JSON（键序排序、默认分隔符），所以 `--verify` 能与入库件**逐字节**比对。
+
+**分区白名单**：`target_types.py` 默认从 `data/splits` 取 `train/test/validation` 的 item id 作白名单
+（`--splits` 可换目录）。任一公开分区缺失即报错退出，**不会**退回全量落盘；因此重算要求分区在位——
+干净检出上它们是入库的 `*.jsonl.gz`，读得到。
 
 ---
 
@@ -426,3 +469,4 @@ R12/R13 是**覆盖规则**且继承语义。落盘时用 `rule_id`（R1–R11�
 | 日期 | 变更 |
 |---|---|
 | 2026-10-06 | 首版。实现报告 §6 的 R1–R13，落盘 31,786 行旁挂路由；给出三条路由与四分区过滤前后条数；更正 slug 统计口径；登记 6 处规则冲突。 |
+| 2026-10-15 | 旁挂文件切到**只含公开分区**（31,786 → 28,667；3,119 个内部保留集 target 不再落盘，见 §1.1）：生成器改公开分区白名单 + fail closed + canonical JSON；测试改为推导式期望并加内容级护栏（两层 + 注入演练）；`filter_targets.py` 不再对保留集做兜底路由估算；`--ties` 计数随之更新为 1,809 / 6,648 / 20,210。 |

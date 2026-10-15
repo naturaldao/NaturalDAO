@@ -1,39 +1,156 @@
 {
-  "counts": {
-    "benchmark": 1600,
+  "benchmark_lang_policy": {
+    "benchmark_langs": [
+      "en"
+    ],
+    "conflict": [],
+    "corpus_langs": [
+      "en",
+      "zh"
+    ],
+    "exclusions": {
+      "zh": "中文答案以 (group_id → 正确工具) 索引形式仍在公开 git 历史里可达（实测覆盖 5454/5454 组 = 100%），换盐/换种子都挡不住，zh 分项分数不具盲测意义；恢复条件：接入全新中文来源，或由维护者协调重写仓库历史清除该索引"
+    },
+    "missing": [],
+    "unknown_exclusions": []
+  },
+  "benchmark_source_policy": {
+    "cap_ok": true,
+    "items": 1598,
+    "max_items": 399,
+    "max_share": 0.24968710888610762,
+    "max_source": "samatv256/jev-decisions-v1",
+    "max_source_share": 0.25,
+    "min_items": 85,
+    "min_source_share": 0.05,
+    "policy": {
+      "bound_share": 0.24968710888610762,
+      "cap_enforced": true,
+      "cap_items": 399,
+      "cap_policy": "policy",
+      "eligible_sources": 6,
+      "feasible_bound": 267,
+      "floor_items": 79,
+      "max_source_share": 0.25,
+      "min_source_share": 0.05,
+      "target_items": 1598
+    },
+    "rows": [
+      {
+        "dataset": "SargeDev/jev-distill-corpus-v3",
+        "items": 399,
+        "pool": 7756,
+        "quota": 399,
+        "share": 0.24968710888610762,
+        "take_rate": 0.05144404332129964
+      },
+      {
+        "dataset": "samatv256/jev-decisions-v1",
+        "items": 399,
+        "pool": 4009,
+        "quota": 399,
+        "share": 0.24968710888610762,
+        "take_rate": 0.0995260663507109
+      },
+      {
+        "dataset": "tasksource/procedural-typed-decisions",
+        "items": 284,
+        "pool": 1500,
+        "quota": 284,
+        "share": 0.17772215269086358,
+        "take_rate": 0.18933333333333333
+      },
+      {
+        "dataset": "dwidlee/systemone-lite-general",
+        "items": 281,
+        "pool": 1479,
+        "quota": 281,
+        "share": 0.17584480600750937,
+        "take_rate": 0.18999323867478027
+      },
+      {
+        "dataset": "ZefanCai/Open-Jev",
+        "items": 150,
+        "pool": 792,
+        "quota": 150,
+        "share": 0.09386733416770963,
+        "take_rate": 0.1893939393939394
+      },
+      {
+        "dataset": "kaivoss/system-one-270m-data",
+        "items": 85,
+        "pool": 447,
+        "quota": 85,
+        "share": 0.05319148936170213,
+        "take_rate": 0.19015659955257272
+      }
+    ]
+  },
+  "corpus_counts": {
+    "benchmark": 1598,
     "test": 4946,
-    "train": 17984,
+    "train": 14838,
+    "validation": 2473
+  },
+  "corpus_items": 23855,
+  "counts": {
+    "benchmark": 1598,
+    "test": 4946,
+    "train": 17986,
     "validation": 2473
   },
   "digests": {
-    "benchmark-dataset/README.md": "88164c7be3e72caf98830d3608824b08da23e12edc38a810a074e258780c051e",
-    "benchmark-dataset/benchmark.jsonl": "f5ae670811c332002deb82ab98bed8d25ef66281aeb622691a50147ee6e70a2a",
-    "benchmark-dataset/benchmark.jsonl.gz": "3f67285adeec301f698401bc48e2e37bb72f243efc0c62a6eba3489dedb0d0a5",
-    "benchmark-dataset/manifest.json": "3a9adf762673c065fa08500abc7b7f0bd89c5ceb3e9f10a49cb884c6e229b578",
-    "benchmark.jsonl": "f5ae670811c332002deb82ab98bed8d25ef66281aeb622691a50147ee6e70a2a",
-    "benchmark.jsonl.gz": "3f67285adeec301f698401bc48e2e37bb72f243efc0c62a6eba3489dedb0d0a5",
-    "test.jsonl": "95e6633914f08ad664cdc1cb26da6068a8c164a24c92398b82b634113560bd70",
-    "test.jsonl.gz": "c3661a59b63d2414548aa54ff7e2d47dcf8eaae34ca1cacf8cd7d329e7f5a23f",
-    "train.jsonl": "0d04c0445ea0a64ee9aefbcea87686abfd4de48ce3fb0a98e8030d3a85b706e2",
-    "train.jsonl.gz": "66e0cfe393f8dc13f10f60f080c3e22ea7677fc611057ebf3c120c4cedde5369",
-    "validation.jsonl": "55c11de812d3177cc952297325f91c0a78056c3642ce9bb5d8445b074fecfc04",
-    "validation.jsonl.gz": "8cae7ad9a4288d38e1860f5cdff62f54ff89b8bf972cf876470d8e6f35151d95"
+    "benchmark-dataset/README.md": "11a9578e212d408fe1357132c03300967c3af000387e0935993e6ed9651d77e9",
+    "benchmark-dataset/USAGE.md": "3619c6cb9d9ae584a4e4dc9625bd07e85f40fb429d918747dad1940fdeb683cc",
+    "benchmark-dataset/benchmark.jsonl": "e9b0bd86743ba60386807d635cfa3e9c16e6c60f148bea885b00dfe7a48683a3",
+    "benchmark-dataset/benchmark.jsonl.gz": "3dfdd39e7af71fcf6095cd123d579f3d337b64acd73c0d69408e8b9ce77d9f9c",
+    "benchmark-dataset/manifest.json": "5c3fc116f91bd7ce845d212f2480fd298ab44d50aa9823e2a6b0f9953977ca34",
+    "benchmark-dataset/verify.py": "62bc052a41746b2cc127ff06973da09bfc334ae54116d11dc2117625aa3df367",
+    "benchmark.jsonl": "e9b0bd86743ba60386807d635cfa3e9c16e6c60f148bea885b00dfe7a48683a3",
+    "benchmark.jsonl.gz": "3dfdd39e7af71fcf6095cd123d579f3d337b64acd73c0d69408e8b9ce77d9f9c",
+    "test.jsonl": "f236bdc02e1bb36d746c7bbe5726aa5a18cbc0247cc7ec51f9230866b5c2daf7",
+    "test.jsonl.gz": "794e770e2f70dc2280fea30914d149cf4917c4af3adcdaabd348bf512d97c25e",
+    "train.jsonl": "6ef746b90b7289de6464425148beaba9b85d6d2204707e662b1040776e8952ec",
+    "train.jsonl.gz": "2dcc9a9098e217f1a7b6b5eafcfc60a73ca3273bdcd9b6fd8b07d4135a68548f",
+    "validation.jsonl": "376f3dadc70cbe99b0b9b52e5e5515418eab2c24483b3c2df43764c1c47d797a",
+    "validation.jsonl.gz": "1a1407f14f794a5d13d6bc11648922571bc854190a8c144da5e0f3b8d7ac705c"
   },
   "inputs": [
     "datasets/general/data/items.final.jsonl"
   ],
   "items": 27003,
+  "package": {
+    "directory": "benchmark-dataset",
+    "files": [
+      "README.md",
+      "USAGE.md",
+      "benchmark.jsonl",
+      "benchmark.jsonl.gz",
+      "manifest.json",
+      "verify.py"
+    ],
+    "verify": "python verify.py（在包目录内运行，退出码 0=通过）",
+    "version": "0.3"
+  },
+  "package_version": "0.3",
+  "public_surface_audit": {
+    "hit_count": 0,
+    "hit_files": [],
+    "ids": 1598,
+    "note": "被 git 跟踪的文件（.gz 解压后）对 benchmark 的 id 与正文零命中；--audit-public-surface 可单独复跑。不记录扫描文件数：它随仓库增删变化，会破坏重跑一致性。",
+    "texts": 1598
+  },
   "ratios": {
     "benchmark": 0.1,
     "test": 0.2,
     "train": 0.6,
     "validation": 0.1
   },
+  "report_version": "v3",
   "rerun": {
-    "files": 12,
+    "files": 14,
     "identical": true,
-    "note": "该复跑校验完成于追加补充集之前；train 的两个文件已按追加结果更新，其余 10 个文件未变",
-    "tree_sha256": "7635cfbbd01b1f7310808d6aedaa79fb55334bdfbcd56681dde65ca88d6cbfb1"
+    "tree_sha256": "8c1fc88961a8c1b1b58f3d4dd71e3c17b4fbb8d65dc3b4f195539c99f6cbe339"
   },
   "salt_policy": {
     "benchmark_langs": [
@@ -44,18 +161,23 @@
   },
   "schema": "pol-split-manifest/0.1",
   "seed": 20261005,
-  "supplement": {
-    "benchmark_eligible": false,
-    "items": 3148,
-    "kinds": {
-      "noul": 1631,
-      "score": 1517
-    },
-    "note": "切分完成后追加到 train 末尾；未重跑切分，test/validation/benchmark 的 sha256 未变",
-    "origin": "taxonomy",
-    "scope": "train only（test / validation / benchmark 不得包含）",
-    "source": "datasets/general/data/zh-supplement/items.jsonl",
-    "source_sha256": "f2d87c3893d2e138b1443140a67d30c545cd47bebb05c5d9d629fed4f7422c8a",
-    "tier": "derived"
-  }
+  "supplement": [
+    {
+      "benchmark_eligible": false,
+      "by_kind": {
+        "noul": 1631,
+        "score": 1517
+      },
+      "by_lang": {
+        "zh": 3148
+      },
+      "by_origin": {
+        "taxonomy": 3148
+      },
+      "items": 3148,
+      "note": "切分完成后整批追加到 train 末尾；其余三区不受影响",
+      "path": "datasets/general/data/zh-supplement/items.jsonl",
+      "scope": "train only（test / validation / benchmark 不得包含）"
+    }
+  ]
 }

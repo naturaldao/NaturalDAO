@@ -1,9 +1,17 @@
-"""最终语料切分：按请求分组、按 domain x lang 分层、6:2:1:1、内部 benchmark（task-20）。
+"""最终语料切分：按请求分组、按 domain x lang 分层、6:2:1:1、内部 benchmark（task-20 / task-3）。
 
-用法::
+用法（交付件必须带仓外私盐，且显式写 --out / --report）::
 
     uv run --no-project --offline python datasets/general/data/splits/split.py \
-        --out datasets/general/data/splits --report datasets/general/split-report.md --seed 20261005
+        --out datasets/general/data/splits --report datasets/general/split-report.md \
+        --seed 20261005 --salt-file D:/pol2-raw/pol-split-salt.txt \
+        --benchmark-lang en --benchmark-exclude-lang "zh=<理由>" \
+        --train-supplement datasets/general/data/zh-supplement/items.jsonl
+
+**默认值不会误伤交付件**：--out / --report 的默认值仍指向交付目录（datasets/general/data/splits、
+datasets/general/split-report.md），但只要这两个参数**没有显式给出**，而目标位置已存在交付件
+（split-manifest.json / 报告文件），本次运行就直接拒绝并返回 3——想覆盖必须显式写 --out / --report
+或加 --force。默认值只用于"第一次生成"，不会把已交付的四区或公开报告悄悄换掉。
 
 最终输入只有一份：**datasets/general/data/items.final.jsonl**（db-hf 合并：英文原生四元组 +
 已按 33% 目标筛过的中文侧）。默认就取它，不自动叠加 data/zh/（会把中文侧重复计入）。
@@ -22,14 +30,26 @@ D:/pol2-raw/zh-final/items.zh.jsonl（中文全量）、data/items.jsonl（替�
    兜底条数与各组构成写进报告。
 2. **分层**：按 (domain, lang) 分层，层内按组用种子洗牌，再按"目标条数 - 已分配条数"最大缺口贪心分配，
    使四区的域分布与语言比例大体一致。
-3. **benchmark 不是随机抽样**：先按 10% 比例预留，再对 lang x kind、domain、lang 做保底配额补齐
-   （该类不足时取全部），保证覆盖 noul/choice/score、主要 domain 与中英两侧。
-4. **隐私**：benchmark 条目只写进 --out 与 benchmark-dataset 目录；split-report.md 与 dataset card
-   只有聚合统计，**不含任何样本内容**（test_split.py 有对应断言）。请勿把 benchmark.jsonl(.gz)
-   提交到公开仓库——它由用户上传 Hugging Face 并设为 private。
+3. **benchmark 不是随机抽样，还要按来源均衡**：先按 10% 比例预留，再对 lang x kind、domain、lang 做
+   保底配额补齐（该类不足时取全部）；同时用**水位法**给每个来源算配额：任一来源占比硬上限
+   max_source_share（默认 25%）、每个来源下限 min_source_share（默认 5%，"各个来源都收集一点"）。
+   上限不可行时才放宽到可行界 1/来源数（例如只有一个来源的合成语料），并把实际值写进报告。
+   见 benchmark_source_quota / reserve_benchmark。
+4. **benchmark 的语言覆盖必须是显式声明**：语料里出现的每种语言，要么允许进 benchmark
+   （--benchmark-lang），要么用 --benchmark-exclude-lang LANG=理由 显式排除；漏一种就拒绝切分
+   （返回 3）。本轮交付把 zh 显式排除——中文侧的 (group_id → 正确工具) 答案索引仍在公开 git 历史里
+   可达（实测覆盖 5,454/5,454 组 = 100%），换盐也挡不住，理由与证据写进报告与 manifest。
+5. **隐私**：benchmark 条目只写进 --out（分区 + benchmark-dataset 包）；split-report.md 与
+   dataset card/manifest 只有聚合统计，**不含任何样本内容**（test_split.py 有对应断言）。
+   包内 verify.py 由 tracked 模板 verify_benchmark_package.py 复制而来，必须 exit 0
+   （datasets/general/test_benchmark_package.py 每次都跑）。请勿把 benchmark.jsonl(.gz) 或
+   benchmark-dataset/ 提交到公开仓库——它由用户上传 Hugging Face 并设为 private。
+6. **train-only 补充集**：--train-supplement 把降级（origin != source）中文补充整批追加到 train 末尾，
+   只追加 train，绝不进 test/validation/benchmark；id 与语料重叠、或补充集里混入原生条目 → 直接拒绝。
 
-可复现：随机数全部来自 random.Random("seed|阶段|domain|lang")，分区内条目按 id 排序，
-gzip 用 mtime=0 写入；同一输入重跑两次逐字节一致（test_split.py 有对应测试）。
+可复现：随机数全部来自 random.Random("seed|盐token|阶段|domain|lang")，分区内条目按 id 排序，
+补充集按文件顺序追加在 train 末尾，gzip 用 mtime=0 写入；同一输入 + 同一私盐重跑两次逐字节一致
+（test_split.py 有对应测试）。
 """
 
 from __future__ import annotations
@@ -38,6 +58,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import os
 import random
 import re
 import subprocess
@@ -45,6 +66,13 @@ import sys
 import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
+
+#: 打包模块与它同目录：直接跑脚本时 sys.path[0] 就是这里，被 test_split.py 导入时也已插入；
+#: 再兜一次，保证从任意 cwd 调用都不会 ImportError。
+_HERE = Path(__file__).resolve().parent
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
+import package_benchmark  # noqa: E402  （同目录模块，必须在 sys.path 就绪后导入）
 
 SPLITS = ("train", "test", "validation", "benchmark")
 GROUPED_SPLITS = ("train", "test", "validation")
@@ -62,6 +90,18 @@ DEFAULT_INPUTS = (
 ZH_PATH_MARKER = "data/zh/"
 #: 内部 benchmark 的保底配额（每个 lang x kind / 每个 domain / 每个 lang），可用命令行覆盖
 DEFAULT_BENCHMARK_MIN_PER_CELL = 100
+#: benchmark 内任一来源的条目占比**硬上限**（水位法配额 + 选择时再查一次）。选 25% 的理由见
+#: benchmark_source_quota 与 split-report.md「来源均衡」一节：语料里 6 个英文来源，25% 意味着
+#: 至少 4 个来源共同撑起 benchmark；再收紧（如 15%）会把只占池子 2.8% 的小来源放大 5 倍以上，
+#: 让 benchmark 偏离真实训练分布。上限不可行（来源数太少）时自动放宽到可行界 1/来源数。
+DEFAULT_BENCHMARK_MAX_SOURCE_SHARE = 0.25
+#: benchmark 内每个来源的条目占比下限（"各个来源都收集一点"）；来源池不够时取全部。
+DEFAULT_BENCHMARK_MIN_SOURCE_SHARE = 0.05
+#: train-only 降级补充集（中文 3,148 条，origin=taxonomy）。只追加 train，不进其它三区。
+DEFAULT_TRAIN_SUPPLEMENT = Path("datasets/general/data/zh-supplement/items.jsonl")
+#: 报告与 benchmark 包的版本号（每次重切改变 benchmark 条目集合就必须递增；跨版本分数不可拼接）
+REPORT_VERSION = "v3"
+PACKAGE_VERSION = "0.3"
 #: 无盐跑（--public-demo）时折进种子的固定标记：任何人用公开信息跑出来的都是这一套，
 #: 因此**永远与交付件不同**（交付件用的是仓外私盐）。
 PUBLIC_DEMO_SALT = "public-demo"
@@ -110,6 +150,27 @@ def declared_group(item: dict):
     keys = ("group_id", "request_id", "family_id")
     return (_first_present(item, keys) or _first_present(source, keys)
             or _first_present(meta, keys + ("source_group",)))
+
+
+def item_source(item: dict) -> str:
+    """条目的来源数据集名；缺 source.dataset 时归到 (unknown)（报告里如实显示）。"""
+    source = item.get("source") if isinstance(item.get("source"), dict) else {}
+    name = source.get("dataset")
+    return str(name) if isinstance(name, str) and name.strip() else "(unknown)"
+
+
+def origin_of(item: dict) -> str:
+    """条目来源层级：source=来源原生四元组（A 层）；其它（taxonomy 等）=降级派生（B 层）。
+
+    一条记录的问题可能有多种 origin；全同取该值，混合取 mixed。只用于聚合报告。
+    """
+    origins = {str(q.get("origin") or "taxonomy") for q in item.get("questions") or []
+               if isinstance(q, dict)}
+    if not origins:
+        return "(unknown)"
+    if len(origins) == 1:
+        return next(iter(origins))
+    return "mixed"
 
 
 def looks_like_items(path: Path) -> bool:
@@ -215,6 +276,7 @@ def load_records(paths, *, allow_duplicates: bool = False):
                 "id": item_id,
                 "input": path.as_posix(),
                 "line": lineno,
+                "source": item_source(item),
                 "domain": str(item["domain"]),
                 "lang": str(item["lang"]),
                 "state_norm": normalize_state(state) if isinstance(state, str) else "",
@@ -353,50 +415,186 @@ def _shuffled(labels, seed: int, salt, *parts) -> list[str]:
     return ordered
 
 
+def record_source(record) -> str:
+    """record["source"]，缺失时兜底 (unknown)（调用方可能手工构造 records）。"""
+    return str(record.get("source") or "(unknown)")
+
+
+def group_source_mix(group_records) -> Counter:
+    """组内每个来源的条目数。组可能跨来源（同 state 的翻译/改写），所以按来源分别计数。"""
+    return Counter(record_source(record) for record in group_records)
+
+
+def benchmark_source_quota(pool: dict, target: int, *, max_share: float, min_share: float) -> dict:
+    """水位法：把 target 条按各来源池子大小分配，并夹在 [floor, cap] 之间。
+
+    为什么是 25% 上限（DEFAULT_BENCHMARK_MAX_SOURCE_SHARE）：英文侧有 6 个来源，
+    25% 意味着**至少 4 个来源**共同撑起 benchmark，任一来源都不能单独决定总分；
+    再收紧（如 15%）会把只占池子 2.8% 的小来源放大 5 倍以上——benchmark 是用来估计
+    "在这份语料上表现如何"的，过度均匀化会让它偏离真实训练分布。同时 25% ≤ 契约 40%，
+    且与第二大来源的自然占比（25.1%）同量级：最大的来源不再比第二名占便宜。
+    下限 min_share（默认 5%）是"各个来源都收集一点"：每个来源都拿到一个可单独报数的切片。
+
+    可行性：cap 至少放宽到 1/来源数（只有一个来源时无从谈均衡），
+    此时 cap_policy="feasible_bound"，报告里如实写明。
+    """
+    names = sorted(pool)
+    quota = {name: 0 for name in names}
+    info = {"target": int(target), "cap": 0, "floor": 0, "cap_policy": "no_sources",
+            "policy_cap": 0, "feasible_bound": 0,
+            "eligible_sources": len(names), "pool_total": int(sum(pool.values()))}
+    if not names or target <= 0:
+        return {"quota": quota, **info}
+    target = int(min(target, sum(pool.values())))
+    if target <= 0:
+        return {"quota": quota, **info}
+    bound = -(-target // len(names))  # ceil(target / n)：来源数决定的可行界
+    # 政策上限**取下整**：占比是按实际产物条数算的，上整会让 400/1598=25.03% 这种擦边越界出现
+    policy_cap = int(max_share * target) if max_share > 0 else target
+    cap = min(target, max(policy_cap, bound)) if max_share > 0 else target
+    floor = 0 if min_share <= 0 else min(cap, max(1, int(min_share * target)))
+    if floor * len(names) > target:
+        floor = target // len(names)
+    info.update({"target": target, "cap": cap, "floor": floor,
+                 "cap_policy": "policy" if policy_cap >= bound else "feasible_bound",
+                 "policy_cap": policy_cap, "feasible_bound": bound})
+
+    free = {name: int(pool[name]) for name in names}
+    alloc: dict = {}
+    remaining = target
+    while free:
+        # 权重用**池子大小**：先按规模比例分，越界（>上限 / <下限）的逐个夹住再回流，
+        # 这才是"按规模分配 + 上限削顶 + 下限托底"，而不是把小来源放大成平均分。
+        weight = sum(free[name] for name in free)
+        if weight <= 0:
+            for name in free:
+                alloc[name] = 0
+            break
+        scaled = {name: remaining * free[name] / weight for name in free}
+        over = sorted((name for name in free if scaled[name] > cap + 1e-9),
+                      key=lambda name: (-(scaled[name] - cap), name))
+        under = sorted((name for name in free if scaled[name] < floor - 1e-9),
+                       key=lambda name: (scaled[name], name))
+        if over:
+            name, value = over[0], min(cap, free[over[0]])
+        elif under:
+            name, value = under[0], min(floor, free[under[0]])
+        else:
+            alloc.update(scaled)
+            break
+        alloc[name] = value
+        remaining -= value
+        del free[name]
+
+    # 量化成整数：先取整，再按小数部分从大到小补足（同分按来源名，保证确定性）
+    quantized = {name: min(int(alloc.get(name, 0)), int(pool[name])) for name in names}
+    rest = target - sum(quantized.values())
+    if rest > 0:
+        order = sorted(names, key=lambda name: (-(alloc.get(name, 0) - int(alloc.get(name, 0))), name))
+        for name in order:
+            if rest <= 0:
+                break
+            if quantized[name] < int(pool[name]):
+                quantized[name] += 1
+                rest -= 1
+    return {"quota": quantized, **info}
+
+
 def reserve_benchmark(records_by_group, ratios: dict, seed: int, salt=None, *,
                       benchmark_langs=None,
-                      min_per_domain: int, min_per_lang: int, min_per_kind: int):
-    """第一阶段：按 10% 预留 benchmark，再按保底配额补齐（lang x kind / domain / lang）。
+                      min_per_domain: int, min_per_lang: int, min_per_kind: int,
+                      max_source_share: float = DEFAULT_BENCHMARK_MAX_SOURCE_SHARE,
+                      min_source_share: float = DEFAULT_BENCHMARK_MIN_SOURCE_SHARE):
+    """第一阶段：按 10% 预留 benchmark——先按来源水位配额取，再按 lang x kind / domain / lang 保底补齐。
 
     benchmark_langs 限定哪些语言可以进 benchmark（其余语言不预留、不设保底，全部分到公开三区）。
+    来源配额在**每个来源内部再按 (domain, lang) 分层**取，使每个来源的切片仍是它自己的自然分布；
+    选择时逐组复核硬上限 cap，保证任一来源占比不超过上限（组粒度最多差一条组）。
+    返回 (reserved 组集合, 保底明细, 来源均衡报告)。
     """
-    total = sum(len(group) for group in records_by_group.values())
-    target = total * ratios["benchmark"]
     allowed = tuple(benchmark_langs) if benchmark_langs else None
-    by_stratum: dict = defaultdict(list)
-    for label, group in records_by_group.items():
-        stratum = group_stratum(group)
-        if allowed is not None and stratum[1] not in allowed:
-            continue
-        by_stratum[stratum].append(label)
-
+    eligible = {label: group for label, group in records_by_group.items()
+                if allowed is None or group_stratum(group)[1] in allowed}
+    eligible_total = sum(len(group) for group in eligible.values())
+    target = int(round(eligible_total * ratios["benchmark"]))
+    pool: Counter = Counter()
+    for group in eligible.values():
+        for record in group:
+            pool[record_source(record)] += 1
+    plan = benchmark_source_quota(dict(pool), target,
+                                  max_share=max_source_share, min_share=min_source_share)
+    quotas, cap_items = plan["quota"], plan["cap"]
+    # 硬上限：来源数 ≥ 2 时始终生效（cap 已经取 max(政策上限, 可行界)，一定可行）；
+    # 只有一个来源时无从谈均衡，此时不设上限，否则保底配额永远补不进来。
+    hard_cap = cap_items if len(plan["quota"]) > 1 else None
     reserved: set = set()
-    reserved_total = 0
-    budget = target * 1.2  # 允许一个组的粒度误差，但不让"每层至少一组"把 benchmark 撑大
-    for stratum in sorted(by_stratum):
-        labels = by_stratum[stratum]
-        stratum_items = sum(len(records_by_group[label]) for label in labels)
-        need = target * (stratum_items / total) if total else 0
-        taken = 0
-        for label in _shuffled(labels, seed, salt, "bench", *stratum):
-            size = len(records_by_group[label])
-            if taken >= need:
+    taken_by_source: Counter = Counter()
+
+    def can_add(label) -> bool:
+        """加这个组会不会让任一来源越过硬上限（组粒度：整组进，不拆）。"""
+        if hard_cap is None:
+            return True
+        for source, count in group_source_mix(eligible[label]).items():
+            if taken_by_source[source] + count > hard_cap:
+                return False
+        return True
+
+    def add(label) -> None:
+        reserved.add(label)
+        for source, count in group_source_mix(eligible[label]).items():
+            taken_by_source[source] += count
+
+    for source in sorted(quotas):
+        want = quotas[source]
+        if want <= 0:
+            continue
+        by_stratum: dict = defaultdict(list)
+        for label, group in eligible.items():
+            if any(record_source(record) == source for record in group):
+                by_stratum[group_stratum(group)].append(label)
+        source_items = sum(len(eligible[label]) for labels in by_stratum.values() for label in labels)
+        # 每个来源内部按层取：先按该来源在各层的占比分配配额，再整组取到为止
+        for stratum in sorted(by_stratum):
+            labels = by_stratum[stratum]
+            if labels == [] or taken_by_source[source] >= want:
+                continue
+            share = want * sum(len(eligible[label]) for label in labels) / max(source_items, 1)
+            taken_here = 0
+            for label in _shuffled(labels, seed, salt, "bench-source", source, *stratum):
+                if taken_here >= share or taken_by_source[source] >= want:
+                    break
+                if label in reserved or not can_add(label):
+                    continue
+                add(label)
+                taken_here += len(eligible[label])
+        # 兜底：本来源还没取够（层粒度/上限挡掉了一部分），按整体洗牌补齐
+        if taken_by_source[source] < want:
+            rest = [label for labels in by_stratum.values() for label in labels]
+            for label in _shuffled(rest, seed, salt, "bench-source-topup", source):
+                if taken_by_source[source] >= want:
+                    break
+                if label in reserved or not can_add(label):
+                    continue
+                add(label)
+
+    # 补到目标条数：只要还有未选组、且不越硬上限就继续取（组粒度允许略超目标）。
+    # 这一步是"占比上限"能严格成立的前提：占比按**实际**条数算，总数不足目标时同一条数会放大占比。
+    if sum(taken_by_source.values()) < plan["target"]:
+        for label in _shuffled([label for label in eligible if label not in reserved],
+                               seed, salt, "bench-source-fill"):
+            if sum(taken_by_source.values()) >= plan["target"]:
                 break
-            if reserved_total >= target and reserved_total + size > budget:
-                break
-            reserved.add(label)
-            taken += size
-            reserved_total += size
+            if not can_add(label):
+                continue
+            add(label)
 
     def cell_items(predicate) -> int:
         return sum(len(records_by_group[label]) for label in reserved if predicate(label))
 
-    domains = sorted({record["domain"] for group in records_by_group.values() for record in group})
-    langs = sorted({record["lang"] for group in records_by_group.values() for record in group
-                    if allowed is None or record["lang"] in allowed})
-    pairs = sorted({(record["lang"], kind) for group in records_by_group.values()
-                    for record in group for kind in record["kinds"]
-                    if allowed is None or record["lang"] in allowed})
+    domains = sorted({record["domain"] for group in eligible.values() for record in group})
+    langs = sorted({record["lang"] for group in eligible.values() for record in group})
+    pairs = sorted({(record["lang"], kind) for group in eligible.values()
+                    for record in group for kind in record["kinds"]})
     definitions = []
     for domain in domains:
         definitions.append((min_per_domain, f"domain={domain}",
@@ -413,20 +611,50 @@ def reserve_benchmark(records_by_group, ratios: dict, seed: int, salt=None, *,
     for required, name, predicate in definitions:
         have = cell_items(predicate)
         if have >= required:
-            floors.append({"cell": name, "required": required, "have": have, "capped": False})
+            floors.append({"cell": name, "required": required, "have": have, "capped": False,
+                           "blocked_by_source_cap": 0})
             continue
-        candidates = [label for label in records_by_group if label not in reserved and predicate(label)]
-        available = sum(len(records_by_group[label]) for label in candidates)
-        added = 0
+        candidates = [label for label in eligible if label not in reserved and predicate(label)]
+        available = sum(len(eligible[label]) for label in candidates)
+        added = blocked = 0
         for label in _shuffled(candidates, seed, salt, "floor", name):
             if cell_items(predicate) >= required:
                 break
-            reserved.add(label)
-            added += len(records_by_group[label])
+            if not can_add(label):
+                blocked += 1
+                continue
+            add(label)
+            added += len(eligible[label])
         have = cell_items(predicate)
         floors.append({"cell": name, "required": required, "have": have, "added_items": added,
-                       "available_before": available, "capped": have < required})
-    return reserved, floors
+                       "available_before": available, "capped": have < required,
+                       "blocked_by_source_cap": blocked})
+
+    rows = []
+    for source in sorted(pool):
+        items = taken_by_source[source]
+        rows.append({"dataset": source, "pool": int(pool[source]), "quota": int(quotas.get(source, 0)),
+                     "items": int(items), "share": items / max(sum(taken_by_source.values()), 1),
+                     "take_rate": items / max(int(pool[source]), 1)})
+    rows.sort(key=lambda row: (-row["items"], row["dataset"]))
+    total_reserved = sum(taken_by_source.values())
+    report = {
+        "policy": {"max_source_share": max_source_share, "min_source_share": min_source_share,
+                   "target_items": plan["target"], "cap_items": cap_items, "floor_items": plan["floor"],
+                   "cap_policy": plan["cap_policy"], "feasible_bound": plan["feasible_bound"],
+                   "cap_enforced": hard_cap is not None,
+                   "bound_share": cap_items / max(total_reserved, 1),
+                   "eligible_sources": plan["eligible_sources"]},
+        "rows": rows,
+        "items": total_reserved,
+        "max_items": max((row["items"] for row in rows), default=0),
+        "min_items": min((row["items"] for row in rows), default=0),
+        "max_share": max((row["share"] for row in rows), default=0.0),
+        "max_source": max(rows, key=lambda row: (row["items"], row["dataset"]))["dataset"] if rows else None,
+        # 上限是否守住：设了硬上限就必须每条都不越界；单来源（不设上限）按定义满足
+        "cap_ok": (hard_cap is None) or all(row["items"] <= cap_items for row in rows),
+    }
+    return reserved, floors, report
 
 
 def assign_grouped(groups_by_stratum, records_by_group, ratios: dict, seed: int, salt=None) -> dict:
@@ -449,7 +677,9 @@ def assign_all(records, *, ratios: dict, seed: int, salt=None, benchmark_langs=N
                use_state: bool = True,
                min_per_domain: int = DEFAULT_BENCHMARK_MIN_PER_CELL,
                min_per_lang: int = DEFAULT_BENCHMARK_MIN_PER_CELL,
-               min_per_kind: int = DEFAULT_BENCHMARK_MIN_PER_CELL):
+               min_per_kind: int = DEFAULT_BENCHMARK_MIN_PER_CELL,
+               max_source_share: float = DEFAULT_BENCHMARK_MAX_SOURCE_SHARE,
+               min_source_share: float = DEFAULT_BENCHMARK_MIN_SOURCE_SHARE):
     """完整切分；返回 (每条目分区, 组标签, 统计, 保底明细)。
 
     salt 为 None 表示 public-demo（无盐）跑法：结果确定但与带盐交付件不同。
@@ -460,11 +690,14 @@ def assign_all(records, *, ratios: dict, seed: int, salt=None, benchmark_langs=N
         grouped[label].append(record)
     records_by_group = dict(grouped)
 
-    reserved, floors = reserve_benchmark(records_by_group, ratios, seed, salt,
-                                         benchmark_langs=benchmark_langs,
-                                         min_per_domain=min_per_domain,
-                                         min_per_lang=min_per_lang,
-                                         min_per_kind=min_per_kind)
+    reserved, floors, source_report = reserve_benchmark(
+        records_by_group, ratios, seed, salt,
+        benchmark_langs=benchmark_langs,
+        min_per_domain=min_per_domain,
+        min_per_lang=min_per_lang,
+        min_per_kind=min_per_kind,
+        max_source_share=max_source_share,
+        min_source_share=min_source_share)
     by_stratum: dict = defaultdict(list)
     for label, group in records_by_group.items():
         if label not in reserved:
@@ -476,9 +709,76 @@ def assign_all(records, *, ratios: dict, seed: int, salt=None, benchmark_langs=N
     split_of_item = [assignment[label] for label in labels]
     stats = {"groups": group_stats, "benchmark_reserved_groups": len(reserved),
              "benchmark_floors": floors,
+             "benchmark_source_policy": source_report,
              "salted": salt is not None,
              "benchmark_langs": sorted(benchmark_langs) if benchmark_langs else None}
     return split_of_item, labels, stats, floors
+
+
+# ---------------------------------------------------------------- 语言政策与补充集
+
+def lang_coverage_gaps(records, *, benchmark_langs=None, exclusions=None) -> dict:
+    """语料里每种语言都必须**显式**决定进不进 benchmark，否则返回缺口（调用方拒绝切分）。
+
+    exclusions: {lang: 理由}。理由为空视为没有排除——"忘了加白名单"和"有意排除"必须能区分开，
+    否则 benchmark 会静默丢掉一整种语言（本轮 zh 就是这么被排除但必须写明理由的）。
+    """
+    declared = {lang: reason for lang, reason in (exclusions or {}).items() if str(reason).strip()}
+    corpus_langs = sorted({record["lang"] for record in records})
+    allowed = set(benchmark_langs) if benchmark_langs else set(corpus_langs)
+    missing = [lang for lang in corpus_langs if lang not in allowed and lang not in declared]
+    conflict = sorted(set(benchmark_langs or ()) & set(declared))
+    unknown = sorted(set(declared) - set(corpus_langs))
+    return {"corpus_langs": corpus_langs, "benchmark_langs": sorted(allowed),
+            "missing": missing, "conflict": conflict, "unknown_exclusions": unknown,
+            "exclusions": {lang: declared[lang] for lang in sorted(declared)}}
+
+
+def load_supplement(path, *, seen_ids: set | None = None) -> tuple:
+    """读 train-only 降级补充集；返回 (items, 统计)。
+
+    硬约束（违反直接报错，不静默放过）：
+    - 每条都要带 id/domain/lang/questions；
+    - 必须**降级**：问题 origin 不能是 source（原生四元组只走正常切分，避免绕过 benchmark 门禁）；
+    - id 不能与已切分语料重叠（重叠会让同一条出现在两个分区）。
+    """
+    source = Path(path)
+    if not source.is_file():
+        raise SplitError(f"补充集不存在：{source}")
+    items: list[dict] = []
+    stats = {"path": source.as_posix(), "items": 0, "by_lang": Counter(), "by_domain": Counter(),
+             "by_kind": Counter(), "by_origin": Counter(), "sources": Counter()}
+    known = seen_ids if seen_ids is not None else set()
+    for lineno, item in iter_jsonl(source):
+        if not isinstance(item, dict):
+            raise SplitError(f"{source}:{lineno} 不是 JSON 对象")
+        for field in ("id", "domain", "lang", "questions"):
+            if not item.get(field):
+                raise SplitError(f"{source}:{lineno} 缺必填字段 {field}")
+        item_id = str(item["id"])
+        if item_id in known:
+            raise SplitError(f"{source}:{lineno} id 与已切分语料重叠：{item_id}"
+                             "（补充集必须与切分输入不相交）")
+        known.add(item_id)
+        origins = {str(q.get("origin") or "taxonomy") for q in item["questions"]
+                   if isinstance(q, dict)}
+        if "source" in origins:
+            raise SplitError(f"{source}:{lineno} 含 origin=source 的原生问题：{item_id}"
+                             "（补充集只能是降级派生数据，原生条目必须走正常切分）")
+        items.append(item)
+        stats["items"] += 1
+        stats["by_lang"][str(item["lang"])] += 1
+        stats["by_domain"][str(item["domain"])] += 1
+        stats["by_origin"][origin_of(item)] += 1
+        for kind in sorted({str(q.get("kind")) for q in item["questions"]
+                            if isinstance(q, dict) and q.get("kind")}):
+            stats["by_kind"][kind] += 1
+        for question in item["questions"]:
+            if isinstance(question, dict) and question.get("source_key"):
+                stats["sources"][str(question["source_key"])] += 1
+    if not items:
+        raise SplitError(f"补充集为空：{source}")
+    return items, stats
 
 
 # ---------------------------------------------------------------- 泄漏检查
@@ -537,9 +837,23 @@ def _json_line(item: dict) -> str:
     return escape_line_separators(json.dumps(item, ensure_ascii=False))
 
 
+def atomic_write_text(path: Path, text: str) -> None:
+    """先写同目录临时文件再 os.replace 原子替换。
+
+    并发生成/读取很常见（有人边读四区边等你重跑）：直接覆盖会让读者拿到**半截文件**
+    （实测撞到过一行被截断的 JSON）。os.replace 在同一文件系统上是原子的，读者要么看到旧版、
+    要么看到新版，不会看到撕裂版。
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(text, encoding="utf-8", newline="\n")
+    os.replace(temporary, path)
+
+
 def write_jsonl(path: Path, items) -> str:
     text = "".join(_json_line(item) + "\n" for item in items)
-    path.write_text(text, encoding="utf-8", newline="\n")
+    atomic_write_text(path, text)
     return text
 
 
@@ -550,10 +864,14 @@ def count_bare_line_separators(path: Path) -> int:
 
 
 def write_gz(path: Path, text: str) -> None:
-    """mtime=0 写 gzip：同一内容两次压缩逐字节一致。"""
-    with open(path, "wb") as raw:
+    """mtime=0 写 gzip：同一内容两次压缩逐字节一致；同样走"临时文件 + 原子替换"。"""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    with open(temporary, "wb") as raw:
         with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as handle:
             handle.write(text.encode("utf-8"))
+    os.replace(temporary, path)
 
 
 def write_split_files(out_dir: Path, split_items: dict) -> dict:
@@ -580,66 +898,19 @@ def source_summary(items) -> list[dict]:
     return sorted(rows, key=lambda row: (-row["items"], row["dataset"]))
 
 
-def export_benchmark_dataset(directory: Path, items, groups: int, sources, *,
-                             seed: int, ratios: dict) -> dict:
-    """导出可直接上传 HF（private）的目录：dataset card + 数据 + 来源 manifest。
+def export_benchmark_dataset(directory: Path, items, sources, *, seed: int, ratios: dict,
+                             policy: dict, generation: dict, known_limitations,
+                             version: str = "0.3") -> dict:
+    """导出可直接上传私有托管的目录：数据 + dataset card + USAGE.md + manifest + verify.py。
 
-    只写聚合信息，不写任何样本内容。
+    只写聚合信息，不写任何样本内容；卡片/manifest 的文本全部由入参决定，不含时间戳。
     """
     directory.mkdir(parents=True, exist_ok=True)
     text = write_jsonl(directory / "benchmark.jsonl", items)
     write_gz(directory / "benchmark.jsonl.gz", text)
-    manifest = {
-        "name": "pol-general-general-internal-benchmark",
-        "private": True,
-        "seed": seed,
-        "ratios": ratios,
-        "items": len(items),
-        "groups": groups,
-        "sources": sources,
-        "warning": "内部 benchmark：请上传 Hugging Face 并设为 private，不得进入公开仓库或公开日志。",
-    }
-    (directory / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
-    ratio_text = ", ".join(f"{key}={value:g}" for key, value in ratios.items())
-    card = f"""---
-license: other
-pretty_name: PoL 通用决策底座 · 内部 benchmark
-private: true
----
-
-# PoL 通用决策底座 · 内部 benchmark（private）
-
-**用途**：内部模型比较与回归；不作为公开测试集，不进入训练或教师造数。
-**请勿公开**：本目录由用户上传 Hugging Face 并设为 private；不得进入公开仓库、公开日志或公开报告。
-
-## 规模
-
-- 条目数：{len(items)}
-- 请求组数：{groups}
-- 随机种子：{seed}（切分比例 {ratio_text}）
-- 覆盖：中英两侧；主要覆盖域与 noul / choice / score 三种原语（分布见 manifest.json）
-
-## 字段
-
-每条记录沿用数据集契约 datasets/general/CONTRACT.md 第 2.1 节的 items 形状：
-id / domain / lang / state / questions[] / targets / source / meta。
-questions[] 是本条目自带的问题（origin=source 时 key 为来源原生名，origin=taxonomy 时取自 taxonomy 键表）。
-
-## 来源与许可
-
-逐来源的 dataset / revision / license / 条数见 manifest.json 的 sources 字段；
-每条记录自身的 source.dataset 与 source.revision 是唯一权威。
-
-## 生成
-
-    uv run --no-project --offline python datasets/general/data/splits/split.py --seed {seed}
-
-本卡片与 split-report.md 只包含聚合统计，不含任何 benchmark 样本内容。
-"""
-    (directory / "README.md").write_text(card, encoding="utf-8", newline="\n")
-    return {"directory": directory.as_posix(), "items": len(items),
-            "card": "README.md", "manifest": "manifest.json"}
+    return package_benchmark.write_package(
+        directory, items, version=version, seed=seed, ratios=ratios, policy=policy,
+        generation=generation, sources=sources, known_limitations=known_limitations)
 
 
 # ---------------------------------------------------------------- 报告
@@ -648,8 +919,9 @@ questions[] 是本条目自带的问题（origin=source 时 key 为来源原生�
 PRODUCT_FILES = (
     "train.jsonl", "train.jsonl.gz", "test.jsonl", "test.jsonl.gz",
     "validation.jsonl", "validation.jsonl.gz", "benchmark.jsonl", "benchmark.jsonl.gz",
-    "benchmark-dataset/README.md", "benchmark-dataset/benchmark.jsonl",
-    "benchmark-dataset/benchmark.jsonl.gz", "benchmark-dataset/manifest.json",
+    "benchmark-dataset/README.md", "benchmark-dataset/USAGE.md",
+    "benchmark-dataset/benchmark.jsonl", "benchmark-dataset/benchmark.jsonl.gz",
+    "benchmark-dataset/manifest.json", "benchmark-dataset/verify.py",
 )
 
 
@@ -684,6 +956,113 @@ def composition_summary(records, items) -> dict:
     }
 
 
+def public_needles(items) -> dict:
+    """从 benchmark 条目派生公开面必须零命中的两种指纹：条目 id 与正文。
+
+    正文口径取**条目级唯一**的 state 原文（>= 20 字符）。两种口径的理由：
+    - 完整条目行一定含它自己的 id，所以"整行 JSON 泄漏"必然先被 id 口径抓到，不必再加一遍
+      （而且 1,598 行的交替式正则有 1.6 MB，编译一次要几分钟，属于自找麻烦）；
+    - 不取问题 prompt：同一条 taxonomy 模板被成千上万条条目共用（README 也引用模板），
+      按模板判命中会把公开文档全部误报，而它指认不出"哪一条在 benchmark 里"。
+    """
+    ids, texts = [], []
+    for item in items:
+        ids.append(str(item.get("id") or ""))
+        state = str(item.get("state") or "")
+        if len(state) >= 20:
+            texts.append(state)
+    return {"ids": sorted({value for value in ids if value}),
+            "texts": sorted({value for value in texts if value})}
+
+
+def tracked_files(repo_root: Path) -> list[Path]:
+    """被 git 跟踪的文件（绝对路径）；不在仓库或缺 git 时返回空表。"""
+    try:
+        completed = subprocess.run(["git", "-C", str(repo_root), "ls-files"],
+                                   capture_output=True, text=True, encoding="utf-8", errors="replace")
+    except (OSError, FileNotFoundError):
+        return []
+    if completed.returncode != 0:
+        return []
+    return [Path(repo_root) / line.strip() for line in completed.stdout.splitlines() if line.strip()]
+
+
+def read_public_bytes(path: Path) -> bytes:
+    """读公开文件内容；**.gz 先解压**（泄漏可能只藏在压缩流里，只看压缩字节会漏）。"""
+    data = Path(path).read_bytes()
+    if Path(path).suffix == ".gz":
+        try:
+            return gzip.decompress(data)
+        except OSError:
+            return data
+    return data
+
+
+def _needle_patterns(values, *, chunk: int = 25):
+    """把一组针**分块**编译成 bytes 交替式正则。
+
+    整表编译成一个正则（1,598 个 id ≈ 380 KB 模式）会让 re 的编译器卡到分钟级；
+    每块 25 个既能保持 C 速扫描，编译又是毫秒级。
+    """
+    ordered = sorted({value for value in values if value})
+    patterns = []
+    for start in range(0, len(ordered), chunk):
+        block = ordered[start:start + chunk]
+        patterns.append(re.compile(b"|".join(re.escape(value.encode("utf-8")) for value in block)))
+    return patterns
+
+
+def scan_public_surface(paths, *, ids=(), texts=(), root: Path | None = None) -> list[dict]:
+    """扫描给定文件集合，返回命中列表（空表 = 干净）。
+
+    两种口径都查：条目 id（成员指纹）与正文（state 原文）。.gz 先解压再查。
+    """
+    id_patterns = _needle_patterns(ids)
+    text_patterns = _needle_patterns([value for value in texts if len(value) >= 20])
+    hits: list[dict] = []
+    for raw in paths:
+        path = Path(raw)
+        if not path.is_file():
+            continue
+        data = read_public_bytes(path)
+        label = path.as_posix()
+        if root is not None:
+            try:
+                label = path.resolve().relative_to(Path(root).resolve()).as_posix()
+            except ValueError:
+                label = path.as_posix()
+        for kind, patterns in (("id", id_patterns), ("text", text_patterns)):
+            for pattern in patterns:
+                matched = pattern.search(data)
+                if matched:
+                    hits.append({"file": label, "kind": kind,
+                                 "needle": matched.group(0).decode("utf-8", "replace")[:60]})
+                    break
+    return hits
+
+
+def audit_public_surface(items, *, root: Path | None, extra_paths=(), skip_paths=()) -> dict:
+    """公开面审计：所有被跟踪的文件 + 显式附加文件，对 benchmark 的 id 与正文零命中。
+
+    skip_paths 用于排除**本次运行自己正在重写的产物**（分区目录、报告）：审计时看到的还是上一版
+    内容，上一版若曾把命中项写进去，就会自己报自己（这个坑真踩过一次）。独立的
+    --audit-public-surface 不传 skip，扫的是完整公开面。
+    """
+    needles = public_needles(items)
+    skip = {Path(path).resolve() for path in skip_paths}
+    files = list(tracked_files(root)) if root is not None else []
+    files.extend(Path(path) for path in extra_paths)
+    scanned = []
+    for path in files:
+        resolved = path.resolve()
+        if any(resolved == parent or parent in resolved.parents for parent in skip):
+            continue
+        scanned.append(path)
+    hits = scan_public_surface(scanned, ids=needles["ids"], texts=needles["texts"], root=root)
+    return {"files": len(scanned), "ids": len(needles["ids"]), "texts": len(needles["texts"]),
+            "hits": hits, "tracked": root is not None, "skipped": len(files) - len(scanned)}
+
+
 def compare_dirs(left: Path, right: Path, names=PRODUCT_FILES) -> dict:
     """逐字节比对两个目录下的同名产物；返回是否一致、树哈希与逐文件 sha256。"""
     digests: dict = {}
@@ -705,14 +1084,20 @@ def compare_dirs(left: Path, right: Path, names=PRODUCT_FILES) -> dict:
 
 def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks,
                   seed: int, ratios: dict, counts: dict, composition: dict,
-                  rerun: dict | None = None) -> str:
+                  rerun: dict | None = None, supplements=None, actual_counts=None,
+                  origin_counts=None, lang_origin=None, version: str = "v3",
+                  command: str | None = None, benchmark_domain_source=None,
+                  corpus_domain_source=None) -> str:
     """split-report.md：只有聚合统计，不含任何样本内容。"""
     lines: list[str] = []
     total = len(items)
+    supplements = list(supplements or [])
+    actual = Counter(actual_counts or counts["items"])
+    supplement_total = sum(int(entry["items"]) for entry in supplements)
     group_counts = Counter()
     for split in split_of_item:
         group_counts[split] += 1
-    lines.append("# 最终切分报告（6:2:1:1，按请求分组）")
+    lines.append(f"# 最终切分报告（{version}：6:2:1:1，按请求分组，benchmark 来源均衡）")
     lines.append("")
     lines.append("本报告只含聚合统计，**不含任何样本内容**；内部 benchmark 的条目只存在于 "
                  "data/splits/benchmark.jsonl(.gz) 与 data/splits/benchmark-dataset/，"
@@ -726,13 +1111,18 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
     lines.append(f"- 输入文件：{len(inputs)} 个")
     for entry in stats["input"]["files"]:
         lines.append(f"  - {entry['path']}：{entry['items']} 条")
-    lines.append(f"- 条目总数：{total}；请求组 {stats['groups']['groups']} 个")
+    lines.append(f"- 切分语料条目总数：{total}；请求组 {stats['groups']['groups']} 个")
+    if supplements:
+        lines.append(f"- train-only 降级补充：{supplement_total} 条（"
+                     + "、".join(f"{entry['path']} {entry['items']} 条" for entry in supplements)
+                     + "）；只追加 train，不进 test/validation/benchmark")
+    lines.append(f"- 产物条目总数（含补充）：{sum(actual.values())} 条")
     salt_state = "仓外私盐（盐值不记录、不派生进任何公开产物）" if stats.get("salted") \
         else "无盐 public-demo（**不是交付件**；公开脚本+公开种子跑出的就是这一套）"
     lines.append(f"- 保密：本次运行使用 {salt_state}")
     if stats.get("benchmark_langs"):
         lines.append("- benchmark 语言白名单：" + ", ".join(stats["benchmark_langs"])
-                     + "（白名单外的语言只进 train/test/validation）")
+                     + "（白名单外的语言只进 train/test/validation，且必须显式排除并写明理由）")
     lines.append("")
     lines.append("## 1. 切分算法")
     lines.append("")
@@ -754,21 +1144,50 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
             "已用 --allow-missing-group-id 跳过（危险）" if gate.get("skipped") else "未通过")
         lines.append(f"   - 中文侧分组 id 门禁（{', '.join(gate.get('required_langs', []))}）：{state_text}"
                      + (f"，缺失 {gate['missing']} 条" if gate.get("missing") else ""))
-    lines.append("2. **分层**：按 (domain, lang) 分层；层内组按种子洗牌，benchmark 先按 10% 预留，"
-                 "其余组按 6:2:1 用「目标条数 - 已分配条数」最大缺口贪心分配。")
-    lines.append("3. **benchmark 保底**：对每个 lang x kind、每个 domain、每个 lang 设下限，"
-                 "不足时从其余组整组补足；该类总量不足下限时取全部并在下表标「是」。")
-    lines.append("4. **确定性**：随机数来自 random.Random(\"seed|阶段|domain|lang\")；分区内条目按 id 排序；"
-                 "gzip 以 mtime=0 写入 → 同一输入重跑逐字节一致。")
+    lines.append("2. **分层**：按 (domain, lang) 分层；层内组按种子洗牌，其余组按 6:2:1 用"
+                 "「目标条数 - 已分配条数」最大缺口贪心分配；benchmark 的来源配额在**每个来源内部**"
+                 "再按 (domain, lang) 分层取，保证每个来源的切片仍是它自己的自然分布。")
+    lines.append("3. **benchmark 来源均衡（本轮新增，硬约束）**：先按比例算目标条数，再用水位法给每个来源"
+                 "分配配额——任一来源占比 ≤ max_source_share（默认 25%），每个来源 ≥ "
+                 "min_source_share（默认 5%，「各个来源都收集一点」）；选择时逐组复核硬上限，"
+                 "组粒度最多差一条组。上限不可行（来源数太少）时放宽到可行界 1/来源数并如实标注。")
+    lines.append("4. **benchmark 保底**：对每个 lang x kind、每个 domain、每个 lang 设下限，"
+                 "不足时从其余组整组补足；该类总量不足下限、或被来源上限挡住时在下表标「是」。")
+    source_policy = (stats.get("benchmark_source_policy") or {}).get("policy") or {}
+    if source_policy:
+        lines.append(f"   - 本次配额：目标 {source_policy.get('target_items', '-')} 条；"
+                     f"上限折算 {source_policy.get('cap_items', '-')} 条"
+                     f"（{'政策上限' if source_policy.get('cap_policy') == 'policy' else '可行界放宽'}）；"
+                     f"下限 {source_policy.get('floor_items', '-')} 条；"
+                     f"可进 benchmark 的来源 {source_policy.get('eligible_sources', '-')} 个")
+    lines.append("5. **确定性**：随机数全部来自 random.Random(\"公开种子|盐token|阶段|…\")（无盐时 token 为"
+                 "固定标记 public-demo）；分区内条目按 id 排序，补充集按文件顺序追加在 train 末尾；"
+                 "gzip 以 mtime=0 写入 → 同一输入 + 同一私盐重跑逐字节一致。")
+    lines.append("6. **默认值防误伤**：--out/--report 没显式给出而目标位置已有交付件时直接拒绝（退出 3），"
+                 "想覆盖必须显式给路径或加 --force；裸跑不会把已交付的四区或公开报告换掉。")
     lines.append("")
     lines.append("## 2. 分区规模")
     lines.append("")
-    lines.append("| 分区 | 条目 | 占比 | 目标占比 | 请求组 |")
-    lines.append("|---|---:|---:|---:|---:|")
+    lines.append("| 分区 | 切分语料条目 | 占比 | 目标占比 | 请求组 | 产物条目（含补充） |")
+    lines.append("|---|---:|---:|---:|---:|---:|")
     for split in SPLITS:
         item_count = counts["items"][split]
         lines.append(f"| {split} | {item_count} | {item_count / total:.1%} | {ratios[split]:.0%} "
-                     f"| {group_counts[split]} |")
+                     f"| {group_counts[split]} | {actual[split]} |")
+    lines.append("")
+    lines.append("> **三处刻意的偏离，别当成 bug**：")
+    lines.append("> 1. **train 高于 60%**：按裁定只向 train 追加了降级补充集"
+                 f"（{supplement_total} 条，origin != source，仅 train）；"
+                 f"切分语料 {total} 条 → 产物 {sum(actual.values())} 条。")
+    if stats.get("benchmark_langs") and len(stats["benchmark_langs"]) < len(
+            set(composition["items_by_lang"])):
+        lines.append("> 2. **benchmark 低于 10%**：本轮只允许 "
+                     + "/".join(stats["benchmark_langs"]) + " 进 benchmark（排除的语言见第 10 节），"
+                     "目标条数是**可进 benchmark 那部分语料**的 10%。")
+    else:
+        lines.append("> 2. **benchmark 占比**按可进 benchmark 的语料计算（见第 10 节语言政策）。")
+    lines.append("> 3. **benchmark 的语言构成与公开三区不同**，因此第 4.4 节 benchmark 一行的"
+                 "分层漂移必然偏大；这是刻意的覆盖取舍，不是分层失效。")
     lines.append("")
     lines.append("## 3. 数据成色与已知缺口（用户决策必读）")
     lines.append("")
@@ -849,37 +1268,179 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
     else:
         lines.append("- 结论：**空**（按组切分 + state 合并后无任何跨区）。")
     lines.append("")
-    lines.append("## 7. 来源汇总（benchmark 分区，聚合）")
+    lines.append("## 7. benchmark 来源均衡（本轮硬约束）")
     lines.append("")
-    lines.append("| dataset | revision | license | 条目 |")
-    lines.append("|---|---|---|---:|")
+    source_report = stats.get("benchmark_source_policy") or {}
+    policy = source_report.get("policy") or {}
+    if policy:
+        lines.append(f"- 上限：任一来源占 benchmark ≤ **{policy['max_source_share']:.0%}**"
+                     f"（本次折算 {policy['cap_items']} 条；策略="
+                     f"{'政策上限' if policy.get('cap_policy') == 'policy' else '可行界放宽 1/来源数'}，"
+                     f"可行界 {policy.get('feasible_bound', '-')} 条）")
+        lines.append(f"- 下限：每个来源 ≥ **{policy['min_source_share']:.0%}**"
+                     f"（本次折算 {policy['floor_items']} 条；来源池不足时取全部）")
+        lines.append(f"- 实际：最大来源 {source_report.get('max_source') or '-'} 占 "
+                     f"{source_report.get('max_share', 0):.1%}；"
+                     f"硬上限满足：{'是' if source_report.get('cap_ok') else '否'}")
+        lines.append("")
+        lines.append("**为什么把上限定在 25%**：英文侧有 6 个来源，25% 意味着至少 4 个来源共同撑起"
+                     "benchmark，任一来源都无法单独决定总分；再收紧（如 15%）会把只占池子 2.8% 的"
+                     "小来源放大 5 倍以上，让 benchmark 偏离真实训练分布，而 benchmark 的用途正是"
+                     "估计「在这份语料上表现如何」；25% 同时 ≤ 契约 40% 上限，且与第二大来源的自然占比"
+                     "（25.1%）同量级——原先 47.1% 的最大来源不再比第二名占便宜。"
+                     "下限 5% 对应「各个来源都收集一点」：每个来源都拿到一个可单独报数的切片。")
+        lines.append("")
+    lines.append("| dataset | revision | license | 条目 | 占 benchmark | 该来源池子 | 取用率 |")
+    lines.append("|---|---|---|---:|---:|---:|---:|")
+    balance_rows = {row["dataset"]: row for row in source_report.get("rows", [])}
     for row in stats["sources"]:
-        lines.append(f"| {row['dataset']} | {row['revision']} | {row['license']} | {row['items']} |")
+        balance = balance_rows.get(row["dataset"], {})
+        lines.append(f"| {row['dataset']} | {row['revision']} | {row['license']} | {row['items']} | "
+                     f"{balance.get('share', 0):.1%} | {balance.get('pool', '-')} | "
+                     f"{balance.get('take_rate', 0):.1%} |")
+    if not source_report.get("rows"):
+        lines.append("| （本次运行没有来源配额报告） | | | | | | |")
+    lines.append("")
+    lines.append("> 取用率 = 该来源进 benchmark 的条数 / 它的全部可用条数。小来源的取用率天然更高"
+                 "（均衡的代价），训练侧少掉的那部分在表里可直接核对。")
+    lines.append("")
+    bench_cells = Counter(benchmark_domain_source or {})
+    pool_cells = Counter(corpus_domain_source or {})
+    if bench_cells and pool_cells:
+        total_bench = sum(bench_cells.values())
+        for domain in sorted({cell[0] for cell in pool_cells}):
+            pool_rows = {source: count for (cell_domain, source), count in pool_cells.items()
+                         if cell_domain == domain}
+            pool_total = sum(pool_rows.values())
+            top_source, top_count = max(sorted(pool_rows.items()), key=lambda kv: kv[1]) if pool_rows else ("-", 0)
+            have = sum(count for (cell_domain, _source), count in bench_cells.items()
+                       if cell_domain == domain)
+            if pool_total and top_count / pool_total >= 0.9:
+                lines.append(f"- **结构性冲突（必须知道）**：{domain} 在语料里有 {pool_total} 条，其中 "
+                             f"{top_count} 条（{top_count / pool_total:.0%}）来自 {top_source}；把该来源压到 "
+                             f"上限以内之后，benchmark 的 {domain} 只拿到 {have} 条"
+                             f"（{have / max(total_bench, 1):.1%}）。**该域几乎只有一个来源时，"
+                             "「来源均衡」与「该域保持自然占比」在数学上不可兼得**："
+                             "要来源均衡就接受该域欠采样，要该域自然占比就得放开单一来源上限。请按用途二选一。")
     lines.append("")
     lines.append("## 8. 产物")
     lines.append("")
     for split in SPLITS:
         suffix = "（**内部，勿公开**）" if split == "benchmark" else ""
-        lines.append(f"- data/splits/{split}.jsonl（+.gz）：{counts['items'][split]} 条{suffix}")
-    lines.append("- data/splits/benchmark-dataset/：可直接上传 HF 的 private benchmark"
-                 "（dataset card + benchmark.jsonl(.gz) + manifest.json）")
+        extra = f"（含补充 {supplement_total} 条）" if split == "train" and supplement_total else ""
+        lines.append(f"- data/splits/{split}.jsonl（+.gz）：{actual[split]} 条{extra}{suffix}")
+    lines.append("- data/splits/benchmark-dataset/：可直接上传私有托管的内部 benchmark"
+                 "（README.md 数据卡 + USAGE.md + benchmark.jsonl(.gz) + manifest.json + verify.py）")
     lines.append("- data/splits/split-manifest.json：各产物 sha256 与复跑校验结果（机器可读）")
     lines.append("")
     lines.append("## 9. 可复现性（两次运行逐字节一致）")
     lines.append("")
-    lines.append(f"- 随机种子：{seed}；同一输入 + 同一种子 → 同一分组、同一分配、同一顺序。")
+    lines.append(f"- 随机种子：{seed}；同一输入 + 同一种子 + 同一私盐 → 同一分组、同一分配、同一顺序。")
+    if command:
+        lines.append(f"- 本次命令（输出路径与盐路径用占位符，实际路径见第 8 节）：`{command}`")
     lines.append("- 分区内条目按 id 排序；gzip 以 mtime=0 写入（gzip 头不含时间戳，否则两次压缩不会逐字节相同）。")
     lines.append("- 输出把裸 U+2028 / U+2029 / U+0085 统一写成 \\uXXXX 转义（无损）：它们在 JSON 里合法，"
                  "但用 str.splitlines() 读会被当成换行、把记录劈开。")
     if rerun:
         state = "**逐字节一致**" if rerun.get("identical") else "**不一致（见 problems）**"
-        lines.append(f"- 本次运行额外完整复跑一遍并写到独立临时目录，比对 {rerun['files']} 个产物文件：{state}。")
+        lines.append(f"- 本次运行额外完整复跑一遍（重新读文件、重新分组、重新分配、重新打包）并写到"
+                     f"独立临时目录，比对 {rerun['files']} 个产物文件：{state}。")
         lines.append(f"- 产物树哈希（sha256 over 文件名+文件哈希）：{rerun.get('tree_sha256', '')}")
         lines.append("- 比对范围：" + "、".join(PRODUCT_FILES))
         if rerun.get("problems"):
             lines.append("- 差异：" + "; ".join(rerun["problems"]))
     else:
         lines.append("- 本次运行未启用复跑校验（--no-verify-rerun）。")
+    lines.append("")
+    lines.append("## 10. 保密：私盐 + 语言政策 + 版本")
+    lines.append("")
+    lines.append("### 10.1 私盐（不可用公开信息重建）")
+    lines.append("")
+    lines.append("- 交付件的所有随机种子都折进**仓外私盐**文件的 sha256 前 16 位；盐值与盐的哈希都"
+                 "不写进任何产物。只凭公开脚本 + 公开种子（--public-demo）跑出来的是**另一套**分配。")
+    lines.append("- 护栏（test_split.py 的 SecrecyTest 每次运行都验）：两个不同盐 → benchmark 不同；"
+                 "同盐两次 → 完全一致；无盐 public-demo 与交付件不同；盐文件在仓库内 / 无盐且非 demo / "
+                 "demo 写到仓库内 → 均拒绝（非零退出）。")
+    lines.append("")
+    lines.append("### 10.2 语言政策：每种语言都必须显式声明")
+    lines.append("")
+    policy_info = stats.get("benchmark_lang_policy") or {}
+    if policy_info:
+        lines.append("- 切分语料里出现的语言：" + ", ".join(policy_info.get("corpus_langs", [])))
+        lines.append("- 允许进 benchmark：" + (", ".join(policy_info.get("benchmark_langs", [])) or "(不限)"))
+        exclusions = policy_info.get("exclusions") or {}
+        if exclusions:
+            lines.append("- **显式排除**（--benchmark-exclude-lang）：")
+            for lang, reason in exclusions.items():
+                lines.append(f"  - {lang}：{reason}")
+        else:
+            lines.append("- 显式排除：无")
+        if policy_info.get("unknown_exclusions"):
+            lines.append("- 注意：排除列表里有多余语言（语料里没有）："
+                         + ", ".join(policy_info["unknown_exclusions"]))
+    lines.append("- 机制：run() 要求语料里每种语言要么在 --benchmark-lang 里，要么在"
+                 "--benchmark-exclude-lang 里带非空理由；漏一种直接拒绝切分（退出 3）。"
+                 "所以「benchmark 少了一整种语言」永远是**会报错的显式状态**，不是沉默的事实——"
+                 "恢复条件一满足，去掉排除项即可翻回来。")
+    lines.append("")
+    lines.append("### 10.3 版本：v1 作废，v2 与 v3 不可拼接")
+    lines.append("")
+    lines.append("| 版本 | 内容 | 状态 |")
+    lines.append("|---|---|---|")
+    lines.append("| v1 | 公开种子、**无盐**；benchmark 2,389 条（含 zh 789） | **作废**：可用公开脚本 + "
+                 "语料 + 种子逐字节重建（benchmark sha256 43937e09a6fdde62…） |")
+    lines.append("| v2 | 私盐 + 只允许 en 进 benchmark；benchmark 1,600 条，单一来源占 47.1% | "
+                 "已被 v3 取代（benchmark sha256 f5ae670811c33200…） |")
+    lines.append("| **v3（本次）** | 私盐 + en-only + **来源均衡（≤25% 上限 / ≥5% 下限）** + "
+                 "train 回灌降级补充 | 现行交付件；哈希见第 9 节与 split-manifest.json |")
+    lines.append("")
+    lines.append("**v1 / v2 / v3 的 benchmark 是三套不同的条目集合，分数不可拼接、不可混用。**")
+    lines.append("")
+    lines.append("### 10.4 公开面零命中")
+    lines.append("")
+    lines.append("- 护栏：SecrecyTest 逐个扫描**所有被 git 跟踪的文件**（`.gz` 解压后），"
+                 "对 benchmark 的**条目 id** 与**正文**（state / 整行 JSON）两种口径都要求零命中；"
+                 "benchmark 分区与 benchmark-dataset/ 都在 .gitignore（benchmark*）。")
+    audit = stats.get("public_surface_audit") or {}
+    if audit:
+        verdict = "零命中" if not audit.get("hits") else f"**{len(audit['hits'])} 处命中**"
+        lines.append(f"  - 本次运行的公开面审计：对全部被跟踪文件（.gz 解压后）扫描，"
+                     f"指纹 {audit.get('ids', 0)} 条 id / {audit.get('texts', 0)} 条正文 → {verdict}；"
+                     "可用 --audit-public-surface 单独复跑（命中则退出 1，并打印文件名）。"
+                     "（不记录文件个数：仓库增删文件会让它变化，而重跑一致性要求产物只由输入与盐决定。）")
+        lines.append("  - 为什么要两种口径：文件级检查（有没有被 git 跟踪）挡不住**内容级**泄漏——"
+                     "曾经有派生索引文件把 benchmark 的全部 id 列在里面（本身不含答案，但能精确指认成员）；"
+                     "压缩流里的泄漏也只有解压后才看得见。")
+    lines.append("- 语料、中文答案索引等含 benchmark 正文/答案的文件已移出版本控制（仓外留存）；"
+                 "但**删除不改变 git 历史**——zh 的 (group_id → 正确工具) 索引仍在历史里可达，"
+                 "这正是 zh 不进 benchmark 的原因（见 10.2 的排除理由）。")
+    lines.append("- 本报告、数据卡、manifest 都只含聚合统计；test_split.py 与 test_benchmark_package.py "
+                 "有对应断言，benchmark 包 verify.py 另有独立校验。")
+    lines.append("")
+    lines.append("## 11. origin 构成（原生 vs 降级）")
+    lines.append("")
+    lines.append("| 分区 | origin=source（原生） | origin=taxonomy 等（降级） | 其它/未标 |")
+    lines.append("|---|---:|---:|---:|")
+    origin_rows = origin_counts or {}
+    for split in SPLITS:
+        counter = Counter(origin_rows.get(split) or {})
+        native = sum(count for origin, count in counter.items() if origin == "source")
+        derived = sum(count for origin, count in counter.items()
+                      if origin not in ("source", "mixed", "(unknown)"))
+        other = sum(counter.values()) - native - derived
+        lines.append(f"| {split} | {native} | {derived} | {other} |")
+    lines.append("")
+    if lang_origin:
+        lines.append("| 语言 | origin | 条目 | 落在哪些分区 |")
+        lines.append("|---|---|---:|---|")
+        for lang in sorted(lang_origin):
+            for origin, splits in sorted(lang_origin[lang].items()):
+                total_lang = sum(splits.values())
+                lines.append(f"| {lang} | {origin} | {total_lang} | "
+                             + ", ".join(f"{split} {count}" for split, count in sorted(splits.items())) + " |")
+        lines.append("")
+    lines.append("- origin=source 是来源原生四元组（A 层，可进 benchmark）；taxonomy 等是降级派生"
+                 "（B 层，只进 train）。benchmark 只含 A 层。")
     lines.append("")
     return "\n".join(lines)
 
@@ -904,8 +1465,12 @@ def run(argv=None) -> int:
     parser = argparse.ArgumentParser(description="最终语料切分 6:2:1:1（按请求分组）+ 内部 benchmark")
     parser.add_argument("--input", action="append", default=[], metavar="PATH",
                         help="输入 JSONL 或目录（可重复；默认取最终语料 items.final.jsonl）")
-    parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help=f"分区输出目录（默认 {DEFAULT_OUT}）")
-    parser.add_argument("--report", type=Path, default=DEFAULT_REPORT, help="切分报告路径")
+    parser.add_argument("--out", type=Path, default=None,
+                        help=f"分区输出目录（不写={DEFAULT_OUT}；若该处已有交付件且未显式给出，直接拒绝）")
+    parser.add_argument("--report", type=Path, default=None,
+                        help=f"切分报告路径（不写={DEFAULT_REPORT}；同上，已有报告时不覆盖）")
+    parser.add_argument("--force", action="store_true",
+                        help="允许用默认 --out/--report 覆盖已存在的交付件（默认拒绝，避免裸跑误伤）")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--ratios", default=None, help="覆盖比例，如 train=0.6,test=0.2,validation=0.1,benchmark=0.1")
     parser.add_argument("--benchmark-min-per-domain", type=int, default=DEFAULT_BENCHMARK_MIN_PER_CELL)
@@ -925,7 +1490,24 @@ def run(argv=None) -> int:
                         help="无盐跑法：结果确定但**不是交付件**，且必须写到仓库外（保密性测试用）")
     parser.add_argument("--benchmark-lang", action="append", default=None, metavar="LANG",
                         help="只允许这些语言进 benchmark（可重复；不写=不限。本轮交付用 en）")
+    parser.add_argument("--benchmark-exclude-lang", action="append", default=None, metavar="LANG=REASON",
+                        help="显式把某种语言排除出 benchmark 并写明理由（可重复）。"
+                             "语料里每种语言要么可进 benchmark、要么带理由显式排除，否则拒绝切分")
+    parser.add_argument("--benchmark-max-source-share", type=float,
+                        default=DEFAULT_BENCHMARK_MAX_SOURCE_SHARE,
+                        help=f"benchmark 内任一来源的占比硬上限（默认 {DEFAULT_BENCHMARK_MAX_SOURCE_SHARE:g}）")
+    parser.add_argument("--benchmark-min-source-share", type=float,
+                        default=DEFAULT_BENCHMARK_MIN_SOURCE_SHARE,
+                        help=f"benchmark 内每个来源的占比下限（默认 {DEFAULT_BENCHMARK_MIN_SOURCE_SHARE:g}）")
+    parser.add_argument("--train-supplement", action="append", default=None, metavar="PATH",
+                        help=f"train-only 降级补充集（可重复；**默认不追加**。交付命令显式传 "
+                             f"{DEFAULT_TRAIN_SUPPLEMENT}）。只追加 train，不进 test/validation/benchmark")
     parser.add_argument("--dry-run", action="store_true", help="只算不写（检查输入与比例）")
+    parser.add_argument("--audit-public-surface", action="store_true",
+                        help="只做公开面审计：--out 里的 benchmark.jsonl 对**所有被 git 跟踪的文件**"
+                             "（.gz 解压后）的 id 与正文必须零命中；命中则退出 1")
+    parser.add_argument("--audit-extra", action="append", default=None, metavar="PATH",
+                        help="审计时额外扫描的文件（可重复；用于验证护栏本身会响）")
     args = parser.parse_args(argv)
 
     ratios = dict(DEFAULT_RATIOS)
@@ -936,15 +1518,80 @@ def run(argv=None) -> int:
             print(f"参数错误：--ratios {exc}", file=sys.stderr)
             return 2
 
+    # --benchmark-exclude-lang LANG=理由 → {lang: 理由}
+    exclusions: dict = {}
+    for raw in args.benchmark_exclude_lang or []:
+        lang, _, reason = str(raw).partition("=")
+        lang, reason = lang.strip(), reason.strip()
+        if not lang or not reason:
+            print(f"参数错误：--benchmark-exclude-lang 需要 LANG=理由，收到 {raw!r}", file=sys.stderr)
+            return 2
+        exclusions[lang] = reason
+    if args.benchmark_max_source_share < 0 or args.benchmark_min_source_share < 0:
+        print("参数错误：来源占比上下限不能为负", file=sys.stderr)
+        return 2
+    if args.benchmark_max_source_share and \
+            args.benchmark_min_source_share > args.benchmark_max_source_share:
+        print("参数错误：--benchmark-min-source-share 不能大于 --benchmark-max-source-share",
+              file=sys.stderr)
+        return 2
+
+    # ---- 公开面审计模式：不切分、不写任何文件 ----
+    if args.audit_public_surface:
+        repo = git_repo_root(Path(__file__).resolve().parent)
+        audit_dir = Path(args.out) if args.out is not None else DEFAULT_OUT
+        bench_path = audit_dir / "benchmark.jsonl"
+        if not bench_path.is_file():
+            print(f"环境不可用：{bench_path} 不存在（审计需要已生成的 benchmark.jsonl）", file=sys.stderr)
+            return 2
+        try:
+            audit_items = [row for _lineno, row in iter_jsonl(bench_path)]
+        except SplitError as exc:
+            print(f"环境不可用：{exc}", file=sys.stderr)
+            return 2
+        report = audit_public_surface(audit_items, root=repo, extra_paths=args.audit_extra or [])
+        print(f"公开面审计：被 git 跟踪文件 {report['files']} 个（.gz 已解压后扫描）；"
+              f"指纹：id {report['ids']} 条 / 正文 {report['texts']} 条")
+        if report["hits"]:
+            print(f"结论：失败——{len(report['hits'])} 处命中（benchmark 成员出现在公开面）",
+                  file=sys.stderr)
+            for hit in report["hits"][:20]:
+                print(f"  [NG] {hit['file']} 命中 benchmark {hit['kind']}：{hit['needle'][:50]}",
+                      file=sys.stderr)
+            return 1
+        print("结论：全部通过（公开面对 benchmark 的 id 与正文零命中）")
+        return 0
+
+    # ---- 默认值防误伤：没显式给 --out/--report 时，绝不覆盖已存在的交付件 ----
+    out_dir = Path(args.out) if args.out is not None else DEFAULT_OUT
+    report_path = Path(args.report) if args.report is not None else DEFAULT_REPORT
+    delivered = []
+    if args.out is None and (out_dir / "split-manifest.json").is_file():
+        delivered.append(f"{out_dir}/split-manifest.json（--out 未显式给出）")
+    if args.report is None and report_path.is_file():
+        delivered.append(f"{report_path}（--report 未显式给出）")
+    if delivered and not args.force and not args.dry_run:
+        print("拒绝切分：默认输出位置上已有交付件，裸跑不覆盖。", file=sys.stderr)
+        for entry in delivered:
+            print(f"  - {entry}", file=sys.stderr)
+        print("要重新生成请显式写 --out / --report 指向目标，或确认要覆盖时加 --force。",
+              file=sys.stderr)
+        return 3
+
+    # ---- 补充集：只在显式给出时追加（默认不追加，避免合成语料/探索跑被真实补充集污染） ----
+    supplement_paths = [Path(spec) for spec in (args.train_supplement or [])
+                        if str(spec).strip().lower() != "none"]
+
     required_langs = tuple(args.require_group_id_lang) if args.require_group_id_lang else ("zh",)
     ignored_inputs: list = []
     repo_root = git_repo_root(Path(__file__).resolve().parent)
 
-    # ---- 保密门禁：交付件必须带仓外私盐 ----
+    # ---- 保密门禁：交付件必须带仓外私盐（--salt-file 优先，其次环境变量，盐必须在仓库外） ----
+    salt_file = args.salt_file if args.salt_file is not None else os.environ.get(SALT_ENV) or None
     salt = None
-    if args.salt_file is not None:
+    if salt_file is not None:
         try:
-            salt = read_salt(args.salt_file, repo_root=repo_root)
+            salt = read_salt(salt_file, repo_root=repo_root)
         except SplitError as exc:
             print(f"拒绝切分：{exc}", file=sys.stderr)
             return 3
@@ -955,7 +1602,7 @@ def run(argv=None) -> int:
               file=sys.stderr)
         return 3
     if salt is None and not args.dry_run and args.public_demo:
-        for label, path in (("--out", args.out), ("--report", args.report)):
+        for label, path in (("--out", out_dir), ("--report", report_path)):
             if path_inside(repo_root, path):
                 print(f"拒绝切分：--public-demo 的 {label} 必须写在仓库外（当前 {path} 在仓库内）。",
                       file=sys.stderr)
@@ -964,21 +1611,26 @@ def run(argv=None) -> int:
         print("提示：dry-run 无盐，结果与交付件不同（仅用于检查输入与比例）。", file=sys.stderr)
 
     def pipeline():
-        """一次完整流水线：读 → 分组/门禁 → 切分 → 派生分区与统计（复跑校验会再调一次）。"""
+        """一次完整流水线：读 → 分组/门禁 → 切分 → 追加补充 → 派生统计（复跑校验会再调一次）。"""
         items_, records_, load_ = load_records(paths, allow_duplicates=args.allow_duplicates)
         gaps_ = group_id_gaps(records_, required_langs=required_langs)
+        lang_policy_ = lang_coverage_gaps(records_, benchmark_langs=args.benchmark_lang,
+                                          exclusions=exclusions)
         splits_, labels_, stats_, _ = assign_all(
             records_, ratios=ratios, seed=args.seed, salt=salt,
             benchmark_langs=tuple(args.benchmark_lang) if args.benchmark_lang else None,
             use_state=not args.no_state_grouping,
             min_per_domain=args.benchmark_min_per_domain,
             min_per_lang=args.benchmark_min_per_lang,
-            min_per_kind=args.benchmark_min_per_kind)
+            min_per_kind=args.benchmark_min_per_kind,
+            max_source_share=args.benchmark_max_source_share,
+            min_source_share=args.benchmark_min_source_share)
         stats_["group_id_gate"] = {
             "required_langs": list(required_langs),
             "missing": gaps_["total"],
             "skipped": bool(args.allow_missing_group_id and gaps_["total"]),
         }
+        stats_["benchmark_lang_policy"] = lang_policy_
         stats_["input"] = load_
         stats_["input"]["ignored"] = ignored_inputs
         leak_ = leak_report(records_, labels_, splits_, items_)
@@ -987,6 +1639,14 @@ def run(argv=None) -> int:
             split_items_[split].append(item)
         for split in SPLITS:
             split_items_[split].sort(key=lambda item: str(item.get("id")))
+        # train-only 降级补充：整批追加在 train 末尾（其它三区一个字节都不动）
+        supplements_, supplement_items_ = [], []
+        known_ids = {str(item["id"]) for item in items_}
+        for supplement_path in supplement_paths:
+            sup_items, sup_stats = load_supplement(supplement_path, seen_ids=known_ids)
+            supplements_.append(sup_stats)
+            supplement_items_.extend(sup_items)
+        split_items_["train"].extend(supplement_items_)
         counts_ = {dimension: defaultdict(Counter) for dimension in ("lang", "domain", "kind")}
         counts_["items"] = Counter()
         for record, split in zip(records_, splits_):
@@ -995,11 +1655,22 @@ def run(argv=None) -> int:
             counts_["domain"][record["domain"]][split] += 1
             for kind in record["kinds"]:
                 counts_["kind"][kind][split] += 1
+        actual_counts_ = Counter({split: len(split_items_[split]) for split in SPLITS})
+        origin_counts_ = {split: Counter() for split in SPLITS}
+        lang_origin_: dict = {}
+        for split in SPLITS:
+            for item in split_items_[split]:
+                origin = origin_of(item)
+                origin_counts_[split][origin] += 1
+                lang_origin_.setdefault(str(item.get("lang")), {}).setdefault(origin, Counter())[split] += 1
+        stats_["supplements"] = supplements_
         stats_["sources"] = source_summary(split_items_["benchmark"])
         benchmark_groups_ = len({label for label, split in zip(labels_, splits_) if split == "benchmark"})
         return {"items": items_, "records": records_, "splits": splits_, "labels": labels_,
                 "stats": stats_, "gaps": gaps_, "leaks": leak_, "split_items": split_items_,
-                "counts": counts_, "benchmark_groups": benchmark_groups_}
+                "counts": counts_, "actual_counts": actual_counts_, "origin_counts": origin_counts_,
+                "lang_origin": lang_origin_, "supplements": supplements_,
+                "benchmark_groups": benchmark_groups_}
 
     try:
         paths = resolve_inputs(args.input, ignored=ignored_inputs)
@@ -1018,50 +1689,197 @@ def run(argv=None) -> int:
               "确认可接受才加 --allow-missing-group-id（危险）。", file=sys.stderr)
         return 3
 
+    lang_policy = first["stats"].get("benchmark_lang_policy") or {}
+    if lang_policy.get("missing") or lang_policy.get("conflict"):
+        print("拒绝切分：benchmark 的语言覆盖必须**显式**声明（不能静默丢掉一整种语言）。",
+              file=sys.stderr)
+        for lang in lang_policy.get("missing", []):
+            print(f"  - 语料里有 {lang}，但既不在 --benchmark-lang 里，也没有 "
+                  f"--benchmark-exclude-lang {lang}=理由", file=sys.stderr)
+        for lang in lang_policy.get("conflict", []):
+            print(f"  - {lang} 既在 --benchmark-lang 里又被显式排除，二者只能选一个", file=sys.stderr)
+        print("请二选一：允许它进 benchmark，或用 --benchmark-exclude-lang LANG=理由 说明为什么排除。",
+              file=sys.stderr)
+        return 3
+
     leaks = first["leaks"]
     stats = first["stats"]
     counts = first["counts"]
+    actual = first["actual_counts"]
+    audit = audit_public_surface(first["split_items"]["benchmark"], root=repo_root,
+                                 extra_paths=args.audit_extra or [],
+                                 skip_paths=[out_dir, report_path])
+    stats["public_surface_audit"] = audit
+    print(f"公开面审计：被 git 跟踪文件 {audit['files']} 个（.gz 已解压后扫描）；"
+          f"id 指纹 {audit['ids']} 条 / 正文指纹 {audit['texts']} 条；命中 {len(audit['hits'])}")
+    for hit in audit["hits"][:10]:
+        print(f"  [NG] {hit['file']} 命中 benchmark {hit['kind']}：{hit['needle'][:40]}", file=sys.stderr)
+    # 命中只对**交付件**（带私盐那次）算失败：无盐 public-demo 是另一套分配，命中属正常现象。
+    audit_ok = (not audit["hits"]) or salt is None
+    if audit["hits"] and salt is None:
+        print("  注：本次是无盐 public-demo，不是交付件；命中只作观察，不影响退出码。", file=sys.stderr)
+    source_report = stats.get("benchmark_source_policy") or {}
     print(f"输入 {len(paths)} 个文件 / {len(first['items'])} 条 / {stats['groups']['groups']} 组；"
           + "，".join(f"{split}={counts['items'][split]}" for split in SPLITS))
+    if first["supplements"]:
+        print("train-only 补充：" + "，".join(f"{entry['path']}={entry['items']} 条"
+                                              for entry in first["supplements"])
+              + f"（产物 train={actual['train']} 条）")
     print(f"泄漏检查：跨区组 {leaks['groups_multi_split']}，跨区 state {leaks['states_multi_split']}，"
           f"跨区 id {leaks['ids_multi_split']}")
+    print(f"benchmark 来源均衡：上限 {args.benchmark_max_source_share:.0%}"
+          f"（折算 {source_report.get('policy', {}).get('cap_items', '-')} 条），"
+          f"最大来源 {source_report.get('max_source')} 占 {source_report.get('max_share', 0):.1%}，"
+          f"硬上限{'满足' if source_report.get('cap_ok') else '**不满足**'}")
+    print("benchmark 语言政策：" + "可进=" + (",".join(lang_policy.get("benchmark_langs", [])) or "不限")
+          + "；显式排除=" + (",".join(lang_policy.get("exclusions", {})) or "无"))
     if args.dry_run:
         print("dry-run：未写任何文件")
         return 0 if leaks["problem_count"] == 0 else 1
 
-    written = write_split_files(args.out, first["split_items"])
-    export_benchmark_dataset(args.out / "benchmark-dataset", first["split_items"]["benchmark"],
-                             first["benchmark_groups"], stats["sources"], seed=args.seed, ratios=ratios)
+    def package_meta(result):
+        """打包元数据：全部来自本次运行结果；只有聚合统计，不含样本内容。"""
+        input_digests = {path.as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+                         for path in paths}
+        stats_ = result["stats"]
+        lang_policy_ = stats_.get("benchmark_lang_policy") or {}
+        supplement_entries = [{"path": entry["path"], "items": entry["items"],
+                               "by_lang": dict(entry["by_lang"]), "by_origin": dict(entry["by_origin"])}
+                              for entry in result["supplements"]]
+        generation_ = {
+            "generator": "datasets/general/data/splits/split.py（切分）+ "
+                         "datasets/general/data/splits/package_benchmark.py（打包）",
+            "seed_public": args.seed,
+            "salt_note": ("仓外私盐（盐值与其哈希都不记录、不派生进任何产物）；"
+                          "只凭公开脚本 + 公开种子得到的是另一套分配"
+                          if salt is not None else
+                          "无盐 public-demo 运行，**不是交付件**"),
+            "benchmark_lang_policy": {"benchmark_langs": lang_policy_.get("benchmark_langs", []),
+                                      "exclusions": lang_policy_.get("exclusions", {})},
+            "algorithm": "并查集按请求分组（显式分组键 + 归一化 state）→ 按 (domain, lang) 分层 → "
+                         "benchmark 按来源水位配额取（占比上限/下限，逐组复核）→ "
+                         "lang x kind / domain / lang 保底补齐 → 分区内按 id 排序；gzip mtime=0",
+            "input": {"path": "、".join(path.as_posix() for path in paths),
+                      "items": len(result["items"]), "sha256": input_digests},
+            "split_products": {split: int(result["counts"]["items"][split]) for split in SPLITS},
+            "products_with_supplement": {split: int(result["actual_counts"][split]) for split in SPLITS},
+            "leak_checks": {"groups_multi_split": result["leaks"]["groups_multi_split"],
+                            "states_multi_split": result["leaks"]["states_multi_split"],
+                            "ids_multi_split": result["leaks"]["ids_multi_split"]},
+            "source_balance_constraint": {
+                "max_source_share": args.benchmark_max_source_share,
+                "min_source_share": args.benchmark_min_source_share,
+                "actual_max_share": source_report.get("max_share"),
+                "actual_max_source": source_report.get("max_source")},
+            "train_supplements": supplement_entries,
+            "train_note": (f"train 在切分语料 {len(result['items'])} 条之外另含 "
+                           f"{sum(entry['items'] for entry in result['supplements'])} 条降级补充"
+                           "（origin != source，benchmark_eligible=false，仅 train）"
+                           if result["supplements"] else "本次未追加补充集"),
+        }
+        limitations_ = []
+        policy_ = source_report.get("policy") or {}
+        if policy_:
+            limitations_.append(
+                f"benchmark 内最大来源 {source_report.get('max_source')} 占 "
+                f"{source_report.get('max_share', 0):.1%}（上限 "
+                f"{policy_.get('max_source_share', 0):.0%} = {policy_.get('cap_items', '-')} 条；"
+                f"策略 {policy_.get('cap_policy')}），单一来源已不占主导。")
+        for lang, reason in (lang_policy_.get("exclusions") or {}).items():
+            limitations_.append(f"**{lang} 不进 benchmark**：{reason}")
+        domains = sorted({item["domain"] for item in result["split_items"]["benchmark"]})
+        limitations_.append("benchmark 覆盖的域：" + "、".join(domains)
+                            + "；语料里其它域没有条目。")
+        limitations_.append(f"benchmark {len(result['split_items']['benchmark'])} 条：适合版本对比，"
+                            "不适合解读小差异。")
+        if result["supplements"]:
+            limitations_.append("train 里的降级补充（origin != source、benchmark_eligible=false）"
+                                "不得进入本包。")
+        limitations_.append("部分来源是教师蒸馏（行为先验非真值）；逐来源许可与署名见 manifest.json "
+                            "的 sources 字段。")
+        return policy_, generation_, limitations_
+
+    def write_all(directory, result):
+        """写 4 个分区 + benchmark 包（第一次与复跑校验共用，保证两边口径完全一致）。"""
+        policy_, generation_, limitations_ = package_meta(result)
+        written_ = write_split_files(directory, result["split_items"])
+        package_ = export_benchmark_dataset(
+            directory / "benchmark-dataset", result["split_items"]["benchmark"],
+            result["stats"]["sources"], seed=args.seed, ratios=ratios, policy=policy_,
+            generation=generation_, known_limitations=limitations_, version=PACKAGE_VERSION)
+        return written_, package_
+
+    written, package = write_all(out_dir, first)
 
     rerun = None
     if not args.no_verify_rerun:
-        # 复跑校验：完整再跑一遍（重新读文件、重新分组、重新分配）并写到独立临时目录，逐字节比对
+        # 复跑校验：完整再跑一遍（重新读文件、重新分组、重新分配、重新打包）并写到独立临时目录，逐字节比对
         with tempfile.TemporaryDirectory(prefix="pol-split-rerun-") as workspace:
             rerun_dir = Path(workspace)
             second = pipeline()
-            write_split_files(rerun_dir, second["split_items"])
-            export_benchmark_dataset(rerun_dir / "benchmark-dataset", second["split_items"]["benchmark"],
-                                     second["benchmark_groups"], second["stats"]["sources"],
-                                     seed=args.seed, ratios=ratios)
-            rerun = compare_dirs(args.out, rerun_dir)
+            write_all(rerun_dir, second)
+            rerun = compare_dirs(out_dir, rerun_dir)
+
+    # 命令里**不写本次的输出路径**：报告必须与"写到哪里"无关（同一输入 + 同一盐 → 逐字节一致），
+    # 路径用占位符，实际交付路径见本报告第 8 节。
+    command_parts = ["uv run --no-project --offline python datasets/general/data/splits/split.py",
+                     "--out <OUT_DIR>", "--report <REPORT_PATH>",
+                     f"--seed {args.seed}",
+                     "--salt-file <仓外私盐>" if salt is not None else "--public-demo"]
+    if args.benchmark_lang:
+        command_parts.append("--benchmark-lang " + " ".join(args.benchmark_lang))
+    for lang, reason in exclusions.items():
+        command_parts.append(f'--benchmark-exclude-lang "{lang}={reason}"')
+    if abs(args.benchmark_max_source_share - DEFAULT_BENCHMARK_MAX_SOURCE_SHARE) > 1e-9:
+        command_parts.append(f"--benchmark-max-source-share {args.benchmark_max_source_share:g}")
+    if abs(args.benchmark_min_source_share - DEFAULT_BENCHMARK_MIN_SOURCE_SHARE) > 1e-9:
+        command_parts.append(f"--benchmark-min-source-share {args.benchmark_min_source_share:g}")
+    for supplement_path in supplement_paths:
+        command_parts.append(f"--train-supplement {supplement_path.as_posix()}")
+    command_text = " ".join(command_parts)
 
     composition = composition_summary(first["records"], first["items"])
-    report_path = Path(args.report)
+    benchmark_domain_source = Counter((item["domain"], item_source(item))
+                                      for item in first["split_items"]["benchmark"])
+    corpus_domain_source = Counter((item["domain"], item_source(item)) for item in first["items"])
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(
+    atomic_write_text(
+        report_path,
         render_report(inputs=paths, items=first["items"], records=first["records"],
                       split_of_item=first["splits"], labels=first["labels"], stats=stats, leaks=leaks,
                       seed=args.seed, ratios=ratios, counts=counts, composition=composition,
-                      rerun=rerun),
-        encoding="utf-8", newline="\n")
+                      rerun=rerun, supplements=first["supplements"], actual_counts=actual,
+                      origin_counts=first["origin_counts"], lang_origin=first["lang_origin"],
+                      version=REPORT_VERSION, command=command_text,
+                      benchmark_domain_source=benchmark_domain_source,
+                      corpus_domain_source=corpus_domain_source))
 
     manifest = {
         "schema": "pol-split-manifest/0.1",
+        "report_version": REPORT_VERSION,
+        "package_version": PACKAGE_VERSION,
         "seed": args.seed,
         "ratios": ratios,
         "inputs": [path.as_posix() for path in paths],
-        "items": len(first["items"]),
-        "counts": {split: counts["items"][split] for split in SPLITS},
+        "corpus_items": len(first["items"]),
+        "items": sum(actual.values()),
+        "counts": {split: int(actual[split]) for split in SPLITS},
+        "corpus_counts": {split: counts["items"][split] for split in SPLITS},
+        "benchmark_source_policy": {
+            "max_source_share": args.benchmark_max_source_share,
+            "min_source_share": args.benchmark_min_source_share,
+            **{key: value for key, value in (stats.get("benchmark_source_policy") or {}).items()
+               if key != "rows"},
+            "rows": (stats.get("benchmark_source_policy") or {}).get("rows", []),
+        },
+        "benchmark_lang_policy": stats.get("benchmark_lang_policy") or {},
+        "supplement": [{"path": entry["path"], "items": entry["items"],
+                        "by_lang": dict(entry["by_lang"]), "by_origin": dict(entry["by_origin"]),
+                        "by_kind": dict(entry["by_kind"]),
+                        "scope": "train only（test / validation / benchmark 不得包含）",
+                        "benchmark_eligible": False,
+                        "note": "切分完成后整批追加到 train 末尾；其余三区不受影响"}
+                       for entry in first["supplements"]],
         "salt_policy": {
             "salted": salt is not None,
             "benchmark_langs": sorted(args.benchmark_lang) if args.benchmark_lang else None,
@@ -1070,21 +1888,33 @@ def run(argv=None) -> int:
                     if salt is not None else
                     "本次为无盐 public-demo 运行，不是交付件。",
         },
+        # 只记文件名与口径，**不记命中的指纹本身**：把泄漏的 id 写进 manifest 会让 manifest 自己也命中，
+        # 下一轮扫描就多出一条假阳性（这个坑真踩过一次）。
+        "public_surface_audit": {"ids": audit["ids"], "texts": audit["texts"],
+                                 "hit_count": len(audit["hits"]),
+                                 "hit_files": sorted({hit["file"] for hit in audit["hits"]}),
+                                 "note": "被 git 跟踪的文件（.gz 解压后）对 benchmark 的 id 与正文"
+                                         "零命中；--audit-public-surface 可单独复跑。"
+                                         "不记录扫描文件数：它随仓库增删变化，会破坏重跑一致性。"},
+        "package": {"directory": "benchmark-dataset", "version": PACKAGE_VERSION,
+                    "files": ["README.md", "USAGE.md", "benchmark.jsonl", "benchmark.jsonl.gz",
+                              "manifest.json", "verify.py"],
+                    "verify": "python verify.py（在包目录内运行，退出码 0=通过）"},
         "rerun": None if rerun is None else {"files": rerun["files"], "identical": rerun["identical"],
                                              "tree_sha256": rerun["tree_sha256"]},
         "digests": {} if rerun is None else rerun["digests"],
     }
-    (args.out / "split-manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8", newline="\n")
+    atomic_write_text(out_dir / "split-manifest.json",
+                      json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
-    print(f"已写：{args.out}（4 个分区 + benchmark-dataset + split-manifest.json）、{report_path}")
+    print(f"已写：{out_dir}（4 个分区 + benchmark-dataset + split-manifest.json）、{report_path}")
     for split in SPLITS:
         print(f"  {split}: {written[split]['items']} 条")
     if rerun is not None:
         print(f"复跑校验：{rerun['files']} 个文件逐字节"
               f"{'一致' if rerun['identical'] else '不一致'}，树哈希 {rerun['tree_sha256'][:16]}")
-    return 0 if leaks["problem_count"] == 0 and (rerun is None or rerun["identical"]) else 1
+    return 0 if (leaks["problem_count"] == 0 and audit_ok
+                 and (rerun is None or rerun["identical"])) else 1
 
 
 if __name__ == "__main__":

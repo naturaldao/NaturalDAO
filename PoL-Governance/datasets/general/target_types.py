@@ -11,6 +11,11 @@
 D:/pol2-raw/general-private/data/items.final.jsonl.gz（sha256 ba615c96...daece）的解压同名文件：
 23,855 条 / 31,786 个 target，逐条 JSON 规范化后 sha256 完全一致。
 输出：datasets/general/data/target-types.jsonl —— 每条 target 一行，旁挂文件，原语料一个字节都不动。
+落盘格式：每行 canonical JSON（键序排序、默认分隔符），与已交付的 .gz 逐字节可复算。
+**只写公开分区**：按 data/splits/{train,test,validation} 的 item id 白名单过滤（--splits 可换目录），
+非公开分区（内部 benchmark）的 target 只参与内存里的全量自检、**不落盘**——成员身份本身就是敏感信息，
+配上仍在 git 历史里的语料即可精确还原保留集；这些 target 的路由信息在仓外维护（TRAINING.md §1.1）。
+白名单取不到就报错退出（fail closed），绝不退回「全量落盘」。
 
 判定纪律（报告 §6.1）：
 
@@ -29,8 +34,9 @@ D:/pol2-raw/general-private/data/items.final.jsonl.gz（sha256 ba615c96...daece�
                  soft / uniform_all_candidates / tie_subset
 - training_route 训练侧路由：drop / classification / distillation
 
-自检（不通过就非零退出）：合计 31,786；四类分布与报告 §6.3 一致；
-逐规则计数与 §6.3 一致；hard_label 与旗标 hard_label_to_point_mass 等价。
+自检分两段（不通过就非零退出）：① 全量扫描（含非公开分区，只在内存里）合计 31,786、四类分布与
+报告 §6.3 一致、逐规则计数与 §6.3 一致、hard_label 与旗标 hard_label_to_point_mass 等价；
+② 落盘件只含公开分区——白名单外的 target 一条都不许出现。
 """
 from __future__ import annotations
 
@@ -45,9 +51,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT = REPO_ROOT / "datasets/general/data/items.final.jsonl"
 DEFAULT_OUT = REPO_ROOT / "datasets/general/data/target-types.jsonl"
+DEFAULT_SPLITS = REPO_ROOT / "datasets/general/data/splits"
+
+#: 公开分区：只有这三个分区里的 target 允许落盘。benchmark 不在其中，且**永远不会被读**——
+#: 用白名单而不是黑名单，连它的 id 都不需要知道。
+PUBLIC_SPLITS = ("train", "test", "validation")
 
 #: 冻结语料指纹（仅在文档里引用；明文与 .gz 逐条一致，允许在仓内明文上复算）。
 FROZEN_GZ_SHA256 = "ba615c96c0dc13cbc4caa8b0f83ac1326abc13700bde98579f2ebb9f38bdaece"
+#: 全量（含非公开分区）的语料事实，只在内存自检里断言，**不对落盘件断言**。
 EXPECTED_TARGETS = 31_786
 
 #: 形态比较容差。语料里的概率已由转换器 round(..., 6)，1e-9 远小于最小量子 1e-6。
@@ -296,8 +308,8 @@ def classify_target(item, question, target):
     }
 
 
-def build_rows(path):
-    """遍历语料，产出全部旁挂行；顺带做结构自检。"""
+def build_all_rows(path):
+    """遍历语料，产出全部旁挂行（**含非公开分区**，只在内存里）；顺带做结构自检。"""
     seen = set()
     rows = []
     for lineno, item in iter_items(path):
@@ -316,10 +328,45 @@ def build_rows(path):
     return rows
 
 
+def load_public_ids(splits_dir, splits=PUBLIC_SPLITS):
+    """公开分区的 item id 白名单。明文优先，干净检出退到同名 .gz。
+
+    白名单而不是黑名单：不需要读 benchmark.jsonl，也就不必把成员清单搬进源码。
+    任何分区缺失都报错退出——静默退回「全量落盘」等于把泄漏放回去（fail closed）。
+    """
+    ids, missing = set(), []
+    for name in splits:
+        plain = Path(splits_dir) / f"{name}.jsonl"
+        packed = plain.with_suffix(".jsonl.gz")
+        path = plain if plain.is_file() else packed
+        if not path.is_file():
+            missing.append(f"{plain}（也没有 {packed.name}）")
+            continue
+        for _, item in iter_items(path):
+            ids.add(item["id"])
+    if missing:
+        raise BackfillError("公开分区缺失，拒绝生成旁挂文件（否则会重新包含非公开成员）："
+                            + "；".join(missing))
+    if not ids:
+        raise BackfillError("公开分区为空，拒绝生成旁挂文件")
+    return ids
+
+
+def public_rows(rows, public_ids):
+    """只留公开分区的行；行序不变（= 语料顺序，确定性可复算）。"""
+    return [row for row in rows if row["item_id"] in public_ids]
+
+
 # ------------------------------------------------------------------ 落盘与统计
 
 def dump_row(row):
-    return json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+    """一行的规范序列化。
+
+    键序排序（sort_keys）：已交付的 .gz 就是这个形态，重算才可能**逐字节**一致；
+    顺带让 sha256 不依赖字段的书写顺序。分隔符用默认值（`", "` / `": "`）——同上，
+    与交付件一致优先于省几百 KB（gzip 后差异可忽略）。
+    """
+    return json.dumps(row, ensure_ascii=False, sort_keys=True)
 
 
 def render(rows):
@@ -366,7 +413,7 @@ def summarize(rows):
 
 
 def self_check(rows):
-    """自检。返回问题列表（空 = 通过）。"""
+    """自检（**全量口径**，见模块头）。返回问题列表（空 = 通过）。"""
     problems = []
     if len(rows) != EXPECTED_TARGETS:
         problems.append(f"target 合计 {len(rows)} != {EXPECTED_TARGETS}")
@@ -404,28 +451,38 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT, help="语料 JSONL（默认仓内 items.final.jsonl）")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="旁挂文件输出路径")
-    parser.add_argument("--verify", action="store_true", help="只校验：重算结果与已落盘文件逐行一致，不写盘")
+    parser.add_argument("--splits", type=Path, default=DEFAULT_SPLITS,
+                        help="分区目录：只落盘 train/test/validation 里的 target（默认 data/splits）")
+    parser.add_argument("--verify", action="store_true", help="只校验：重算结果与已落盘文件逐字节一致，不写盘")
     args = parser.parse_args()
 
     try:
-        rows = build_rows(args.input)
-        problems = self_check(rows)
+        public_ids = load_public_ids(args.splits)   # 先取白名单：分区不在就立刻退出，不白扫一遍语料
+        all_rows = build_all_rows(args.input)
+        problems = self_check(all_rows)          # 全量口径：与报告 §6.3 对账（含非公开分区，只在内存）
         if problems:
             for problem in problems:
                 print(f"自检失败：{problem}", file=sys.stderr)
             return 2
+        rows = public_rows(all_rows, public_ids)
+        withheld = len(all_rows) - len(rows)
         summary = summarize(rows)
+        summary["scanned_targets"] = len(all_rows)
+        summary["public_targets"] = len(rows)
+        summary["non_public_targets_not_written"] = withheld
         if args.verify:
             actual, path = read_sidecar(args.out)
             if actual != render(rows):
-                print(f"自检失败：{path} 与重算结果不一致（语料或规则变了）", file=sys.stderr)
+                print(f"自检失败：{path} 与重算结果不一致（语料、规则或公开分区变了）", file=sys.stderr)
                 return 2
             print(json.dumps(summary, ensure_ascii=False, indent=2))
-            print(f"# OK：{path} 与重算逐行一致（{len(rows)} 行）")
+            print(f"# OK：{path} 与重算逐行一致（扫描 {len(all_rows):,} / 落盘 {len(rows):,}；"
+                  f"非公开分区 {withheld:,} 条未落盘）")
             return 0
         digest = write_sidecar(rows, args.out)
         print(json.dumps(summary, ensure_ascii=False, indent=2))
-        print(f"# 落盘 {args.out}")
+        print(f"# 落盘 {args.out}：公开分区 {len(rows):,} 行；非公开分区 {withheld:,} 行未落盘，"
+              f"其路由信息仓外维护（TRAINING.md §1.1）")
         print(f"# 明文 sha256 {digest}")
         return 0
     except BackfillError as error:

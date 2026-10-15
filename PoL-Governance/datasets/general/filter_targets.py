@@ -9,6 +9,14 @@
 读：datasets/general/data/target-types.jsonl（旁挂路由）+ data/splits/*.jsonl + 中文补充（只读）。
 写：默认只打印统计（stdout）；--emit 时才写一个聚合 JSON（**只含计数，不含样本、不含 id 清单**）。
 
+旁挂文件只含**公开分区**（train/test/validation）：内部保留集 benchmark 的成员身份本身就是敏感信息，
+它的路由在仓外维护。本工具按同一条线分开算：
+
+- 公开分区：covered（旁挂文件给了路由）+ uncovered（旁挂没覆盖、按形态兜底——中文补充就是这一类）。
+  covered 合计必须恰好等于旁挂文件行数（少 = 有 target 没路由，多 = 路由指认了不存在的 target）。
+- 内部保留集：**不做兜底估算**。把它当「中文补充」那样估，会给出一个看起来合理的错数字，
+  而且是静默的；这里只回答「旁挂文件有没有覆盖到它」，答案必须是 0，不为 0 直接报错。
+
 三条路由：
 
 - drop           剔除：uninformative_uniform（无信息均匀 / yuri_v1 常量 / 并列均分占位）
@@ -37,9 +45,11 @@ DATA = REPO_ROOT / "datasets/general/data"
 DEFAULT_SIDECAR = DATA / "target-types.jsonl"
 DEFAULT_SPLITS = DATA / "splits"
 DEFAULT_SUPPLEMENT = DATA / "zh-supplement/items.jsonl"
-SPLITS = ("train", "test", "validation", "benchmark")
+#: 公开分区：旁挂文件只覆盖它们，兜底路由也只在这里估。
+PUBLIC_SCANS = ("train", "test", "validation")
+#: 内部保留集：单独算，不参与兜底估算。文件被 .gitignore 第 15 行挡在仓外（单独交付）。
+SEALED_SPLIT = "benchmark"
 ROUTES = ("drop", "classification", "distillation")
-EXPECTED_FROZEN_TARGETS = 31_786
 
 
 class FilterError(Exception):
@@ -97,13 +107,22 @@ def route_of_uncovered(item, question, target):
     return "distillation"
 
 
+def resolve_split(split_dir, split):
+    """分区文件：明文优先，干净检出退到同名 .gz（明文被 .gitignore 第 17 行挡住）；都没有返回 None。"""
+    plain = Path(split_dir) / f"{split}.jsonl"
+    if plain.is_file():
+        return plain
+    packed = plain.with_suffix(".jsonl.gz")
+    return packed if packed.is_file() else None
+
+
 def scan_split(split_dir, split, sidecar, ties):
-    """扫一个分区，分开统计「冻结语料内的 target」与「旁挂未覆盖的 target」。"""
+    """扫一个**公开**分区，分开统计「旁挂文件给了路由的 target」与「旁挂未覆盖、按形态兜底的 target」。"""
     frozen, uncovered = Counter(), Counter()
     per_type, per_rule = Counter(), Counter()
-    path = Path(split_dir) / f"{split}.jsonl"
-    if not path.is_file():
-        raise FilterError(f"分区文件不存在：{path}")
+    path = resolve_split(split_dir, split)
+    if path is None:
+        raise FilterError(f"分区文件不存在：{Path(split_dir) / (split + '.jsonl')}（也没有 .gz）")
     for item in iter_items(path):
         targets = item.get("targets") or {}
         for question in item.get("questions") or []:
@@ -118,6 +137,27 @@ def scan_split(split_dir, split, sidecar, ties):
                 per_type[row["target_type"]] += 1
                 per_rule[row["rule_id"]] += 1
     return frozen, uncovered, per_type, per_rule
+
+
+def count_sealed(split_dir, split, sidecar):
+    """内部保留集：只回答「旁挂文件有没有覆盖到它」，**不**按形态兜底估算路由。
+
+    兜底估算在公开分区是对的（中文补充确实没进旁挂文件），用在保留集上却是**静默错误**：
+    它会把保留集的 target 报成一份看起来合理的路由分布，谁也发现不了不对。
+    返回 None = 保留集不在本机（.gitignore 第 15 行：单独交付，不入公开仓）。
+    """
+    path = resolve_split(split_dir, split)
+    if path is None:
+        return None
+    targets = covered = 0
+    for item in iter_items(path):
+        item_targets = item.get("targets") or {}
+        for question in item.get("questions") or []:
+            if item_targets.get(question.get("key")) is None:
+                continue
+            targets += 1
+            covered += (item["id"], question["key"]) in sidecar
+    return {"file": path.name, "targets": targets, "covered": covered}
 
 
 def _row(label, counts, width=12):
@@ -147,10 +187,11 @@ def main():
         report = {"schema": "pol-training-view/0.1", "ties": args.ties,
                   "sidecar_rows": len(sidecar), "splits": {}}
         frozen_total = Counter()
-        print("# A. 冻结语料 23,855 条 / 31,786 target（旁挂文件覆盖 100%）")
+        print(f"# A. 公开分区（{'/'.join(PUBLIC_SCANS)}）：旁挂文件 {len(sidecar):,} 行，覆盖公开 target 100%"
+              f"；内部保留集见 D，其路由在仓外维护（TRAINING.md §1.1）")
         print(header)
         print(rule)
-        for split in SPLITS:
+        for split in PUBLIC_SCANS:
             frozen, uncovered, per_type, per_rule = scan_split(args.splits, split, sidecar, args.ties)
             frozen_total.update(frozen)
             report["splits"][split] = {
@@ -165,10 +206,13 @@ def main():
             }
             print(_row(split, frozen))
         print(rule)
-        print(_row("合计", frozen_total))
+        print(_row("公开合计", frozen_total))
         print()
-        if sum(frozen_total.values()) != EXPECTED_FROZEN_TARGETS:
-            raise FilterError(f"冻结语料 target 合计 {sum(frozen_total.values())} != {EXPECTED_FROZEN_TARGETS}")
+        # 覆盖关系推导，不写死总数：旁挂文件的每一行都必须落在公开分区里，且一条不漏
+        if sum(frozen_total.values()) != len(sidecar):
+            raise FilterError(
+                f"公开分区只扫到 {sum(frozen_total.values()):,} 条旁挂路由，旁挂文件却有 {len(sidecar):,} 行："
+                "覆盖关系断了（少 = 有 target 没路由；多 = 有路由指认了不存在的 target）")
 
         # 中文补充：只追加进 train 尾部，不在冻结语料 / 旁挂文件里。
         supplement_items = 0
@@ -199,11 +243,23 @@ def main():
             "distillation": combined.get("distillation", 0),
             "keep": sum(combined.values()) - combined.get("drop", 0),
         }
-        print("# C. train.jsonl 实际内容 = 冻结 train 19,551 + 补充 "
+        print(f"# C. train.jsonl 实际内容 = 公开 train {train.get('targets', 0):,} + 补充 "
               f"{supplement_total:,} = {sum(combined.values()):,} target")
         print(header)
         print(rule)
         print(_row("train 实际", combined))
+        print()
+
+        sealed = count_sealed(args.splits, SEALED_SPLIT, sidecar)
+        if sealed is None:
+            print(f"# D. 内部保留集（{SEALED_SPLIT}.jsonl）不在本机（.gitignore 第 15 行）：跳过覆盖检查")
+        else:
+            report["sealed"] = sealed
+            print(f"# D. 内部保留集（{sealed['file']}）：{sealed['targets']:,} target，旁挂文件覆盖 "
+                  f"{sealed['covered']} 条——必须为 0；保留集不做兜底路由估算")
+            if sealed["covered"]:
+                raise FilterError(f"旁挂文件覆盖了内部保留集 {sealed['covered']} 条 target："
+                                  "旁挂件只许含公开分区")
         print()
 
         reasons = Counter()
@@ -217,7 +273,7 @@ def main():
             else:
                 reasons[f"{row['rule_id']} yuri_v1 整条子流常量 [0.5, 0.5]"] += 1
         report["drop_reasons"] = dict(reasons.most_common())
-        print("# 剔除理由计数（全语料）：")
+        print("# 剔除理由计数（旁挂文件 = 公开分区）：")
         for reason, count in reasons.most_common():
             print(f"#   {reason}: {count:,}")
         print(f"#   合计: {sum(reasons.values()):,}")
