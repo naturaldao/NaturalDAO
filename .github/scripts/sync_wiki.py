@@ -170,7 +170,7 @@ class Resolver:
         return self.by_title.get((lang, norm_title(t)))
 
     def raw_or_blob(self, path: str, image: bool) -> str:
-        if image and path in IMAGE_ALIASES:
+        if image and path in IMAGE_ALIASES and not (self.main / path).exists():
             warn(f"图片 {path} 不存在，已改用 {IMAGE_ALIASES[path]}（建议在源文件里修正引用）")
             path = IMAGE_ALIASES[path]
         exists = (self.main / path).exists()
