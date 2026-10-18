@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "pol2-agent-ballot: sealed, auditable ballots for AI agent decisions"
+type: software
+authors:
+  - alias: shentonyan
+version: 0.4.0
+date-released: 2026-10-18
+license: MIT
+repository-code: "https://github.com/shentonyan/pol2-agent-ballot"
+url: "https://shentonyan.github.io/pol2-agent-ballot/"
+keywords:
+  - multi-agent systems
+  - voting protocols
+  - information cascades
+  - AI governance
+  - IVXV

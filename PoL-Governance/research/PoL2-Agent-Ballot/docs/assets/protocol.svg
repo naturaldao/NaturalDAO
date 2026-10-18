@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" width="960" height="300" font-family="IBM Plex Sans, Segoe UI, Helvetica, Arial, sans-serif">
+  <title>pol2-agent-ballot protocol: agents cast sealed, signed ballots into a hash-chained ledger; custodians release the key at the close; an independent auditor recomputes the result.</title>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#465166"/>
+    </marker>
+    <symbol id="env" viewBox="0 0 26 18">
+      <rect x="1" y="1" width="24" height="16" rx="2" fill="#FFFFFF" stroke="#2459C9" stroke-width="1.6"/>
+      <path d="M1 2 L13 10 L25 2" fill="none" stroke="#2459C9" stroke-width="1.6"/>
+      <circle cx="13" cy="10" r="2.8" fill="#2459C9"/>
+    </symbol>
+  </defs>
+  <rect x="0" y="0" width="960" height="300" rx="14" fill="#F3F5F9"/>
+
+  <!-- phase labels -->
+  <g font-size="11" font-weight="600" fill="#6E7890" letter-spacing="1.2">
+    <text x="32" y="34">SETUP</text>
+    <text x="214" y="34">VOTING · BALLOTS SEALED</text>
+    <text x="548" y="34">CLOSE</text>
+    <text x="760" y="34">VERIFY</text>
+  </g>
+
+  <!-- organiser -->
+  <g>
+    <rect x="24" y="52" width="160" height="200" rx="10" fill="#FFFFFF" stroke="#D6DCE6"/>
+    <text x="40" y="78" font-size="15" font-weight="700" fill="#121826">Organiser</text>
+    <text x="40" y="104" font-size="12" fill="#465166">signs configuration</text>
+    <text x="40" y="122" font-size="12" fill="#465166">and agent roster</text>
+    <text x="40" y="152" font-size="12" fill="#465166">generates election key,</text>
+    <text x="40" y="170" font-size="12" fill="#465166">splits it 2-of-3,</text>
+    <text x="40" y="188" font-size="12" fill="#465166">discards the whole key</text>
+    <g font-family="IBM Plex Mono, Consolas, monospace" font-size="10.5" fill="#2459C9">
+      <text x="40" y="226">Ed25519 · Shamir</text>
+    </g>
+  </g>
+
+  <!-- agents -->
+  <g>
+    <rect x="206" y="52" width="150" height="200" rx="10" fill="#FFFFFF" stroke="#D6DCE6"/>
+    <text x="222" y="78" font-size="15" font-weight="700" fill="#121826">Agents</text>
+    <text x="222" y="100" font-size="12" fill="#465166">decide privately,</text>
+    <text x="222" y="117" font-size="12" fill="#465166">seal choice + reason,</text>
+    <text x="222" y="134" font-size="12" fill="#465166">sign the envelope</text>
+    <use href="#env" x="222" y="152" width="26" height="18"/>
+    <use href="#env" x="254" y="152" width="26" height="18"/>
+    <use href="#env" x="286" y="152" width="26" height="18"/>
+    <use href="#env" x="318" y="152" width="26" height="18"/>
+    <text x="222" y="196" font-size="12" fill="#465166">nobody sees another</text>
+    <text x="222" y="213" font-size="12" fill="#465166">ballot before the close</text>
+    <text x="222" y="238" font-size="10.5" font-family="IBM Plex Mono, Consolas, monospace" fill="#2459C9">sealed box</text>
+  </g>
+
+  <!-- ledger -->
+  <g>
+    <rect x="378" y="52" width="150" height="200" rx="10" fill="#FFFFFF" stroke="#D6DCE6"/>
+    <text x="394" y="78" font-size="15" font-weight="700" fill="#121826">Collector</text>
+    <text x="394" y="100" font-size="12" fill="#465166">checks roster and</text>
+    <text x="394" y="117" font-size="12" fill="#465166">signature, appends,</text>
+    <text x="394" y="134" font-size="12" fill="#465166">returns a receipt</text>
+    <g font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#465166">
+      <rect x="394" y="148" width="118" height="20" rx="4" fill="#E9EDF4"/><text x="400" y="162">#6 ballot 9f3a…</text>
+      <rect x="394" y="172" width="118" height="20" rx="4" fill="#E9EDF4"/><text x="400" y="186">#7 ballot 1c07…</text>
+      <rect x="394" y="196" width="118" height="20" rx="4" fill="#DCE6FA"/><text x="400" y="210" fill="#2459C9">#8 ballot e52b…</text>
+    </g>
+    <text x="394" y="238" font-size="10.5" font-family="IBM Plex Mono, Consolas, monospace" fill="#2459C9">SHA-256 hash chain</text>
+  </g>
+
+  <!-- custodians + tally -->
+  <g>
+    <rect x="550" y="52" width="180" height="200" rx="10" fill="#FFFFFF" stroke="#D6DCE6"/>
+    <text x="566" y="78" font-size="15" font-weight="700" fill="#121826">Custodians</text>
+    <text x="566" y="100" font-size="12" fill="#465166">2 of 3 hand in shares;</text>
+    <text x="566" y="117" font-size="12" fill="#465166">key is rebuilt, checked</text>
+    <text x="566" y="134" font-size="12" fill="#465166">and published</text>
+    <g font-size="11">
+      <rect x="566" y="148" width="44" height="22" rx="5" fill="#DCE6FA" stroke="#2459C9"/><text x="575" y="163" fill="#2459C9">key 1</text>
+      <rect x="616" y="148" width="44" height="22" rx="5" fill="#FFFFFF" stroke="#D6DCE6" stroke-dasharray="3 2"/><text x="625" y="163" fill="#6E7890">key 2</text>
+      <rect x="666" y="148" width="44" height="22" rx="5" fill="#DCE6FA" stroke="#2459C9"/><text x="675" y="163" fill="#2459C9">key 3</text>
+    </g>
+    <text x="566" y="196" font-size="12" fill="#465166">ballots open, latest</text>
+    <text x="566" y="213" font-size="12" fill="#465166">per agent is counted</text>
+    <g>
+      <rect x="566" y="226" width="96" height="12" rx="3" fill="#1F8A5B"/>
+      <rect x="664" y="226" width="46" height="12" rx="3" fill="#C23B3B"/>
+    </g>
+  </g>
+
+  <!-- auditor -->
+  <g>
+    <rect x="752" y="52" width="184" height="200" rx="10" fill="#FFFFFF" stroke="#1F8A5B" stroke-width="1.5"/>
+    <text x="768" y="78" font-size="15" font-weight="700" fill="#121826">Auditor</text>
+    <text x="768" y="100" font-size="12" fill="#465166">has only the exported</text>
+    <text x="768" y="117" font-size="12" fill="#465166">ledger and envelopes</text>
+    <g font-size="12" fill="#121826">
+      <text x="768" y="146"><tspan fill="#1F8A5B" font-weight="700">✓</tspan> chain intact</text>
+      <text x="768" y="166"><tspan fill="#1F8A5B" font-weight="700">✓</tspan> signatures, roster</text>
+      <text x="768" y="186"><tspan fill="#1F8A5B" font-weight="700">✓</tspan> re-decrypts ballots</text>
+      <text x="768" y="206"><tspan fill="#1F8A5B" font-weight="700">✓</tspan> recounts the tally</text>
+      <text x="768" y="226"><tspan fill="#1F8A5B" font-weight="700">✓</tspan> rule applied</text>
+    </g>
+  </g>
+
+  <!-- arrows -->
+  <g stroke="#465166" stroke-width="1.6" fill="none" marker-end="url(#arr)">
+    <path d="M184 152 H202"/>
+    <path d="M356 152 H374"/>
+    <path d="M528 152 H546"/>
+    <path d="M730 152 H748"/>
+  </g>
+
+  <text x="24" y="282" font-size="12" fill="#6E7890">Event advances only if the decision rule is met, the winner is "advance", the EAP check passes and the audit passes. Structure after Estonia's IVXV.</text>
+</svg>

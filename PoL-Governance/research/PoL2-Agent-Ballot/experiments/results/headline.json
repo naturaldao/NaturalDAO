@@ -1,0 +1,40 @@
+[
+ {
+  "condition": "sealed",
+  "n": 9,
+  "p": 0.7,
+  "lead": 2,
+  "trials": 30000,
+  "seed": 2026,
+  "protocol": true,
+  "accuracy": 0.9033,
+  "ci95": [
+   0.8999037916828946,
+   0.906592937516335
+  ],
+  "conformity_rate": 0.0,
+  "seconds": 227.7,
+  "exact_accuracy": 0.90119134,
+  "exact_conformity_rate": 0.0,
+  "exact_inside_ci95": true
+ },
+ {
+  "condition": "open",
+  "n": 9,
+  "p": 0.7,
+  "lead": 2,
+  "trials": 30000,
+  "seed": 2026,
+  "protocol": true,
+  "accuracy": 0.8426666666666667,
+  "ci95": [
+   0.8385025538088078,
+   0.8467430347661222
+  ],
+  "conformity_rate": 0.2258777777777778,
+  "seconds": 230.1,
+  "exact_accuracy": 0.8403209919999999,
+  "exact_conformity_rate": 0.22641005333333336,
+  "exact_inside_ci95": true
+ }
+]

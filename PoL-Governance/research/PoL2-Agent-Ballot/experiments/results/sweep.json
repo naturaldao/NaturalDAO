@@ -1,0 +1,614 @@
+{
+ "by_n": [
+  {
+   "condition": "sealed",
+   "n": 3,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026001,
+   "protocol": false,
+   "accuracy": 0.7862,
+   "ci95": [
+    0.7780552881378947,
+    0.7941249111912639
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 0.3,
+   "exact_accuracy": 0.7839999999999999,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 3,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026002,
+   "protocol": false,
+   "accuracy": 0.7825,
+   "ci95": [
+    0.7743066029239992,
+    0.7904764379931472
+   ],
+   "conformity_rate": 0.06976666666666667,
+   "seconds": 0.4,
+   "exact_accuracy": 0.7839999999999999,
+   "exact_conformity_rate": 0.07,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 5,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026003,
+   "protocol": false,
+   "accuracy": 0.8357,
+   "ci95": [
+    0.8283087429310415,
+    0.8428334405588206
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 0.6,
+   "exact_accuracy": 0.8369199999999999,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 5,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026004,
+   "protocol": false,
+   "accuracy": 0.8163,
+   "ci95": [
+    0.8085892749565032,
+    0.8237678076703762
+   ],
+   "conformity_rate": 0.1443,
+   "seconds": 0.6,
+   "exact_accuracy": 0.81928,
+   "exact_conformity_rate": 0.14364000000000002,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 7,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026005,
+   "protocol": false,
+   "accuracy": 0.8669,
+   "ci95": [
+    0.8601012383494689,
+    0.8734169836416851
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 0.7,
+   "exact_accuracy": 0.873964,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": false
+  },
+  {
+   "condition": "open",
+   "n": 7,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026006,
+   "protocol": false,
+   "accuracy": 0.832,
+   "ci95": [
+    0.8245451658050217,
+    0.8391998592728281
+   ],
+   "conformity_rate": 0.19278571428571428,
+   "seconds": 0.8,
+   "exact_accuracy": 0.8340975999999999,
+   "exact_conformity_rate": 0.193092,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 9,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026007,
+   "protocol": false,
+   "accuracy": 0.8989,
+   "ci95": [
+    0.8928374431292772,
+    0.9046562029657661
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 0.9,
+   "exact_accuracy": 0.90119134,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 9,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026008,
+   "protocol": false,
+   "accuracy": 0.8373,
+   "ci95": [
+    0.8299366416000279,
+    0.8444043130950288
+   ],
+   "conformity_rate": 0.22722222222222221,
+   "seconds": 1.0,
+   "exact_accuracy": 0.8403209919999999,
+   "exact_conformity_rate": 0.22641005333333336,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 13,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026009,
+   "protocol": false,
+   "accuracy": 0.9344,
+   "ci95": [
+    0.9293787461866697,
+    0.9390876360236254
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 1.3,
+   "exact_accuracy": 0.9376247882008,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 13,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026010,
+   "protocol": false,
+   "accuracy": 0.8458,
+   "ci95": [
+    0.8385891057879006,
+    0.8527453209347516
+   ],
+   "conformity_rate": 0.26587692307692307,
+   "seconds": 1.5,
+   "exact_accuracy": 0.8440326229888,
+   "exact_conformity_rate": 0.2664037385132308,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 17,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026011,
+   "protocol": false,
+   "accuracy": 0.9633,
+   "ci95": [
+    0.9594333013978922,
+    0.9668108857062281
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 1.8,
+   "exact_accuracy": 0.9597230639457454,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 17,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026012,
+   "protocol": false,
+   "accuracy": 0.8439,
+   "ci95": [
+    0.8366543913428621,
+    0.8508814945736216
+   ],
+   "conformity_rate": 0.2883058823529412,
+   "seconds": 2.1,
+   "exact_accuracy": 0.8446873546952243,
+   "exact_conformity_rate": 0.2886774737152083,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 21,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026013,
+   "protocol": false,
+   "accuracy": 0.9701,
+   "ci95": [
+    0.9665772017505911,
+    0.9732617629756053
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 2.3,
+   "exact_accuracy": 0.973610059298716,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": false
+  },
+  {
+   "condition": "open",
+   "n": 21,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026014,
+   "protocol": false,
+   "accuracy": 0.8505,
+   "ci95": [
+    0.8433766023436258,
+    0.8573542147942852
+   ],
+   "conformity_rate": 0.3008190476190476,
+   "seconds": 2.5,
+   "exact_accuracy": 0.8448028493682376,
+   "exact_conformity_rate": 0.3026231432465317,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 25,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026015,
+   "protocol": false,
+   "accuracy": 0.9826,
+   "ci95": [
+    0.9798457030090799,
+    0.9849836617576984
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 2.7,
+   "exact_accuracy": 0.9825302594739422,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 25,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026016,
+   "protocol": false,
+   "accuracy": 0.8448,
+   "ci95": [
+    0.8375707886214245,
+    0.851764406097981
+   ],
+   "conformity_rate": 0.314336,
+   "seconds": 3.0,
+   "exact_accuracy": 0.8448232226285569,
+   "exact_conformity_rate": 0.31212948687369796,
+   "exact_inside_ci95": true
+  }
+ ],
+ "by_p": [
+  {
+   "condition": "sealed",
+   "n": 9,
+   "p": 0.55,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026017,
+   "protocol": false,
+   "accuracy": 0.6222,
+   "ci95": [
+    0.612652148612977,
+    0.6316540021837496
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 1.0,
+   "exact_accuracy": 0.6214209454492188,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 9,
+   "p": 0.55,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026018,
+   "protocol": false,
+   "accuracy": 0.5907,
+   "ci95": [
+    0.5810297238531136,
+    0.6003006188413472
+   ],
+   "conformity_rate": 0.2854333333333333,
+   "seconds": 1.1,
+   "exact_accuracy": 0.5960674812812501,
+   "exact_conformity_rate": 0.2841124653125,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 9,
+   "p": 0.6,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026019,
+   "protocol": false,
+   "accuracy": 0.7298,
+   "ci95": [
+    0.7210095057780638,
+    0.7384140085679901
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 1.0,
+   "exact_accuracy": 0.73343232,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 9,
+   "p": 0.6,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026020,
+   "protocol": false,
+   "accuracy": 0.683,
+   "ci95": [
+    0.673811350664119,
+    0.6920481059299972
+   ],
+   "conformity_rate": 0.2717333333333333,
+   "seconds": 1.1,
+   "exact_accuracy": 0.687407616,
+   "exact_conformity_rate": 0.2720477866666667,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 9,
+   "p": 0.65,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026021,
+   "protocol": false,
+   "accuracy": 0.8309,
+   "ci95": [
+    0.8234265133311709,
+    0.8381193565431078
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 1.0,
+   "exact_accuracy": 0.8282807144726563,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 9,
+   "p": 0.65,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026022,
+   "protocol": false,
+   "accuracy": 0.7697,
+   "ci95": [
+    0.7613454350152312,
+    0.7778474362603597
+   ],
+   "conformity_rate": 0.2517,
+   "seconds": 1.0,
+   "exact_accuracy": 0.7698621088437501,
+   "exact_conformity_rate": 0.2525318597569444,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 9,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026023,
+   "protocol": false,
+   "accuracy": 0.9012,
+   "ci95": [
+    0.8951966324532807,
+    0.9068952472492295
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 1.0,
+   "exact_accuracy": 0.90119134,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 9,
+   "p": 0.7,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026024,
+   "protocol": false,
+   "accuracy": 0.8415,
+   "ci95": [
+    0.8342110690838613,
+    0.8485266600248307
+   ],
+   "conformity_rate": 0.2257222222222222,
+   "seconds": 1.1,
+   "exact_accuracy": 0.8403209919999999,
+   "exact_conformity_rate": 0.22641005333333336,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 9,
+   "p": 0.75,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026025,
+   "protocol": false,
+   "accuracy": 0.9512,
+   "ci95": [
+    0.946801261173596,
+    0.9552522186912412
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 1.0,
+   "exact_accuracy": 0.9510726928710938,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 9,
+   "p": 0.75,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026026,
+   "protocol": false,
+   "accuracy": 0.8941,
+   "ci95": [
+    0.8879169284165507,
+    0.8999804040629091
+   ],
+   "conformity_rate": 0.1966,
+   "seconds": 1.1,
+   "exact_accuracy": 0.89703369140625,
+   "exact_conformity_rate": 0.19478352864583334,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 9,
+   "p": 0.8,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026027,
+   "protocol": false,
+   "accuracy": 0.9807,
+   "ci95": [
+    0.9778131525825793,
+    0.9832176713780305
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 0.9,
+   "exact_accuracy": 0.98041856,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 9,
+   "p": 0.8,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026028,
+   "protocol": false,
+   "accuracy": 0.9349,
+   "ci95": [
+    0.9298957690449328,
+    0.9395702291669856
+   ],
+   "conformity_rate": 0.15963333333333332,
+   "seconds": 1.1,
+   "exact_accuracy": 0.939696128,
+   "exact_conformity_rate": 0.1589327644444444,
+   "exact_inside_ci95": false
+  },
+  {
+   "condition": "sealed",
+   "n": 9,
+   "p": 0.85,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026029,
+   "protocol": false,
+   "accuracy": 0.9944,
+   "ci95": [
+    0.9927355694698136,
+    0.9956847329352737
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 1.0,
+   "exact_accuracy": 0.9943713368945313,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 9,
+   "p": 0.85,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026030,
+   "protocol": false,
+   "accuracy": 0.9685,
+   "ci95": [
+    0.9648926645360315,
+    0.9717475289849705
+   ],
+   "conformity_rate": 0.11995555555555555,
+   "seconds": 1.1,
+   "exact_accuracy": 0.96929211896875,
+   "exact_conformity_rate": 0.1202276319791667,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "sealed",
+   "n": 9,
+   "p": 0.9,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026031,
+   "protocol": false,
+   "accuracy": 0.9991,
+   "ci95": [
+    0.9982902698786114,
+    0.9995264229417347
+   ],
+   "conformity_rate": 0.0,
+   "seconds": 1.0,
+   "exact_accuracy": 0.99910908,
+   "exact_conformity_rate": 0.0,
+   "exact_inside_ci95": true
+  },
+  {
+   "condition": "open",
+   "n": 9,
+   "p": 0.9,
+   "lead": 2,
+   "trials": 10000,
+   "seed": 2026032,
+   "protocol": false,
+   "accuracy": 0.9897,
+   "ci95": [
+    0.9875245442508608,
+    0.991499367738968
+   ],
+   "conformity_rate": 0.07868888888888889,
+   "seconds": 1.0,
+   "exact_accuracy": 0.987712704,
+   "exact_conformity_rate": 0.08003031999999999,
+   "exact_inside_ci95": true
+  }
+ ]
+}
