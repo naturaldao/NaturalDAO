@@ -91,7 +91,7 @@ def build():
     SURVEY.write_text(text, encoding='utf-8')
 
     lic = ['# papers/ 的许可说明', '',
-           '本文件夹中的论文 **不适用** 本目录的 CC0-1.0 许可。每篇论文保留作者在 arXiv 上选择的 Creative Commons 许可；'
+           '本文件夹中的论文 **不适用** 本目录的 Proof of Love2 许可声明。每篇论文保留作者在 arXiv 上选择的 Creative Commons 许可；'
            '转载或再利用时请遵守对应条款并注明原作者。NC（非商业）与 ND（禁止演绎）版本只可原样用于非商业用途。', '',
            '由 `scripts/build_catalog.py` 生成，请勿手工编辑。', '',
            '| 文件 | 标题 | 作者 | 许可 | arXiv 版本 |', '|---|---|---|---|---|']

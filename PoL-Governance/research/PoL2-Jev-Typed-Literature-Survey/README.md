@@ -87,7 +87,7 @@ python paper/make_metadata.py; python paper/make_arxiv.py
 
 ## 许可
 
-整理者撰写的文字、数据与脚本以 [CC0-1.0](LICENSE) 发布。**`papers/` 中的论文不适用 CC0**，各自保留原作者的 Creative Commons 许可，详见 [papers/LICENSES.md](papers/LICENSES.md)。arXiv 默认许可的论文未收入，只提供链接。
+整理者撰写的文字、数据与脚本当前按 [Proof of Love2](LICENSE) 许可声明发布。此前版本已授予的 CC0 权限不因本次更新而撤销。**`papers/` 中的论文不适用本目录许可**，各自保留原作者的 Creative Commons 许可，详见 [papers/LICENSES.md](papers/LICENSES.md)。arXiv 默认许可的论文未收入，只提供链接。
 
 ## 引用
 

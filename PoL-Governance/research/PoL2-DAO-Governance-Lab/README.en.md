@@ -63,4 +63,4 @@ Headline cross-experiment findings (model-based): equal power is the foundation;
 
 ## Credits
 
-PoL2: NaturalDAO (CC0-1.0). DAO experiment: Sharma, T. et al., *Sci. Rep.* 16, 11792 (2026), https://doi.org/10.1038/s41598-026-40180-8; data https://osf.io/q6snh/. Not affiliated with these authors. Code: MIT.
+PoL2: NaturalDAO (CC0-1.0). DAO experiment: Sharma, T. et al., *Sci. Rep.* 16, 11792 (2026), https://doi.org/10.1038/s41598-026-40180-8; data https://osf.io/q6snh/. Not affiliated with these authors. Code and documentation: Proof of Love2. Previously granted MIT permissions are not withdrawn by this update.

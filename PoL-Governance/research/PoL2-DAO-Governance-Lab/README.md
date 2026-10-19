@@ -8,7 +8,7 @@
 
 [![CI](https://img.shields.io/badge/tests-pytest-blue.svg)](.github/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
+[![License: Proof of Love2](https://img.shields.io/badge/license-Proof%20of%20Love2-lightgrey.svg)](LICENSE)
 
 </div>
 
@@ -232,4 +232,4 @@ pol2-dao-governance/
 - 汇总数字的复现：[dao-governance-replication](https://github.com/shentonyan/dao-governance-replication)。
 - 引用本仓库：见 [CITATION.cff](CITATION.cff)。
 
-本仓库与上述作者无隶属关系。代码以 MIT 许可发布（见 [LICENSE](LICENSE)）；数据与论文遵循各自的条款。
+本实验室原创代码与文档的当前许可声明遵循 [Proof of Love2](LICENSE)。此前版本已授予的 MIT 权限不因本次更新而撤销；外部数据与论文仍遵循各自条款。

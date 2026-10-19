@@ -2,6 +2,8 @@
 
 2026-10-17
 
+> 许可声明于 2026-10-20 统一更新为 Proof of Love2；下文 2026-10-17 的实测表格保留当时快照，不代表当前许可标识。此前已授予的 CC0 权限不因本次更新而撤销。
+
 | 项 | 内容 |
 | --- | --- |
 | 文档类型 | 技术方案（Proposal）：含架构决策记录 ADR-001 与实施规格 |
@@ -234,7 +236,7 @@ storage/pol2_storage/
 └── docker/
 ```
 
-仓库现为 CC0-1.0 纯文档仓，代码目录进入前需单独确定许可证（见第 8 节）。
+仓库当前统一使用 Proof of Love2 许可声明；新增代码目录也沿用该声明。此前版本已授予的 CC0 权限不因本次更新而撤销。
 
 ### 6.7 里程碑
 
@@ -279,7 +281,7 @@ Benchmark 分层：
 | 风险 | 等级 | 说明 | 处理 |
 | --- | --- | --- | --- |
 | FreshDiskANN baseline \[2\] 许可证文件含 `<<<<<<< HEAD` 合并冲突标记 | 中 | 正文是 Microsoft MIT，GitHub 识别为 Other；`third_party/liburing` 为 LGPL/MIT 双许可，`dependencies/` 未查 | 只作 benchmark 容器依赖；向作者提 issue |
-| NaturalDAO \[12\] 为 CC0-1.0 | 中 | CC0 不处理专利，且与 MIT/Apache 依赖的声明义务需单独处理 | 代码目录单独选 MIT 或 Apache-2.0 并加 NOTICE |
+| NaturalDAO \[12\] 的当前许可声明为 Proof of Love2 | 低 | 新增代码目录沿用仓库统一的 Proof of Love2 许可声明 | 使用同一许可声明 |
 | DiskANN3 \[1\] 仍在快速演进（0.55.0，335 次提交） | 中 | provider API 可能变动；Python 非主路径 | M3 前锁定 tag；协议层不依赖具体实现 |
 | 核心论点依赖 2026 年预印本 | 中 | NAVIS \[14\]、VADER \[15\]、FDP \[33\]、Nox \[26\]、AccelPact \[37\]、PGM 投毒 \[49\] 均无同行评审记录 | 用自己的 benchmark 复现，不直接引用其数字 |
 | diskann-rs \[4\] 成熟度未知 | 低 | 43 Star、75 次提交，功能均为 README 声称 | 逐文件检查后再定是否进入 M1 |
