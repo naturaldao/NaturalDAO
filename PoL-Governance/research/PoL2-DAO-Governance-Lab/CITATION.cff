@@ -3,7 +3,7 @@ message: "If you use this software, please cite it as below."
 title: "PoL2 x DAO: a lab for love-aligned, equal and verifiable AI governance"
 version: 0.3.0
 date-released: 2026-09-29
-license: MIT
+license: "Proof of Love2"
 authors:
   - name: "pol2-dao-governance contributors"   # replace with your name
 keywords: [DAO, AI governance, quadratic voting, Proof of Love2, NaturalDAO]

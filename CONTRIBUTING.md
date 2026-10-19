@@ -27,7 +27,7 @@ Thanks for contributing to NaturalDAO. The repository holds two kinds of content
 
 ## 许可与署名 · License and credit
 
-本仓库遵循 [CC0-1.0](LICENSE)。提交内容即表示你同意以 CC0 发布，请不要提交无法以 CC0 发布的内容。CC0 不免除学术署名的义务：沿用他人成果时仍应标明出处。
+本仓库当前的许可声明为 [Proof of Love2](LICENSE)。提交前请确认你有权按该许可声明提交内容，并标明引用来源。此前版本如已按 CC0 或其他许可发布，既有授权不因本次更新而撤销；第三方材料仍遵循各自许可。
 
 ## AI 辅助 · AI assistance
 
@@ -41,4 +41,4 @@ Thanks for contributing to NaturalDAO. The repository holds two kinds of content
 
 ---
 
-**English summary.** Work from the latest `main` on a branch (trusted members push branches here; others fork). Keep `PoL/` and `PoLEn/` in step or say in the PR which side is pending. Credit the source of any text, axiom, definition or data you reuse. Edit the repository files, not the Wiki, which is synced from them. For `PoL-Governance/`, follow its `AGENTS.md`; never commit private hold-out sets, credentials or private conversations. Everything is released under CC0-1.0, which does not remove the duty to credit sources. Disclose AI assistance in the PR.
+**English summary.** Work from the latest `main` on a branch (trusted members push branches here; others fork). Keep `PoL/` and `PoLEn/` in step or say in the PR which side is pending. Credit the source of any text, axiom, definition or data you reuse. Edit the repository files, not the Wiki, which is synced from them. For `PoL-Governance/`, follow its `AGENTS.md`; never commit private hold-out sets, credentials or private conversations. The current repository license declaration is Proof of Love2. Earlier releases under CC0 or another license retain their existing grants; third-party materials keep their own licenses. Disclose AI assistance in the PR.

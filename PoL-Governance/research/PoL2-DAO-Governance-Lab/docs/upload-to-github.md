@@ -36,4 +36,4 @@ File → Add local repository → 选择本目录 → Publish repository。
 - 把 `README.md` 快速开始里的 `shentonyan` 换成真实用户名。
 - 在 `CITATION.cff` 里填上你的名字（`authors`）。
 - 仓库设置 → About：填写简介，添加 topics，例如 `dao` `ai-governance` `quadratic-voting` `proof-of-love` `naturaldao`。
-- 想换许可证（例如和 NaturalDAO 一样用 CC0-1.0）：替换 `LICENSE` 文件，并修改 `pyproject.toml` 与 README 末尾的说明。
+- 想换许可证（例如使用仓库当前的 Proof of Love2 许可声明）：替换 `LICENSE` 文件，并修改 `pyproject.toml` 与 README 末尾的说明。

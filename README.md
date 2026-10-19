@@ -5,7 +5,7 @@
 **Governance and application layer of the Proof-of-Love2 Civilization**
 **富爱文明的治理与应用层**
 
-[![License: CC0-1.0](https://img.shields.io/badge/license-CC0--1.0-lightgrey.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
+[![License: Proof of Love2](https://img.shields.io/badge/license-Proof%20of%20Love2-lightgrey.svg)](LICENSE)
 [![Meeting](https://img.shields.io/badge/例会-周二%20%7C%20周四%2015%3A00-blue.svg)](https://meeting.tencent.com/dm/z2sdLl6hcJxi)
 [![Paper](https://img.shields.io/badge/paper-Proof%20of%20Love-green.svg)](https://github.com/DAism2019/Proof-of-Love)
 

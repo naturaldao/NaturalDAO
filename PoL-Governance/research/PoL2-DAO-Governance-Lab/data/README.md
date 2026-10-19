@@ -11,7 +11,7 @@ files are not redistributed; download them from <https://osf.io/q6snh/> to use
 | `sharma2026_table1_means.csv` | Mean budget share `r_i = choice_i / votes_given` per round × condition, and n | Sharma et al. (2026) Table 1, as reproduced from the OSF data by [dao-governance-replication](https://github.com/shentonyan/dao-governance-replication) (`results/tables/table1.csv`), rounded to 4 decimals |
 | `sharma2026_token_totals.csv` | Tokens placed on each option per round × condition, and the winner under the condition's own rule (quadratic: √tokens per person) | Computed from the OSF vote files by dao-governance-replication (`results/tables/outcomes_by_condition.csv`) |
 
-| `eap_stress_corpus.csv` | 96 bilingual sentences, 16 categories, labelled flag / pass; 5 hard-case categories | Written for this repository (MIT). Not a gold standard; used by E10 |
+| `eap_stress_corpus.csv` | 96 bilingual sentences, 16 categories, labelled flag / pass; 5 hard-case categories | Written for this repository (Proof of Love2). Not a gold standard; used by E10 |
 
 ### `external/` — from NaturalDAO (CC0-1.0)
 

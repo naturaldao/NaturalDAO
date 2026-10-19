@@ -7,7 +7,7 @@ name = "pol2dao"
 version = "0.3.0"
 description = "PoL2 (Proof of Love2) x DAO: a lab for love-aligned, equal, verifiable AI governance"
 readme = "README.md"
-license = { text = "MIT" }
+license = { text = "Proof of Love2" }
 requires-python = ">=3.10"
 dependencies = []  # the core uses the standard library only
 
