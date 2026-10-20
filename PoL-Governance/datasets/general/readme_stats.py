@@ -54,6 +54,7 @@ README 里出现的**每一个分布数字**都由本脚本重算，输入只有
 
 import argparse
 import collections
+import gzip
 import io
 import json
 import os
@@ -61,6 +62,74 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
+# ---- 旁挂件（v5）：target 形态路由 + mercury 补全概率 ----
+SIDECAR_TYPES = ["target-types.jsonl", "target-types.jsonl.gz"]
+SIDECAR_PROBS = ["jev-probs.jsonl", "jev-probs.jsonl.gz"]
+SUPPLEMENT = ["zh-supplement/items.jsonl", "zh-supplement/items.jsonl.gz"]
+#: 「可用软分布」= 这两类形态（与 TRAINING.md / filter_targets.py 口径一致）
+SOFT_SHAPES = ("soft", "tie_subset")
+
+
+def _open_any(rel_candidates):
+    """按候选名依次找 data/ 下的明文或 .gz；找到返回文本流，找不到返回 None。"""
+    for rel in rel_candidates:
+        p = os.path.join(HERE, "data", rel)
+        if os.path.exists(p):
+            if p.endswith(".gz"):
+                return gzip.open(p, "rt", encoding="utf-8")
+            return io.open(p, encoding="utf-8")
+    return None
+
+
+def load_sidecars():
+    """读旁挂件，算 v5 训练视图（采用补全 probs 前后）。返回 dict；缺件时记在 missing。"""
+    res = {"targets": 0, "shape": collections.Counter(), "route": collections.Counter(),
+           "probs_rows": 0, "conf": collections.Counter(), "new_soft": 0,
+           "supplement_targets": 0, "missing": []}
+    tt = {}
+    fh = _open_any(SIDECAR_TYPES)
+    if fh is None:
+        res["missing"].append("target-types.jsonl")
+    else:
+        with fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                r = json.loads(line)
+                res["targets"] += 1
+                res["shape"][r.get("shape_class")] += 1
+                res["route"][r.get("training_route")] += 1
+                tt[(r.get("item_id"), r.get("question_key"))] = r.get("shape_class")
+    fh = _open_any(SIDECAR_PROBS)
+    if fh is None:
+        res["missing"].append("jev-probs.jsonl")
+    else:
+        with fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                r = json.loads(line)
+                res["probs_rows"] += 1
+                res["conf"][r.get("label_confidence") or "unknown"] += 1
+                if tt.get((r.get("id"), r.get("key"))) not in SOFT_SHAPES:
+                    res["new_soft"] += 1
+    fh = _open_any(SUPPLEMENT)
+    if fh is not None:
+        with fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                r = json.loads(line)
+                res["supplement_targets"] += len(r.get("targets") or {})
+    res["soft_before"] = sum(res["shape"].get(k, 0) for k in SOFT_SHAPES)
+    res["total"] = res["targets"] + res["supplement_targets"]
+    res["soft_after"] = res["soft_before"] + res["new_soft"]
+    return res
+
+
 DEFAULT_INPUTS = [
     os.path.join(HERE, "data", "splits", "train.jsonl"),
     os.path.join(HERE, "data", "splits", "test.jsonl"),
@@ -558,6 +627,7 @@ def main(argv=None):
     meta_cap_diff = collections.Counter()
     shapes_by_cohort = collections.defaultdict(collections.Counter)  # 代际 × 真值形态
     cohort = collections.Counter()            # 语料代际：legacy / new
+    bigbench_cfgs = set()                     # 新并入来源的 config 覆盖数
     cohort_cap = collections.defaultdict(collections.Counter)
     cap_src_n = collections.defaultdict(collections.Counter)
     domains = collections.Counter()
@@ -608,6 +678,8 @@ def main(argv=None):
                 coh = "new" if (item.get("source") or {}).get("slug") in (
                     "bigbench", "cosmos-qa") else "legacy"
                 cohort[coh] += 1
+                if (item.get("source") or {}).get("slug") == "bigbench":
+                    bigbench_cfgs.add((item.get("source") or {}).get("config"))
                 cohort_cap[coh][c] += 1
                 cap_src_n[c][(item.get("source") or {}).get("slug")] += 1
                 cap[c] += 1
@@ -675,6 +747,7 @@ def main(argv=None):
     for k in ("train", "test", "validation"):
         w("| 其中 %s | %d |\n" % (k, per_split[k]))
     w("| 独立来源数 | %d |\n" % len(datasets))
+    w("| 新并入来源覆盖的 config 数 | %d |\n" % len(bigbench_cfgs))
     w("| 来源自带细分领域标签取值数 | %d |\n" % len(native_labels))
     w("| 出现过的不同选项/接口名 | %d |\n" % len(option_vocab))
     w("| 其中中文云服务类的不同接口名 | %d |\n" % len(api_names_zh))
@@ -728,7 +801,7 @@ def main(argv=None):
         w("\n与数据里 meta.capability（接入时写入的标签）比对：%d / %d 一致（%s）。\n" % (
             meta_cap["agree"], tot, pct(meta_cap["agree"], tot)))
         if meta_cap_diff:
-            w("刻意不一致的 config：%s\n" % "、".join(
+            w("刻意不一致的 config：合计 %d 条 —— " % sum(meta_cap_diff.values()) + "、".join(
                 "%s（%s→%s，%d 条）" % (k.split("|")[0], k.split("|")[1], k.split("->")[-1], v)
                 for k, v in meta_cap_diff.most_common()))
     w("\n判定规则命中（能力维度）：\n\n| 规则 | 命中条目 |\n|---|---:|\n")
@@ -816,7 +889,8 @@ def main(argv=None):
     for n_, c in sorted(score_hist.items()):
         w("| %d | %d |\n" % (n_, c))
 
-    w("\n## 5. 真值形态（问题级，口径同 CONTRACT.md 2.3）\n\n")
+    w("\n## 5. 真值形态\n\n### 5.1 不含旁挂：分区文件自带的 target 形态\n\n")
+    w("口径同 CONTRACT.md 2.3，只看分区里 targets[*].probs 的形态。\n\n")
     w("| 形态 | 问题数 | 占比 | 旧 11 来源 | 新并入 2 来源 |\n|---|---:|---:|---:|---:|\n")
     stotal = sum(shapes.values())
     for k, label in (("real", "真概率分布"), ("one_hot", "硬标签单点分布"),
@@ -835,6 +909,31 @@ def main(argv=None):
         pct(shapes_by_cohort["legacy"].get("real", 0), legacy_q),
         shapes_by_cohort["legacy"].get("real", 0), legacy_q,
         pct(shapes.get("real", 0), stotal), shapes.get("real", 0), stotal))
+
+    w("\n### 5.2 采用旁挂 probs 后：v5 训练视图\n\n")
+    sc = load_sidecars()
+    if sc["missing"]:
+        w("旁挂件缺失（%s），本节跳过。\n" % "、".join(sc["missing"]))
+    else:
+        w("口径恒等式：旁挂覆盖 **%d** 条 + 中文补充 **%d** 条 = 公开三区 target 总数 **%d** 条。\n"
+          % (sc["targets"], sc["supplement_targets"], sc["total"]))
+        w("\n旁挂 shape_class 分布（%d 条）：\n\n" % sc["targets"])
+        w("| shape_class | target 数 | 占旁挂 |\n|---|---:|---:|\n")
+        for k, c in sc["shape"].most_common():
+            w("| %s | %d | %s |\n" % (k, c, pct(c, sc["targets"])))
+        w("\n| 版本 | 可用软分布（soft + tie_subset） | 占比 |\n|---|---:|---:|\n")
+        w("| 不含旁挂（分区原生） | %d | %s（/%d） |\n" % (
+            sc["soft_before"], pct(sc["soft_before"], sc["total"]), sc["total"]))
+        w("| **采用旁挂 probs（v5）** | **%d** | **%s** |\n" % (
+            sc["soft_after"], pct(sc["soft_after"], sc["total"])))
+        w("\n本轮补进来的新软分布：%d 条（旁挂 probs 共 %d 行，其余落在本来就软的 target 上）。\n" % (
+            sc["new_soft"], sc["probs_rows"]))
+        w("\n训练路由（旁挂 training_route，%d 条）：\n\n| 路由 | target 数 |\n|---|---:|\n" % sc["targets"])
+        for k in ("classification", "distillation", "drop"):
+            w("| %s | %d |\n" % (k, sc["route"].get(k, 0)))
+        w("\n### 5.3 旁挂 probs 的选择偏差\n\n")
+        w("旁挂 probs 的 label_confidence 分布（%d 行）：%s\n" % (
+            sc["probs_rows"], "、".join("%s %d" % (k, v) for k, v in sc["conf"].most_common())))
 
     w("\n## 6. 泄漏检查（公开三区两两之间）\n\n")
     w("口径：id 逐字相同；组 = meta.group_id 或 meta.request_id；"
