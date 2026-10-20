@@ -2,8 +2,8 @@
 
 > 本报告含两部分：**第一阶段**（与语料真值的分层一致性校验，第 1–7 节）与**第二阶段**（旁挂 probs 的补全/升级，第 8 节；两条线分开统计）。
 
-> 生成时间：2026-10-20T10:43:23+00:00 ｜ 生成脚本：jev-v0.1（[jev_fill.py](jev_fill.py)）
-> 语料：[items.final.jsonl](data/items.final.jsonl)（只读，未改动）
+> 生成时间：2026-10-20T10:48:28+00:00 ｜ 生成脚本：jev-v0.1（[jev_fill.py](jev_fill.py)）
+> 语料：`datasets/general/data/items.final.jsonl`（明文不入库，见 .gitignore；只读，未改动）
 >
 > ⚠️ **语料版本说明**：第一阶段抽样基于 plan 记录的语料版本（sha256 前缀 `21f11fe3dc39edd9`）；**会话期间语料被其他任务重建**，当前版本 sha256 前缀 `47df533ec00bc94d`、target 数 82,843（旧版 31,786）。已核对：**旧版 target 0 缺失**（第一阶段 300 条抽样、jev-router 1,883 条、mercury 7,907 条全部仍能对上冻结语料），因此第一阶段的结论不受影响；但 8.4 的形态构成表按**当前版本**统计。
 > 凭据：[datasets/jev.yaml](../jev.yaml)（model=typesafe/jev-router，endpoint 主机 openrouter.ai）；密钥只记录指纹。

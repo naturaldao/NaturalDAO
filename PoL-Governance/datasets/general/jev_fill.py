@@ -2315,7 +2315,7 @@ def cmd_report(args):
                  "与**第二阶段**（旁挂 probs 的补全/升级，第 8 节；两条线分开统计）。")
     lines.append("")
     lines.append("> 生成时间：%s ｜ 生成脚本：%s（[jev_fill.py](jev_fill.py)）" % (iso_now(), HARNESS_VERSION))
-    lines.append("> 语料：[items.final.jsonl](data/items.final.jsonl)（只读，未改动）")
+    lines.append("> 语料：`datasets/general/data/items.final.jsonl`（明文不入库，见 .gitignore；只读，未改动）")
     if current_sha != manifest["items_sha256"]:
         lines.append(">")
         lines.append("> ⚠️ **语料版本说明**：第一阶段抽样基于 plan 记录的语料版本（sha256 前缀 `%s`）；"

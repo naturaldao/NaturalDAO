@@ -509,7 +509,7 @@ gzip 833,243 字节（sha256 `9002fc5d…`）；每行是 canonical JSON（键�
 
 > 本节由 Jev 补全线（2026-10-20）加入，只新增这一节 + 一行修订记录，不改本页其他内容。
 
-旁挂文件 [data/jev-probs.jsonl](data/jev-probs.jsonl) 里 `distribution_semantics=mercury_decide_native`
+旁挂文件 `datasets/general/data/jev-probs.jsonl`（明文不入库；压缩版 [jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) 入库）里 `distribution_semantics=mercury_decide_native`
 且 `corpus_shape=answer_only` 的条目（即 mercury 补的 answer-only choice），额外带三个字段：
 
 | 字段 | 含义 |
