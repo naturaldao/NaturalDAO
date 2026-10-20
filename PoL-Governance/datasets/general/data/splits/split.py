@@ -1103,15 +1103,22 @@ def public_needles(items) -> dict:
 
 
 def tracked_files(repo_root: Path) -> list[Path]:
-    """被 git 跟踪的文件（绝对路径）；不在仓库或缺 git 时返回空表。"""
+    """被 git 跟踪的文件（绝对路径）；不在仓库或缺 git 时返回空表。
+
+    必须用 -z 分隔 + core.quotePath=false：默认的 ls-files 会把非 ASCII 路径转成带引号的
+    八进制转义（"\346\233..."），Path 拼出来是**不存在的路径**——审计会把它算进"已扫描"
+    但实际一个字节都不读。这个坑是 v5 事故核查时发现的：15 个中文文件名被静默跳过。
+    """
     try:
-        completed = subprocess.run(["git", "-C", str(repo_root), "ls-files"],
-                                   capture_output=True, text=True, encoding="utf-8", errors="replace")
+        completed = subprocess.run(
+            ["git", "-C", str(repo_root), "-c", "core.quotePath=false", "ls-files", "-z"],
+            capture_output=True)
     except (OSError, FileNotFoundError):
         return []
     if completed.returncode != 0:
         return []
-    return [Path(repo_root) / line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    return [Path(repo_root) / name.decode("utf-8", "surrogateescape")
+            for name in completed.stdout.split(b"\0") if name]
 
 
 def read_public_bytes(path: Path) -> bytes:
@@ -1745,6 +1752,10 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
                      "不是护栏覆盖不到。")
         lines.append("- 但它暴露了第二个缺口：**磁盘上存在、但还没 git add 的交付件，护栏完全看不见**——"
                      "泄漏版 .gz 在 add 之前就是这个状态，人眼当时也没看。")
+        lines.append("- 核查还发现第三个缺口：**tracked_files 用 git ls-files 默认 quotePath，非 ASCII 路径"
+                     "被转义成不存在的路径**——15 个中文文件名一直被算进「已扫描」却一个字节都没读。"
+                     "已改为 `ls-files -z` + `core.quotePath=false`；"
+                     "修复后全量审计真正覆盖全部 348 个被跟踪文件。")
         lines.append("- 结构性修复（不靠人记得）：①**生成器写盘前硬断言**：jev_fill.py 在写 "
                      "jev-probs.jsonl(.gz) 前，用**当前 benchmark.jsonl 的全部 id** 扫待写行，"
                      "命中任一即 SystemExit、不落盘（名单从 data/splits/benchmark.jsonl 现读，不写死）；"

@@ -1168,5 +1168,24 @@ class RotationExclusionTest(unittest.TestCase):
             self.assertIn("§10.5", report)
 
 
+class TrackedFilesTest(unittest.TestCase):
+    """护栏的扫描底座：非 ASCII 路径必须能读到（quotePath 转义会让审计"假装扫过"）。"""
+
+    def test_tracked_files_reads_non_ascii_names(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            (root / "中文 文件.md").write_text("x", encoding="utf-8")
+            (root / "plain.md").write_text("y", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(root)], check=True,
+                           capture_output=True)
+            subprocess.run(["git", "-C", str(root), "add", "."], check=True,
+                           capture_output=True)
+            files = sp.tracked_files(root)
+            names = sorted(path.name for path in files)
+            self.assertEqual(names, ["plain.md", "中文 文件.md"])
+            self.assertTrue(all(Path(path).is_file() for path in files),
+                            "被 git 跟踪的路径都必须能在磁盘上解析（含非 ASCII 名）")
+
+
 if __name__ == "__main__":
     unittest.main()
