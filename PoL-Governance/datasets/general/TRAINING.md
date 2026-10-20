@@ -505,6 +505,33 @@ gzip 833,243 字节（sha256 `9002fc5d…`）；每行是 canonical JSON（键�
 
 ---
 
+## 附：`label_confidence`（mercury 补全线的标签互证标记）
+
+> 本节由 Jev 补全线（2026-10-20）加入，只新增这一节 + 一行修订记录，不改本页其他内容。
+
+旁挂文件 [data/jev-probs.jsonl](data/jev-probs.jsonl) 里 `distribution_semantics=mercury_decide_native`
+且 `corpus_shape=answer_only` 的条目（即 mercury 补的 answer-only choice），额外带三个字段：
+
+| 字段 | 含义 |
+|---|---|
+| `label_confidence` | `high_consensus` / `medium_consensus` / `low_consensus` / `insufficient_sample` |
+| `consensus_agree` / `consensus_n` | 该 config 上「mercury 判断 == 语料 answer」的条数 / 已调用条数 |
+
+判定：双方一致率 ≥95% → `high_consensus`；70–95% → `medium_consensus`；<70%（且 n≥10）→ `low_consensus`；
+n<10 → `insufficient_sample`。机器可读总表：[label-confidence.json](data/jev/label-confidence.json)。
+
+**用法**：
+- `low_consensus`（当前写入 570 条）：该子集标签**未经双方互证**，训练时应降权或标记复核。
+  **它是「未互证」，不是「标签错了」**——不要据此直接删除。
+- `high_consensus`（当前写入 2,008 条）：双方互证，可正常使用。
+- 典型：`intersect_geometry`（一致率 21.2%）与 `tracking_shuffled_objects`（47.4%）整批标 `low_consensus`，
+  建议优先人工抽查——这同时是**关于来源标签质量**的信号。
+
+**注意（选择偏差）**：这批软分布**只在双方一致时写入**，因此是「一致子集」而非随机子集；
+详见 [jev-validation.md](jev-validation.md) §8.5。
+
+---
+
 ## 附：修订记录
 
 | 日期 | 变更 |
@@ -513,3 +540,4 @@ gzip 833,243 字节（sha256 `9002fc5d…`）；每行是 canonical JSON（键�
 | 2026-10-15 | 旁挂文件切到**只含公开分区**（31,786 → 28,667；3,119 个内部保留集 target 不再落盘，见 §1.1）：生成器改公开分区白名单 + fail closed + canonical JSON；测试改为推导式期望并加内容级护栏（两层 + 注入演练）；`filter_targets.py` 不再对保留集做兜底路由估算；`--ties` 计数随之更新为 1,809 / 6,648 / 20,210。 |
 | 2026-10-20 | **v4 语料**（74,912 条 / 82,843 target；并入 bigbench 25,795 + cosmos_qa 25,262）重算旁挂件：**74,449 行**（公开三分区），保留集 8,394 条未落盘。新增 **R14 / R15**（上游金标签、无 probs → `answer_only` / `classification`，证据 E14 / E15）；`label_trust` 新增 **`native_gold`**（字段语义准确性优先：上游金标签不是本仓库规则算出，用 `rule_exact` 会系统性低估；R14/R15 共 47,707 行）。写明**口径恒等式 74,449 + 3,148 = 77,597**（补充集不进旁挂件是口径决定、不是遗漏，见 §1.1）。自检删掉全部硬编码基线、改为推导式断言 + 覆盖断言；`--gz-out` 一次写明文与入库 .gz；公开面审计（`split.py --audit-public-surface`）id/正文零命中。 |
 | 2026-10-20 | **文档按 v4 语料重算（task-10）**：§4.2 / §4.4 / §4.6 / §6.2 / §7 全部换成 v4 实测（分区表 74,912 条 / 82,843 target；ties 口径 80,881 / 81,113；校准分区 218 / 89 / 34 / 91；label_trust 全量与落盘件两列；14 个 `(slug, native_source)` 组）。`items.final.report.json` 改由新脚本 [report_corpus.py](report_corpus.py) 现算重生成；生成器加 `--by-split`，使每个分区数字都有对应复算命令（§8）。|
+| 2026-10-20 | 新增「`label_confidence`（mercury 补全线的标签互证标记）」一节：说明旁挂 `data/jev-probs.jsonl` 里 choice 条目的 `label_confidence` / `consensus_agree` / `consensus_n` 字段与判定阈值，指向 [label-confidence.json](data/jev/label-confidence.json)。本节由 Jev 补全线加入，不改其他内容。 |

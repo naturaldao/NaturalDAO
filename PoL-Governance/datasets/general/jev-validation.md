@@ -2,7 +2,7 @@
 
 > 本报告含两部分：**第一阶段**（与语料真值的分层一致性校验，第 1–7 节）与**第二阶段**（旁挂 probs 的补全/升级，第 8 节；两条线分开统计）。
 
-> 生成时间：2026-10-20T10:05:21+00:00 ｜ 生成脚本：jev-v0.1（[jev_fill.py](jev_fill.py)）
+> 生成时间：2026-10-20T10:43:23+00:00 ｜ 生成脚本：jev-v0.1（[jev_fill.py](jev_fill.py)）
 > 语料：[items.final.jsonl](data/items.final.jsonl)（只读，未改动）
 >
 > ⚠️ **语料版本说明**：第一阶段抽样基于 plan 记录的语料版本（sha256 前缀 `21f11fe3dc39edd9`）；**会话期间语料被其他任务重建**，当前版本 sha256 前缀 `47df533ec00bc94d`、target 数 82,843（旧版 31,786）。已核对：**旧版 target 0 缺失**（第一阶段 300 条抽样、jev-router 1,883 条、mercury 7,907 条全部仍能对上冻结语料），因此第一阶段的结论不受影响；但 8.4 的形态构成表按**当前版本**统计。
@@ -416,12 +416,13 @@ Content-Type: application/json
 
 ## 8. 第二阶段（补全/升级 probs）
 
-第二阶段有**两条线**，目标人群不同（详见 8.3）：
+第二阶段有**三条线**，目标人群不同（详见 8.3）：
 
 - **A. mercury-decide 升级 noul（7,907 条）**：这些 target 原本有 probs，但 3,668 条是伪 one-hot、1,656 条是均匀分布（无信息）——用决策端点的原生 P(yes) 换成真分布。
-- **B. answer-only 补全**：语料里没有 probs 的 target；旧 jev-router 方案只跑完了 zh choice 的一部分，已付费的 841 条保留。
+- **B. mercury-decide 补 answer-only choice**：新增的 51,057 条没有 probs 的 choice target，用 choice 端点补（返回完整概率分布，见附录 B）。
+- **C. jev-router 补 zh choice**：旧方案，已付费的 841 条保留（语义标记 `jev_router`）。
 
-两条线写入旁挂文件 `data/jev-probs.jsonl` 的**共同**硬条件：
+三条线写入旁挂文件 `data/jev-probs.jsonl` 的**共同**硬条件：
 
 1. 解析成功，且**恰好命中一个选项**（argmax 明确）；
 2. **argmax == 语料已有的 answer**（契约硬约束，违反一律不写）；
@@ -516,21 +517,23 @@ uv run --no-project --offline python datasets/general/jev_fill.py probs-assemble
 uv run --no-project --offline python datasets/general/jev_fill.py verify --out datasets/general/data/jev-probs.jsonl
 ```
 
-### 8.3 第二阶段执行结果（两个来源，分开报）
+### 8.3 第二阶段执行结果（三个来源，分开报）
 
-第二阶段实际有**两条线**，语义不同，**绝不合并成一个“补了 N 条”的数字**：
+第二阶段实际有**三条线**，语义/人群都不同，**绝不合并成一个“补了 N 条”的数字**：
 
 - **A. mercury-decide 升级 noul（7,907 条）**：这些 target 原本就有 probs 但多数不可用——伪 one-hot 3,668 条、均匀分布（无信息）1,656 条、来源真分布（real）2,583 条。用 mercury 的原生 P(yes) 换成真分布；旁挂行带 `corpus_shape` 字段，消费方对 real 的条目可以选择保留来源分布。
-- **B. jev-router 补 zh choice（answer-only）**：旧方案，被 mercury 取代；**已付费的部分保留**，作为 answer-only 人群的补全，语义标记 `jev_router`。
+- **B. mercury-decide 补 answer-only choice（51,057 条）**：语料里没有 probs 的 choice target；用 choice 端点补（返回完整概率分布），**尚未跑完**，见 8.3 覆盖范围。
+- **C. jev-router 补 zh choice（answer-only）**：旧方案，被 mercury 取代；**已付费的 841 条保留**，语义标记 `jev_router`。
 
 | 来源 | distribution_semantics | 目标数 | 成功响应 | 写入旁挂 | 被门禁拒绝（主因） | 成本 |
 |---|---|---|---|---|---|---|
 | A. mercury-decide noul | `mercury_decide_native` | 7,907 | 7,907 | **6,524** | `answer_mismatch 1,323、degenerate:uniform 60` | $0.0472 |
-| B. jev-router zh choice | `jev_router` | 7,872 | 1,883 | **841** | `not_called_or_failed 5,989、degenerate:one_hot 1,026、answer_mismatch 16` | $0.5843 |
+| C. jev-router zh choice | `jev_router` | 7,872 | 1,883 | **841** | `not_called_or_failed 5,989、degenerate:one_hot 1,026、answer_mismatch 16` | $0.5843 |
+| B. mercury-decide choice | `mercury_decide_native` | 51,057 | 9,762 | **7,858** | `answer_mismatch 1,880、degenerate:uniform 24` | $0.0901 |
 
 **护栏在起作用，这不是失败**：被门禁拒绝的条目**宁可少补也不塞假概率**。jev-router 那条线里 1,026 条因为输出是退化 one-hot（伪概率）被拒——这正是契约 2.3 诊断出的问题，被门禁拦下来而不是写进旁挂文件；另有 16 条 argmax 与语料 answer 不一致被拒（硬约束，绝不写）。
 
-覆盖范围提醒：jev-router 线只跑了**旧语料**的 zh choice 子集；当前语料 answer-only 已增至 59,474 条（其中 choice 58,929 条），**新增的 answer-only 尚未补全**——本报告的补全进度只对旧版 8,417 条 answer-only 与 7,907 条 noul 有意义。
+覆盖范围提醒：当前语料 answer-only 共 59,474 条（其中 choice 58,929 条）。jev-router 线只覆盖旧语料 zh choice 的一小部分；新增的 answer-only choice 由 mercury 线补，**本报告写成时已补 7,858 条、剩余 43,199 条未补**（受 key 额度所限中途停止，journal 可续跑）。
 
 旁挂交付文件：`datasets/general/data/jev-probs.jsonl`；每行都带 `distribution_semantics` / `upstream_model` / `created_at` / `corpus_shape`（mercury 线）与 `answer`（门禁依据）。**冻结语料未修改。**
 
@@ -538,15 +541,94 @@ uv run --no-project --offline python datasets/general/jev_fill.py verify --out d
 
 | 形态 | 语料原本 | 采用旁挂 probs 后 |
 |---|---|---|
-| 原生软分布（来源真分布） | 7,520 | 5,421 |
+| 原生软分布（来源自己给的） | 7,520 | 5,421 |
 | 伪 one-hot（硬标签单点分布） | 14,119 | 10,658 |
 | 均匀分布（无信息） | 1,730 | 766 |
-| 仅硬标签（无 probs） | 59,474 | 58,633 |
-| **新补：jev-router 分布** | 0 | **841** |
-| **新补：mercury 原生概率** | 0 | **6,524** |
+| 仅硬标签：**还没尝试补全** | 59,474 | 47,829 |
+| 仅硬标签：**尝试过但与我们不一致**（被门禁拒绝、保持原样） | 0 | 2,946 |
+| 新补：mercury noul 原生概率（升级伪 one-hot / 均匀） | 0 | 6,524 |
+| 新补：mercury choice + jev-router 分布（**只在一致时写入，有选择偏差**） | 0 | 8,699 |
 | 合计 | 82,843 | 82,843 |
 
-读法：`采用旁挂后` 列假设消费方**优先使用旁挂 probs、没有旁挂的沿用语料**。mercury 线是把“伪 one-hot / 均匀”升级成原生概率；jev-router 线是把“仅硬标签”补成分布。两条线的条目都在旁挂文件里按 `distribution_semantics` 可区分，训练时可按需只取其中一类。
+读法：`采用旁挂后` 列假设消费方**优先使用旁挂 probs、没有旁挂的沿用语料**；所有条目在旁挂文件里按 `distribution_semantics` + `corpus_shape` 可区分。
+
+**两个「仅硬标签」不要混为一谈**：前者是**还没尝试补**，后者是**补了但 mercury 与我们分歧、按门禁不写**——训练价值不同，所以单列。
+
+### 8.5 一致性偏差与分歧分层（训练方必读）
+
+#### 8.5.1 选择偏差：软分布子集是「一致子集」，不是随机子集
+
+写入门禁要求 `argmax == 语料 answer`，因此**写进旁挂的 answer-only 样本 = mercury 与语料一致的子集**。实测：
+
+| 来源 | 已调用 | 写入 | 写入率 | 被拒（不一致/退化） |
+|---|---|---|---|---|
+| mercury choice | 9,762 | 7,858 | 80.5% | 1,904 |
+| jev-router zh choice | 1,883 | 841 | 44.7% | 1,042 |
+| 合计 | 11,645 | 8,699 | 74.7% | 2,946 |
+
+**后果（训练方必须知道）**：这 8,699 条软分布系统性偏向**双方共识题/简单题**；分歧的 2,946 条恰恰可能是边界样本、有争议样本。**不要把它当随机子集**，也不要因为“有了软分布”就认为该人群质量更高——它只是“双方意见一致”的那部分。
+
+#### 8.5.2 criteria 模板会不会泄漏答案？对照实验：**不泄漏**
+
+| 变体 | criteria 模板 | argmax == 语料 answer | 平均最大概率 |
+|---|---|---|---|
+| T1_current | `the correct answer is %s` | 24/30 = 80.0% | 0.910 |
+| N1_neutral | `the state supports %s` | 25/30 = 83.3% | 0.897 |
+| N2_neutral | `%s follows from the provided information` | 24/30 = 80.0% | 0.893 |
+| N3_neutral | `%s is consistent with the state` | 25/30 = 83.3% | 0.909 |
+
+同一批 30 个 qid、四种模板的 argmax 一致性（相对当前模板 T1）：N1_neutral 28/30 = 93.3%；N2_neutral 30/30 = 100.0%；N3_neutral 29/30 = 96.7%。
+
+**结论**：换成中性判据后一致率**没有下降**（反而略升），argmax 跨模板一致性 93–100%，平均最大概率基本不变——说明判断由 state/instructions 驱动，**不是被 criteria 措辞带偏**；模板不构成答案泄漏，已写入的 7,858 条统计没有被这个模板抬高。
+
+#### 8.5.3 分歧分层：哪些 config 的不一致高
+
+下表按一致率升序（只统计已调用的 choice 条目）。**一致率低于 70% 的 config 值得单独复核标签**；高于 95% 的可视为双方相互印证。
+
+| source question key | 已调用 | 一致 | 一致率 | label_confidence |
+|---|---|---|---|---|
+| `intersect_geometry` | 604 | 128 | 21.2% | `low_consensus` |
+| `tracking_shuffled_objects` | 603 | 286 | 47.4% | `low_consensus` |
+| `crash_blossom` | 8 | 4 | 50.0% | `insufficient_sample` |
+| `presuppositions_as_nli` | 222 | 141 | 63.5% | `low_consensus` |
+| `mathematical_induction` | 25 | 16 | 64.0% | `low_consensus` |
+| `riddle_sense` | 10 | 7 | 70.0% | `medium_consensus` |
+| `logic_grid_puzzle` | 304 | 216 | 71.1% | `medium_consensus` |
+| `symbol_interpretation` | 315 | 225 | 71.4% | `medium_consensus` |
+| `winowhy` | 594 | 447 | 75.3% | `medium_consensus` |
+| `elementary_math_qa` | 565 | 431 | 76.3% | `medium_consensus` |
+| `disambiguation_qa` | 79 | 61 | 77.2% | `medium_consensus` |
+| `cs_algorithms` | 387 | 318 | 82.2% | `medium_consensus` |
+| `evaluating_information_essentiality` | 19 | 16 | 84.2% | `medium_consensus` |
+| `analytic_entailment` | 19 | 16 | 84.2% | `medium_consensus` |
+| `implicit_relations` | 27 | 23 | 85.2% | `medium_consensus` |
+| `epistemic_reasoning` | 618 | 529 | 85.6% | `medium_consensus` |
+| `snarks` | 53 | 46 | 86.8% | `medium_consensus` |
+| `logical_deduction` | 436 | 384 | 88.1% | `medium_consensus` |
+| `formal_fallacies_syllogisms_negation` | 566 | 501 | 88.5% | `medium_consensus` |
+| `understanding_fables` | 57 | 51 | 89.5% | `medium_consensus` |
+| `unit_conversion` | 576 | 520 | 90.3% | `medium_consensus` |
+| `vitaminc_fact_verification` | 610 | 551 | 90.3% | `medium_consensus` |
+| `navigate` | 299 | 271 | 90.6% | `medium_consensus` |
+| `sentence_ambiguity` | 22 | 20 | 90.9% | `medium_consensus` |
+| `date_understanding` | 112 | 103 | 92.0% | `medium_consensus` |
+| `checkmate_in_one` | 589 | 552 | 93.7% | `medium_consensus` |
+| `entailed_polarity` | 41 | 39 | 95.1% | `high_consensus` |
+| `question_selection` | 476 | 467 | 98.1% | `high_consensus` |
+| `logical_fallacy_detection` | 593 | 582 | 98.1% | `high_consensus` |
+| `arithmetic` | 607 | 596 | 98.2% | `high_consensus` |
+| `temporal_sequences` | 313 | 311 | 99.4% | `high_consensus` |
+| `known_unknowns` | 13 | 13 | 100.0% | `high_consensus` |
+
+**一致率 < 70% 且样本 ≥ 10 的 config（标 `low_consensus`）**：`intersect_geometry` 128/604 = 21.2%；`tracking_shuffled_objects` 286/603 = 47.4%；`presuppositions_as_nli` 141/222 = 63.5%；`mathematical_induction` 16/25 = 64.0%。这些是**关于该来源标签质量的信号**：要么 mercury 不擅长这类题（几何/多步追踪），要么语料标签本身有噪声——现有证据不足以区分，但**该子集的标签未经双方互证**。
+
+**label_confidence 标记方案（已写进旁挂）**：
+
+- `high_consensus`：双方一致率 ≥ 95%；`medium_consensus`：70%–95%；`low_consensus`：< 70%（n ≥ 10）；`insufficient_sample`：n < 10 不下结论。
+- 每条 choice 旁挂行都带 `label_confidence` / `consensus_agree` / `consensus_n`；机器可读总表在 `data/jev/label-confidence.json`。
+- 旁挂 choice 行按标记的分布：`high_consensus` 2,008；`insufficient_sample` 4；`low_consensus` 570；`medium_consensus` 5,276。
+
+**语义**：`label_confidence` 衡量「我们与该子集的 mercury 判断是否互相印证」，**不是「标签对错」**。`low_consensus` = 该子集标签未经双方互证，训练时应降权或标记复核，**不要和 high_consensus 同等对待**。（这是给训练方的路由信号，不是把标签判死。）
 
 ## 9. 产物
 
@@ -559,6 +641,8 @@ uv run --no-project --offline python datasets/general/jev_fill.py verify --out d
 | `datasets/general/data/jev/mercury-noul-fill.jsonl` | mercury-decide noul 逐次调用 journal（可续跑） |
 | `datasets/general/data/jev/mercury-noul-probs.jsonl` | mercury 线写出的 noul 原生概率 |
 | `datasets/general/data/jev/jev-router-partial-probs.jsonl` | jev-router 线已付费的 zh choice 分布 |
+| `datasets/general/data/jev/mercury-choice-fill.jsonl` | mercury choice 线逐次调用 journal（可续跑） |
+| `datasets/general/data/jev/mercury-choice-probs.jsonl` | mercury choice 线写出的 answer-only 分布 |
 | `datasets/general/data/jev/fill-plan-dist-zh-choice.jsonl` | jev-router 线请求清单（7,872 条 zh choice） |
 | `datasets/general/data/jev/fill-calls-dist.jsonl` | jev-router 线逐次调用 journal |
 | `datasets/general/data/jev-probs.jsonl` | **交付文件**：两条线合并后的旁挂概率（按 distribution_semantics 区分） |

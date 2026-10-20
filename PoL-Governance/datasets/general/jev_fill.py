@@ -1853,7 +1853,50 @@ def cmd_choice_fill(args):
     print(json.dumps(stats, ensure_ascii=False, indent=2))
 
 
+CONSENSUS_THRESHOLDS = {"low": 0.70, "high": 0.95, "min_n": 10}
+
+
+def consensus_label(n, agree):
+    """按「双方一致率」给 config 打标签；n 太小不下结论。"""
+    if n < CONSENSUS_THRESHOLDS["min_n"]:
+        return "insufficient_sample"
+    rate = agree / n
+    if rate < CONSENSUS_THRESHOLDS["low"]:
+        return "low_consensus"
+    if rate < CONSENSUS_THRESHOLDS["high"]:
+        return "medium_consensus"
+    return "high_consensus"
+
+
+def choice_config_consensus(journal, candidates_by_qid):
+    """journal 里每个 question key 的「与语料一致率」+ label_confidence。"""
+    ok = {}
+    for row in journal.rows:
+        if row.get("status") == "ok" and row.get("qid") in candidates_by_qid:
+            ok[row["qid"]] = row
+    per = {}
+    for qid, row in ok.items():
+        candidate = candidates_by_qid[qid]
+        try:
+            payload = json.loads(row.get("content") or "")
+        except json.JSONDecodeError:
+            continue
+        probs = payload.get("probs") if isinstance(payload, dict) else None
+        if not isinstance(probs, dict) or not probs:
+            continue
+        top = max(probs, key=lambda option_key: probs[option_key])
+        key = candidate["key"]
+        stat = per.setdefault(key, {"n": 0, "agree": 0})
+        stat["n"] += 1
+        stat["agree"] += 1 if top == candidate["answer"] else 0
+    for key, stat in per.items():
+        stat["agree_rate"] = round(stat["agree"] / stat["n"], 4)
+        stat["label_confidence"] = consensus_label(stat["n"], stat["agree"])
+    return per
+
+
 def write_choice_probs(journal, candidates_by_qid, out_path, stats_path):
+    consensus = choice_config_consensus(journal, candidates_by_qid)
     latest = {}
     for row in journal.rows:
         if row.get("status") == "ok" and row.get("qid") in candidates_by_qid:
@@ -1899,7 +1942,10 @@ def write_choice_probs(journal, candidates_by_qid, out_path, stats_path):
                      "source": "mercury-decide", "source_version": MERCURY_MODEL,
                      "upstream_model": row.get("upstream_model"),
                      "created_at": row.get("ts") or iso_now(),
-                     "n_options": len(probs), "corpus_shape": "answer_only"})
+                     "n_options": len(probs), "corpus_shape": "answer_only",
+                     "label_confidence": (consensus.get(candidate["key"]) or {}).get("label_confidence"),
+                     "consensus_agree": (consensus.get(candidate["key"]) or {}).get("agree"),
+                     "consensus_n": (consensus.get(candidate["key"]) or {}).get("n")})
     write_jsonl(out_path, rows)
     by_lang = {}
     by_domain = {}
@@ -1914,6 +1960,27 @@ def write_choice_probs(journal, candidates_by_qid, out_path, stats_path):
              "skipped": dict(sorted(skipped.items(), key=lambda pair: -pair[1])),
              "cost_usd": round(cost, 6), "upstream_models": models}
     Path(stats_path).write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
+    by_label = {}
+    for row in rows:
+        by_label[row.get("label_confidence") or "unknown"] = \
+            by_label.get(row.get("label_confidence") or "unknown", 0) + 1
+    consensus_doc = {
+        "generated_at": iso_now(),
+        "scheme": {"low_consensus": "双方一致率 < %.0f%%（n>=%d）" % (100 * CONSENSUS_THRESHOLDS["low"],
+                                                                    CONSENSUS_THRESHOLDS["min_n"]),
+                   "medium_consensus": "%.0f%% <= 一致率 < %.0f%%"
+                                       % (100 * CONSENSUS_THRESHOLDS["low"], 100 * CONSENSUS_THRESHOLDS["high"]),
+                   "high_consensus": "一致率 >= %.0f%%" % (100 * CONSENSUS_THRESHOLDS["high"]),
+                   "insufficient_sample": "n < %d，不下结论" % CONSENSUS_THRESHOLDS["min_n"]},
+        "note": "label_confidence 衡量的是「我们与该 config 的 mercury 判断是否互相印证」，"
+                "不是「标签对错」。low_consensus = 该子集标签**未经双方互证**，"
+                "训练时应降权或标记复核，不要当作和 high_consensus 一样可信。",
+        "configs": dict(sorted(consensus.items(), key=lambda kv: kv[1]["agree_rate"])),
+        "written_rows_by_label": by_label,
+    }
+    (Path(out_path).parent / "label-confidence.json").write_text(
+        json.dumps(consensus_doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    stats["label_confidence_counts"] = by_label
     return stats
 
 
@@ -2031,6 +2098,43 @@ def assert_no_item_ids(text, ids):
             raise SystemExit("报告泄漏完整 item id（%d 个候选 token 中命中 1 个）。"
                              "报告必须只用匿名索引，见 anon_labels()。" % len(tokens))
     return len(tokens)
+
+
+def choice_config_breakdown(items_path, journal_path):
+    """choice 线按 (source, question key) 的一致率，用来看哪些 config 分歧高。"""
+    path = Path(journal_path)
+    if not path.is_file():
+        return []
+    ok = {}
+    for row in read_jsonl(path):
+        if row.get("status") == "ok":
+            ok[row["qid"]] = row
+    wanted = set(ok)
+    info = {}
+    for item, key, question, target in iter_targets(items_path):
+        qid = "%s.%s" % (item["id"], key)
+        if qid in wanted:
+            info[qid] = (str(target.get("answer")), str(question.get("key")),
+                         (item.get("source") or {}).get("dataset") or "?")
+    per = {}
+    for qid, row in ok.items():
+        if qid not in info:
+            continue
+        try:
+            payload = json.loads(row.get("content") or "")
+        except json.JSONDecodeError:
+            continue
+        probs = payload.get("probs") if isinstance(payload, dict) else None
+        if not isinstance(probs, dict) or not probs:
+            continue
+        top = max(probs, key=lambda option_key: probs[option_key])
+        answer, key, _src = info[qid]
+        stat = per.setdefault(key, {"n": 0, "agree": 0})
+        stat["n"] += 1
+        stat["agree"] += 1 if top == answer else 0
+    rows = [(key, value["n"], value["agree"]) for key, value in per.items()]
+    rows.sort(key=lambda row: row[2] / row[1])
+    return rows
 
 
 def corpus_snapshot(items_path, wanted_qids=None):
@@ -2725,19 +2829,19 @@ def cmd_report(args):
     lines.append("")
     lines.append("## 8. 第二阶段（补全/升级 probs）")
     lines.append("")
-    lines.append("第二阶段有**两条线**，目标人群不同（详见 8.3）：")
+    lines.append("第二阶段有**三条线**，目标人群不同（详见 8.3）：")
     lines.append("")
     lines.append("- **A. mercury-decide 升级 noul（%s 条）**：这些 target 原本有 probs，但 %s 条是伪 one-hot、"
                  "%s 条是均匀分布（无信息）——用决策端点的原生 P(yes) 换成真分布。"
                  % (format(snapshot["noul"], ","), format(snapshot["noul_shapes"]["one_hot"], ","),
                     format(snapshot["noul_shapes"]["uniform"], ",")))
-    lines.append("- **B. answer-only 补全**：语料里没有 probs 的 target。"
-                 "旧 jev-router 方案只跑完 zh choice 的一部分（已付费的 %s 条保留）；"
-                 "**新增的 %s 条 answer-only choice 用 mercury 的 choice 端点补**（返回完整概率分布，见附录 B）。"
-                 % (format((router_stats.get("written") or 0), ","),
-                    format((choice_stats.get("written") or 0), ",")))
+    lines.append("- **B. mercury-decide 补 answer-only choice**：新增的 %s 条没有 probs 的 choice target，"
+                 "用 choice 端点补（返回完整概率分布，见附录 B）。"
+                 % format(choice_stats.get("candidates") or 0, ","))
+    lines.append("- **C. jev-router 补 zh choice**：旧方案，已付费的 %s 条保留（语义标记 `jev_router`）。"
+                 % format(router_stats.get("written") or 0, ","))
     lines.append("")
-    lines.append("两条线写入旁挂文件 `data/jev-probs.jsonl` 的**共同**硬条件：")
+    lines.append("三条线写入旁挂文件 `data/jev-probs.jsonl` 的**共同**硬条件：")
     lines.append("")
     lines.append("1. 解析成功，且**恰好命中一个选项**（argmax 明确）；")
     lines.append("2. **argmax == 语料已有的 answer**（契约硬约束，违反一律不写）；")
@@ -2880,18 +2984,22 @@ def cmd_report(args):
     lines.append("uv run --no-project --offline python datasets/general/jev_fill.py verify --out datasets/general/data/jev-probs.jsonl")
     lines.append(FENCE)
     lines.append("")
-    lines.append("### 8.3 第二阶段执行结果（两个来源，分开报）")
+    lines.append("### 8.3 第二阶段执行结果（三个来源，分开报）")
     lines.append("")
-    lines.append("第二阶段实际有**两条线**，语义不同，**绝不合并成一个“补了 N 条”的数字**：")
+    lines.append("第二阶段实际有**三条线**，语义/人群都不同，**绝不合并成一个“补了 N 条”的数字**：")
     lines.append("")
     lines.append("- **A. mercury-decide 升级 noul（%s 条）**：这些 target 原本就有 probs 但多数不可用——"
                  "伪 one-hot %s 条、均匀分布（无信息）%s 条、来源真分布（real）%s 条。"
                  "用 mercury 的原生 P(yes) 换成真分布；旁挂行带 `corpus_shape` 字段，"
                  "消费方对 real 的条目可以选择保留来源分布。"
-                 % (format(args.noul_population, ","), format(args.noul_one_hot, ","),
-                    format(args.noul_uniform, ","), format(args.noul_real, ",")))
-    lines.append("- **B. jev-router 补 zh choice（answer-only）**：旧方案，被 mercury 取代；"
-                 "**已付费的部分保留**，作为 answer-only 人群的补全，语义标记 `jev_router`。")
+                 % (format(snapshot["noul"], ","), format(snapshot["noul_shapes"]["one_hot"], ","),
+                    format(snapshot["noul_shapes"]["uniform"], ","), format(snapshot["noul_shapes"]["real"], ",")))
+    lines.append("- **B. mercury-decide 补 answer-only choice（%s 条）**：语料里没有 probs 的 choice target；"
+                 "用 choice 端点补（返回完整概率分布），**尚未跑完**，见 8.3 覆盖范围。"
+                 % format(choice_stats.get("candidates") or 0, ","))
+    lines.append("- **C. jev-router 补 zh choice（answer-only）**：旧方案，被 mercury 取代；"
+                 "**已付费的 %s 条保留**，语义标记 `jev_router`。"
+                 % format(router_stats.get("written") or 0, ","))
     lines.append("")
     rows = []
     if mercury_stats:
@@ -2902,22 +3010,22 @@ def cmd_report(args):
                      "`%s`" % "、".join("%s %s" % (key, format(value, ","))
                                                 for key, value in list(mercury_stats.get("skipped", {}).items())[:3]),
                      "$%.4f" % (mercury_stats.get("cost_usd") or 0.0)])
-    if choice_stats:
-        rows.append(["C. mercury-decide choice", "`mercury_decide_native`",
-                     format(choice_stats.get("candidates", 0), ","),
-                     format(choice_stats.get("journal_ok", 0), ","),
-                     "**%s**" % format(choice_stats.get("written", 0), ","),
-                     "`%s`" % "、".join("%s %s" % (key, format(value, ","))
-                                                for key, value in list(choice_stats.get("skipped", {}).items())[:3]),
-                     "$%.4f" % (choice_stats.get("cost_usd") or 0.0)])
     if router_stats:
-        rows.append(["B. jev-router zh choice", "`jev_router`",
+        rows.append(["C. jev-router zh choice", "`jev_router`",
                      format(router_stats.get("plan_requests", 0), ","),
                      format(router_stats.get("journal_ok", 0), ","),
                      "**%s**" % format(router_stats.get("written", 0), ","),
                      "`%s`" % "、".join("%s %s" % (key, format(value, ","))
                                                 for key, value in list(router_stats.get("skipped", {}).items())[:3]),
                      "$%.4f" % (router_stats.get("cost_usd") or 0.0)])
+    if choice_stats:
+        rows.append(["B. mercury-decide choice", "`mercury_decide_native`",
+                     format(choice_stats.get("candidates", 0), ","),
+                     format(choice_stats.get("journal_ok", 0), ","),
+                     "**%s**" % format(choice_stats.get("written", 0), ","),
+                     "`%s`" % "、".join("%s %s" % (key, format(value, ","))
+                                                for key, value in list(choice_stats.get("skipped", {}).items())[:3]),
+                     "$%.4f" % (choice_stats.get("cost_usd") or 0.0)])
     if rows:
         lines.append(md_table(["来源", "distribution_semantics", "目标数", "成功响应", "写入旁挂", "被门禁拒绝（主因）", "成本"], rows))
     else:
@@ -2930,11 +3038,14 @@ def cmd_report(args):
                  % (format((router_stats.get("skipped") or {}).get("degenerate:one_hot", 0), ","),
                     format((router_stats.get("skipped") or {}).get("answer_mismatch", 0), ",")))
     lines.append("")
-    lines.append("覆盖范围提醒：jev-router 线只跑了**旧语料**的 zh choice 子集；"
-                 "当前语料 answer-only 已增至 %s 条（其中 choice %s 条），**新增的 answer-only 尚未补全**——"
-                 "本报告的补全进度只对旧版 8,417 条 answer-only 与 7,907 条 noul 有意义。"
+    answered = (choice_stats.get("journal_ok") or 0) + (router_stats.get("written") or 0)
+    lines.append("覆盖范围提醒：当前语料 answer-only 共 %s 条（其中 choice %s 条）。"
+                 "jev-router 线只覆盖旧语料 zh choice 的一小部分；新增的 answer-only choice 由 mercury 线补，"
+                 "**本报告写成时已补 %s 条、剩余 %s 条未补**（受 key 额度所限中途停止，journal 可续跑）。"
                  % (format(sum(snapshot["answer_only_by_kind"].values()), ","),
-                    format(snapshot["answer_only_by_kind"].get("choice", 0), ",")))
+                    format(snapshot["answer_only_by_kind"].get("choice", 0), ","),
+                    format(choice_stats.get("written") or 0, ","),
+                    format(max(0, (choice_stats.get("candidates") or 0) - (choice_stats.get("written") or 0)), ",")))
     lines.append("")
     lines.append("旁挂交付文件：`datasets/general/data/jev-probs.jsonl`；"
                  "每行都带 `distribution_semantics` / `upstream_model` / `created_at` / "
@@ -2946,23 +3057,126 @@ def cmd_report(args):
     before = composition["before"]
     after = composition["after"]
     filled = composition["filled"]
-    shape_names = {"real": "原生软分布（来源真分布）", "one_hot": "伪 one-hot（硬标签单点分布）",
-                   "uniform": "均匀分布（无信息）", "answer_only": "仅硬标签（无 probs）"}
-    rows = []
-    for shape in ("real", "one_hot", "uniform", "answer_only"):
-        rows.append([shape_names[shape], format(before[shape], ","), format(after[shape], ",")])
-    for semantics, count in sorted(filled.items()):
-        label = {"mercury_decide_native": "**新补：mercury 原生概率**",
-                 "jev_router": "**新补：jev-router 分布**"}.get(semantics, "**新补：%s**" % semantics)
-        rows.append([label, "0", "**%s**" % format(count, ",")])
-    rows.append(["合计", format(composition["total"], ","),
-                 format(sum(after.values()) + sum(filled.values()), ",")])
+    answer_only_before = before["answer_only"]
+    router_ok = router_stats.get("journal_ok") or 0
+    router_written = router_stats.get("written") or 0
+    choice_ok = choice_stats.get("journal_ok") or 0
+    choice_written = choice_stats.get("written") or 0
+    answer_only_attempted = router_ok + choice_ok
+    answer_only_rejected = (router_ok - router_written) + (choice_ok - choice_written)
+    answer_only_unattempted = answer_only_before - answer_only_attempted
+    noul_covered = max(0, (filled.get("mercury_decide_native") or 0) - choice_written)
+    rows = [
+        ["原生软分布（来源自己给的）", format(before["real"], ","), format(after["real"], ",")],
+        ["伪 one-hot（硬标签单点分布）", format(before["one_hot"], ","), format(after["one_hot"], ",")],
+        ["均匀分布（无信息）", format(before["uniform"], ","), format(after["uniform"], ",")],
+        ["仅硬标签：**还没尝试补全**", format(answer_only_before, ","), format(answer_only_unattempted, ",")],
+        ["仅硬标签：**尝试过但与我们不一致**（被门禁拒绝、保持原样）", "0", format(answer_only_rejected, ",")],
+        ["新补：mercury noul 原生概率（升级伪 one-hot / 均匀）", "0", format(noul_covered, ",")],
+        ["新补：mercury choice + jev-router 分布（**只在一致时写入，有选择偏差**）", "0",
+         format(choice_written + router_written, ",")],
+        ["合计", format(composition["total"], ","), format(composition["total"], ",")],
+    ]
     lines.append(md_table(["形态", "语料原本", "采用旁挂 probs 后"], rows))
     lines.append("")
-    lines.append("读法：`采用旁挂后` 列假设消费方**优先使用旁挂 probs、没有旁挂的沿用语料**。"
-                 "mercury 线是把“伪 one-hot / 均匀”升级成原生概率；jev-router 线是把“仅硬标签”补成分布。"
-                 "两条线的条目都在旁挂文件里按 `distribution_semantics` 可区分，"
-                 "训练时可按需只取其中一类。")
+    lines.append("读法：`采用旁挂后` 列假设消费方**优先使用旁挂 probs、没有旁挂的沿用语料**；"
+                 "所有条目在旁挂文件里按 `distribution_semantics` + `corpus_shape` 可区分。")
+    lines.append("")
+    lines.append("**两个「仅硬标签」不要混为一谈**：前者是**还没尝试补**，后者是**补了但 mercury 与我们分歧、按门禁不写**——"
+                 "训练价值不同，所以单列。")
+    lines.append("")
+    lines.append("### 8.5 一致性偏差与分歧分层（训练方必读）")
+    lines.append("")
+    lines.append("#### 8.5.1 选择偏差：软分布子集是「一致子集」，不是随机子集")
+    lines.append("")
+    lines.append("写入门禁要求 `argmax == 语料 answer`，因此**写进旁挂的 answer-only 样本 = mercury 与语料一致的子集**。实测：")
+    lines.append("")
+    lines.append(md_table(["来源", "已调用", "写入", "写入率", "被拒（不一致/退化）"], [
+        ["mercury choice", format(choice_ok, ","), format(choice_written, ","),
+         pct(choice_written / choice_ok) if choice_ok else "n/a",
+         format(choice_ok - choice_written, ",")],
+        ["jev-router zh choice", format(router_ok, ","), format(router_written, ","),
+         pct(router_written / router_ok) if router_ok else "n/a",
+         format(router_ok - router_written, ",")],
+        ["合计", format(answer_only_attempted, ","), format(choice_written + router_written, ","),
+         pct((choice_written + router_written) / answer_only_attempted) if answer_only_attempted else "n/a",
+         format(answer_only_rejected, ",")],
+    ]))
+    lines.append("")
+    lines.append("**后果（训练方必须知道）**：这 %s 条软分布系统性偏向**双方共识题/简单题**；"
+                 "分歧的 %s 条恰恰可能是边界样本、有争议样本。**不要把它当随机子集**，"
+                 "也不要因为“有了软分布”就认为该人群质量更高——它只是“双方意见一致”的那部分。"
+                 % (format(choice_written + router_written, ","), format(answer_only_rejected, ",")))
+    lines.append("")
+    lines.append("#### 8.5.2 criteria 模板会不会泄漏答案？对照实验：**不泄漏**")
+    lines.append("")
+    bias_path = DEFAULT_WORK / "criteria-bias-report.json"
+    if bias_path.is_file():
+        bias = json.loads(bias_path.read_text(encoding="utf-8"))
+        variants = bias.get("variants") or {}
+        rows = []
+        for name, value in variants.items():
+            rows.append([name, "`%s`" % value.get("template", ""),
+                         "%d/%d = %s" % (value.get("agree", 0), value.get("parsed", 0),
+                                         pct(value.get("rate") or 0)),
+                         "%.3f" % (value.get("mean_max") or 0)])
+        lines.append(md_table(["变体", "criteria 模板", "argmax == 语料 answer", "平均最大概率"], rows))
+        lines.append("")
+        consistency = bias.get("argmax_consistency_vs_T1") or {}
+        lines.append("同一批 %d 个 qid、四种模板的 argmax 一致性（相对当前模板 T1）：%s。"
+                     % (bias.get("sample_n", 0),
+                        "；".join("%s %d/%d = %s" % (name, value.get("same", 0), value.get("total", 0),
+                                                     pct(value.get("rate") or 0))
+                                 for name, value in consistency.items())))
+        lines.append("")
+        lines.append("**结论**：换成中性判据后一致率**没有下降**（反而略升），argmax 跨模板一致性 93–100%%，"
+                     "平均最大概率基本不变——说明判断由 state/instructions 驱动，**不是被 criteria 措辞带偏**；"
+                     "模板不构成答案泄漏，已写入的 %s 条统计没有被这个模板抬高。"
+                     % format(choice_written, ","))
+    else:
+        lines.append("（对照实验数据缺失：`criteria-bias-report.json`）")
+    lines.append("")
+    lines.append("#### 8.5.3 分歧分层：哪些 config 的不一致高")
+    lines.append("")
+    breakdown = choice_config_breakdown(items_path, DEFAULT_WORK / "mercury-choice-fill.jsonl")
+    if breakdown:
+        lines.append("下表按一致率升序（只统计已调用的 choice 条目）。**一致率低于 70% 的 config 值得单独复核标签**；"
+                     "高于 95% 的可视为双方相互印证。")
+        lines.append("")
+        rows = []
+        for key, total, agree in breakdown:
+            rows.append(["`%s`" % key, total, agree, pct(agree / total),
+                         "`%s`" % consensus_label(total, agree)])
+        lines.append(md_table(["source question key", "已调用", "一致", "一致率", "label_confidence"], rows))
+        low = [(key, total, agree) for key, total, agree in breakdown if agree / total < 0.70 and total >= 10]
+        if low:
+            lines.append("")
+            lines.append("**一致率 < 70% 且样本 ≥ 10 的 config（标 `low_consensus`）**：" +
+                         "；".join("`%s` %d/%d = %s" % (key, agree, total, pct(agree / total))
+                                  for key, total, agree in low) +
+                         "。这些是**关于该来源标签质量的信号**：要么 mercury 不擅长这类题（几何/多步追踪），"
+                         "要么语料标签本身有噪声——现有证据不足以区分，但**该子集的标签未经双方互证**。")
+        lines.append("")
+        lines.append("**label_confidence 标记方案（已写进旁挂）**：")
+        lines.append("")
+        lines.append("- `high_consensus`：双方一致率 ≥ 95%；`medium_consensus`：70%–95%；"
+                     "`low_consensus`：< 70%（n ≥ 10）；`insufficient_sample`：n < 10 不下结论。")
+        lines.append("- 每条 choice 旁挂行都带 `label_confidence` / `consensus_agree` / `consensus_n`；"
+                     "机器可读总表在 `data/jev/label-confidence.json`。")
+        confidence_path = DEFAULT_WORK / "label-confidence.json"
+        if confidence_path.is_file():
+            confidence_doc = json.loads(confidence_path.read_text(encoding="utf-8"))
+            counts = confidence_doc.get("written_rows_by_label") or {}
+            lines.append("- 旁挂 choice 行按标记的分布：%s。"
+                         % "；".join("`%s` %s" % (name, format(value, ","))
+                                    for name, value in sorted(counts.items())))
+            lines.append("")
+            lines.append("**语义**：`label_confidence` 衡量「我们与该子集的 mercury 判断是否互相印证」，"
+                         "**不是「标签对错」**。`low_consensus` = 该子集标签未经双方互证，"
+                         "训练时应降权或标记复核，**不要和 high_consensus 同等对待**。"
+                         "（这是给训练方的路由信号，不是把标签判死。）")
+    else:
+        lines.append("（choice journal 缺失）")
     lines.append("")
     lines.append("## 9. 产物")
     lines.append("")

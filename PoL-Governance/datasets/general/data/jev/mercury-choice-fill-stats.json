@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-20T10:07:10+00:00",
+  "generated_at": "2026-10-20T10:42:42+00:00",
   "journal": "C:\\Projects\\DAism\\NaturalDAO\\PoL-Governance\\datasets\\general\\data\\jev\\mercury-choice-fill.jsonl",
   "out": "C:\\Projects\\DAism\\NaturalDAO\\PoL-Governance\\datasets\\general\\data\\jev\\mercury-choice-probs.jsonl",
   "decisions_url": "https://openrouter.ai/api/alpha/decisions",
@@ -7,20 +7,20 @@
   "semantics": "mercury_decide_native",
   "kind": "choice",
   "candidates": 51057,
-  "journal_ok": 20,
-  "written": 18,
+  "journal_ok": 9762,
+  "written": 7858,
   "written_by_lang": {
-    "en": 18
+    "en": 7858
   },
   "written_by_domain": {
-    "knowledge_reasoning": 18
+    "knowledge_reasoning": 7858
   },
   "skipped": {
-    "degenerate:uniform": 1,
-    "answer_mismatch": 1
+    "answer_mismatch": 1880,
+    "degenerate:uniform": 24
   },
-  "cost_usd": 0.000125,
+  "cost_usd": 0.090061,
   "upstream_models": {
-    "inception/mercury-decide-20260930": 20
+    "inception/mercury-decide-20260930": 9762
   }
 }
