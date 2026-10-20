@@ -1101,5 +1101,72 @@ class BuildCorpusTest(unittest.TestCase):
                              (root / "m2.jsonl.gz").read_bytes(), "gzip mtime=0 → 逐字节一致")
 
 
+class RotationExclusionTest(unittest.TestCase):
+    """事故轮换：--benchmark-exclude-ids 读仓外永久名单，名单里的 id 永不进 benchmark。"""
+
+    def write_ids(self, path, lines):
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+        return path
+
+    def test_load_excluded_ids_parses_comments_and_dedupes(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            path = self.write_ids(root / "exclude.txt", [
+                "# benchmark 轮换排除名单（注释行忽略）",
+                "",
+                "db-jev-distill-v3-0000aaaa",
+                "  db-bigbench-1111bbbb  ",
+                "db-jev-distill-v3-0000aaaa",
+            ])
+            loaded = sp.load_excluded_ids(path, repo_root=sp.git_repo_root(Path.cwd()))
+            self.assertEqual(loaded["ids"],
+                             {"db-jev-distill-v3-0000aaaa", "db-bigbench-1111bbbb"})
+            self.assertEqual(loaded["lines"], 3)
+            self.assertEqual(loaded["unique"], 2)
+            self.assertEqual(len(loaded["file_sha256"]), 64)
+
+    def test_load_excluded_ids_rejects_path_inside_repo(self):
+        repo_root = sp.git_repo_root(Path.cwd())
+        if repo_root is None:
+            self.skipTest("不在 git 仓库内")
+        inside = Path(sp.__file__).resolve()   # 仓库内的文件即可触发"必须在仓库外"
+        with self.assertRaises(sp.SplitError):
+            sp.load_excluded_ids(inside, repo_root=repo_root)
+
+    def test_load_excluded_ids_rejects_non_id_lines(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            path = self.write_ids(Path(workspace) / "bad.txt", ["db-ok-0000aaaa", "not-an-id"])
+            with self.assertRaises(sp.SplitError):
+                sp.load_excluded_ids(path, repo_root=sp.git_repo_root(Path.cwd()))
+
+    def test_rotation_ids_never_enter_benchmark(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            items = corpus(groups=30, variants=2, langs=("en",))
+            source = write_input(root, items)
+            leaked = sorted(it["id"] for it in items)[:5]
+            exclude_path = self.write_ids(root / "exclude.txt",
+                                          ["# 泄漏名单"] + leaked)
+            out_dir = root / "out"
+            code = run_quiet(["--input", str(source), "--out", str(out_dir),
+                              "--report", str(root / "r.md"),
+                              "--benchmark-exclude-ids", str(exclude_path),
+                              "--benchmark-min-per-kind", "0"])
+            self.assertEqual(code, 0)
+            bench = load_lines(out_dir / "benchmark.jsonl")
+            bench_ids = {row["id"] for row in bench}
+            self.assertEqual(bench_ids & set(leaked), set(),
+                             "轮换排除名单里的 id 不得出现在 benchmark")
+            manifest = json.loads((out_dir / "split-manifest.json").read_text(encoding="utf-8"))
+            excl = manifest["benchmark_exclusions"]
+            self.assertTrue(excl["rotation_enabled"])
+            self.assertEqual(excl["rotation_exclude_ids"], 5)
+            self.assertEqual(excl["rotation_ids_in_corpus"], 5)
+            self.assertIsNotNone(excl["rotation_exclude_file_sha256"])
+            report = (root / "r.md").read_text(encoding="utf-8")
+            self.assertIn("永久排除名单", report)
+            self.assertIn("§10.5", report)
+
+
 if __name__ == "__main__":
     unittest.main()

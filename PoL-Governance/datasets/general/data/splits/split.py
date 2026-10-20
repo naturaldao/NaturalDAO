@@ -6,6 +6,8 @@
         --out datasets/general/data/splits --report datasets/general/split-report.md \
         --seed 20261005 --salt-file D:/pol2-raw/pol-split-salt.txt \
         --benchmark-lang en --benchmark-exclude-lang "zh=<理由>" \
+        --exclude-public-items --derived-skip datasets/general/data/target-types.jsonl.gz \
+        [--benchmark-exclude-ids D:/pol2-raw/pol-rotation/excluded-benchmark-ids.txt] \
         --train-supplement datasets/general/data/zh-supplement/items.jsonl
 
 **默认值不会误伤交付件**：--out / --report 的默认值仍指向交付目录（datasets/general/data/splits、
@@ -46,6 +48,13 @@ D:/pol2-raw/zh-final/items.zh.jsonl（中文全量）、data/items.jsonl（替�
    benchmark-dataset/ 提交到公开仓库——它由用户上传 Hugging Face 并设为 private。
 6. **train-only 补充集**：--train-supplement 把降级（origin != source）中文补充整批追加到 train 末尾，
    只追加 train，绝不进 test/validation/benchmark；id 与语料重叠、或补充集里混入原生条目 → 直接拒绝。
+7. **事故轮换**：--benchmark-exclude-ids 读一份**仓外**永久排除名单（一行一个 id），名单里的条目
+   永久不进 benchmark。用途是 benchmark 轮换：某个派生交付件曾把 benchmark 成员的 probs 带进公开面，
+   这些 id 即使用同一私盐重切也必须排除（详见 split-report.md §10.5）。名单不允许进仓库，否则等于
+   把"哪些条目曾是 benchmark 成员"再公开一次（与盐同级保密）。
+8. **公开引用排除**：--exclude-public-items 扫被 git 跟踪的**手写**文件，把其中引用过的 id 对应条目
+   排除出 benchmark（被公开引用过 = 已泄漏，不能进盲测集）；派生产物（分区、target-types、jev-probs）
+   切分后会被重新生成，用 --derived-skip 跳过。
 
 可复现：随机数全部来自 random.Random("seed|盐token|阶段|domain|lang")，分区内条目按 id 排序，
 补充集按文件顺序追加在 train 末尾，gzip 用 mtime=0 写入；同一输入 + 同一私盐重跑两次逐字节一致
@@ -105,8 +114,8 @@ DEFAULT_BENCHMARK_MIN_SOURCE_ITEMS = 0
 #: train-only 降级补充集（中文 3,148 条，origin=taxonomy）。只追加 train，不进其它三区。
 DEFAULT_TRAIN_SUPPLEMENT = Path("datasets/general/data/zh-supplement/items.jsonl")
 #: 报告与 benchmark 包的版本号（每次重切改变 benchmark 条目集合就必须递增；跨版本分数不可拼接）
-REPORT_VERSION = "v4"
-PACKAGE_VERSION = "0.4"
+REPORT_VERSION = "v5"
+PACKAGE_VERSION = "0.5"
 #: 无盐跑（--public-demo）时折进种子的固定标记：任何人用公开信息跑出来的都是这一套，
 #: 因此**永远与交付件不同**（交付件用的是仓外私盐）。
 PUBLIC_DEMO_SALT = "public-demo"
@@ -1193,6 +1202,33 @@ def scan_referenced_ids(root: Path | None, *, skip_paths=(), extra_paths=()) -> 
     return {"files": scanned, "referenced_ids": referenced, "skipped": len(files) - scanned}
 
 
+def load_excluded_ids(path, *, repo_root: Path | None = None) -> dict:
+    """读 benchmark **永久排除名单**（一行一个条目 id，# 开头为注释）。
+
+    用于事故轮换：曾经泄漏到公开面的 id 永不进 benchmark。硬要求：名单必须在**仓库外**——
+    名单本身记录"哪些条目曾是 benchmark 成员"，进仓库等于把成员身份再公开一次（同盐的处理方式）。
+    返回 {"ids": frozenset, "file_sha256", "file", "lines", "unique"}。
+    """
+    source = Path(path)
+    if not source.is_file():
+        raise SplitError(f"排除名单不存在：{source}")
+    if path_inside(repo_root, source):
+        raise SplitError(f"排除名单必须在仓库外（当前在仓库内）：{source}")
+    ids: list[str] = []
+    for lineno, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
+        text = line.strip()
+        if not text or text.startswith("#"):
+            continue
+        if not text.startswith("db-"):
+            raise SplitError(f"{source}:{lineno} 不像条目 id：{text[:40]!r}")
+        ids.append(text)
+    unique = sorted(set(ids))
+    if not unique:
+        raise SplitError(f"排除名单为空：{source}")
+    return {"ids": frozenset(unique), "file_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            "file": source.as_posix(), "lines": len(ids), "unique": len(unique)}
+
+
 def audit_public_surface(items, *, root: Path | None, extra_paths=(), skip_paths=()) -> dict:
     """公开面审计：所有被跟踪的文件 + 显式附加文件，对 benchmark 的 id 与正文零命中。
 
@@ -1333,6 +1369,12 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
                      f"（{exclusions_stat.get('excluded_groups', 0)} 组）。"
                      "「被公开引用过的条目永不进盲测集」由机器保证，不靠人工维护文档。"
                      "派生产物（分区、target-types 侧挂文件）不在扫描范围内，它们切分后会被重新生成。")
+    rotation_stat = stats.get("benchmark_exclusions") or {}
+    if rotation_stat.get("rotation_enabled"):
+        lines.append(f"8. **benchmark 永久排除名单（--benchmark-exclude-ids）**：事故轮换用的显式 id 名单"
+                     f"（仓外保管，sha256 {str(rotation_stat.get('rotation_exclude_file_sha256'))[:12]}…），"
+                     f"共 {rotation_stat.get('rotation_exclude_ids', 0)} 个 id；这些 id 永久不进 benchmark"
+                     f"（其中 {rotation_stat.get('rotation_ids_in_corpus', 0)} 个在语料里）。见 §10.5。")
     lines.append("")
     lines.append("## 2. 分区规模")
     lines.append("")
@@ -1617,7 +1659,7 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
                  "所以「benchmark 少了一整种语言」永远是**会报错的显式状态**，不是沉默的事实——"
                  "恢复条件一满足，去掉排除项即可翻回来。")
     lines.append("")
-    lines.append("### 10.3 版本：v1 作废，v2 / v3 / v4 不可拼接")
+    lines.append("### 10.3 版本：v1/v4 作废，v2 / v3 / v5 不可拼接")
     lines.append("")
     lines.append("| 版本 | 内容 | 状态 |")
     lines.append("|---|---|---|")
@@ -1627,12 +1669,14 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
                  "已被 v3 取代（benchmark sha256 f5ae670811c33200…） |")
     lines.append("| v3 | 私盐 + en-only + 来源均衡（≤25% 上限 / 5% 下限）；语料 23,855 条；"
                  "benchmark 1,598 条 | 已被 v4 取代 |")
-    lines.append(f"| **v4（本次）** | 语料合并 51,057 条能力语料（23,855 + 51,057 = 74,912）+ 私盐 + "
-                 f"en-only + 来源均衡（≤25%，{len(rows)} 个来源，绝对下限 100 条）+ 公开引用排除 + "
-                 "train 回灌降级补充 | 现行交付件；benchmark "
-                 f"{actual['benchmark']} 条，哈希见第 9 节与 split-manifest.json |")
+    lines.append("| v4 | 语料合并 51,057 条能力语料 + 私盐 + en-only + 来源均衡 + 公开引用排除；"
+                 "benchmark 6,704 条 | **作废**：成员填充概率在提交 b6a4909 里公开过（见 §10.5），"
+                 "已轮换（benchmark sha256 9ee0fc30405a59a4…） |")
+    lines.append(f"| **v5（本次）** | 在 v4 基础上加**永久排除名单**（1,621 个泄漏 id）+ 同一私盐/种子重切；"
+                 f"benchmark {actual['benchmark']} 条 | 现行交付件；哈希见第 9 节与 split-manifest.json |")
     lines.append("")
-    lines.append("**v1 / v2 / v3 / v4 的 benchmark 是四套不同的条目集合，分数不可拼接、不可混用。**")
+    lines.append("**v1 / v2 / v3 / v4 / v5 的 benchmark 是五套不同的条目集合，分数不可拼接、不可混用。"
+                 "v4（以及更早）一律作废。**")
     lines.append("")
     lines.append("### 10.4 公开面零命中")
     lines.append("")
@@ -1656,6 +1700,51 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
     lines.append("- 本报告、数据卡、manifest 都只含聚合统计；test_split.py 与 test_benchmark_package.py "
                  "有对应断言，benchmark 包 verify.py 另有独立校验。")
     lines.append("")
+    rotation_info = stats.get("benchmark_exclusions") or {}
+    if rotation_info.get("rotation_enabled"):
+        lines.append("### 10.5 事故与轮换：jev-probs 交付件误含 benchmark 成员")
+        lines.append("")
+        lines.append("2026-10-20 18:57（+08）的提交 b6a4909 把 `datasets/general/data/jev-probs.jsonl.gz`"
+                     "（填充概率交付件）作为公开文件提交并推送到远端；20:57 用 amend + force-with-lease "
+                     "修正为 c74eebb，**公开窗口约 2 小时**。泄漏版本 **15,223 行 / 14,092 个条目 id**，"
+                     "其中 **1,621 个 id 属于当时的 benchmark（v4）**——这些基准条目的 id 与填充概率在"
+                     "公开远端可被 fetch。发现于交付前核对（对公开面做 benchmark 交集检查），"
+                     "独立复算同为 1,621。")
+        lines.append("")
+        lines.append("**为什么改历史不够**：该提交在远端公开过一段时间，可能已被 fetch/clone；而本语料"
+                     "可从公开 HF 源 + 公开脚本重建，所以「泄漏 id 名单 + 重建语料」就足以还原 benchmark。"
+                     "`commit --amend` + `--force-with-lease`（修正提交 "
+                     "c74eebb，交付件只保留公开三区、44,460 行、与 v4 benchmark 交集 0）只能覆盖之后的"
+                     "抓取，覆盖不了已经发生的。")
+        lines.append("")
+        lines.append("**处置**：")
+        lines.append(f"1. 修正提交：c74eebb 的交付件过滤为只含公开三区条目，远端 HEAD 与 v4 benchmark "
+                     f"交集 0（本地复算）。")
+        lines.append(f"2. **轮换 benchmark**：把上述 1,621 个 id 写入**仓外**永久排除名单"
+                     f"（sha256 {str(rotation_info.get('rotation_exclude_file_sha256'))[:12]}…，名单本身不进仓库，"
+                     f"与盐同级保管），用 `--benchmark-exclude-ids` 在同一私盐、同一种子下"
+                     f"重切四区；名单 {rotation_info.get('rotation_exclude_ids', 0)} 个 id 中 "
+                     f"{rotation_info.get('rotation_ids_in_corpus', 0)} 个在语料里，全部被永久排除出 benchmark。")
+        lines.append(f"3. **v4 benchmark 整体作废**：v4 与 v5 的条目集合不同，分数不可拼接、不可混用；"
+                     f"v4 的 benchmark sha256 9ee0fc30405a59a4… 只作为事故记录保留。")
+        lines.append(f"4. 派生交付件（target-types 侧挂文件、jev-probs）必须按 v5 公开三区重新生成后"
+                     f"再做最终公开面审计；本报告 §10.4 的审计结论以**重新生成之后**的全量审计为准。")
+        lines.append("")
+        lines.append("**护栏为什么没拦住（核查结论）**：")
+        lines.append("- SecrecyTest 的扫描口径是 `git ls-files` 列出的文件 × **工作区字节**"
+                     "（.gz 解压后），**不是** HEAD 的提交内容。")
+        lines.append("- 所以文件一旦 `git add`（进索引、ls-files 立即可见），下一次 check.py"
+                     " 就会红。这次漏拦是**流程问题**：add 之后没跑 check.py 就 commit/amend 了，"
+                     "不是护栏覆盖不到。")
+        lines.append("- 但它暴露了第二个缺口：**磁盘上存在、但还没 git add 的交付件，护栏完全看不见**——"
+                     "泄漏版 .gz 在 add 之前就是这个状态，人眼当时也没看。")
+        lines.append("- 结构性修复（不靠人记得）：①**生成器写盘前硬断言**：jev_fill.py 在写 "
+                     "jev-probs.jsonl(.gz) 前，用**当前 benchmark.jsonl 的全部 id** 扫待写行，"
+                     "命中任一即 SystemExit、不落盘（名单从 data/splits/benchmark.jsonl 现读，不写死）；"
+                     "②交付件必须「先按公开三区过滤再生成」，生成后跑 `--audit-public-surface`"
+                     " 才允许提交；③护栏再加一条：把 `git status` 里未跟踪的交付件也纳入扫描"
+                     "（按扩展名/路径白名单限定），堵掉「add 前不可见」的窗口。")
+        lines.append("")
     lines.append("## 11. origin 构成（原生 vs 降级）")
     lines.append("")
     lines.append("| 分区 | origin=source（原生） | origin=taxonomy 等（降级） | 其它/未标 |")
@@ -1745,6 +1834,9 @@ def run(argv=None) -> int:
     parser.add_argument("--exclude-public-items", action="store_true",
                         help="把**已出现在公开文件里**的条目排除出 benchmark（被公开引用过 = 已泄漏）；"
                              "扫描被 git 跟踪的手写文件，跳过 --derived-skip 指名的派生件")
+    parser.add_argument("--benchmark-exclude-ids", type=Path, default=None, metavar="PATH",
+                        help="benchmark **永久排除名单**（一行一个 id，# 注释；必须在仓库外）。"
+                             "用于事故轮换：泄漏过的 id 永不进 benchmark")
     parser.add_argument("--derived-skip", action="append", default=None, metavar="PATH",
                         help="切分后会整体替换/重新生成的派生产物（可重复）：公开引用扫描与公开面审计都"
                              "跳过它（交付时用它跳过 target-types 侧挂文件，切分后另行重生成）")
@@ -1855,6 +1947,21 @@ def run(argv=None) -> int:
               f"引用过 {len(referenced['referenced_ids'])} 个条目 id（这些条目排除出 benchmark；"
               f"跳过派生件 {referenced['skipped']} 个）")
 
+    # ---- benchmark 永久排除名单（事故轮换）：泄漏过的 id 永不进 benchmark ----
+    rotation = {"enabled": False, "ids": frozenset(), "file_sha256": None,
+                "lines": 0, "unique": 0, "path": None}
+    if args.benchmark_exclude_ids is not None:
+        try:
+            loaded = load_excluded_ids(args.benchmark_exclude_ids, repo_root=repo_root)
+        except SplitError as exc:
+            print(f"拒绝切分：{exc}", file=sys.stderr)
+            return 3
+        rotation = {"enabled": True, "ids": loaded["ids"],
+                    "file_sha256": loaded["file_sha256"], "lines": loaded["lines"],
+                    "unique": loaded["unique"], "path": loaded["file"]}
+        print(f"benchmark 永久排除名单：{loaded['unique']} 个 id（名单 sha256 "
+              f"{loaded['file_sha256'][:12]}…，仓库外保管）")
+
     # ---- 保密门禁：交付件必须带仓外私盐（--salt-file 优先，其次环境变量，盐必须在仓库外） ----
     salt_file = args.salt_file if args.salt_file is not None else os.environ.get(SALT_ENV) or None
     salt = None
@@ -1895,7 +2002,8 @@ def run(argv=None) -> int:
             max_source_share=args.benchmark_max_source_share,
             min_source_share=args.benchmark_min_source_share,
             min_source_items=args.benchmark_min_source_items,
-            exclude_ids=frozenset(referenced["referenced_ids"]))
+            exclude_ids=frozenset(referenced["referenced_ids"]) | rotation["ids"])
+        leaked_in_corpus = sum(1 for record in records_ if record["id"] in rotation["ids"])             if rotation["enabled"] else 0
         stats_["benchmark_exclusions"] = {
             "public_referenced_ids": len(referenced["referenced_ids"]),
             "scan_files": referenced["files"], "scan_skipped": referenced["skipped"],
@@ -1904,6 +2012,10 @@ def run(argv=None) -> int:
             "excluded_items": (stats_.get("benchmark_source_policy") or {}).get(
                 "excluded_public_items", 0),
             "enabled": bool(args.exclude_public_items),
+            "rotation_enabled": rotation["enabled"],
+            "rotation_exclude_ids": rotation["unique"],
+            "rotation_exclude_file_sha256": rotation["file_sha256"],
+            "rotation_ids_in_corpus": leaked_in_corpus,
         }
         stats_["group_id_gate"] = {
             "required_langs": list(required_langs),
@@ -2018,9 +2130,11 @@ def run(argv=None) -> int:
           f"最大来源 {source_report.get('max_source')} 占 {source_report.get('max_share', 0):.1%}，"
           f"硬上限{'满足' if source_report.get('cap_ok') else '**不满足**'}")
     exclusions_stat = stats.get("benchmark_exclusions") or {}
-    if args.exclude_public_items:
-        print(f"benchmark 公开引用排除：{exclusions_stat.get('excluded_items', 0)} 条"
-              f"（{exclusions_stat.get('excluded_groups', 0)} 组）已排除出候选")
+    if rotation["enabled"]:
+        print(f"benchmark 轮换排除：名单 {exclusions_stat.get('rotation_exclude_ids', 0)} 个 id，"
+              f"其中 {exclusions_stat.get('rotation_ids_in_corpus', 0)} 个在语料里；"
+              f"与公开引用排除合计 {exclusions_stat.get('excluded_items', 0)} 条"
+              f"（{exclusions_stat.get('excluded_groups', 0)} 组）排除出候选")
     print("benchmark 语言政策：" + "可进=" + (",".join(lang_policy.get("benchmark_langs", [])) or "不限")
           + "；显式排除=" + (",".join(lang_policy.get("exclusions", {})) or "无"))
     if args.dry_run:
@@ -2069,6 +2183,17 @@ def run(argv=None) -> int:
             "content_overlap_exclusion": {
                 "excluded_groups": (source_report.get("content_overlap") or {}).get("excluded_groups", 0),
                 "note": "state 正文被公开侧条目完整包含的保留组整组移出 benchmark（正文已公开）。"},
+            "benchmark_rotation": {
+                "enabled": bool((stats_.get("benchmark_exclusions") or {}).get("rotation_enabled")),
+                "exclude_ids": (stats_.get("benchmark_exclusions") or {}).get("rotation_exclude_ids", 0),
+                "exclude_file_sha256": (stats_.get("benchmark_exclusions") or {}).get(
+                    "rotation_exclude_file_sha256"),
+                "ids_in_corpus": (stats_.get("benchmark_exclusions") or {}).get(
+                    "rotation_ids_in_corpus", 0),
+                "supersedes_version": "0.4",
+                "reason": "v4 benchmark 成员的填充概率曾在公开 git 远端暴露（提交 b6a4909，约 2 小时），"
+                          "该批 id 已永久排除；v4 benchmark 作废，v5 与 v4 分数不可拼接。",
+            },
             "public_reference_exclusion": {
                 "enabled": bool(args.exclude_public_items),
                 "excluded_items": (stats_.get("benchmark_exclusions") or {}).get("excluded_items", 0),
@@ -2107,6 +2232,12 @@ def run(argv=None) -> int:
                 f"已从 benchmark 排除 {(stats_.get('benchmark_exclusions') or {}).get('excluded_items', 0)} 条"
                 "被公开文件引用过的条目（公开引用 = 已泄漏，不能进盲测集）。")
         overlap_groups_ = (source_report.get("content_overlap") or {}).get("excluded_groups", 0)
+        if (stats_.get("benchmark_exclusions") or {}).get("rotation_enabled"):
+            limitations_.append(
+                "**本包为 v5（轮换版）**：v4 曾有 "
+                f"{(stats_.get('benchmark_exclusions') or {}).get('rotation_exclude_ids', 0)} 个成员 id 的"
+                "填充概率在公开 git 远端暴露约 2 小时，这批 id 已永久排除，v4 benchmark 作废；"
+                "v5 与 v4 的分数不可拼接、不可混用。")
         if overlap_groups_:
             limitations_.append(
                 f"已从 benchmark 整组剔除 {overlap_groups_} 个「内容重叠」组：它们的 state 正文被公开侧"
@@ -2165,6 +2296,8 @@ def run(argv=None) -> int:
         command_parts.append(f"--benchmark-min-source-items {args.benchmark_min_source_items}")
     if args.exclude_public_items:
         command_parts.append("--exclude-public-items")
+    if args.benchmark_exclude_ids is not None:
+        command_parts.append("--benchmark-exclude-ids <轮换排除名单（仓外）>")
     for derived in derived_skip_paths:
         command_parts.append(f"--derived-skip {derived.as_posix()}")
     for supplement_path in supplement_paths:
@@ -2207,6 +2340,20 @@ def run(argv=None) -> int:
             "rows": (stats.get("benchmark_source_policy") or {}).get("rows", []),
         },
         "benchmark_exclusions": stats.get("benchmark_exclusions") or {},
+        "incident": ({
+            "id": "jev-probs-benchmark-leak-2026-10-20",
+            "leaked_artifact": "datasets/general/data/jev-probs.jsonl.gz",
+            "leaked_commit": "b6a4909",
+            "fixed_commit": "c74eebb",
+            "leaked_artifact_sha256": "e9f02824741353cca13add708fc4359034aaf7ad0d92174a05540a5d6fdbeada",
+            "leaked_artifact_rows": 15223,
+            "leaked_artifact_ids": 14092,
+            "benchmark_intersection": 1621,
+            "handling": "amend + force-with-lease 修正交付件；benchmark 轮换：1,621 个 id 写入仓外永久"
+                        "排除名单，同一私盐/种子重切；v4 benchmark 作废，v5 与 v4 不可拼接。",
+            "exclude_file_sha256": (stats.get("benchmark_exclusions") or {}).get(
+                "rotation_exclude_file_sha256"),
+        } if (stats.get("benchmark_exclusions") or {}).get("rotation_enabled") else None),
         "benchmark_lang_policy": stats.get("benchmark_lang_policy") or {},
         "corpus_composition": {
             "items": len(first["items"]),

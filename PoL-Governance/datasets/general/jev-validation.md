@@ -2,7 +2,7 @@
 
 > 本报告含两部分：**第一阶段**（与语料真值的分层一致性校验，第 1–7 节）与**第二阶段**（旁挂 probs 的补全/升级，第 8 节；两条线分开统计）。
 
-> 生成时间：2026-10-20T10:48:28+00:00 ｜ 生成脚本：jev-v0.1（[jev_fill.py](jev_fill.py)）
+> 生成时间：2026-10-20T13:19:11+00:00 ｜ 生成脚本：jev-v0.1（[jev_fill.py](jev_fill.py)）
 > 语料：`datasets/general/data/items.final.jsonl`（明文不入库，见 .gitignore；只读，未改动）
 >
 > ⚠️ **语料版本说明**：第一阶段抽样基于 plan 记录的语料版本（sha256 前缀 `21f11fe3dc39edd9`）；**会话期间语料被其他任务重建**，当前版本 sha256 前缀 `47df533ec00bc94d`、target 数 82,843（旧版 31,786）。已核对：**旧版 target 0 缺失**（第一阶段 300 条抽样、jev-router 1,883 条、mercury 7,907 条全部仍能对上冻结语料），因此第一阶段的结论不受影响；但 8.4 的形态构成表按**当前版本**统计。
@@ -529,11 +529,15 @@ uv run --no-project --offline python datasets/general/jev_fill.py verify --out d
 |---|---|---|---|---|---|---|
 | A. mercury-decide noul | `mercury_decide_native` | 7,907 | 7,907 | **6,524** | `answer_mismatch 1,323、degenerate:uniform 60` | $0.0472 |
 | C. jev-router zh choice | `jev_router` | 7,872 | 1,883 | **841** | `not_called_or_failed 5,989、degenerate:one_hot 1,026、answer_mismatch 16` | $0.5843 |
-| B. mercury-decide choice | `mercury_decide_native` | 51,057 | 9,762 | **7,858** | `answer_mismatch 1,880、degenerate:uniform 24` | $0.0901 |
+| B. mercury-decide choice | `mercury_decide_native` | 51,057 | 51,057 | **41,138** | `answer_mismatch 9,862、degenerate:uniform 57` | $0.3538 |
 
 **护栏在起作用，这不是失败**：被门禁拒绝的条目**宁可少补也不塞假概率**。jev-router 那条线里 1,026 条因为输出是退化 one-hot（伪概率）被拒——这正是契约 2.3 诊断出的问题，被门禁拦下来而不是写进旁挂文件；另有 16 条 argmax 与语料 answer 不一致被拒（硬约束，绝不写）。
 
-覆盖范围提醒：当前语料 answer-only 共 59,474 条（其中 choice 58,929 条）。jev-router 线只覆盖旧语料 zh choice 的一小部分；新增的 answer-only choice 由 mercury 线补，**本报告写成时已补 7,858 条、剩余 43,199 条未补**（受 key 额度所限中途停止，journal 可续跑）。
+**覆盖范围提醒**：当前语料 answer-only 共 59,474 条（choice 58,929 / score 545）。
+- **已尝试** 52,940 条（mercury choice 51,057 + jev-router 1,883）→ 写入 41,979 条，其余 10,961 条因 argmax 与语料不一致 / 输出退化被拒、**保持硬标签**；
+- **未尝试** 6,534 条：旧语料 zh choice 约 5,989 条（jev-router 线中断后，mercury 线按设计只跑新增的 51,057 条）+ score 545 条（criteria 格式不同，本轮未补）。
+
+mercury choice 线本身**已跑完全部 51,057 条**，不再受额度限制。
 
 旁挂交付文件：`datasets/general/data/jev-probs.jsonl`；每行都带 `distribution_semantics` / `upstream_model` / `created_at` / `corpus_shape`（mercury 线）与 `answer`（门禁依据）。**冻结语料未修改。**
 
@@ -544,15 +548,23 @@ uv run --no-project --offline python datasets/general/jev_fill.py verify --out d
 | 原生软分布（来源自己给的） | 7,520 | 5,421 |
 | 伪 one-hot（硬标签单点分布） | 14,119 | 10,658 |
 | 均匀分布（无信息） | 1,730 | 766 |
-| 仅硬标签：**还没尝试补全** | 59,474 | 47,829 |
-| 仅硬标签：**尝试过但与我们不一致**（被门禁拒绝、保持原样） | 0 | 2,946 |
+| 仅硬标签：**还没尝试补全** | 59,474 | 6,534 |
+| 仅硬标签：**尝试过但与我们不一致**（被门禁拒绝、保持原样） | 0 | 10,961 |
 | 新补：mercury noul 原生概率（升级伪 one-hot / 均匀） | 0 | 6,524 |
-| 新补：mercury choice + jev-router 分布（**只在一致时写入，有选择偏差**） | 0 | 8,699 |
+| 新补：mercury choice + jev-router 分布（**只在一致时写入，有选择偏差**） | 0 | 41,979 |
 | 合计 | 82,843 | 82,843 |
 
 读法：`采用旁挂后` 列假设消费方**优先使用旁挂 probs、没有旁挂的沿用语料**；所有条目在旁挂文件里按 `distribution_semantics` + `corpus_shape` 可区分。
 
 **两个「仅硬标签」不要混为一谈**：前者是**还没尝试补**，后者是**补了但 mercury 与我们分歧、按门禁不写**——训练价值不同，所以单列。
+
+**交付面（保密约束）**：入库的旁挂件只保留**公开面** 44,740 条（本地全量 48,503 条，剔除 3,763 条 benchmark / 私有保留集成员）。原因：sidecar 的 `id` 列等于一份**成员名单**，含 benchmark 成员的入库件会踩保密护栏（`test_split.SecrecyTest.test_tracked_files_contain_no_benchmark_records`）。本地全量保留在 `data/jev/jev-probs.full.jsonl`（gitignore），供内部审计。
+
+**换个口径看训练价值**（README §4.4 口径：分母 = 公开件 74,853 + 补充集 3,148 = 78,001；「真概率分布」= shape_class ∈ {soft, tie_subset}）：
+
+- 补全前：**5,945 条 = 7.62%**（v4 语料时为 7.61%；这里按 v5 公开面重算）
+- 采用旁挂 probs 后：**48,941 条 = 62.74%**（**+55.12 pp**）
+- 新增可用软分布 42,996 条（jev_router 841；mercury_decide_native 42,155）；1,744 条本来就是来源真分布（不重复计）。
 
 ### 8.5 一致性偏差与分歧分层（训练方必读）
 
@@ -562,11 +574,11 @@ uv run --no-project --offline python datasets/general/jev_fill.py verify --out d
 
 | 来源 | 已调用 | 写入 | 写入率 | 被拒（不一致/退化） |
 |---|---|---|---|---|
-| mercury choice | 9,762 | 7,858 | 80.5% | 1,904 |
+| mercury choice | 51,057 | 41,138 | 80.6% | 9,919 |
 | jev-router zh choice | 1,883 | 841 | 44.7% | 1,042 |
-| 合计 | 11,645 | 8,699 | 74.7% | 2,946 |
+| 合计 | 52,940 | 41,979 | 79.3% | 10,961 |
 
-**后果（训练方必须知道）**：这 8,699 条软分布系统性偏向**双方共识题/简单题**；分歧的 2,946 条恰恰可能是边界样本、有争议样本。**不要把它当随机子集**，也不要因为“有了软分布”就认为该人群质量更高——它只是“双方意见一致”的那部分。
+**后果（训练方必须知道）**：这 41,979 条软分布系统性偏向**双方共识题/简单题**；分歧的 10,961 条恰恰可能是边界样本、有争议样本。**不要把它当随机子集**，也不要因为“有了软分布”就认为该人群质量更高——它只是“双方意见一致”的那部分。
 
 #### 8.5.2 criteria 模板会不会泄漏答案？对照实验：**不泄漏**
 
@@ -579,7 +591,7 @@ uv run --no-project --offline python datasets/general/jev_fill.py verify --out d
 
 同一批 30 个 qid、四种模板的 argmax 一致性（相对当前模板 T1）：N1_neutral 28/30 = 93.3%；N2_neutral 30/30 = 100.0%；N3_neutral 29/30 = 96.7%。
 
-**结论**：换成中性判据后一致率**没有下降**（反而略升），argmax 跨模板一致性 93–100%，平均最大概率基本不变——说明判断由 state/instructions 驱动，**不是被 criteria 措辞带偏**；模板不构成答案泄漏，已写入的 7,858 条统计没有被这个模板抬高。
+**结论**：换成中性判据后一致率**没有下降**（反而略升），argmax 跨模板一致性 93–100%，平均最大概率基本不变——说明判断由 state/instructions 驱动，**不是被 criteria 措辞带偏**；模板不构成答案泄漏，已写入的 41,138 条统计没有被这个模板抬高。
 
 #### 8.5.3 分歧分层：哪些 config 的不一致高
 
@@ -587,48 +599,62 @@ uv run --no-project --offline python datasets/general/jev_fill.py verify --out d
 
 | source question key | 已调用 | 一致 | 一致率 | label_confidence |
 |---|---|---|---|---|
-| `intersect_geometry` | 604 | 128 | 21.2% | `low_consensus` |
-| `tracking_shuffled_objects` | 603 | 286 | 47.4% | `low_consensus` |
-| `crash_blossom` | 8 | 4 | 50.0% | `insufficient_sample` |
-| `presuppositions_as_nli` | 222 | 141 | 63.5% | `low_consensus` |
-| `mathematical_induction` | 25 | 16 | 64.0% | `low_consensus` |
-| `riddle_sense` | 10 | 7 | 70.0% | `medium_consensus` |
-| `logic_grid_puzzle` | 304 | 216 | 71.1% | `medium_consensus` |
-| `symbol_interpretation` | 315 | 225 | 71.4% | `medium_consensus` |
-| `winowhy` | 594 | 447 | 75.3% | `medium_consensus` |
-| `elementary_math_qa` | 565 | 431 | 76.3% | `medium_consensus` |
-| `disambiguation_qa` | 79 | 61 | 77.2% | `medium_consensus` |
-| `cs_algorithms` | 387 | 318 | 82.2% | `medium_consensus` |
-| `evaluating_information_essentiality` | 19 | 16 | 84.2% | `medium_consensus` |
-| `analytic_entailment` | 19 | 16 | 84.2% | `medium_consensus` |
-| `implicit_relations` | 27 | 23 | 85.2% | `medium_consensus` |
-| `epistemic_reasoning` | 618 | 529 | 85.6% | `medium_consensus` |
-| `snarks` | 53 | 46 | 86.8% | `medium_consensus` |
-| `logical_deduction` | 436 | 384 | 88.1% | `medium_consensus` |
-| `formal_fallacies_syllogisms_negation` | 566 | 501 | 88.5% | `medium_consensus` |
-| `understanding_fables` | 57 | 51 | 89.5% | `medium_consensus` |
-| `unit_conversion` | 576 | 520 | 90.3% | `medium_consensus` |
-| `vitaminc_fact_verification` | 610 | 551 | 90.3% | `medium_consensus` |
-| `navigate` | 299 | 271 | 90.6% | `medium_consensus` |
-| `sentence_ambiguity` | 22 | 20 | 90.9% | `medium_consensus` |
-| `date_understanding` | 112 | 103 | 92.0% | `medium_consensus` |
-| `checkmate_in_one` | 589 | 552 | 93.7% | `medium_consensus` |
-| `entailed_polarity` | 41 | 39 | 95.1% | `high_consensus` |
-| `question_selection` | 476 | 467 | 98.1% | `high_consensus` |
-| `logical_fallacy_detection` | 593 | 582 | 98.1% | `high_consensus` |
-| `arithmetic` | 607 | 596 | 98.2% | `high_consensus` |
-| `temporal_sequences` | 313 | 311 | 99.4% | `high_consensus` |
-| `known_unknowns` | 13 | 13 | 100.0% | `high_consensus` |
+| `intersect_geometry` | 1565 | 315 | 20.1% | `low_consensus` |
+| `tracking_shuffled_objects` | 1565 | 760 | 48.6% | `low_consensus` |
+| `mathematical_induction` | 53 | 34 | 64.2% | `low_consensus` |
+| `presuppositions_as_nli` | 588 | 379 | 64.5% | `low_consensus` |
+| `symbol_interpretation` | 795 | 539 | 67.8% | `low_consensus` |
+| `logic_grid_puzzle` | 800 | 560 | 70.0% | `medium_consensus` |
+| `winowhy` | 1565 | 1132 | 72.3% | `medium_consensus` |
+| `crash_blossom` | 22 | 16 | 72.7% | `medium_consensus` |
+| `elementary_math_qa` | 1565 | 1179 | 75.3% | `medium_consensus` |
+| `riddle_sense` | 33 | 25 | 75.8% | `medium_consensus` |
+| `disambiguation_qa` | 207 | 164 | 79.2% | `medium_consensus` |
+| `implicit_relations` | 68 | 54 | 79.4% | `medium_consensus` |
+| `analytic_entailment` | 54 | 43 | 79.6% | `medium_consensus` |
+| `cs_algorithms` | 1056 | 850 | 80.5% | `medium_consensus` |
+| `question` | 25262 | 20494 | 81.1% | `medium_consensus` |
+| `evaluating_information_essentiality` | 52 | 44 | 84.6% | `medium_consensus` |
+| `epistemic_reasoning` | 1565 | 1330 | 85.0% | `medium_consensus` |
+| `navigate` | 800 | 697 | 87.1% | `medium_consensus` |
+| `date_understanding` | 296 | 259 | 87.5% | `medium_consensus` |
+| `snarks` | 145 | 127 | 87.6% | `medium_consensus` |
+| `formal_fallacies_syllogisms_negation` | 1565 | 1373 | 87.7% | `medium_consensus` |
+| `logical_deduction` | 1200 | 1056 | 88.0% | `medium_consensus` |
+| `sentence_ambiguity` | 44 | 39 | 88.6% | `medium_consensus` |
+| `vitaminc_fact_verification` | 1565 | 1405 | 89.8% | `medium_consensus` |
+| `unit_conversion` | 1565 | 1435 | 91.7% | `medium_consensus` |
+| `understanding_fables` | 152 | 140 | 92.1% | `medium_consensus` |
+| `checkmate_in_one` | 1565 | 1468 | 93.8% | `medium_consensus` |
+| `entailed_polarity` | 119 | 114 | 95.8% | `high_consensus` |
+| `known_unknowns` | 30 | 29 | 96.7% | `high_consensus` |
+| `logical_fallacy_detection` | 1565 | 1534 | 98.0% | `high_consensus` |
+| `arithmetic` | 1565 | 1536 | 98.1% | `high_consensus` |
+| `question_selection` | 1266 | 1243 | 98.2% | `high_consensus` |
+| `temporal_sequences` | 800 | 798 | 99.8% | `high_consensus` |
 
-**一致率 < 70% 且样本 ≥ 10 的 config（标 `low_consensus`）**：`intersect_geometry` 128/604 = 21.2%；`tracking_shuffled_objects` 286/603 = 47.4%；`presuppositions_as_nli` 141/222 = 63.5%；`mathematical_induction` 16/25 = 64.0%。这些是**关于该来源标签质量的信号**：要么 mercury 不擅长这类题（几何/多步追踪），要么语料标签本身有噪声——现有证据不足以区分，但**该子集的标签未经双方互证**。
+**一致率 < 70% 且样本 ≥ 10 的 config（标 `low_consensus`）**：`intersect_geometry` 315/1565 = 20.1%；`tracking_shuffled_objects` 760/1565 = 48.6%；`mathematical_induction` 34/53 = 64.2%；`presuppositions_as_nli` 379/588 = 64.5%；`symbol_interpretation` 539/795 = 67.8%。这些是**关于该来源标签质量的信号**：要么 mercury 不擅长这类题（几何/多步追踪），要么语料标签本身有噪声——现有证据不足以区分，但**该子集的标签未经双方互证**。
 
 **label_confidence 标记方案（已写进旁挂）**：
 
 - `high_consensus`：双方一致率 ≥ 95%；`medium_consensus`：70%–95%；`low_consensus`：< 70%（n ≥ 10）；`insufficient_sample`：n < 10 不下结论。
 - 每条 choice 旁挂行都带 `label_confidence` / `consensus_agree` / `consensus_n`；机器可读总表在 `data/jev/label-confidence.json`。
-- 旁挂 choice 行按标记的分布：`high_consensus` 2,008；`insufficient_sample` 4；`low_consensus` 570；`medium_consensus` 5,276。
+- 旁挂 choice 行按标记的分布：`high_consensus` 7,587；`low_consensus` 2,026；`medium_consensus` 38,890。
 
 **语义**：`label_confidence` 衡量「我们与该子集的 mercury 判断是否互相印证」，**不是「标签对错」**。`low_consensus` = 该子集标签未经双方互证，训练时应降权或标记复核，**不要和 high_consensus 同等对待**。（这是给训练方的路由信号，不是把标签判死。）
+
+#### 8.5.4 另一条线的互证率：noul 按来源 dataset
+
+| source dataset | 已调用 | 一致 | 一致率 | label_confidence |
+|---|---|---|---|---|
+| `SargeDev/jev-distill-corpus-v3` | 4053 | 2943 | 72.6% | `medium_consensus` |
+| `kaivoss/system-one-270m-data` | 489 | 436 | 89.2% | `medium_consensus` |
+| `tasksource/procedural-typed-decisions` | 1872 | 1692 | 90.4% | `medium_consensus` |
+| `ZefanCai/Open-Jev` | 1493 | 1492 | 99.9% | `high_consensus` |
+
+noul 线没有 `low_consensus` 子集：最差的来源仍高于 70% 门槛。注意 noul 的互证率整体低于 choice 的头部 config——这与第一阶段 noul 在部分分层「等于随机」的发现一致，训练时应结合 `label_confidence` 一起看。
+
+**jev-router 线（Deepexi/openai-formate-function-calling-small）**：argmax 与语料一致率 **99.2%**（1867/1883）→ `high_consensus`。**重要区分**：它的写入率只有 44.7%，但被拒的 1,026 条里绝大多数是**输出退化成伪 one-hot**（判断其实与语料一致）——所以这条线的问题在**分布质量**，**不在标注一致性**。`label_confidence` 衡量的是后者，故它是 high；选分布做训练时仍要按 8.3 的写入门禁走。
 
 ## 9. 产物
 
@@ -645,7 +671,10 @@ uv run --no-project --offline python datasets/general/jev_fill.py verify --out d
 | `datasets/general/data/jev/mercury-choice-probs.jsonl` | mercury choice 线写出的 answer-only 分布 |
 | `datasets/general/data/jev/fill-plan-dist-zh-choice.jsonl` | jev-router 线请求清单（7,872 条 zh choice） |
 | `datasets/general/data/jev/fill-calls-dist.jsonl` | jev-router 线逐次调用 journal |
-| `datasets/general/data/jev-probs.jsonl` | **交付文件**：两条线合并后的旁挂概率（按 distribution_semantics 区分） |
+| `datasets/general/data/jev-probs.jsonl` | **交付文件**：三位一体合并后的旁挂概率（按 distribution_semantics 区分） |
+| `datasets/general/data/jev-probs.jsonl.gz` | **公开面**交付件的确定性压缩版（44,740 行；不入库的明文被 .gitignore 挡住） |
+| `datasets/general/data/jev/jev-probs.full.jsonl` | 本地全量旁挂件（48,503 行，含 benchmark/保留集成员，gitignore、不入库） |
+| `datasets/general/data/jev/label-confidence.json` | 两条线合并的 label_confidence 总表（按 source/ config） |
 
 冻结语料只读：`items.final.jsonl` 与 `data/splits/` 四区文件在本任务中未被写入。
 

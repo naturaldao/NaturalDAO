@@ -1,11 +1,15 @@
 {
   "benchmark_exclusions": {
     "enabled": true,
-    "excluded_groups": 5,
-    "excluded_items": 8,
-    "public_referenced_ids": 5821,
-    "scan_files": 301,
-    "scan_skipped": 24
+    "excluded_groups": 1615,
+    "excluded_items": 1660,
+    "public_referenced_ids": 5846,
+    "rotation_enabled": true,
+    "rotation_exclude_file_sha256": "eee534294c6229234208cd645573ca7146f26ade86f055b05ae3b0ddc405f930",
+    "rotation_exclude_ids": 1621,
+    "rotation_ids_in_corpus": 1621,
+    "scan_files": 319,
+    "scan_skipped": 26
   },
   "benchmark_lang_policy": {
     "benchmark_langs": [
@@ -25,107 +29,107 @@
   "benchmark_source_policy": {
     "cap_ok": true,
     "content_overlap": {
-      "checked_items": 6705,
-      "excluded_groups": 1,
-      "fallback_scans": 293
+      "checked_items": 6541,
+      "excluded_groups": 0,
+      "fallback_scans": 286
     },
-    "excluded_public_groups": 5,
-    "excluded_public_items": 8,
-    "items": 6704,
-    "max_items": 1675,
-    "max_share": 0.2498508353221957,
+    "excluded_public_groups": 1615,
+    "excluded_public_items": 1660,
+    "items": 6541,
+    "max_items": 1634,
+    "max_share": 0.24980889772206086,
     "max_source": "tasksource/bigbench",
     "max_source_share": 0.25,
     "min_items": 100,
     "min_source_items": 100,
     "min_source_share": 0.01,
     "policy": {
-      "bound_share": 0.2498508353221957,
+      "bound_share": 0.24980889772206086,
       "cap_enforced": true,
-      "cap_items": 1675,
+      "cap_items": 1634,
       "cap_policy": "policy",
-      "eligible_items": 67032,
+      "eligible_items": 65380,
       "eligible_sources": 8,
-      "feasible_bound": 838,
+      "feasible_bound": 818,
       "floor_items": 100,
       "max_source_share": 0.25,
       "min_source_items": 100,
       "min_source_share": 0.01,
-      "pool_total": 67032,
-      "target_items": 6703
+      "pool_total": 65380,
+      "target_items": 6538
     },
     "rows": [
       {
         "dataset": "allenai/cosmos_qa",
-        "items": 1675,
-        "pool": 25262,
-        "pool_share": 0.37686478100011933,
-        "quota": 1675,
-        "share": 0.2498508353221957,
-        "take_rate": 0.06630512231810624
+        "items": 1634,
+        "pool": 25260,
+        "pool_share": 0.38635668400122364,
+        "quota": 1634,
+        "share": 0.24980889772206086,
+        "take_rate": 0.06468725257323832
       },
       {
         "dataset": "tasksource/bigbench",
-        "items": 1675,
-        "pool": 25795,
-        "pool_share": 0.3848162071846282,
-        "quota": 1675,
-        "share": 0.2498508353221957,
-        "take_rate": 0.06493506493506493
+        "items": 1634,
+        "pool": 25262,
+        "pool_share": 0.3863872743958397,
+        "quota": 1634,
+        "share": 0.24980889772206086,
+        "take_rate": 0.06468213126434962
       },
       {
         "dataset": "SargeDev/jev-distill-corpus-v3",
-        "items": 1626,
-        "pool": 7755,
-        "pool_share": 0.11569101324740423,
-        "quota": 1625,
-        "share": 0.2425417661097852,
-        "take_rate": 0.20967117988394585
+        "items": 1571,
+        "pool": 7162,
+        "pool_share": 0.10954420312022026,
+        "quota": 1568,
+        "share": 0.24017734291392753,
+        "take_rate": 0.2193521362747836
       },
       {
         "dataset": "samatv256/jev-decisions-v1",
-        "items": 838,
+        "items": 876,
         "pool": 4003,
-        "pool_share": 0.05971774674782194,
-        "quota": 838,
-        "share": 0.125,
-        "take_rate": 0.20934299275543342
-      },
-      {
-        "dataset": "tasksource/procedural-typed-decisions",
-        "items": 314,
-        "pool": 1499,
-        "pool_share": 0.022362453753431197,
-        "quota": 314,
-        "share": 0.04683770883054893,
-        "take_rate": 0.209472981987992
+        "pool_share": 0.06122667482410523,
+        "quota": 876,
+        "share": 0.13392447637975843,
+        "take_rate": 0.21883587309517863
       },
       {
         "dataset": "dwidlee/systemone-lite-general",
-        "items": 310,
+        "items": 324,
         "pool": 1479,
-        "pool_share": 0.022064088793412102,
-        "quota": 310,
-        "share": 0.046241050119331745,
-        "take_rate": 0.20960108181203516
+        "pool_share": 0.02262159681859896,
+        "quota": 324,
+        "share": 0.049533710441828464,
+        "take_rate": 0.21906693711967545
+      },
+      {
+        "dataset": "tasksource/procedural-typed-decisions",
+        "items": 265,
+        "pool": 1213,
+        "pool_share": 0.018553074334658918,
+        "quota": 265,
+        "share": 0.040513682923100446,
+        "take_rate": 0.21846661170651277
       },
       {
         "dataset": "ZefanCai/Open-Jev",
-        "items": 166,
-        "pool": 792,
-        "pool_share": 0.011815252416756176,
-        "quota": 166,
-        "share": 0.024761336515513127,
-        "take_rate": 0.20959595959595959
+        "items": 137,
+        "pool": 626,
+        "pool_share": 0.009574793514836342,
+        "quota": 137,
+        "share": 0.02094480966213117,
+        "take_rate": 0.21884984025559107
       },
       {
         "dataset": "kaivoss/system-one-270m-data",
         "items": 100,
-        "pool": 447,
-        "pool_share": 0.006668456856426782,
+        "pool": 375,
+        "pool_share": 0.0057356989905169775,
         "quota": 100,
-        "share": 0.014916467780429593,
-        "take_rate": 0.22371364653243847
+        "share": 0.015288182235132243,
+        "take_rate": 0.26666666666666666
       }
     ]
   },
@@ -152,33 +156,45 @@
     "items": 74912
   },
   "corpus_counts": {
-    "benchmark": 6704,
-    "test": 15157,
-    "train": 45472,
-    "validation": 7579
+    "benchmark": 6541,
+    "test": 15194,
+    "train": 45580,
+    "validation": 7597
   },
   "corpus_items": 74912,
   "counts": {
-    "benchmark": 6704,
-    "test": 15157,
-    "train": 48620,
-    "validation": 7579
+    "benchmark": 6541,
+    "test": 15194,
+    "train": 48728,
+    "validation": 7597
   },
   "digests": {
-    "benchmark-dataset/README.md": "649739bfa8dd64311fa9e97ddf7b4bc123c754736163ae50f52f65d986dd88cc",
-    "benchmark-dataset/USAGE.md": "bfb642952eba7de9fb3f62a026d6a7f651f0c2ac71001982ab90d6ac6ddfe176",
-    "benchmark-dataset/benchmark.jsonl": "9ee0fc30405a59a4b51afbe649f4d5d16de2759dffac46ef3624a4e4d4ab4394",
-    "benchmark-dataset/benchmark.jsonl.gz": "8ac0a608ee630695e2192b923812a73f5e2330fa8c3fdb3c85fb75d18fd6fe67",
-    "benchmark-dataset/manifest.json": "94dde78de0c7b12cc80f99bb11ebb64fb21913b4ddef10c5e72a0d7cbf2829e2",
+    "benchmark-dataset/README.md": "5e75e920bc9842a9cc2988ae143b163d6dc0cd2255dd0c4ec895bb0af5b8ff33",
+    "benchmark-dataset/USAGE.md": "be0389fadb1b4862a47db8f455a0feda8f10a4bb6327cb7132d15f4b2467d027",
+    "benchmark-dataset/benchmark.jsonl": "ef13fa8b5cd97b31ea35bc4b0edff0f9b6a0755c763a5694c05ee9a2db7d68b1",
+    "benchmark-dataset/benchmark.jsonl.gz": "9ded40610da85bb842b747ac8f3341d96e75cf8b09f8e56c22b192db1c24d04f",
+    "benchmark-dataset/manifest.json": "d74a3adef946fdceadd4232bcd860b880e3045daf608ef757656b10cdf669c45",
     "benchmark-dataset/verify.py": "62bc052a41746b2cc127ff06973da09bfc334ae54116d11dc2117625aa3df367",
-    "benchmark.jsonl": "9ee0fc30405a59a4b51afbe649f4d5d16de2759dffac46ef3624a4e4d4ab4394",
-    "benchmark.jsonl.gz": "8ac0a608ee630695e2192b923812a73f5e2330fa8c3fdb3c85fb75d18fd6fe67",
-    "test.jsonl": "903501f8bfd5a7cad62e0da59af510ab6b851ae1423816eabd1ccf8aa1d71d61",
-    "test.jsonl.gz": "42d2e040b5bca14aec6762e313f185dfd184483659eddacffffa900cb8b104f8",
-    "train.jsonl": "a29be41f30b01b63a0be48fcb3042178f8bc7a038d7e151c0a538e2a32d7a19e",
-    "train.jsonl.gz": "c8585fa445f7067976861b94ee7a4296a0524ac38add889037b7771b55c102c3",
-    "validation.jsonl": "8c3c1052c287eceac003832f7975591a2cdcd652678b49a4d7e9432b80289793",
-    "validation.jsonl.gz": "41c5a4f4f09d377d117f38411b8e339039d1abbe3c05a5a57401bf93328fe8b0"
+    "benchmark.jsonl": "ef13fa8b5cd97b31ea35bc4b0edff0f9b6a0755c763a5694c05ee9a2db7d68b1",
+    "benchmark.jsonl.gz": "9ded40610da85bb842b747ac8f3341d96e75cf8b09f8e56c22b192db1c24d04f",
+    "test.jsonl": "ba8d92c31392feb4a0373ed1fe690b577537077145057ff6ff609224c6640e53",
+    "test.jsonl.gz": "8eaf7e05cf8987f0f4cc80f835ead8a06c373255548f9212cfb8e04eec64570b",
+    "train.jsonl": "5f5d1991acda57ff624646bd9800dba4de26824db07eb6fb425825cf28f37fa2",
+    "train.jsonl.gz": "3ed32351336156167440572daba53e50a22d943a977a407dc4b0828a236ad4f1",
+    "validation.jsonl": "4f9be4caecbddf1fea992fc3fb44404bf66f39aed13bec5b545fa98d243beaa1",
+    "validation.jsonl.gz": "23ea40db848cb7f5906476195ea2d99c207b8136e4759c46e71f6b807d451086"
+  },
+  "incident": {
+    "benchmark_intersection": 1621,
+    "exclude_file_sha256": "eee534294c6229234208cd645573ca7146f26ade86f055b05ae3b0ddc405f930",
+    "fixed_commit": "c74eebb",
+    "handling": "amend + force-with-lease 修正交付件；benchmark 轮换：1,621 个 id 写入仓外永久排除名单，同一私盐/种子重切；v4 benchmark 作废，v5 与 v4 不可拼接。",
+    "id": "jev-probs-benchmark-leak-2026-10-20",
+    "leaked_artifact": "datasets/general/data/jev-probs.jsonl.gz",
+    "leaked_artifact_ids": 14092,
+    "leaked_artifact_rows": 15223,
+    "leaked_artifact_sha256": "e9f02824741353cca13add708fc4359034aaf7ad0d92174a05540a5d6fdbeada",
+    "leaked_commit": "b6a4909"
   },
   "inputs": [
     "datasets/general/data/items.final.jsonl"
@@ -195,15 +211,15 @@
       "verify.py"
     ],
     "verify": "python verify.py（在包目录内运行，退出码 0=通过）",
-    "version": "0.4"
+    "version": "0.5"
   },
-  "package_version": "0.4",
+  "package_version": "0.5",
   "public_surface_audit": {
     "hit_count": 0,
     "hit_files": [],
-    "ids": 6704,
+    "ids": 6541,
     "note": "被 git 跟踪的文件（.gz 解压后）对 benchmark 的 id 与正文零命中；--audit-public-surface 可单独复跑。不记录扫描文件数：它随仓库增删变化，会破坏重跑一致性。",
-    "texts": 5949
+    "texts": 5773
   },
   "ratios": {
     "benchmark": 0.1,
@@ -211,11 +227,11 @@
     "train": 0.6,
     "validation": 0.1
   },
-  "report_version": "v4",
+  "report_version": "v5",
   "rerun": {
     "files": 14,
     "identical": true,
-    "tree_sha256": "d087d29a7fb82d4ff13bc0a7a33c56e4abf80311df6c519f8be993ef2e70607f"
+    "tree_sha256": "4bdcbf7e0adde8c3862ba415f36be0a092c9363a12e1e0f33192c3183db55794"
   },
   "salt_policy": {
     "benchmark_langs": [

@@ -5,7 +5,7 @@
 > 本页给出可直接复跑的过滤清单、分区剩余数与参考实现。
 >
 > 依据：[target 溯源报告](target-provenance.md) §6 的 R1–R15 规则表；机器可读路由见
-> [target-types.jsonl.gz](data/target-types.jsonl.gz)（**74,449 行**，每条 target 一行；**只含公开分区**，
+> [target-types.jsonl.gz](data/target-types.jsonl.gz)（**74,853 行**，每条 target 一行；**只含公开分区**，
 > 见 §1.1）。
 > **本页不修改任何语料、不动任何划分。**
 
@@ -14,7 +14,7 @@
 ## 0. 一页结论
 
 > 本节与 §3 的数字是 **v3 语料口径**（31,786 target，含内部保留集），只作历史对照——v4 起
-> 分布由生成器从输入语料现算、不再写死。**落盘件只含公开分区**（v4：74,449 行），见 §1.1。
+> 分布由生成器从输入语料现算、不再写死。**落盘件只含公开分区**（v5：74,853 行），见 §1.1。
 
 | | 条数 | 训练怎么办 | 能不能当校准参照 |
 |---|---:|---|---|
@@ -44,7 +44,7 @@ documented 精确概率键上的非退化取值（报告 §3.6 / §5）。其余
 
 | 交付物 | 说明 |
 |---|---|
-| [target-types.jsonl.gz](data/target-types.jsonl.gz) | 旁挂路由，**74,449 行**，每条 target 一行，**只含公开分区**（§1.1）；明文 `data/target-types.jsonl` 由脚本生成（见 §8 的 .gitignore 说明） |
+| [target-types.jsonl.gz](data/target-types.jsonl.gz) | 旁挂路由，**74,853 行**，每条 target 一行，**只含公开分区**（§1.1）；明文 `data/target-types.jsonl` 由脚本生成（见 §8 的 .gitignore 说明） |
 | [target_types.py](target_types.py) | 生成器：实现 R1–R15；自检只断言可推导 / 内部一致的结论（v3 的 §6.3 基线不再当断言） |
 | [filter_targets.py](filter_targets.py) | 过滤与路由的参考实现：只读，打印各分区过滤前后条数 |
 | [test_target_types.py](test_target_types.py) | 不变量测试（`tools/check.py` 的 unittest discovery 会收进来） |
@@ -58,16 +58,16 @@ documented 精确概率键上的非退化取值（报告 §3.6 / §5）。其余
    `training_route == _training_route()` 复算，覆盖规则只可能是 R12/R13；
 3. `hard_label` ⇔ 转换器旗标 `hard_label_to_point_mass`；
 4. **原语料字节不变**：旁挂文件只读语料，不写回；
-5. **落盘件只含公开分区**，且**恰好**覆盖「公开分区 ∩ 语料」的每个 target（v4：74,449 条，一条不多、
+5. **落盘件只含公开分区**，且**恰好**覆盖「公开分区 ∩ 语料」的每个 target（v5：74,853 条，一条不多、
    一条不少）；白名单外的 target 一条都不出现（§1.1）。
 
 ### 1.1 旁挂文件只覆盖公开分区（内部保留集不入库）
 
 旁挂件按 `data/splits/{train,test,validation}` 的 item id **白名单**过滤，只写公开分区的 target。
-v4（74,912 条 / 82,843 target）实测：全量扫描 82,843 → 落盘 **74,449**，**8,394 个 target 属于内部保留集、
-未落盘**。
+v5 分区（语料 v4：74,912 条 / 82,843 target）实测：全量扫描 82,843 → 落盘 **74,853**，**7,990 个 target
+属于内部保留集、未落盘**（v5 轮换后 benchmark 6,541 条 / 7,990 target；v4 的 8,394 已随轮换作废）。
 
-**口径恒等式（v4）**：旁挂 **74,449** + 中文补充 **3,148** = 公开三分区 target 总数 **77,597**。
+**口径恒等式（v5）**：旁挂 **74,853** + 中文补充 **3,148** = 公开三分区 target 总数 **78,001**。
 中文补充（`db-zhtax-*`，只追加进 train 尾部、不参与切分）不在冻结语料里，因此**不写进旁挂件**——
 这是**口径决定**（两类来源不同，硬塞进同一个旁挂件会把 provenance 搅浑），**不是遗漏**；它们全部
 `answer_only`，由 `filter_targets.py` 的 `route_of_uncovered` 按形态兜底走 `classification`。
@@ -98,7 +98,7 @@ v4 起条数一律现算；这些表留给后续文档刷新任务统一清理�
 
 **v4 新增来源**：bigbench（25,795 条）与 cosmos_qa（25,262 条）已按 **R14 / R15** 登记（证据 E14 / E15，
 见 [target-provenance.md](target-provenance.md) §6.3/§6.4）：两者 `targets` 只有原生金答案、**没有 probs**，
-故 `target_type = answer_only`、`training_route = classification`；落盘件里 R14 24,120 条 / R15 23,587 条
+故 `target_type = answer_only`、`training_route = classification`；落盘件里 R14 24,161 条 / R15 23,628 条
 （其余在保留集）。
 
 ---
@@ -137,7 +137,7 @@ v4 起条数一律现算；这些表留给后续文档刷新任务统一清理�
 
 > **口径**：本节是 **v3 全量语料**（31,786 target，含内部保留集）的分布，只作历史对照——v4 起
 > 生成器不再对 §6.3 基线做断言，分布一律从输入语料现算。**不等于**已落盘的旁挂件
-> （v4 只含公开分区 74,449 行，见 §1.1）。
+> （v5 只含公开分区 74,853 行，见 §1.1）。
 
 ### 3.1 `target_type` 四类
 
@@ -206,14 +206,14 @@ R13 的 232 来自：open-jev 201 + `openjev_v2` 31。
 4. **7,520 条教师软分布 → 保留作蒸馏目标、不用于校准** → 其中 232 条并列占位按报告 §5 剔除，
    蒸馏集 = 7,288；**没有任何一条教师分布进入 `calibration_role = reference_probability`**。
 
-### 4.2 各分区过滤前后（v4 语料 74,912 条 / 82,843 target；+ 中文补充 3,148 = 产品 78,060 条）
+### 4.2 各分区过滤前后（v5 分区；语料 v4 74,912 条 / 82,843 target；+ 中文补充 3,148 = 产品 78,060 条）
 
 | 分区 | items | target 合计 | 剔除 `drop` | 分类 `classification` | 蒸馏 `distillation` | 过滤后保留 |
 |---|---:|---:|---:|---:|---:|---:|
-| train（语料内） | 45,472 | 49,482 | 1,051 | 44,721 | 3,710 | **48,431** |
-| test | 15,157 | 16,652 | 350 | 14,969 | 1,333 | **16,302** |
-| validation | 7,579 | 8,315 | 174 | 7,465 | 676 | **8,141** |
-| benchmark | 6,704 | 8,394 | 387 | 6,438 | 1,569 | **8,007** |
+| train（语料内） | 45,580 | 49,851 | 1,052 | 44,906 | 3,893 | **48,799** |
+| test | 15,194 | 16,641 | 335 | 15,018 | 1,288 | **16,306** |
+| validation | 7,597 | 8,361 | 184 | 7,598 | 579 | **8,177** |
+| benchmark | 6,541 | 7,990 | 391 | 6,071 | 1,528 | **7,599** |
 | **合计** | **74,912** | **82,843** | **1,962** | **73,593** | **7,288** | **80,881** |
 
 **train 分区还有一个尾巴**：[split-manifest.json](data/splits/split-manifest.json) 记的**中文补充**
@@ -222,7 +222,7 @@ R13 的 232 来自：open-jev 201 + `openjev_v2` 31。
 
 | 实际文件 | target 合计 | 剔除 | 分类 | 蒸馏 | 过滤后保留 |
 |---|---:|---:|---:|---:|---:|
-| `train.jsonl`（语料 train 49,482 + 补充 3,148） | 52,630 | 1,051 | 47,869 | 3,710 | **51,579** |
+| `train.jsonl`（语料 train 49,851 + 补充 3,148） | 52,999 | 1,052 | 48,054 | 3,893 | **51,947** |
 
 > 使用边界（AGENTS.md 数据边界）：`train` 用于梯度；`validation` 用于选模型；
 > `test` 只做回归、不用于梯度/教师生成/蒸馏/选阈值；`benchmark` 是内部保留集，
@@ -247,7 +247,7 @@ R13 的 232 来自：open-jev 201 + `openjev_v2` 31。
 | **drop（默认，按报告 §5）** | `filter_targets.py` | 1,962 | 7,288 | 80,881 |
 | `distill`（按任务书字面） | `filter_targets.py --ties distill` | 1,730 | 7,520 | 81,113 |
 
-`--ties distill` 下各分区：train 925 / test 310 / validation 154 / benchmark 341 被剔除。
+`--ties distill` 下各分区：train 936 / test 294 / validation 156 / benchmark 344 被剔除。
 
 **建议默认 `drop`**：那 232 条的 0.5 / 0.3333 表示「这几个选项并列」，不表示结果发生的概率
 （E8 原文：`do not represent measured model uncertainty`）。当蒸馏目标会教出「一有并列就报 50%」的行为。
@@ -282,14 +282,14 @@ R13 的 232 来自：open-jev 201 + `openjev_v2` 31。
 
 ### 4.6 校准口径
 
-`calibration_role = reference_probability` 的 **432** 条（v4 全量；旧来源未变，与 v3 相同），分布：
+`calibration_role = reference_probability` 的 **432** 条（全量；语料 v4 未变，故与 v3 一样仍是 432），分布随 v5 分区：
 
 | 分区 | 条数 |
 |---|---:|
-| train | 218 |
-| test | 89 |
-| validation | 34 |
-| benchmark | 91 |
+| train | 243 |
+| test | 71 |
+| validation | 43 |
+| benchmark | 75 |
 
 按 `meta.native_task`：`partial_observation_calibration` 109 / `policy_under_uncertainty` 278 /
 `arithmetic` 45（合计 432）。
@@ -299,15 +299,15 @@ R13 的 232 来自：open-jev 201 + `openjev_v2` 31。
 「noise-free」是卡面声明而非我们复核过。
 
 若只需要 ECE（置信度校准）而不需要分布校准，硬标签路线可用面大得多（v4 **全量** classification 73,593 条；
-落盘件 67,155；v3 为 22,536 条），但必须用 `label_trust` 分层报告，否则 ECE 的分子分母里混着几类不同来源的「正确」：
+落盘件 67,522；v3 为 22,536 条），但必须用 `label_trust` 分层报告，否则 ECE 的分子分母里混着几类不同来源的「正确」：
 
 | `label_trust` | 条数（v4 全量） | 落盘件（公开分区） | 含义 |
 |---|---:|---:|---|
-| `rule_exact` | 11,406 | 9,002 | 规则精确算出（procedural / open-jev / systemone-lite） |
-| `native_gold` | 51,057 | 47,707 | **v4 新增**：上游数据集的原生金标签（bigbench / cosmos_qa），不是本仓库规则算出 |
-| `teacher_argmax` | 8,499 | 6,697 | 教师分布的 argmax（belief，不是正确答案） |
+| `rule_exact` | 11,406 | 9,335 | 规则精确算出（procedural / open-jev / systemone-lite） |
+| `native_gold` | 51,057 | 47,789 | **v4 新增**：上游数据集的原生金标签（bigbench / cosmos_qa），不是本仓库规则算出 |
+| `teacher_argmax` | 8,499 | 6,724 | 教师分布的 argmax（belief，不是正确答案） |
 | `unknown` | 7,872 | 7,872 | deepexi 答案来源无文档（报告 §7 U3） |
-| `behavioral` | 4,009 | 3,171 | 轨迹里「当时做了什么」，不是「正确答案」（报告 §3.3） |
+| `behavioral` | 4,009 | 3,133 | 轨迹里「当时做了什么」，不是「正确答案」（报告 §3.3） |
 
 > 条数一律现算（以 `target_types.py` / `filter_targets.py` 的输出为准）；全量含内部保留集，落盘件只含公开分区。
 
@@ -445,10 +445,10 @@ R12/R13 是**覆盖规则**且继承语义。落盘时用 `rule_id`（R1–R11�
 
 **其它观察：**
 
-- `benchmark` 里 `answer_only` 3,459 条（旧来源 109 + 新来源 R14/R15 共 3,350），
-  公开三区为 train 37,392 / test 12,427 / validation 6,196（v4 口径）；`label_trust = unknown` 在
+- `benchmark` 里 `answer_only` 3,364 条（旧来源 96 + 新来源 R14/R15 共 3,268），
+  公开三区为 train 37,384 / test 12,480 / validation 6,246（v5 分区口径）；`label_trust = unknown` 在
   benchmark 中为 0 条（benchmark 只收 en，而 unknown 全部来自中文 deepexi）；benchmark 的 `drop` 率
-  4.6%（387/8,394）高于 train 的 2.1%（1,051/49,482），做分区间对比时要注意这个偏差。
+  4.9%（391/7,990）高于 train 的 2.1%（1,052/49,851），做分区间对比时要注意这个偏差。
 - `semantics_confidence` 报告 §6.3 没给列，本实现按 §3 各来源的置信度填：
   R9/R10 = `medium`（类别高、**机制未知**，§7 U1；与 §6.5 的示例一致），R3 = `unknown`，其余 `high`。
 - `None` 出现在 `meta.native_source` 上（6 个抓取单元没有这个概念），统计时用 `None` 或 `"(native)"` 占位，
@@ -491,8 +491,8 @@ R12/R13 是**覆盖规则**且继承语义。落盘时用 `rule_id`（R1–R11�
 **入库形态**：`datasets/general/data/*.jsonl` 被 `.gitignore` 第 13 行挡住（明文属可复算的大体积派生文件），
 所以明文 `data/target-types.jsonl` 本机保留、**压缩版 [target-types.jsonl.gz](data/target-types.jsonl.gz)
 入库**——与 `data/splits/*.jsonl(.gz)` 同一套规矩。两版内容逐字节同源（gzip mtime = 0，可复现）。
-旁挂文件 **74,449 行**（只含公开分区，§1.1）、明文 35,207,420 字节（sha256 `1ea5e218…`）、
-gzip 833,243 字节（sha256 `9002fc5d…`）；每行是 canonical JSON（键序排序、默认分隔符），
+旁挂文件 **74,853 行**（只含公开分区，§1.1）、明文 35,419,424 字节（sha256 `87cfa670…`）、
+gzip 834,743 字节（sha256 `19f63155…`）；每行是 canonical JSON（键序排序、默认分隔符），
 所以 `--verify` 能与入库件**逐字节**比对。
 
 **分区白名单**：`target_types.py` 默认从 `data/splits` 取 `train/test/validation` 的 item id 作白名单
@@ -509,8 +509,9 @@ gzip 833,243 字节（sha256 `9002fc5d…`）；每行是 canonical JSON（键�
 
 > 本节由 Jev 补全线（2026-10-20）加入，只新增这一节 + 一行修订记录，不改本页其他内容。
 
-旁挂文件 `datasets/general/data/jev-probs.jsonl`（明文不入库；压缩版 [jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) 入库）里 `distribution_semantics=mercury_decide_native`
-且 `corpus_shape=answer_only` 的条目（即 mercury 补的 answer-only choice），额外带三个字段：
+旁挂文件 `datasets/general/data/jev-probs.jsonl`（明文不入库；压缩版 [jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) 入库，
+**公开三区 44,740 行**（v5）；本地全量 48,503 行，剔除了 3,763 条 benchmark / 私有保留集成员——原因同 §1.1：
+sidecar 的 `id` 列等于成员名单）里，**两条 mercury 线**（noul 升级线 + answer-only choice 补全线）的条目都额外带三个字段：
 
 | 字段 | 含义 |
 |---|---|
@@ -518,14 +519,29 @@ gzip 833,243 字节（sha256 `9002fc5d…`）；每行是 canonical JSON（键�
 | `consensus_agree` / `consensus_n` | 该 config 上「mercury 判断 == 语料 answer」的条数 / 已调用条数 |
 
 判定：双方一致率 ≥95% → `high_consensus`；70–95% → `medium_consensus`；<70%（且 n≥10）→ `low_consensus`；
-n<10 → `insufficient_sample`。机器可读总表：[label-confidence.json](data/jev/label-confidence.json)。
+n<10 → `insufficient_sample`。机器可读总表：[label-confidence.json](data/jev/label-confidence.json)
+（noul 线按 **source dataset** 分组、choice 线按 **question key** 分组；两线分开统计）。
 
-**用法**：
-- `low_consensus`（当前写入 570 条）：该子集标签**未经双方互证**，训练时应降权或标记复核。
+**用法**（公开三区交付件：`low_consensus` **1,880** / `medium_consensus` **35,869** / `high_consensus` **6,991**；
+全量含保留集时为 2,026 / 38,890 / 7,587）：
+- `low_consensus`（交付件 1,880 条）：该子集标签**未经双方互证**，训练时应降权或标记复核。
   **它是「未互证」，不是「标签错了」**——不要据此直接删除。
-- `high_consensus`（当前写入 2,008 条）：双方互证，可正常使用。
-- 典型：`intersect_geometry`（一致率 21.2%）与 `tracking_shuffled_objects`（47.4%）整批标 `low_consensus`，
+- `high_consensus`（交付件 6,991 条）：双方互证，可正常使用。
+- 典型：`intersect_geometry`（一致率 **20.1%**）与 `tracking_shuffled_objects`（48.6%）整批标 `low_consensus`，
   建议优先人工抽查——这同时是**关于来源标签质量**的信号。
+
+**三条线的互证率**：
+- **noul**（按 source dataset）：Open-Jev 99.9%、procedural 90.4%、system-one 89.2%、jev-distill 72.6%；
+  **全部 ≥ 70%，无 `low_consensus`**。
+- **choice**（按 question key，33 个 config）：多数 70–95%；5 个 config < 70%（见上）。
+- **jev-router zh choice**（旧方案）：argmax 一致率 **99.15%**（1,867/1,883）→ `high_consensus`。
+  **注意**：它的写入率只有 44.7%，但被拒的 1,026 条绝大多数是**输出退化成伪 one-hot**（判断其实与语料一致）——
+  这条线的问题是**分布质量**、不是标注一致性；选分布做训练时仍要按写入门禁来。
+
+**补全对「可用软分布」的贡献**（README §4.4 口径，分母 = 公开件 74,853 + 补充集 3,148 = 78,001）：
+采用旁挂 probs 后，可用软分布从 **5,945（7.62%）** 升到 **48,941（62.74%）**，其中 42,996 条是本轮新补的
+（v4 语料时为 5,905（7.61%）→ 48,715（62.78%）；v5 轮换后口径同步更新）。
+**注意**：新补的是「双方一致」子集（选择偏差），不是随机抽样。
 
 **注意（选择偏差）**：这批软分布**只在双方一致时写入**，因此是「一致子集」而非随机子集；
 详见 [jev-validation.md](jev-validation.md) §8.5。
@@ -541,3 +557,4 @@ n<10 → `insufficient_sample`。机器可读总表：[label-confidence.json](da
 | 2026-10-20 | **v4 语料**（74,912 条 / 82,843 target；并入 bigbench 25,795 + cosmos_qa 25,262）重算旁挂件：**74,449 行**（公开三分区），保留集 8,394 条未落盘。新增 **R14 / R15**（上游金标签、无 probs → `answer_only` / `classification`，证据 E14 / E15）；`label_trust` 新增 **`native_gold`**（字段语义准确性优先：上游金标签不是本仓库规则算出，用 `rule_exact` 会系统性低估；R14/R15 共 47,707 行）。写明**口径恒等式 74,449 + 3,148 = 77,597**（补充集不进旁挂件是口径决定、不是遗漏，见 §1.1）。自检删掉全部硬编码基线、改为推导式断言 + 覆盖断言；`--gz-out` 一次写明文与入库 .gz；公开面审计（`split.py --audit-public-surface`）id/正文零命中。 |
 | 2026-10-20 | **文档按 v4 语料重算（task-10）**：§4.2 / §4.4 / §4.6 / §6.2 / §7 全部换成 v4 实测（分区表 74,912 条 / 82,843 target；ties 口径 80,881 / 81,113；校准分区 218 / 89 / 34 / 91；label_trust 全量与落盘件两列；14 个 `(slug, native_source)` 组）。`items.final.report.json` 改由新脚本 [report_corpus.py](report_corpus.py) 现算重生成；生成器加 `--by-split`，使每个分区数字都有对应复算命令（§8）。|
 | 2026-10-20 | 新增「`label_confidence`（mercury 补全线的标签互证标记）」一节：说明旁挂 `data/jev-probs.jsonl` 里 choice 条目的 `label_confidence` / `consensus_agree` / `consensus_n` 字段与判定阈值，指向 [label-confidence.json](data/jev/label-confidence.json)。本节由 Jev 补全线加入，不改其他内容。 |
+| 2026-10-20 | **v5 分区轮换**（jev-probs 事故：1,621 个 benchmark id 写入仓外永久排除名单、v4 benchmark 作废；四区改为 train 48,728 / test 15,194 / validation 7,597 / benchmark 6,541）：按 v5 公开三区重生成旁挂件 → **74,853 行**，保留集 **7,990** 条未落盘（v4 的 8,394 作废）；口径恒等式 **74,853 + 3,148 = 78,001**。§4.2 分区表 / §4.4 ties / §4.6 校准分区 / label_trust 落盘件列 / §7 benchmark 行随 v5 更新；§8 指纹改为明文 `87cfa670…` / gz `19f63155…`。旧 v4 旁挂件曾与 v5 benchmark 相交 4,205 个 id，重生成后交集为 0。 |

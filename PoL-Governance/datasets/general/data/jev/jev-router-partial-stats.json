@@ -1,9 +1,12 @@
 {
-  "generated_at": "2026-10-20T08:56:47+00:00",
+  "generated_at": "2026-10-20T12:58:01+00:00",
   "plan": "datasets\\general\\data\\jev\\fill-plan-dist-zh-choice.jsonl",
   "journal": "datasets\\general\\data\\jev\\fill-calls-dist.jsonl",
   "out": "datasets\\general\\data\\jev\\jev-router-partial-probs.jsonl",
   "variant": "distribution",
+  "label_confidence_counts": {
+    "high_consensus": 841
+  },
   "filters": {
     "lang": [
       "zh"

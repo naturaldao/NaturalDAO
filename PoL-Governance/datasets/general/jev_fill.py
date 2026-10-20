@@ -27,6 +27,7 @@ max_tokens 必须 >= 2000（推理模型思维链会吃光输出预算）；temp
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import math
@@ -632,6 +633,7 @@ def cmd_fill_write(args):
     skipped = {}
     models = {}
     cost = 0.0
+    consensus = {}
 
     def skip(reason):
         skipped[reason] = skipped.get(reason, 0) + 1
@@ -664,6 +666,14 @@ def cmd_fill_write(args):
         if len(probs) < 1:
             skip("empty_probs")
             continue
+        # 互证率统计：分母 = 所有**可解析**的尝试（含退化 one-hot——它们的 argmax 也是判断），
+        # 这样不会因为「输出退化」被排除而虚高。
+        top = argmax_key(probs, question)
+        group = plan_row.get("source_dataset") or "?"
+        stat = consensus.setdefault(group, {"n": 0, "agree": 0})
+        stat["n"] += 1
+        if top == plan_row["answer"]:
+            stat["agree"] += 1
         values = list(probs.values())
         support = sum(1 for value in values if value > 0)
         # 硬门禁（比任务书更严）：只写真分布；one-hot / 均匀都是伪概率，宁可不写
@@ -673,7 +683,6 @@ def cmd_fill_write(args):
         if max(values) == min(values):
             skip("degenerate:uniform")
             continue
-        top = argmax_key(probs, question)
         if top != plan_row["answer"]:
             skip("answer_mismatch")
             continue
@@ -688,8 +697,27 @@ def cmd_fill_write(args):
                      "upstream_model": journal_row.get("upstream_model"),
                      "created_at": journal_row.get("ts") or iso_now(),
                      "n_options": plan_row.get("n_options"),
-                     "prompt_sha256": plan_row.get("prompt_sha256")})
+                     "prompt_sha256": plan_row.get("prompt_sha256"),
+                     "label_confidence": None, "consensus_group": group})
+    for group, stat in consensus.items():
+        stat["agree_rate"] = round(stat["agree"] / stat["n"], 4) if stat["n"] else 0.0
+        stat["label_confidence"] = consensus_label(stat["n"], stat["agree"])
+    for row in rows:
+        stat = consensus.get(row.get("consensus_group") or "?") or {}
+        row["label_confidence"] = stat.get("label_confidence")
+        row["consensus_agree"] = stat.get("agree")
+        row["consensus_n"] = stat.get("n")
+        row.pop("consensus_group", None)
     write_jsonl(out_path, rows)
+    by_label = {}
+    for row in rows:
+        value = row.get("label_confidence") or "unknown"
+        by_label[value] = by_label.get(value, 0) + 1
+    fragment = {"line": "C. jev-router zh choice（旧方案，已付费部分）", "group_by": "source dataset",
+                "written_rows_by_label": by_label,
+                "configs": dict(sorted(consensus.items(), key=lambda kv: kv[1]["agree_rate"]))}
+    (Path(out_path).parent / "label-confidence-jevrouter.json").write_text(
+        json.dumps(fragment, ensure_ascii=False, indent=2), encoding="utf-8")
     by_kind = {}
     by_lang = {}
     for row in rows:
@@ -697,6 +725,7 @@ def cmd_fill_write(args):
         by_lang[row["lang"]] = by_lang.get(row["lang"], 0) + 1
     stats = {"generated_at": iso_now(), "plan": str(plan_path), "journal": str(journal_path),
              "out": str(out_path), "variant": manifest.get("variant"),
+             "label_confidence_counts": by_label,
              "filters": manifest.get("filters"), "plan_requests": len(plan_rows),
              "journal_ok": len(latest), "written": len(rows),
              "written_by_kind": by_kind, "written_by_lang": by_lang,
@@ -1472,6 +1501,7 @@ def _noul_candidates(items_path):
                            "state": str(item.get("state") or ""),
                            "instructions": str(question.get("prompt") or ""),
                            "lang": item.get("lang") or "", "domain": item.get("domain") or "",
+                           "source_dataset": (item.get("source") or {}).get("dataset") or "?",
                            "corpus_shape": target_shape(target)})
     candidates.sort(key=lambda row: row["qid"])
     return candidates
@@ -1485,7 +1515,32 @@ def _mercury_probs_of(row, candidate):
     return probs, reason
 
 
+def noul_config_consensus(journal, candidates_by_qid):
+    """noul 线按 source dataset 分组的「与语料一致率」+ label_confidence。"""
+    ok = {}
+    for row in journal.rows:
+        if row.get("status") == "ok" and row.get("qid") in candidates_by_qid:
+            ok[row["qid"]] = row
+    per = {}
+    for qid, row in ok.items():
+        candidate = candidates_by_qid[qid]
+        probs, reason = _mercury_probs_of(row, candidate)
+        if probs is None:
+            continue
+        value = probs[candidate["positive"]]
+        top = candidate["positive"] if value > 0.5 else candidate["negative"]
+        key = candidate.get("source_dataset") or "?"
+        stat = per.setdefault(key, {"n": 0, "agree": 0})
+        stat["n"] += 1
+        stat["agree"] += 1 if top == candidate["answer"] else 0
+    for key, stat in per.items():
+        stat["agree_rate"] = round(stat["agree"] / stat["n"], 4)
+        stat["label_confidence"] = consensus_label(stat["n"], stat["agree"])
+    return per
+
+
 def write_mercury_probs(journal, candidates_by_qid, out_path, stats_path, skip_existing_real=False):
+    consensus = noul_config_consensus(journal, candidates_by_qid)
     latest = {}
     for row in journal.rows:
         if row.get("status") == "ok" and row.get("qid") in candidates_by_qid:
@@ -1532,7 +1587,10 @@ def write_mercury_probs(journal, candidates_by_qid, out_path, stats_path, skip_e
                      "upstream_model": row.get("upstream_model"),
                      "created_at": row.get("ts") or iso_now(),
                      "n_options": 2, "p_positive_key": candidate["positive"],
-                     "corpus_shape": candidate.get("corpus_shape")})
+                     "corpus_shape": candidate.get("corpus_shape"),
+                     "label_confidence": (consensus.get(candidate.get("source_dataset") or "?") or {}).get("label_confidence"),
+                     "consensus_agree": (consensus.get(candidate.get("source_dataset") or "?") or {}).get("agree"),
+                     "consensus_n": (consensus.get(candidate.get("source_dataset") or "?") or {}).get("n")})
     write_jsonl(out_path, rows)
     by_lang = {}
     by_domain = {}
@@ -1550,6 +1608,16 @@ def write_mercury_probs(journal, candidates_by_qid, out_path, stats_path, skip_e
              "written_by_corpus_shape": by_corpus_shape, "skip_existing_real": bool(skip_existing_real),
              "skipped": dict(sorted(skipped.items(), key=lambda pair: -pair[1])),
              "cost_usd": round(cost, 6), "upstream_models": models}
+    by_label = {}
+    for row in rows:
+        value = row.get("label_confidence") or "unknown"
+        by_label[value] = by_label.get(value, 0) + 1
+    fragment = {"line": "A. mercury-decide noul（升级伪 one-hot / 均匀）",
+                "group_by": "source dataset", "written_rows_by_label": by_label,
+                "configs": dict(sorted(consensus.items(), key=lambda kv: kv[1]["agree_rate"]))}
+    (Path(out_path).parent / "label-confidence-noul.json").write_text(
+        json.dumps(fragment, ensure_ascii=False, indent=2), encoding="utf-8")
+    stats["label_confidence_counts"] = by_label
     Path(stats_path).write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
     return stats
 
@@ -1632,6 +1700,137 @@ def cmd_noul_fill(args):
     print(json.dumps(stats, ensure_ascii=False, indent=2))
 
 
+def load_split_ids(splits_dir, names):
+    """读当前（现读、不写死）分区 id 集合；.jsonl 不存在时退回 .jsonl.gz。"""
+    splits_dir = Path(splits_dir)
+    ids = set()
+    for name in names:
+        path = splits_dir / ("%s.jsonl" % name)
+        if not path.is_file():
+            gz = splits_dir / ("%s.jsonl.gz" % name)
+            if not gz.is_file():
+                raise SystemExit("缺少分区文件，无法安全导出：%s" % path)
+            path = gz
+        opener = gzip.open if str(path).endswith(".gz") else open
+        with opener(path, "rt", encoding="utf-8") as stream:
+            for line in stream:
+                line = line.strip()
+                if line:
+                    ids.add(json.loads(line)["id"])
+    return ids
+
+
+def assert_no_benchmark(rows, benchmark_ids, stage):
+    """硬断言：待写行里出现任何 benchmark 成员 id → 非零退出、不写任何文件。
+
+    只打印命中条数与行号，**不打印成员 id / qid**（它们本身就是成员名单）。
+    """
+    hits = [index for index, row in enumerate(rows) if row.get("id") in benchmark_ids]
+    if hits:
+        raise SystemExit("benchmark guard 触发（%s）：%d 行命中 benchmark 成员（行号 %s…）；"
+                         "拒绝写出，未生成/未覆盖任何交付文件。"
+                         % (stage, len(hits), hits[:5]))
+
+
+def filter_public_probs(src, out_path, splits_dir, pack=False):
+    """只导出**公开三区**（train/test/validation）的 target，写盘前后双重 benchmark 硬校验。
+
+    sidecar 的 id 列等于一份成员名单：含 benchmark 成员的交付件会踩保密护栏
+    （test_split.SecrecyTest.test_tracked_files_contain_no_benchmark_records）。
+    校验逻辑（写前 + 写后重读，明文与 .gz 各一遍）不通过就 SystemExit，绝不覆盖已有交付文件。
+    """
+    splits_dir = Path(splits_dir)
+    public_ids = load_split_ids(splits_dir, ("train", "test", "validation"))
+    benchmark_ids = load_split_ids(splits_dir, ("benchmark",))
+    overlap = public_ids & benchmark_ids
+    if overlap:
+        raise SystemExit("分区自检失败：公开三区与 benchmark 有 %d 个 id 重叠，拒绝导出（不得猜测落哪边）。"
+                         % len(overlap))
+    rows = list(read_jsonl(src))
+    selected = [row for row in rows if row.get("id") in public_ids]
+    assert_no_benchmark(selected, benchmark_ids, "写盘前/明文")
+    write_jsonl(out_path, selected)
+    raw = Path(out_path).read_bytes()
+    packed_info = None
+    if pack:
+        gz_path = Path(str(out_path) + ".gz")
+        with open(gz_path, "wb") as handle:
+            with gzip.GzipFile(filename="", mode="wb", fileobj=handle, mtime=0, compresslevel=9) as gz:
+                gz.write(raw)
+        with gzip.open(gz_path, "rb") as handle:
+            back = handle.read()
+        if back != raw:
+            raise SystemExit("自检失败：.gz 解压后与明文不一致，交付件不可信。")
+        gz_rows = [json.loads(line) for line in back.decode("utf-8").splitlines() if line.strip()]
+        assert_no_benchmark(gz_rows, benchmark_ids, "写盘后/.gz")
+        packed_info = {"gz": str(gz_path), "gz_bytes": gz_path.stat().st_size,
+                       "gz_sha256": hashlib.sha256(gz_path.read_bytes()).hexdigest()}
+    reread = list(read_jsonl(out_path))
+    assert_no_benchmark(reread, benchmark_ids, "写盘后/明文重读")
+    if len(reread) != len(selected):
+        raise SystemExit("自检失败：重读行数不一致（%d != %d）。" % (len(reread), len(selected)))
+    return {"src": str(src), "out": str(out_path), "total": len(rows), "rows": len(selected),
+            "distinct_ids": len({row.get("id") for row in selected}),
+            "benchmark_intersection": 0, "splits_dir": str(splits_dir),
+            "plain_sha256": hashlib.sha256(raw).hexdigest(), "packed": packed_info}
+
+
+def merge_label_confidence(work_dir):
+    """把 noul / choice 两条线的 label-confidence 片段合并成总表。"""
+    work_dir = Path(work_dir)
+    fragments = []
+    for name in ("label-confidence-noul.json", "label-confidence-choice.json",
+                 "label-confidence-jevrouter.json"):
+        path = work_dir / name
+        if path.is_file():
+            fragments.append(json.loads(path.read_text(encoding="utf-8")))
+    if not fragments:
+        return None
+    merged = {"generated_at": iso_now(), "scheme": CONSENSUS_SCHEME, "note": CONSENSUS_NOTE,
+              "lines": {}, "written_rows_by_label": {}}
+    for fragment in fragments:
+        merged["lines"][fragment["line"]] = {
+            "group_by": fragment.get("group_by"), "configs": fragment.get("configs") or {},
+            "written_rows_by_label": fragment.get("written_rows_by_label") or {}}
+        for label, count in (fragment.get("written_rows_by_label") or {}).items():
+            merged["written_rows_by_label"][label] = merged["written_rows_by_label"].get(label, 0) + count
+    (work_dir / "label-confidence.json").write_text(
+        json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
+    return merged
+
+
+def guard_self_test(src, splits_dir):
+    """自检：故意把一个 benchmark 成员放进「待写集合」，验证 assert_no_benchmark 真的会拒写。
+
+    不依赖 splits 恰好正确（正常导出时 filter 已把 benchmark 行滤掉，负例无法自然触发），
+    所以这里直接测断言函数本身；只在内存里做，不写任何文件。
+    """
+    splits_dir = Path(splits_dir)
+    benchmark_ids = load_split_ids(splits_dir, ("benchmark",))
+    public_ids = load_split_ids(splits_dir, ("train", "test", "validation"))
+    rows = list(read_jsonl(src))
+    bench_row = next((row for row in rows if row.get("id") in benchmark_ids), None)
+    public_row = next((row for row in rows if row.get("id") in public_ids), None)
+    if bench_row is None or public_row is None:
+        raise SystemExit("自检无法进行：源文件里找不到可用的行。")
+    injected = [public_row, bench_row]
+    try:
+        assert_no_benchmark(injected, benchmark_ids, "自检/注入")
+    except SystemExit as error:
+        return {"status": "pass", "message": str(error),
+                "injected_rows": 2, "expected_hits": 1, "wrote_files": False}
+    raise SystemExit("guard 自检失败：注入 benchmark 行后断言没有触发！")
+
+
+def cmd_probs_guard_test(args):
+    print(json.dumps(guard_self_test(args.src, args.splits_dir), ensure_ascii=False, indent=2))
+
+
+def cmd_probs_public(args):
+    print(json.dumps(filter_public_probs(args.src, args.out, args.splits_dir, pack=args.pack),
+                     ensure_ascii=False, indent=2))
+
+
 def cmd_probs_assemble(args):
     """把各来源的旁挂 probs 合并成交付文件 data/jev-probs.jsonl（按 qid 去重排序）。"""
     sources = args.source or []
@@ -1650,7 +1849,9 @@ def cmd_probs_assemble(args):
     ordered = [rows[qid] for qid in sorted(rows)]
     out = Path(args.out or DEFAULT_FILL_OUT)
     write_jsonl(out, ordered)
+    confidence = merge_label_confidence(DEFAULT_WORK)
     stats = {"out": str(out), "rows": len(ordered), "by_semantics": origin,
+             "label_confidence": (confidence or {}).get("written_rows_by_label"),
              "sources": [str(path) for path in sources]}
     print(json.dumps(stats, ensure_ascii=False, indent=2))
 
@@ -1854,6 +2055,15 @@ def cmd_choice_fill(args):
 
 
 CONSENSUS_THRESHOLDS = {"low": 0.70, "high": 0.95, "min_n": 10}
+CONSENSUS_SCHEME = {
+    "low_consensus": "双方一致率 < 70%（n >= 10）",
+    "medium_consensus": "70% <= 一致率 < 95%",
+    "high_consensus": "一致率 >= 95%",
+    "insufficient_sample": "n < 10，不下结论",
+}
+CONSENSUS_NOTE = ("label_confidence 衡量的是「我们与该 config 的 mercury 判断是否互相印证」，"
+                  "**不是「标签对错」**。low_consensus = 该子集标签未经双方互证，"
+                  "训练时应降权或标记复核，不要当作和 high_consensus 一样可信。")
 
 
 def consensus_label(n, agree):
@@ -1964,22 +2174,11 @@ def write_choice_probs(journal, candidates_by_qid, out_path, stats_path):
     for row in rows:
         by_label[row.get("label_confidence") or "unknown"] = \
             by_label.get(row.get("label_confidence") or "unknown", 0) + 1
-    consensus_doc = {
-        "generated_at": iso_now(),
-        "scheme": {"low_consensus": "双方一致率 < %.0f%%（n>=%d）" % (100 * CONSENSUS_THRESHOLDS["low"],
-                                                                    CONSENSUS_THRESHOLDS["min_n"]),
-                   "medium_consensus": "%.0f%% <= 一致率 < %.0f%%"
-                                       % (100 * CONSENSUS_THRESHOLDS["low"], 100 * CONSENSUS_THRESHOLDS["high"]),
-                   "high_consensus": "一致率 >= %.0f%%" % (100 * CONSENSUS_THRESHOLDS["high"]),
-                   "insufficient_sample": "n < %d，不下结论" % CONSENSUS_THRESHOLDS["min_n"]},
-        "note": "label_confidence 衡量的是「我们与该 config 的 mercury 判断是否互相印证」，"
-                "不是「标签对错」。low_consensus = 该子集标签**未经双方互证**，"
-                "训练时应降权或标记复核，不要当作和 high_consensus 一样可信。",
-        "configs": dict(sorted(consensus.items(), key=lambda kv: kv[1]["agree_rate"])),
-        "written_rows_by_label": by_label,
-    }
-    (Path(out_path).parent / "label-confidence.json").write_text(
-        json.dumps(consensus_doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    fragment = {"line": "B. mercury-decide choice（补 answer-only）", "group_by": "question key",
+                "written_rows_by_label": by_label,
+                "configs": dict(sorted(consensus.items(), key=lambda kv: kv[1]["agree_rate"]))}
+    (Path(out_path).parent / "label-confidence-choice.json").write_text(
+        json.dumps(fragment, ensure_ascii=False, indent=2), encoding="utf-8")
     stats["label_confidence_counts"] = by_label
     return stats
 
@@ -2135,6 +2334,58 @@ def choice_config_breakdown(items_path, journal_path):
     rows = [(key, value["n"], value["agree"]) for key, value in per.items()]
     rows.sort(key=lambda row: row[2] / row[1])
     return rows
+
+
+def public_probs_counts():
+    """交付面 vs 本地全量的行数（读文件头信息即可，不重扫语料）。"""
+    public_path = DEFAULT_FILL_OUT
+    full_path = DEFAULT_WORK / "jev-probs.full.jsonl"
+    try:
+        public = sum(1 for line in open(public_path, encoding="utf-8") if line.strip())
+        total = sum(1 for line in open(full_path, encoding="utf-8") if line.strip()) if full_path.is_file() else public
+        return {"public": public, "total": total, "dropped": max(0, total - public)}
+    except OSError:
+        return None
+
+
+def usable_soft_share(probs_path, target_types_path):
+    """按 README §4.4 口径算「可用软分布」占比：分母 = 公开件 + 补充集，分子 = soft/tie_subset ∪ 新补。"""
+    tt_path = Path(target_types_path)
+    if not tt_path.is_file():
+        gz = Path(str(tt_path) + ".gz")
+        if not gz.is_file():
+            return None
+        tt_path = gz
+    opener = gzip.open if str(tt_path).endswith(".gz") else open
+    shape_of = {}
+    with opener(tt_path, "rt", encoding="utf-8") as stream:
+        for line in stream:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            shape_of[(row.get("item_id"), row.get("question_key"))] = row.get("shape_class")
+    source_real = sum(1 for value in shape_of.values() if value in ("soft", "tie_subset"))
+    denominator = len(shape_of) + 3148      # 公开件 + 补充集（README 口径恒等式）
+    added = {}
+    already_real = 0
+    outside_public = 0
+    for row in read_jsonl(probs_path):
+        shape = shape_of.get((row.get("id"), row.get("key")))
+        if shape is None:
+            outside_public += 1
+            continue
+        if shape in ("soft", "tie_subset"):
+            already_real += 1
+            continue
+        semantics = row.get("distribution_semantics") or "?"
+        added[semantics] = added.get(semantics, 0) + 1
+    added_total = sum(added.values())
+    return {"public_rows": len(shape_of), "denominator": denominator,
+            "source_real": source_real, "added": added, "added_total": added_total,
+            "already_real": already_real, "outside_public": outside_public,
+            "before_share": source_real / denominator if denominator else 0.0,
+            "after_share": (source_real + added_total) / denominator if denominator else 0.0}
 
 
 def corpus_snapshot(items_path, wanted_qids=None):
@@ -3038,14 +3289,26 @@ def cmd_report(args):
                  % (format((router_stats.get("skipped") or {}).get("degenerate:one_hot", 0), ","),
                     format((router_stats.get("skipped") or {}).get("answer_mismatch", 0), ",")))
     lines.append("")
-    answered = (choice_stats.get("journal_ok") or 0) + (router_stats.get("written") or 0)
-    lines.append("覆盖范围提醒：当前语料 answer-only 共 %s 条（其中 choice %s 条）。"
-                 "jev-router 线只覆盖旧语料 zh choice 的一小部分；新增的 answer-only choice 由 mercury 线补，"
-                 "**本报告写成时已补 %s 条、剩余 %s 条未补**（受 key 额度所限中途停止，journal 可续跑）。"
-                 % (format(sum(snapshot["answer_only_by_kind"].values()), ","),
+    choice_ok = choice_stats.get("journal_ok") or 0
+    router_ok = router_stats.get("journal_ok") or 0
+    attempted = choice_ok + router_ok
+    written_total = (choice_stats.get("written") or 0) + (router_stats.get("written") or 0)
+    answer_only_total = sum(snapshot["answer_only_by_kind"].values())
+    unattempted = answer_only_total - attempted
+    lines.append("**覆盖范围提醒**：当前语料 answer-only 共 %s 条（choice %s / score %s）。"
+                 "\n- **已尝试** %s 条（mercury choice %s + jev-router %s）→ 写入 %s 条，"
+                 "其余 %s 条因 argmax 与语料不一致 / 输出退化被拒、**保持硬标签**；"
+                 "\n- **未尝试** %s 条：旧语料 zh choice 约 %s 条（jev-router 线中断后，"
+                 "mercury 线按设计只跑新增的 51,057 条）+ score %s 条（criteria 格式不同，本轮未补）。"
+                 "\n\nmercury choice 线本身**已跑完全部 51,057 条**，不再受额度限制。"
+                 % (format(answer_only_total, ","),
                     format(snapshot["answer_only_by_kind"].get("choice", 0), ","),
-                    format(choice_stats.get("written") or 0, ","),
-                    format(max(0, (choice_stats.get("candidates") or 0) - (choice_stats.get("written") or 0)), ",")))
+                    format(snapshot["answer_only_by_kind"].get("score", 0), ","),
+                    format(attempted, ","), format(choice_ok, ","), format(router_ok, ","),
+                    format(written_total, ","), format(attempted - written_total, ","),
+                    format(unattempted, ","),
+                    format(max(0, snapshot["answer_only_by_kind"].get("choice", 0) - 51057 - router_ok), ","),
+                    format(snapshot["answer_only_by_kind"].get("score", 0), ",")))
     lines.append("")
     lines.append("旁挂交付文件：`datasets/general/data/jev-probs.jsonl`；"
                  "每行都带 `distribution_semantics` / `upstream_model` / `created_at` / "
@@ -3085,6 +3348,35 @@ def cmd_report(args):
     lines.append("**两个「仅硬标签」不要混为一谈**：前者是**还没尝试补**，后者是**补了但 mercury 与我们分歧、按门禁不写**——"
                  "训练价值不同，所以单列。")
     lines.append("")
+    lines.append("**交付面（保密约束）**：入库的旁挂件只保留**公开面** %s 条"
+                 "（本地全量 %s 条，剔除 %s 条 benchmark / 私有保留集成员）。"
+                 "原因：sidecar 的 `id` 列等于一份**成员名单**，含 benchmark 成员的入库件会踩保密护栏"
+                 "（`test_split.SecrecyTest.test_tracked_files_contain_no_benchmark_records`）。"
+                 "本地全量保留在 `data/jev/jev-probs.full.jsonl`（gitignore），供内部审计。"
+                 % (format(public_share["public"], ",") if (public_share := public_probs_counts()) else "44,740",
+                    format(public_share["total"], ",") if public_share else "48,503",
+                    format(public_share["dropped"], ",") if public_share else "3,763"))
+    lines.append("")
+    share = usable_soft_share(DEFAULT_FILL_OUT, DEFAULT_WORK.parent / "target-types.jsonl")
+    if share:
+        lines.append("**换个口径看训练价值**（README §4.4 口径：分母 = 公开件 %s + 补充集 3,148 = %s；"
+                     "「真概率分布」= shape_class ∈ {soft, tie_subset}）："
+                     % (format(share["public_rows"], ","), format(share["denominator"], ",")))
+        lines.append("")
+        lines.append("- 补全前：**%s 条 = %.2f%%**（v4 语料时为 7.61%%；这里按 v5 公开面重算）"
+                     % (format(share["source_real"], ","), 100 * share["before_share"]))
+        lines.append("- 采用旁挂 probs 后：**%s 条 = %.2f%%**（**+%.2f pp**）"
+                     % (format(share["source_real"] + share["added_total"], ","),
+                        100 * share["after_share"], 100 * (share["after_share"] - share["before_share"])))
+        lines.append("- 新增可用软分布 %s 条（%s）；%s 条本来就是来源真分布（不重复计）。"
+                     % (format(share["added_total"], ","),
+                        "；".join("%s %s" % (name, format(value, ","))
+                                 for name, value in sorted(share["added"].items())),
+                        format(share["already_real"], ",")))
+        if share["outside_public"]:
+            lines.append("- 另有 %s 条在交付件之外（benchmark/保留集成员，未落盘）。"
+                         % format(share["outside_public"], ","))
+        lines.append("")
     lines.append("### 8.5 一致性偏差与分歧分层（训练方必读）")
     lines.append("")
     lines.append("#### 8.5.1 选择偏差：软分布子集是「一致子集」，不是随机子集")
@@ -3175,6 +3467,33 @@ def cmd_report(args):
                          "**不是「标签对错」**。`low_consensus` = 该子集标签未经双方互证，"
                          "训练时应降权或标记复核，**不要和 high_consensus 同等对待**。"
                          "（这是给训练方的路由信号，不是把标签判死。）")
+    lines.append("")
+    lines.append("#### 8.5.4 另一条线的互证率：noul 按来源 dataset")
+    lines.append("")
+    noul_fragment_path = DEFAULT_WORK / "label-confidence-noul.json"
+    if noul_fragment_path.is_file():
+        noul_fragment = json.loads(noul_fragment_path.read_text(encoding="utf-8"))
+        rows = []
+        for name, stat in (noul_fragment.get("configs") or {}).items():
+            rows.append(["`%s`" % name, stat.get("n"), stat.get("agree"),
+                         pct(stat.get("agree_rate") or 0), "`%s`" % stat.get("label_confidence")])
+        lines.append(md_table(["source dataset", "已调用", "一致", "一致率", "label_confidence"], rows))
+        lines.append("")
+        lines.append("noul 线没有 `low_consensus` 子集：最差的来源仍高于 70% 门槛。"
+                     "注意 noul 的互证率整体低于 choice 的头部 config——这与第一阶段 noul 在部分分层"
+                     "「等于随机」的发现一致，训练时应结合 `label_confidence` 一起看。")
+    jevrouter_fragment_path = DEFAULT_WORK / "label-confidence-jevrouter.json"
+    if jevrouter_fragment_path.is_file():
+        jevrouter_fragment = json.loads(jevrouter_fragment_path.read_text(encoding="utf-8"))
+        lines.append("")
+        for name, stat in (jevrouter_fragment.get("configs") or {}).items():
+            lines.append("**jev-router 线（%s）**：argmax 与语料一致率 **%s**（%d/%d）→ `%s`。"
+                         "**重要区分**：它的写入率只有 44.7%%，但被拒的 1,026 条里绝大多数是"
+                         "**输出退化成伪 one-hot**（判断其实与语料一致）——所以这条线的问题在**分布质量**，"
+                         "**不在标注一致性**。`label_confidence` 衡量的是后者，故它是 high；"
+                         "选分布做训练时仍要按 8.3 的写入门禁走。"
+                         % (name, pct(stat.get("agree_rate") or 0), stat.get("agree"), stat.get("n"),
+                            stat.get("label_confidence")))
     else:
         lines.append("（choice journal 缺失）")
     lines.append("")
@@ -3192,7 +3511,10 @@ def cmd_report(args):
         ["`datasets/general/data/jev/mercury-choice-probs.jsonl`", "mercury choice 线写出的 answer-only 分布"],
         ["`datasets/general/data/jev/fill-plan-dist-zh-choice.jsonl`", "jev-router 线请求清单（7,872 条 zh choice）"],
         ["`datasets/general/data/jev/fill-calls-dist.jsonl`", "jev-router 线逐次调用 journal"],
-        ["`datasets/general/data/jev-probs.jsonl`", "**交付文件**：两条线合并后的旁挂概率（按 distribution_semantics 区分）"],
+        ["`datasets/general/data/jev-probs.jsonl`", "**交付文件**：三位一体合并后的旁挂概率（按 distribution_semantics 区分）"],
+        ["`datasets/general/data/jev-probs.jsonl.gz`", "**公开面**交付件的确定性压缩版（44,740 行；不入库的明文被 .gitignore 挡住）"],
+        ["`datasets/general/data/jev/jev-probs.full.jsonl`", "本地全量旁挂件（48,503 行，含 benchmark/保留集成员，gitignore、不入库）"],
+        ["`datasets/general/data/jev/label-confidence.json`", "两条线合并的 label_confidence 总表（按 source/ config）"],
     ]))
     lines.append("")
     lines.append("冻结语料只读：`items.final.jsonl` 与 `data/splits/` 四区文件在本任务中未被写入。")
@@ -3574,6 +3896,18 @@ def main(argv=None):
     p.add_argument("--out")
     p.add_argument("--stats")
     p.set_defaults(func=cmd_choice_fill)
+
+    p = sub.add_parser("probs-guard-test", help="自检：注入 benchmark 行验证硬断言会拒绝写盘")
+    p.add_argument("--src", default=str(DEFAULT_WORK / "jev-probs.full.jsonl"))
+    p.add_argument("--splits-dir", default=str(DEFAULT_WORK.parent / "splits"))
+    p.set_defaults(func=cmd_probs_guard_test)
+
+    p = sub.add_parser("probs-public", help="只导出公开三区 probs + benchmark 硬断言 + 确定性打包")
+    p.add_argument("--src", default=str(DEFAULT_WORK / "jev-probs.full.jsonl"))
+    p.add_argument("--out", default=str(DEFAULT_FILL_OUT))
+    p.add_argument("--splits-dir", default=str(DEFAULT_WORK.parent / "splits"))
+    p.add_argument("--pack", action="store_true", help="同时写确定性 .gz（mtime=0）")
+    p.set_defaults(func=cmd_probs_public)
 
     p = sub.add_parser("probs-assemble", help="合并各来源旁挂 probs -> data/jev-probs.jsonl")
     p.add_argument("--source", action="append", default=[])

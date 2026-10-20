@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-20T09:55:42+00:00",
+  "generated_at": "2026-10-20T12:37:12+00:00",
   "journal": "C:\\Projects\\DAism\\NaturalDAO\\PoL-Governance\\datasets\\general\\data\\jev\\mercury-noul-fill.jsonl",
   "out": "C:\\Projects\\DAism\\NaturalDAO\\PoL-Governance\\datasets\\general\\data\\jev\\mercury-noul-probs.jsonl",
   "decisions_url": "https://openrouter.ai/api/alpha/decisions",
@@ -28,5 +28,9 @@
   "cost_usd": 0.047249,
   "upstream_models": {
     "inception/mercury-decide-20260930": 7907
+  },
+  "label_confidence_counts": {
+    "medium_consensus": 5032,
+    "high_consensus": 1492
   }
 }
