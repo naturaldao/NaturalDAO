@@ -1687,10 +1687,17 @@ def render_report(*, inputs, items, records, split_of_item, labels, stats, leaks
     audit = stats.get("public_surface_audit") or {}
     if audit:
         verdict = "零命中" if not audit.get("hits") else f"**{len(audit['hits'])} 处命中**"
-        lines.append(f"  - 本次运行的公开面审计：对全部被跟踪文件（.gz 解压后）扫描，"
-                     f"指纹 {audit.get('ids', 0)} 条 id / {audit.get('texts', 0)} 条正文 → {verdict}；"
-                     "可用 --audit-public-surface 单独复跑（命中则退出 1，并打印文件名）。"
+        derived_note = (f"（本次运行跳过 {audit.get('skipped', 0)} 个会被本次运行重写/重生成的产物："
+                         "四个分区、本报告，及 --derived-skip 指名的 target-types 侧挂件与 jev-probs 交付件）"
+                         if audit.get("skipped") else "（本次运行未跳过任何文件）")
+        lines.append(f"  - 本次运行内的公开面审计：对被跟踪文件（.gz 解压后）扫描，"
+                     f"指纹 {audit.get('ids', 0)} 条 id / {audit.get('texts', 0)} 条正文 → {verdict}"
+                     f"{derived_note}。可用 --audit-public-surface 单独复跑（命中则退出 1，并打印文件名）。"
                      "（不记录文件个数：仓库增删文件会让它变化，而重跑一致性要求产物只由输入与盐决定。）")
+        lines.append("  - **交付验收口径**：派生件按本版公开三区重新生成后，必须再跑一次**全量**审计"
+                     "（不跳过任何文件）并零命中——派生件不重生成就会立刻回流（例如 v4→v5 轮换后，"
+                     "旧 v4 的 target-types 与新 benchmark 相交 4,205 个 id，重生成后清零）。"
+                     "§10.5 第 4 条是本次交付的最终审计要求。")
         lines.append("  - 为什么要两种口径：文件级检查（有没有被 git 跟踪）挡不住**内容级**泄漏——"
                      "曾经有派生索引文件把 benchmark 的全部 id 列在里面（本身不含答案，但能精确指认成员）；"
                      "压缩流里的泄漏也只有解压后才看得见。")
@@ -2098,9 +2105,11 @@ def run(argv=None) -> int:
     stats = first["stats"]
     counts = first["counts"]
     actual = first["actual_counts"]
+    # 跳过集必须与 --out 无关：否则"同参数不同输出目录"会扫到不同文件数、报告文字不一致
+    # （canonical 产物位按 CWD 解析，见前面 product_skip 的注释）。
     audit = audit_public_surface(first["split_items"]["benchmark"], root=repo_root,
                                  extra_paths=args.audit_extra or [],
-                                 skip_paths=[out_dir, report_path] + derived_skip_paths)
+                                 skip_paths=product_skip)
     stats["public_surface_audit"] = audit
     print(f"公开面审计：被 git 跟踪文件 {audit['files']} 个（.gz 已解压后扫描）；"
           f"id 指纹 {audit['ids']} 条 / 正文指纹 {audit['texts']} 条；命中 {len(audit['hits'])}")
