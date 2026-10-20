@@ -6,8 +6,8 @@ r"""候选接入准备（只接入、不合并）：tasksource/bigbench + allena
 ----
 本脚本**不参与**现有四区划分、不改 items.final、不跑 split.py。它只做一件事：
 把选型报告 datasets/general/capability-sources.md 推荐的 P1/P2 两个来源，按
-datasets/general/CONTRACT.md 的字段契约转成**可直接合并的候选语料**，落在仓库外
-D:\pol2-raw\capability-raw\，并给出质量门槛的逐条剔除计数与合并后构成预期。
+datasets/general/CONTRACT.md 的字段契约转成**可直接合并的候选语料**：
+原始下载在 D:\pol2-raw\capability-raw\，最终候选语料与报告落 D:\pol2-raw\capability-final\。
 
 - tasksource/bigbench（P1 数学与形式逻辑）：原生 multiple_choice_targets + multiple_choice_scores，
   apache-2.0，revision 210c156767d2f4f05d2f4fd0bb275017a67040fd，只取 train。
@@ -19,11 +19,13 @@ D:\pol2-raw\capability-raw\，并给出质量门槛的逐条剔除计数与合�
 --------------------
 条目形状**完全复用** convert.py 的 --native 路径（build_native_item / native_question /
 item_id / option_key / native_item_errors），产物与 items.native.jsonl 同形，
-合并时不需要第二套 schema。只有来源专属的解析、质量门槛与统计写在本文件里。
+合并时不需要第二套 schema。只有来源专属的解析、质量门槛、分层抽样与统计写在本文件里。
 
 质量门槛（不达标即剔除并计数，见 --report）
 ------------------------------------------
-1. state/prompt 为空、选项为空、选项数不在 [2, 16] → 剔除；
+1. state/prompt 为空、选项为空、选项数 < 2 → 剔除。
+   **不设选项上限**：契约 2.1 对 origin=source 的 choice 明确"≥2，不设上限"（实测原生最多 57），
+   上一轮误按 16 卡掉的 52,836 条（intersect_geometry 41 选项、checkmate_in_one 13–52 选项等）本轮收回。
 2. 答案必须在选项内：按折叠空白的规范化文本比对；
 3. **答案唯一**：按规范化文本对选项去重后，仍被源标为正确的**不同**选项只能有一个。
    选项文本重复（bigbench geometric_shapes / reasoning_about_colored_objects 已知）
@@ -35,6 +37,17 @@ item_id / option_key / native_item_errors），产物与 items.native.jsonl 同�
 6. 答案只写硬标签：targets[k] = {"answer": <option key>}，**不写 probs**。
    契约 1.3 禁止把单标签伪装成概率；convert.py 的 point_mass() 造的伪 one-hot 在这里明确不用。
 
+分层抽样（--target-tool-share，默认 0.20）
+------------------------------------------
+质量门槛全过之后候选语料约 20.5 万条，是现有语料的 8 倍，直接全量合并会让"工具与行动选择"
+从 60.20% 塌到 8.6%、bigbench 单一来源占 71.5%——这不是再平衡而是翻盘。因此：
+1. **cosmos_qa 全取**（25,262 条）；
+2. **bigbench 按 config 分层抽样**：先解出每个 config 统一的配额上限 q
+   （使 sum(min(n_i, q)) 恰好不超过目标预算；小 config 全取、大 config 压到同一上限），
+   再在每个 config 内按等距步长抽（覆盖整个文件顺序，不是只取头部）；
+3. 目标预算由 --target-tool-share 反解：使合并后"工具与行动选择"占比落在目标上。
+   默认 0.20 → 新语料约 5.1 万条（≈ 全量候选 205,416 的 1/4，落在用户允许的 1/3–1/6 区间内）。
+
 用法
 ----
     # 1) 下载（stdlib urllib，固定 revision，写 sha256 到 _meta/fetch-manifest.json）
@@ -43,8 +56,8 @@ item_id / option_key / native_item_errors），产物与 items.native.jsonl 同�
     # 2) parquet -> rows.jsonl（需要 pyarrow；用仓外 venv 跑，仓库不引入第三方依赖）
     D:\pol2-raw\capability-raw\.venv\Scripts\python.exe datasets/general/convert_capability.py extract
 
-    # 3) 转换 + 报告（stdlib）
-    uv run --no-project --offline python datasets/general/convert_capability.py convert
+    # 3) 转换 + 分层抽样 + 报告（stdlib；--created-at 固定后逐字节可复现）
+    uv run --no-project --offline python datasets/general/convert_capability.py convert --created-at 2026-10-20T17:00:00+08:00 --target-tool-share 0.20
 
     # 4) 合约校验（native_item_errors）与合并后构成预期
     uv run --no-project --offline python datasets/general/convert_capability.py verify
@@ -67,18 +80,23 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 RAW_ROOT = Path(r"D:\pol2-raw\capability-raw")
-DEFAULT_ITEMS = RAW_ROOT / "items.capability.jsonl"
-DEFAULT_REPORT = RAW_ROOT / "capability-adoption.report.json"
-DEFAULT_REJECTS = RAW_ROOT / "rejects.capability.jsonl"
+FINAL_ROOT = Path(r"D:\pol2-raw\capability-final")
+DEFAULT_ITEMS = FINAL_ROOT / "items.capability.jsonl"
+DEFAULT_REPORT = FINAL_ROOT / "capability-adoption.report.json"
+DEFAULT_REJECTS = FINAL_ROOT / "rejects.capability.jsonl"
 FETCH_MANIFEST = RAW_ROOT / "_meta" / "fetch-manifest.json"
 
 CONVERTER_NAME = "convert_capability.py"
-CONVERTER_VERSION = "0.1"
+CONVERTER_VERSION = "0.2"
 
-#: 契约上限：taxonomy 模式是 16；原生模式契约为不设上限（实测最多 57），
-#: 本轮按接入口径统一卡 2-16（超限只剔除、不改题，剔除量在报告里单列）。
-MAX_OPTIONS = 16
+#: 契约 2.1：origin=source 的 choice 只要求 >=2，**不设上限**（实测最多 57 个选项）。
+#: 上一轮误按 taxonomy 的 16 卡，丢了 52,836 条；本轮按契约放开。--max-options 可显式回退。
+MAX_OPTIONS = None
 MIN_OPTIONS = 2
+
+#: 默认目标：合并后"工具与行动选择"占比（公开三分区口径）。
+#: 0.20 → 新语料预算 ≈ 5.1 万条（≈ 全量候选 205,416 的 1/4）。
+TARGET_TOOL_SHARE = 0.20
 
 #: 拆分收口：只取 train（sources.json policy.splits）
 SPLIT = "train"
@@ -135,8 +153,8 @@ BIGBENCH_CONFIGS = OrderedDict([
     ("elementary_math_qa", ("math_logic", "数学应用题")),
     ("unit_conversion", ("math_logic", "单位换算")),
     ("cs_algorithms", ("math_logic", "算法与计数")),
-    ("intersect_geometry", ("math_logic", "几何（选项数超上限）")),
-    ("checkmate_in_one", ("math_logic", "棋类搜索（选项数超上限）")),
+    ("intersect_geometry", ("math_logic", "几何")),
+    ("checkmate_in_one", ("math_logic", "棋类搜索")),
     ("temporal_sequences", ("math_logic", "时序推理")),
     ("date_understanding", ("math_logic", "日期推算")),
     ("tracking_shuffled_objects", ("math_logic", "状态跟踪")),
@@ -221,7 +239,7 @@ def jsonl_read(path):
 
 def fetch_url(url, timeout=300):
     request = urllib.request.Request(
-        url, headers={"User-Agent": "pol-governance-db-adopt/0.1"})
+        url, headers={"User-Agent": "pol-governance-db-adopt/0.2"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return response.read()
 
@@ -232,6 +250,43 @@ def bucket_of(value, edges):
         if value <= edge:
             return "<=" + str(edge)
     return ">" + str(edges[-1])
+
+
+# ------------------------------------------------------------------ 分层抽样
+
+def stride_indices(total, quota):
+    """等距抽取 quota 个下标（覆盖 0..total-1 的整个顺序，确定性）。
+
+    quota >= total 时全取。用 floor(j * total / quota) 保证下标不重复且铺满整个文件顺序
+    （不是只取头部：来源文件常按子任务/难度排序，只取头部会系统性偏斜）。
+    """
+    if quota >= total:
+        return list(range(total))
+    if quota <= 0:
+        return []
+    return [j * total // quota for j in range(quota)]
+
+
+def solve_config_cap(available, budget):
+    """求统一的每 config 配额上限 q，使 sum(min(n_i, q)) 不超过 budget 且尽量大。
+
+    小 config（n_i <= q）全取；大 config 被压到同一上限 q —— 这就是"按 config 分层"：
+    每个 config 都有配额，且没有任何单个 config 靠体量淹没其它 config。
+    返回 (q, 实际总量)。
+    """
+    if budget <= 0 or not available:
+        return 0, 0
+    low, high = 0, max(available.values())
+    best = 0
+    while low <= high:
+        middle = (low + high) // 2
+        total = sum(min(count, middle) for count in available.values())
+        if total <= budget:
+            best = middle
+            low = middle + 1
+        else:
+            high = middle - 1
+    return best, sum(min(count, best) for count in available.values())
 
 
 # ------------------------------------------------------------------ fetch
@@ -306,13 +361,15 @@ def cmd_extract(args):
     print("extracted rows=" + str(total))
     return 0
 
+
 # ------------------------------------------------------------------ 质量门槛
 
-def select_options(labels, scores, answer_text):
+def select_options(labels, scores, answer_text, max_options=None):
     """质量门槛 + 选项去重。
 
     返回 (kept_labels, answer_index, flags, reject_reason)；reject_reason 非空表示剔除。
     顺序：先去空选项，再按折叠空白的规范化文本去重，再定位答案，再卡选项数。
+    max_options=None 表示不设上限（契约对 origin=source 的口径）。
     """
     flags = []
     if not norm_text(answer_text):
@@ -350,10 +407,12 @@ def select_options(labels, scores, answer_text):
         flags.append("answer_from_target_text")
     if len(kept) < MIN_OPTIONS:
         return None, None, flags, "options_lt2"
-    if len(kept) > MAX_OPTIONS:
-        return None, None, flags, "options_gt16"
+    if max_options and len(kept) > max_options:
+        return None, None, flags, "options_gt" + str(max_options)
     return [record[1] for record in kept], answer_index, flags, None
 
+
+# ------------------------------------------------------------------ item 组装小工具
 
 def stamp_converter(item, errors):
     """条目出自本脚本，不是 convert.py 本体：把 meta.converter 改回真实转换器。
@@ -366,7 +425,7 @@ def stamp_converter(item, errors):
     item["meta"]["converter_chain"] = ("convert_capability.py "
                                        + CONVERTER_VERSION + " -> convert.py native builders")
     if errors:
-        # 只在真有问题时写：全批 152,580 条都通过校验，逐条写空数组纯属 13 MB 噪声
+        # 只在真有问题时写：全批都通过校验时逐条写空数组只是纯噪声
         item["meta"]["schema_errors"] = errors
     return item
 
@@ -374,7 +433,7 @@ def stamp_converter(item, errors):
 def resolve_id(convert, ctx, slug, dataset, revision, config, split, row):
     """分配 id，并把 32 位哈希的生日碰撞按确定性 variant 解决。
 
-    id 是 db-<slug>-<8hex>（32 位），本批 152,580 条实测撞了 3 次（期望 ~2.7 次）。
+    id 是 db-<slug>-<8hex>（32 位），条目量大时会生日碰撞（上一轮 152,580 条撞 3 次）。
     同一 (config, row) 只会走到同一个 base id，因此冲突只可能来自不同行；
     这里按**固定的遍历顺序**给后来者依次挂 v1、v2…，顺序固定所以结果可复现。
     变体会一起决定打散种子，所以必须在打散之前定下来。
@@ -404,10 +463,29 @@ def shuffle_options(labels, answer_index, seed):
     return shuffled, order.index(answer_index), order
 
 
+def build_choice_question(convert, key, state, labels, seed):
+    """把选项文本组装成契约要的 choice 题面 + 硬标签答案。
+
+    返回 (question, answer_key, meta_bits)。
+    """
+    shuffled, new_index, native_order = shuffle_options(labels, seed[1], seed[0])
+    used = set()
+    pairs = [{"key": convert.option_key(label, index, used), "label": label}
+             for index, label in enumerate(shuffled)]
+    question = convert.native_question(key, "choice", state, options=pairs)
+    return question, pairs[new_index]["key"], {
+        "answer_index": new_index,
+        "native_option_order": native_order,
+        "shuffle_seed": seed[0],
+    }
+
+
+# ------------------------------------------------------------------ 位置偏置
+
 def position_bias(counter_by_size, min_expected=5.0):
     """位置偏置检验：按选项数分层做卡方，避免不同选项数混在一起比。
 
-    只在"每格期望 >= min_expected"的层里算卡方与最大占比：格子太小的层（如 size=16 只有 12 条）
+    只在"每格期望 >= min_expected"的层里算卡方与最大占比：格子太小的层
     每格期望远小于 1，卡方近似失效，会把统计量抬到没有意义的量级，单独列进 small_groups。
 
     counter_by_size: {options_count: Counter(position -> count)}
@@ -447,24 +525,27 @@ def position_bias(counter_by_size, min_expected=5.0):
             "max_share_size": worst[2], "min_expected": min_expected,
             "per_size": per_size, "small_groups": small}
 
+# ------------------------------------------------------------------ bigbench: 门槛 -> 抽样 -> 组装
 
-# ------------------------------------------------------------------ bigbench -> items
+def gate_bigbench(ctx):
+    """第一遍：只跑质量门槛，不组装条目（抽样必须在组装之前决定）。
 
-def convert_bigbench(ctx):
-    """tasksource/bigbench：inputs + multiple_choice_targets + multiple_choice_scores -> choice。"""
-    convert = ctx["convert"]
-    out = []
+    返回 (configs, rejects, raw_total)。configs[config] = {
+    capability, subtype, rows: [candidate...], rejects: Counter, distinct_answer_texts, answer_top}
+    candidate = {row, native_idx, state, kept, answer_index, flags, answer_text,
+                 native_option_count, native_option_count_before_dedupe}
+    """
+    max_options = ctx.get("max_options")
+    configs = OrderedDict()
     rejects = []
-    per_config = OrderedDict()
     raw_total = 0
     for config, (capability, subtype) in BIGBENCH_CONFIGS.items():
         path = RAW_ROOT / "bigbench" / config / "train.jsonl"
         if not path.is_file():
             raise SystemExit("缺 extract 产物：" + str(path) + "（先跑 extract）")
-        config_items = []
+        rows = []
         config_rejects = Counter()
-        config_answers = Counter()
-        config_positions = Counter()
+        answers = Counter()
         for line_no, payload in enumerate(jsonl_read(path)):
             raw_total += 1
             #: 原生 idx 在多个 config 里**不唯一**（实测 unit_conversion 19,151 行只有 2,400 个 idx、
@@ -493,89 +574,152 @@ def convert_bigbench(ctx):
                 rejects.append({"dataset": BIGBENCH["dataset"], "config": config, "row": row,
                                 "reason": reason})
                 continue
-            kept, answer_index, flags, reject = select_options(labels, scores, targets[0])
+            kept, answer_index, flags, reject = select_options(
+                labels, scores, targets[0], max_options)
             if reject:
                 config_rejects[reject] += 1
                 rejects.append({"dataset": BIGBENCH["dataset"], "config": config, "row": row,
                                 "reason": reject, "native_option_count": len(labels)})
                 continue
-            item_id, id_variant = resolve_id(convert, ctx, BIGBENCH["slug"],
-                                             BIGBENCH["dataset"], BIGBENCH["revision"],
-                                             config, BIGBENCH["split"], row)
-            if id_variant:
-                flags = list(flags) + ["id_collision_resolved:" + id_variant]
-            seed = int(item_id.rsplit("-", 1)[1], 16)
-            shuffled, new_index, native_order = shuffle_options(kept, answer_index, seed)
-            used = set()
-            pairs = [{"key": convert.option_key(label, index, used), "label": label}
-                     for index, label in enumerate(shuffled)]
-            question = convert.native_question(config, "choice", state, options=pairs)
-            manifest = {"dataset": BIGBENCH["dataset"], "revision": BIGBENCH["revision"],
-                        "config": config, "split": BIGBENCH["split"],
-                        "license": BIGBENCH["license"], "source_url": BIGBENCH["url"],
-                        "_created_at": ctx["created_at"]}
-            item, errors = convert.build_native_item(
-                None, slug=BIGBENCH["slug"], manifest=manifest, row=row, domain=DOMAIN,
-                domain_rule="capability:bigbench:" + config, state=state, questions=[question],
-                targets={config: {"answer": pairs[new_index]["key"]}}, flags=flags,
-                variant=id_variant, key_source=BIGBENCH["key_source"],
-                meta_extra={
-                    "capability": capability,
-                    "capability_label": CAPABILITY_LABELS[capability],
-                    "capability_subtype": subtype,
-                    "capability_rule": "capability-sources.md P1-1 config -> " + capability,
-                    "native_task": config,
-                    "native_idx": native_idx,
-                    "native_option_count": len(kept),
-                    "native_option_count_before_dedupe": len(labels),
-                    "native_answer_index": answer_index,
-                    "answer_index": new_index,
-                    "shuffle_seed": seed,
-                    "native_option_order": native_order,
-                    "native_answer_text": kept[answer_index],
-                    "native_split": "train",
-                    "native_source_file": BIGBENCH["file_url"].format(config=config),
-                    "state_length": len(state),
-                    "state_equals_prompt": True,
-                })
-            stamp_converter(item, errors)
-            config_items.append(item)
-            config_answers[norm_text(kept[answer_index])] += 1
-            config_positions[answer_index] += 1
+            answer_text = kept[answer_index]
+            rows.append({"row": row, "native_idx": native_idx, "state": state, "kept": kept,
+                         "answer_index": answer_index, "flags": flags,
+                         "answer_text": answer_text,
+                         "native_option_count": len(kept),
+                         "native_option_count_before_dedupe": len(labels)})
+            answers[norm_text(answer_text)] += 1
         # 单一类别（无负类）的 config 整份剔除：答案文本只有一个取值
-        if config_items and len(config_answers) == 1:
-            only = next(iter(config_answers))
-            for item in config_items:
+        if rows and len(answers) == 1:
+            only = next(iter(answers))
+            for candidate in rows:
                 rejects.append({"dataset": BIGBENCH["dataset"], "config": config,
-                                "row": item["source"]["row"],
-                                "reason": "single_class_config", "answer": only})
-            config_rejects["single_class_config"] += len(config_items)
-            config_items = []
-        out.extend(config_items)
-        per_config[config] = {
-            "capability": capability, "capability_label": CAPABILITY_LABELS[capability],
-            "subtype": subtype, "converted": len(config_items),
-            "rejected": sum(config_rejects.values()),
-            "rejects": dict(sorted(config_rejects.items())),
-            "distinct_answer_texts": len(config_answers),
-            "answer_top": config_answers.most_common(5),
-            "native_answer_position_top": config_positions.most_common(3),
+                                "row": candidate["row"], "reason": "single_class_config",
+                                "answer": only})
+            config_rejects["single_class_config"] += len(rows)
+            rows = []
+        configs[config] = {
+            "capability": capability, "subtype": subtype, "rows": rows,
+            "rejects": config_rejects,
+            "distinct_answer_texts": len(answers), "answer_top": answers.most_common(5),
         }
-    return out, rejects, per_config, raw_total
+    return configs, rejects, raw_total
 
 
-# ------------------------------------------------------------------ cosmos_qa -> items
+def sample_bigbench(configs, budget):
+    """按 config 分层抽样：先解统一上限 q，再在 config 内等距抽。
+
+    返回 (sampling_meta, quotas)。quotas[config] = 该 config 的入选条数。
+    """
+    available = OrderedDict((config, len(info["rows"])) for config, info in configs.items())
+    cap, planned = solve_config_cap(available, budget)
+    quotas = OrderedDict((config, min(count, cap)) for config, count in available.items())
+    meta = {
+        "method": "config_stratified_cap",
+        "desc": "每个 config 同一配额上限 q（小 config 全取），config 内按 floor(j*n/k) 等距抽",
+        "budget": budget, "config_cap": cap, "planned": planned,
+        "shortfall": budget - planned,
+        "available_total": sum(available.values()),
+        "selected_total": sum(quotas.values()),
+        "configs_fully_kept": sum(1 for config, count in available.items() if count <= cap),
+        "configs_capped": sum(1 for config, count in available.items() if count > cap),
+    }
+    return meta, quotas
+
+
+def build_bigbench_item(ctx, config, info, candidate, available_count):
+    """组装一条 bigbench 条目（选项已在门槛阶段去空/去重，这里打散并落 meta）。"""
+    convert = ctx["convert"]
+    row = candidate["row"]
+    state = candidate["state"]
+    kept = candidate["kept"]
+    answer_index = candidate["answer_index"]
+    flags = list(candidate["flags"])
+    item_id, id_variant = resolve_id(convert, ctx, BIGBENCH["slug"], BIGBENCH["dataset"],
+                                     BIGBENCH["revision"], config, BIGBENCH["split"], row)
+    if id_variant:
+        flags.append("id_collision_resolved:" + id_variant)
+    seed = int(item_id.rsplit("-", 1)[1], 16)
+    question, answer_key, bits = build_choice_question(convert, config, state, kept,
+                                                       (seed, answer_index))
+    manifest = {"dataset": BIGBENCH["dataset"], "revision": BIGBENCH["revision"],
+                "config": config, "split": BIGBENCH["split"],
+                "license": BIGBENCH["license"], "source_url": BIGBENCH["url"],
+                "_created_at": ctx["created_at"]}
+    item, errors = convert.build_native_item(
+        None, slug=BIGBENCH["slug"], manifest=manifest, row=row, domain=DOMAIN,
+        domain_rule="capability:bigbench:" + config, state=state, questions=[question],
+        targets={config: {"answer": answer_key}}, flags=flags, variant=id_variant,
+        key_source=BIGBENCH["key_source"],
+        meta_extra={
+            "capability": info["capability"],
+            "capability_label": CAPABILITY_LABELS[info["capability"]],
+            "capability_subtype": info["subtype"],
+            "capability_rule": "capability-sources.md P1-1 config -> " + info["capability"],
+            "native_task": config,
+            "native_idx": candidate["native_idx"],
+            "native_option_count": len(kept),
+            "native_option_count_before_dedupe": candidate["native_option_count_before_dedupe"],
+            "native_answer_index": answer_index,
+            "native_answer_text": candidate["answer_text"],
+            "native_split": "train",
+            "native_source_file": BIGBENCH["file_url"].format(config=config),
+            "state_length": len(state),
+            "state_equals_prompt": True,
+            "sample_scheme": "config_stratified_cap",
+            "sample_config_available": available_count,
+            **bits,
+        })
+    stamp_converter(item, errors)
+    return item
+
+
+def build_bigbench_items(ctx, configs, quotas):
+    """按配额等距抽样并组装。返回 (items, per_config_selected, sampled_out_ledger)。"""
+    items = []
+    selected = OrderedDict()
+    excluded = []
+    for config, info in configs.items():
+        rows = info["rows"]
+        quota = quotas.get(config, 0)
+        indices = stride_indices(len(rows), quota)
+        chosen = set(indices)
+        positions = Counter()
+        built = []
+        for index in indices:
+            candidate = rows[index]
+            built.append(build_bigbench_item(ctx, config, info, candidate, len(rows)))
+            positions[candidate["answer_index"]] += 1
+        for index, candidate in enumerate(rows):
+            if index not in chosen:
+                excluded.append({"dataset": BIGBENCH["dataset"], "config": config,
+                                 "row": candidate["row"], "reason": "sampled_out"})
+        items.extend(built)
+        selected[config] = {
+            "capability": info["capability"],
+            "capability_label": CAPABILITY_LABELS[info["capability"]],
+            "subtype": info["subtype"],
+            "available": len(rows), "selected": len(built), "quota": quota,
+            "gate_rejected": sum(info["rejects"].values()),
+            "rejects": dict(sorted(info["rejects"].items())),
+            "distinct_answer_texts": info["distinct_answer_texts"],
+            "answer_top": info["answer_top"],
+            "native_answer_position_top": positions.most_common(3),
+        }
+    return items, selected, excluded
+
+
+# ------------------------------------------------------------------ cosmos_qa: 门槛 -> 组装（全取）
 
 COSMOS_ANSWER_FIELDS = ["answer0", "answer1", "answer2", "answer3"]
 
 
-def convert_cosmos(ctx):
-    """allenai/cosmos_qa：context + question + answer0..3 + label -> choice（原生 4 选 1）。"""
-    convert = ctx["convert"]
+def gate_cosmos(ctx):
+    """cosmos_qa：门槛 + 解析 label。全取不抽样，但门槛口径与 bigbench 完全一致。"""
+    max_options = ctx.get("max_options")
     path = RAW_ROOT / "cosmos-qa" / "train.csv"
     if not path.is_file():
         raise SystemExit("缺下载产物：" + str(path) + "（先跑 fetch）")
-    out = []
+    candidates = []
     rejects = []
     counts = Counter()
     answers = Counter()
@@ -588,6 +732,7 @@ def convert_cosmos(ctx):
             state = str(payload.get("context") or "")
             prompt = str(payload.get("question") or "")
             labels = [payload.get(field) for field in COSMOS_ANSWER_FIELDS]
+            native_id = payload.get("id")
             if not state.strip():
                 counts["empty_state"] += 1
                 rejects.append({"dataset": COSMOS["dataset"], "config": COSMOS["config"],
@@ -614,82 +759,94 @@ def convert_cosmos(ctx):
                                 "label": payload.get("label")})
                 continue
             scores = [1.0 if index == native_index else 0.0 for index in range(len(labels))]
-            kept, answer_index, flags, reject = select_options(labels, scores, labels[native_index])
+            kept, answer_index, flags, reject = select_options(
+                labels, scores, labels[native_index], max_options)
             if reject:
                 counts[reject] += 1
                 rejects.append({"dataset": COSMOS["dataset"], "config": COSMOS["config"],
-                                "row": row, "reason": reject, "native_option_count": len(labels)})
+                                "row": row, "reason": reject,
+                                "native_option_count": len(labels)})
                 continue
-            item_id, id_variant = resolve_id(convert, ctx, COSMOS["slug"], COSMOS["dataset"],
-                                             COSMOS["revision"], COSMOS["config"],
-                                             COSMOS["split"], row)
-            if id_variant:
-                flags = list(flags) + ["id_collision_resolved:" + id_variant]
-            seed = int(item_id.rsplit("-", 1)[1], 16)
-            shuffled, new_index, native_order = shuffle_options(kept, answer_index, seed)
-            used = set()
-            pairs = [{"key": convert.option_key(label, index, used), "label": label}
-                     for index, label in enumerate(shuffled)]
-            question = convert.native_question(COSMOS["key"], "choice", prompt, options=pairs)
-            manifest = {"dataset": COSMOS["dataset"], "revision": COSMOS["revision"],
-                        "config": COSMOS["config"], "split": COSMOS["split"],
-                        "license": COSMOS["license"], "source_url": COSMOS["url"],
-                        "_created_at": ctx["created_at"]}
-            item, errors = convert.build_native_item(
-                None, slug=COSMOS["slug"], manifest=manifest, row=row, domain=DOMAIN,
-                domain_rule="capability:cosmos_qa:reading_evidence", state=state,
-                questions=[question],
-                targets={COSMOS["key"]: {"answer": pairs[new_index]["key"]}}, flags=flags,
-                variant=id_variant, key_source=COSMOS["key_source"],
-                meta_extra={
-                    "capability": "reading_evidence",
-                    "capability_label": CAPABILITY_LABELS["reading_evidence"],
-                    "capability_subtype": "多句情境下的因果/意图推理",
-                    "capability_rule": "capability-sources.md P2-1 -> reading_evidence",
-                    "native_id": payload.get("id"),
-                    "native_field": COSMOS["key"],
-                    "native_option_count": len(kept),
-                    "native_option_count_before_dedupe": len(labels),
-                    "native_answer_index": answer_index,
-                    "answer_index": new_index,
-                    "shuffle_seed": seed,
-                    "native_option_order": native_order,
-                    "native_answer_text": kept[answer_index],
-                    "native_label": native_index,
-                    "native_split": "train",
-                    "native_source_file": COSMOS["file_url"],
-                    "state_length": len(state),
-                    "state_equals_prompt": False,
-                })
-            stamp_converter(item, errors)
-            out.append(item)
-            answers[norm_text(kept[answer_index])] += 1
-    if out and len(answers) == 1:
+            answer_text = kept[answer_index]
+            candidates.append({"row": row, "state": state, "prompt": prompt, "kept": kept,
+                               "answer_index": answer_index, "flags": flags,
+                               "answer_text": answer_text, "native_id": native_id,
+                               "native_index": native_index,
+                               "native_option_count": len(kept),
+                               "native_option_count_before_dedupe": len(labels)})
+            answers[norm_text(answer_text)] += 1
+    if candidates and len(answers) == 1:
         only = next(iter(answers))
-        for item in out:
+        for candidate in candidates:
             rejects.append({"dataset": COSMOS["dataset"], "config": COSMOS["config"],
-                            "row": item["source"]["row"], "reason": "single_class_config",
+                            "row": candidate["row"], "reason": "single_class_config",
                             "answer": only})
-        counts["single_class_config"] += len(out)
-        out = []
+        counts["single_class_config"] += len(candidates)
+        candidates = []
     per_config = {COSMOS["config"]: {
         "capability": "reading_evidence",
         "capability_label": CAPABILITY_LABELS["reading_evidence"],
         "subtype": "多句情境下的因果/意图推理",
-        "converted": len(out), "rejected": sum(counts.values()),
+        "available": len(candidates), "selected": len(candidates),
+        "gate_rejected": sum(counts.values()),
         "rejects": dict(sorted(counts.items())),
         "distinct_answer_texts": len(answers), "answer_top": answers.most_common(5)}}
-    return out, rejects, per_config, raw_total
+    return candidates, rejects, per_config, raw_total
 
-# ------------------------------------------------------------------ 统计与报告
 
-def dist_text(counter, limit=None):
-    total = sum(counter.values())
-    rows = counter.most_common(limit) if limit else sorted(counter.items())
-    return [{"value": str(value), "items": count,
-             "share": round(count / float(total), 6) if total else 0.0}
-            for value, count in rows]
+def build_cosmos_items(ctx, candidates):
+    """组装 cosmos_qa 条目：state=context，prompt=原生 question，options=answer0..3（打散）。"""
+    convert = ctx["convert"]
+    items = []
+    for candidate in candidates:
+        row = candidate["row"]
+        state = candidate["state"]
+        kept = candidate["kept"]
+        answer_index = candidate["answer_index"]
+        flags = list(candidate["flags"])
+        item_id, id_variant = resolve_id(convert, ctx, COSMOS["slug"], COSMOS["dataset"],
+                                         COSMOS["revision"], COSMOS["config"],
+                                         COSMOS["split"], row)
+        if id_variant:
+            flags.append("id_collision_resolved:" + id_variant)
+        seed = int(item_id.rsplit("-", 1)[1], 16)
+        question, answer_key, bits = build_choice_question(convert, COSMOS["key"],
+                                                           candidate["prompt"], kept,
+                                                           (seed, answer_index))
+        manifest = {"dataset": COSMOS["dataset"], "revision": COSMOS["revision"],
+                    "config": COSMOS["config"], "split": COSMOS["split"],
+                    "license": COSMOS["license"], "source_url": COSMOS["url"],
+                    "_created_at": ctx["created_at"]}
+        item, errors = convert.build_native_item(
+            None, slug=COSMOS["slug"], manifest=manifest, row=row, domain=DOMAIN,
+            domain_rule="capability:cosmos_qa:reading_evidence", state=state,
+            questions=[question], targets={COSMOS["key"]: {"answer": answer_key}},
+            flags=flags, variant=id_variant, key_source=COSMOS["key_source"],
+            meta_extra={
+                "capability": "reading_evidence",
+                "capability_label": CAPABILITY_LABELS["reading_evidence"],
+                "capability_subtype": "多句情境下的因果/意图推理",
+                "capability_rule": "capability-sources.md P2-1 -> reading_evidence",
+                "native_id": candidate["native_id"],
+                "native_field": COSMOS["key"],
+                "native_option_count": len(kept),
+                "native_option_count_before_dedupe":
+                    candidate["native_option_count_before_dedupe"],
+                "native_answer_index": answer_index,
+                "native_answer_text": candidate["answer_text"],
+                "native_label": candidate["native_index"],
+                "native_split": "train",
+                "native_source_file": COSMOS["file_url"],
+                "state_length": len(state),
+                "state_equals_prompt": False,
+                "sample_scheme": "full",
+                **bits,
+            })
+        stamp_converter(item, errors)
+        items.append(item)
+    return items
 
+# ------------------------------------------------------------------ 统计与校验
 
 def corpus_stats(items):
     """候选语料的形状统计：能力维度、语言、选项数、位置偏置、state 长度、quality_flags。"""
@@ -727,8 +884,7 @@ def corpus_stats(items):
         if isinstance(shuffled_index, int):
             shuffled_by_size.setdefault(size, Counter())[shuffled_index] += 1
         for flag in meta.get("quality_flags") or []:
-            base = flag.split(":", 1)[0]
-            flags[base] += 1
+            flags[flag.split(":", 1)[0]] += 1
         length = meta.get("state_length")
         if isinstance(length, int):
             state_len[bucket_of(length, (512, 1024, 2048, 4096, 8192))] += 1
@@ -774,12 +930,13 @@ def validate_items(convert, items):
             "schema_issues": sum(issues.values())}
 
 
-def merge_preview(items_path, splits_dir, by_source=None):
-    """与现有语料合并后的构成预期。
+# ------------------------------------------------------------------ 现有语料 / 合并预期
 
-    现有语料的能力维度**用 README 自己的规则链**（readme_stats.classify_capability）重算，
-    新条目用 meta.capability（readme_stats 目前不认识这两个来源，合并时需要在
-    classify_capability 里加两条规则，见 capability-adoption.md）。
+def load_existing(splits_dir):
+    """读公开三分区，用 README 自己的规则链（readme_stats.classify_capability）标能力维度。
+
+    新来源在 readme_stats 里还没有规则（会落到 other），所以新条目一律用 meta.capability；
+    合并前需要在 readme_stats.classify_capability 里加两条规则（见 capability-adoption.md）。
     """
     stats = load_module("general_readme_stats", HERE / "readme_stats.py")
     splits = OrderedDict([("train", Path(splits_dir) / "train.jsonl"),
@@ -788,20 +945,59 @@ def merge_preview(items_path, splits_dir, by_source=None):
     before_all = Counter()
     before_train = Counter()
     rules = Counter()
-    present = []
+    by_dim_dataset = {}
+    files = []
     for split, path in splits.items():
         if not path.is_file():
             continue
-        present.append(split)
+        files.append(str(path))
         for item in jsonl_read(path):
             capability, rule = stats.classify_capability(item)
+            dataset = (item.get("source") or {}).get("dataset") or "?"
             before_all[capability] += 1
             rules[rule] += 1
+            bucket = by_dim_dataset.get(capability)
+            if bucket is None:
+                bucket = by_dim_dataset[capability] = Counter()
+            bucket[dataset] += 1
             if split == "train":
                 before_train[capability] += 1
+    return {"all": before_all, "train": before_train, "rules": rules, "files": files,
+            "by_dim_dataset": by_dim_dataset}
+
+
+def target_new_total(total_existing, tool_action, share):
+    """反解：要让 tool_action / (existing + new) 落在 share，new 需要多少条。"""
+    if share <= 0:
+        return 0
+    needed = tool_action / float(share)
+    total_after = int(needed)
+    if total_after < needed:
+        total_after += 1
+    return max(0, total_after - total_existing)
+
+
+def classify_new_item(item, new_by_dataset):
+    """把新条目的 dataset/capability 计入统计（merge 与 shares 共用一次遍历）。"""
+    meta = item.get("meta") or {}
+    dataset = (item.get("source") or {}).get("dataset") or "?"
+    capability = meta.get("capability") or "other"
+    counter = new_by_dataset.get(dataset)
+    if counter is None:
+        counter = new_by_dataset[dataset] = Counter()
+    counter[capability] += 1
+    return dataset, capability
+
+
+def merge_preview(items_path, existing, full_new=None):
+    """与现有语料合并后的构成预期（能力维度）与情景表。"""
+    before_all = existing["all"]
+    before_train = existing["train"]
     new = Counter()
+    new_by_dataset = OrderedDict()
     for item in jsonl_read(items_path):
-        new[(item.get("meta") or {}).get("capability") or "other"] += 1
+        _, capability = classify_new_item(item, new_by_dataset)
+        new[capability] += 1
     after_all = Counter(before_all)
     after_all.update(new)
     after_train = Counter(before_train)
@@ -809,14 +1005,16 @@ def merge_preview(items_path, splits_dir, by_source=None):
 
     def table(before, after):
         rows = []
+        total_before = sum(before.values()) or 1
+        total_after = sum(after.values()) or 1
         for key in list(CAPABILITY_LABELS):
-            if key == "other" and not before.get(key) and not after.get(key):
+            if not before.get(key) and not after.get(key):
                 continue
             rows.append({
                 "capability": key, "label": CAPABILITY_LABELS[key],
                 "before": before.get(key, 0), "after": after.get(key, 0),
-                "before_share": round(before.get(key, 0) / float(sum(before.values())), 6),
-                "after_share": round(after.get(key, 0) / float(sum(after.values())), 6)})
+                "before_share": round(before.get(key, 0) / float(total_before), 6),
+                "after_share": round(after.get(key, 0) / float(total_after), 6)})
         return rows
 
     def scenario(name, new_counter):
@@ -831,23 +1029,51 @@ def merge_preview(items_path, splits_dir, by_source=None):
             "counts": {key: after.get(key, 0) for key in CAPABILITY_LABELS if after.get(key)},
         }
 
-    scenarios = [scenario("full_both", new)]
-    for dataset, label in ((BIGBENCH["dataset"], "bigbench_only"),
-                           (COSMOS["dataset"], "cosmos_only")):
-        if by_source and by_source.get(dataset):
-            scenarios.append(scenario(label, by_source[dataset]))
-    for factor, label in ((0.5, "both_half"), (1 / 3, "both_third"), (1 / 6, "both_sixth")):
+    scenarios = [scenario("final", new)]
+    if full_new:
+        scenarios.append(scenario("full_candidate_no_sampling", full_new))
+    for dataset, counter in new_by_dataset.items():
+        scenarios.append(scenario(dataset + "_only", counter))
+    for factor, label in ((0.5, "final_half"), (1 / 3, "final_third"), (1 / 6, "final_sixth")):
         scenarios.append(scenario(label, {key: int(round(count * factor))
                                           for key, count in new.items()}))
 
+    # 每个能力维度到底是谁在撑：现有 vs 新增、来源数、单一来源集中度（交接表用）
+    dimension_sources = OrderedDict()
+    for capability in CAPABILITY_LABELS:
+        bucket = Counter((existing.get("by_dim_dataset") or {}).get(capability, {}))
+        for dataset, counter in new_by_dataset.items():
+            if counter.get(capability):
+                bucket[dataset] += counter[capability]
+        if not bucket:
+            continue
+        merged_count = sum(bucket.values())
+        sources = [{"dataset": dataset, "count": count,
+                    "share": round(count / float(merged_count), 6)}
+                   for dataset, count in bucket.most_common()]
+        dimension_sources[capability] = {
+            "capability": capability, "label": CAPABILITY_LABELS[capability],
+            "merged": merged_count,
+            "existing": before_all.get(capability, 0),
+            "new": new.get(capability, 0),
+            "new_share": round(new.get(capability, 0) / float(merged_count), 6)
+                         if merged_count else 0.0,
+            "source_count": len(sources),
+            "top_dataset": sources[0]["dataset"], "top_share": sources[0]["share"],
+            "sources": sources,
+        }
+
     return {
         "scenarios": scenarios,
-        "existing_files": [str(splits[split]) for split in present],
+        "dimension_sources": dimension_sources,
+        "existing_files": existing["files"],
         "existing_all_splits": sum(before_all.values()),
         "existing_train_only": sum(before_train.values()),
-        "existing_rules": dict(rules),
+        "existing_rules": dict(existing["rules"]),
         "new_items": sum(new.values()),
         "new_by_capability": dict(new),
+        "new_by_dataset": {dataset: dict(counter) for dataset, counter
+                           in new_by_dataset.items()},
         "merged_all_splits_total": sum(after_all.values()),
         "merged_train_only_total": sum(after_train.values()),
         "table_all_splits": table(before_all, after_all),
@@ -855,22 +1081,75 @@ def merge_preview(items_path, splits_dir, by_source=None):
     }
 
 
+def source_shares(items_path, splits_dir, existing=None):
+    """合并后**每个来源**的占比（现有语料按 source.dataset 计，新语料同理）。
+
+    这是"单一来源集中度"的取证：sources.json 的参考上限是 40%（当前不判定、只给数），
+    benchmark 刚把单一来源从 47.1% 压到 24.97%，训练侧不该在同一个问题上倒退。
+    """
+    if existing is None:
+        existing = load_existing(splits_dir)
+    before = Counter()
+    for path in existing["files"]:
+        for item in jsonl_read(path):
+            before[(item.get("source") or {}).get("dataset") or "?"] += 1
+    new = Counter()
+    for item in jsonl_read(items_path):
+        new[(item.get("source") or {}).get("dataset") or "?"] += 1
+    merged = Counter(before)
+    merged.update(new)
+    total_merged = sum(merged.values()) or 1
+    total_new = sum(new.values()) or 1
+    total_before = sum(before.values()) or 1
+    rows = []
+    for dataset, count in merged.most_common():
+        rows.append({
+            "dataset": dataset,
+            "existing": before.get(dataset, 0),
+            "new": new.get(dataset, 0),
+            "merged": count,
+            "merged_share": round(count / float(total_merged), 6),
+            "existing_share": round(before.get(dataset, 0) / float(total_before), 6),
+            "new_share_of_new": round(new.get(dataset, 0) / float(total_new), 6),
+        })
+    top = rows[0] if rows else {"dataset": None, "merged_share": 0.0}
+    return {"rows": rows, "merged_total": total_merged, "new_total": total_new,
+            "existing_total": total_before,
+            "max_dataset": top["dataset"], "max_share": top["merged_share"],
+            "new_source_max_share": max((row["new_share_of_new"] for row in rows),
+                                        default=0.0)}
+
+
+# ------------------------------------------------------------------ 报告
+
 def write_report(args, payload):
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print("report -> " + str(args.report))
 
 
+def pct(value):
+    return str(round(float(value) * 100, 2)) + "%"
+
+
 def print_summary(payload):
+    headline = payload.get("headline") or {}
+    sampling = (payload.get("scope") or {}).get("sampling") or {}
     print("")
     print("== 候选语料 ==")
     for name, source in payload["sources"].items():
         print("  " + name + ": raw=" + str(source["raw_rows"])
-              + " converted=" + str(source["converted"])
-              + " rejected=" + str(source["rejected_total"]))
-    print("  total converted=" + str(payload["totals"]["items"]))
+              + " available=" + str(source["available"])
+              + " selected=" + str(source["selected"])
+              + " gate_rejected=" + str(source["gate_rejected"]))
+    print("  total=" + str(payload["totals"]["items"]))
+    if sampling:
+        print("  分层抽样: budget=" + str(sampling.get("budget"))
+              + " config_cap=" + str(sampling.get("config_cap"))
+              + " available=" + str(sampling.get("available_total"))
+              + " -> selected=" + str(sampling.get("selected_total")))
     print("")
-    print("== 剔除理由（逐条计数）==")
+    print("== 剔除理由（质量门槛，逐条计数）==")
     for reason, count in sorted(payload["totals"].get("rejects", {}).items(),
                                 key=lambda pair: -pair[1]):
         print("  " + reason + ": " + str(count))
@@ -885,67 +1164,126 @@ def print_summary(payload):
         print("  " + key + ": chi2=" + str(bias["chi2"]) + " df=" + str(bias["df"])
               + " max_share=" + str(bias["max_share"]))
     print("")
-    print("== 合并后构成预期（公开三分区口径）==")
+    print("== 合并后构成（公开三分区口径）==")
     for row in payload["merge"]["table_all_splits"]:
-        print("  " + row["label"] + ": " + str(row["before"]) + " ("
-              + str(round(row["before_share"] * 100, 2)) + "%) -> "
-              + str(row["after"]) + " (" + str(round(row["after_share"] * 100, 2)) + "%)")
+        print("  " + row["label"] + ": " + str(row["before"]) + " (" + pct(row["before_share"])
+              + ") -> " + str(row["after"]) + " (" + pct(row["after_share"]) + ")")
+    dimension_sources = payload.get("merge", {}).get("dimension_sources") or {}
+    if dimension_sources:
+        print("")
+        print("== 每个能力维度的来源构成（谁在撑）==")
+        for row in dimension_sources.values():
+            print("  " + row["label"] + ": merged=" + str(row["merged"])
+                  + " existing=" + str(row["existing"]) + " new=" + str(row["new"])
+                  + " sources=" + str(row["source_count"])
+                  + " top=" + str(row["top_dataset"]) + " " + pct(row["top_share"]))
+    shares = payload.get("shares") or {}
+    if shares.get("rows"):
+        print("")
+        print("== 合并后每个来源占比（top 8 / 共 " + str(len(shares["rows"])) + " 个）==")
+        for row in shares["rows"][:8]:
+            print("  " + str(row["dataset"]) + ": existing=" + str(row["existing"])
+                  + " new=" + str(row["new"]) + " merged=" + str(row["merged"])
+                  + " share=" + pct(row["merged_share"])
+                  + " (new 内部占 " + pct(row["new_share_of_new"]) + ")")
+        print("  最大单一来源: " + str(shares["max_dataset"]) + " " + pct(shares["max_share"]))
     print("")
-    print("== 合并情景（新语料整体缩放到不同体量）==")
+    print("== 情景（新语料整体缩放）==")
     for row in payload["merge"].get("scenarios", []):
-        shares = row["shares"]
+        s = row["shares"]
         print("  " + row["name"] + ": new=" + str(row["new_items"])
               + " total=" + str(row["merged_total"])
-              + " tool=" + str(round(shares["tool_action"] * 100, 2)) + "%"
-              + " math=" + str(round(shares["math_logic"] * 100, 2)) + "%"
-              + " reading=" + str(round(shares["reading_evidence"] * 100, 2)) + "%")
-    print("")
+              + " tool=" + pct(s["tool_action"]) + " math=" + pct(s["math_logic"])
+              + " reading=" + pct(s["reading_evidence"]))
+    if headline:
+        print("")
+        print("== 结论 ==")
+        print("  候选 " + str(headline["candidate_items"]) + " 条（全量候选的 "
+              + pct(headline["candidate_share_of_full"]) + "）"
+              + "; 合并后 " + str(headline["merged_total"]) + " 条")
+        print("  工具与行动选择: " + pct(headline["tool_action_before_share"])
+              + " -> " + pct(headline["tool_action_after_share"]))
+        print("  bigbench 占比: 候选内 " + pct(headline["bigbench_share_of_new"])
+              + " / 合并后 " + pct(headline["bigbench_share_of_merged"]))
+    artifacts = payload.get("artifacts") or {}
+    if artifacts.get("items_sha256"):
+        print("items sha256: " + str(artifacts["items_sha256"]))
     print("schema_issues=" + str(payload["schema"]["schema_issues"])
           + " (items_with_issues=" + str(payload["schema"]["items_with_issues"]) + ")")
 
 
+# ------------------------------------------------------------------ CLI
+
 def cmd_convert(args):
     convert = load_module("general_convert", HERE / "convert.py")
     ctx = {"convert": convert, "created_at": args.created_at or utc_now(),
-           "used_ids": set(), "id_collisions": 0}
-    bigbench_items, bb_rejects, bb_configs, bb_raw = convert_bigbench(ctx)
-    cosmos_items, cs_rejects, cs_configs, cs_raw = convert_cosmos(ctx)
+           "used_ids": set(), "id_collisions": 0, "max_options": args.max_options}
+
+    # 0) 现有语料：用于反解目标预算，也用于合并预期（只读一遍 86 MB）
+    existing = load_existing(args.splits_dir)
+    existing_total = sum(existing["all"].values())
+    tool_now = existing["all"].get("tool_action", 0)
+    target_new = target_new_total(existing_total, tool_now, args.target_tool_share)
+
+    # 1) 质量门槛（两遍式：先 gate，再按目标抽样，最后组装）
+    bb_configs, bb_rejects, bb_raw = gate_bigbench(ctx)
+    cs_candidates, cs_rejects, cs_configs, cs_raw = gate_cosmos(ctx)
+    bb_available = sum(len(info["rows"]) for info in bb_configs.values())
+    cs_available = len(cs_candidates)
+
+    # 2) 预算：cosmos 全取，bigbench 按 config 分层补足到目标
+    if args.no_sample:
+        budget = bb_available
+    else:
+        budget = target_new - cs_available
+    sampling, quotas = sample_bigbench(bb_configs, budget)
+    sampling.update({"no_sample": bool(args.no_sample),
+                     "target_tool_share": args.target_tool_share,
+                     "target_new_total": target_new,
+                     "cosmos_full": cs_available,
+                     "cosmos_share_of_new": None})
+
+    # 3) 组装
+    bb_items, bb_selected, bb_sampled_out = build_bigbench_items(ctx, bb_configs, quotas)
+    cs_items = build_cosmos_items(ctx, cs_candidates)
     if args.limit:
-        bigbench_items = bigbench_items[:args.limit]
-        cosmos_items = cosmos_items[:args.limit]
-    items = bigbench_items + cosmos_items
+        bb_items = bb_items[:args.limit]
+        cs_items = cs_items[:args.limit]
+    items = bb_items + cs_items
+
     jsonl_write(args.out, items)
     jsonl_write(args.rejects, bb_rejects + cs_rejects)
+    jsonl_write(args.sampled_out, bb_sampled_out)
 
     schema = validate_items(convert, items)
     stats = corpus_stats(items)
-    reject_counts = Counter(row["reason"] for row in bb_rejects + cs_rejects)
-    by_source = {
-        BIGBENCH["dataset"]: Counter((item["meta"].get("capability") or "other")
-                                     for item in bigbench_items),
-        COSMOS["dataset"]: Counter((item["meta"].get("capability") or "other")
-                                   for item in cosmos_items),
-    }
-    merge = merge_preview(args.out, args.splits_dir, by_source)
+    # 全量候选（不抽样）的能力维度构成：config 的能力是恒定属性，按门槛后的行数汇总即可
+    full_by_capability = Counter()
+    for config, info in bb_configs.items():
+        full_by_capability[info["capability"]] += len(info["rows"])
+    full_by_capability["reading_evidence"] += cs_available
+    merge = merge_preview(args.out, existing, full_new=full_by_capability)
+    shares = source_shares(args.out, args.splits_dir, existing)
 
-    def source_block(spec, items_list, rejects_list, configs, raw_total):
-        counts = Counter(row["reason"] for row in rejects_list)
+    def source_block(spec, items_list, gate_rejects, per_config, raw_total, available):
+        counts = Counter(row["reason"] for row in gate_rejects)
         block = {
             "dataset": spec["dataset"], "revision": spec["revision"],
             "license": spec["license"], "url": spec["url"],
             "source_file_url": spec["file_url"],
             "split": spec["split"], "raw_rows": raw_total,
-            "converted": len(items_list), "rejected_total": sum(counts.values()),
+            "available": available, "selected": len(items_list),
+            "gate_rejected": sum(counts.values()),
+            "sampling_excluded": available - len(items_list),
             "rejects": dict(sorted(counts.items(), key=lambda pair: -pair[1])),
-            "configs": configs,
+            "configs": per_config,
         }
         if spec is COSMOS:
             block["data_revision"] = spec["data_revision"]
-        subset = [item for item in items_list]
-        if subset:
+        if items_list:
             positions_native = {}
             positions_shuffled = {}
-            for item in subset:
+            for item in items_list:
                 meta = item["meta"]
                 size = meta["native_option_count"]
                 positions_native.setdefault(size, Counter())[meta["native_answer_index"]] += 1
@@ -954,8 +1292,33 @@ def cmd_convert(args):
             block["answer_position_shuffled"] = position_bias(positions_shuffled)
         return block
 
+    by_source_totals = Counter((item.get("source") or {}).get("dataset") for item in items)
+    tool_after = sum(row["after"] for row in merge["table_all_splits"]
+                     if row["capability"] == "tool_action")
+    merged_total = merge["merged_all_splits_total"]
+    bigbench_new = by_source_totals.get(BIGBENCH["dataset"], 0)
+    candidate_share_of_full = (len(items) / float(bb_available + cs_available)
+                               if (bb_available + cs_available) else 0.0)
+    sampling["cosmos_share_of_new"] = round(cs_available / float(len(items)), 6) if items else 0
+    headline = {
+        "candidate_items": len(items),
+        "full_candidate_items": bb_available + cs_available,
+        "candidate_share_of_full": round(candidate_share_of_full, 6),
+        "merged_total": merged_total,
+        "tool_action_before": tool_now,
+        "tool_action_before_share": round(tool_now / float(existing_total), 6) if existing_total else 0,
+        "tool_action_after": tool_after,
+        "tool_action_after_share": round(tool_after / float(merged_total), 6) if merged_total else 0,
+        "bigbench_new_items": bigbench_new,
+        "bigbench_share_of_new": round(bigbench_new / float(len(items)), 6) if items else 0,
+        "bigbench_share_of_merged": round(bigbench_new / float(merged_total), 6)
+                                    if merged_total else 0,
+        "max_single_source_share_of_merged": shares["max_share"],
+        "max_single_source_dataset": shares["max_dataset"],
+    }
+
     payload = {
-        "schema": "capability-adoption/0.1",
+        "schema": "capability-adoption/0.2",
         "generated_at": utc_now(),
         "converter": {"name": CONVERTER_NAME, "version": CONVERTER_VERSION,
                       "created_at": ctx["created_at"],
@@ -963,38 +1326,44 @@ def cmd_convert(args):
                                 "（build_native_item/native_question/item_id/option_key/"
                                 "native_item_errors）"},
         "scope": {
-            "domain": DOMAIN,
-            "kind": "choice",
-            "origin": "source",
+            "domain": DOMAIN, "kind": "choice", "origin": "source",
             "splits_used": [SPLIT],
             "splits_excluded": "validation/test 未取（sources.json policy: 只取 train）",
-            "option_count_gate": [MIN_OPTIONS, MAX_OPTIONS],
-            "option_count_gate_note": "契约对 origin=source 不设选项上限（实测最多 57）；"
-                                      "本轮按接入口径卡 16，超限只剔除不改题。",
+            "option_count_gate": [MIN_OPTIONS, args.max_options],
+            "option_count_note": "契约 2.1 对 origin=source 不设选项上限（实测最多 57）；"
+                                 "本轮按契约放开，上一轮卡 16 丢掉的 52,836 条已收回",
             "answer_form": "targets[key].answer 硬标签，不写 probs（契约 1.3 禁止伪造概率）",
             "shuffle": "种子 = int(item id 末 8 位 hex, 16)；原顺序见 meta.native_option_order",
             "id_collisions_resolved": ctx["id_collisions"],
             "id_derivation": "row = 抽取产物里的物理行号（原生 idx 不唯一，见 meta.native_idx）；"
                              "8hex 生日碰撞按固定遍历顺序挂 v1/v2 变体解决",
+            "sampling": sampling,
         },
         "sources": {
-            BIGBENCH["dataset"]: source_block(BIGBENCH, bigbench_items, bb_rejects,
-                                              bb_configs, bb_raw),
-            COSMOS["dataset"]: source_block(COSMOS, cosmos_items, cs_rejects,
-                                            cs_configs, cs_raw),
+            BIGBENCH["dataset"]: source_block(BIGBENCH, bb_items, bb_rejects, bb_selected,
+                                              bb_raw, bb_available),
+            COSMOS["dataset"]: source_block(COSMOS, cs_items, cs_rejects, cs_configs,
+                                            cs_raw, cs_available),
         },
         "totals": {
-            "items": len(items),
-            "raw_rows": bb_raw + cs_raw,
-            "rejected": len(bb_rejects) + len(cs_rejects),
-            "rejects": dict(sorted(reject_counts.items(), key=lambda pair: -pair[1])),
+            "items": len(items), "raw_rows": bb_raw + cs_raw,
+            "available": bb_available + cs_available,
+            "gate_rejected": len(bb_rejects) + len(cs_rejects),
+            "sampling_excluded": bb_available - len(bb_items),
+            "rejects": dict(sorted(Counter(row["reason"] for row in
+                                           bb_rejects + cs_rejects).items(),
+                                   key=lambda pair: -pair[1])),
             "by_capability": stats["capability"],
+            "by_source": dict(by_source_totals),
         },
-        "stats": stats,
-        "schema": schema,
-        "merge": merge,
+        "stats": stats, "schema": schema, "merge": merge, "shares": shares,
+        "headline": headline,
         "artifacts": {"items": str(args.out), "rejects": str(args.rejects),
-                      "raw_root": str(RAW_ROOT)},
+                      "sampled_out": str(args.sampled_out),
+                      "items_sha256": sha256_file(args.out),
+                      "rejects_sha256": sha256_file(args.rejects),
+                      "sampled_out_sha256": sha256_file(args.sampled_out),
+                      "raw_root": str(RAW_ROOT), "final_root": str(FINAL_ROOT)},
     }
     write_report(args, payload)
     print_summary(payload)
@@ -1004,21 +1373,22 @@ def cmd_convert(args):
 def cmd_verify(args):
     convert = load_module("general_convert", HERE / "convert.py")
     items = list(jsonl_read(args.out))
+    existing = load_existing(args.splits_dir)
     schema = validate_items(convert, items)
     stats = corpus_stats(items)
-    merge = merge_preview(args.out, args.splits_dir)
-    payload = {"schema": "capability-adoption/0.1", "generated_at": utc_now(),
+    merge = merge_preview(args.out, existing)
+    shares = source_shares(args.out, args.splits_dir, existing)
+    payload = {"schema": "capability-adoption/0.2", "generated_at": utc_now(),
                "converter": {"name": CONVERTER_NAME, "version": CONVERTER_VERSION},
-               "sources": {}, "totals": {"items": len(items),
-                                         "by_capability": stats["capability"]},
-               "stats": stats, "schema": schema, "merge": merge,
-               "artifacts": {"items": str(args.out)}}
+               "scope": {}, "sources": {},
+               "totals": {"items": len(items), "by_capability": stats["capability"]},
+               "stats": stats, "schema": schema, "merge": merge, "shares": shares,
+               "artifacts": {"items": str(args.out),
+                             "items_sha256": sha256_file(args.out)}}
     write_report(args, payload)
     print_summary(payload)
     return 0 if schema["schema_issues"] == 0 else 1
 
-
-# ------------------------------------------------------------------ CLI
 
 def build_parser():
     parser = argparse.ArgumentParser(
@@ -1034,22 +1404,28 @@ def build_parser():
     extract.add_argument("--force", action="store_true")
     extract.set_defaults(func=cmd_extract)
 
-    convert = sub.add_parser("convert", help="转换 + 报告（stdlib）")
+    convert = sub.add_parser("convert", help="转换 + 分层抽样 + 报告（stdlib）")
     convert.add_argument("--out", type=Path, default=DEFAULT_ITEMS)
     convert.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     convert.add_argument("--rejects", type=Path, default=DEFAULT_REJECTS)
-    convert.add_argument("--splits-dir", type=Path,
-                         default=HERE / "data" / "splits")
+    convert.add_argument("--sampled-out", type=Path,
+                         default=FINAL_ROOT / "sampled-out.capability.jsonl")
+    convert.add_argument("--splits-dir", type=Path, default=HERE / "data" / "splits")
     convert.add_argument("--created-at", default=None,
                          help="固定 meta.created_at，便于逐字节复现")
+    convert.add_argument("--target-tool-share", type=float, default=TARGET_TOOL_SHARE,
+                         help="合并后'工具与行动选择'的目标占比（默认 0.20）；<=0 表示不抽样")
+    convert.add_argument("--max-options", type=int, default=MAX_OPTIONS,
+                         help="选项数上限；默认不设上限（契约对 origin=source 的口径）")
+    convert.add_argument("--no-sample", action="store_true",
+                         help="不做分层抽样，输出全量候选（约 20.5 万条）")
     convert.add_argument("--limit", type=int, default=0, help="每个来源只留前 N 条（冒烟用）")
     convert.set_defaults(func=cmd_convert)
 
     verify = sub.add_parser("verify", help="重读候选语料，跑 native_item_errors + 合并预期")
     verify.add_argument("--out", type=Path, default=DEFAULT_ITEMS)
-    verify.add_argument("--report", type=Path, default=RAW_ROOT / "capability-verify.json")
-    verify.add_argument("--splits-dir", type=Path,
-                        default=HERE / "data" / "splits")
+    verify.add_argument("--report", type=Path, default=FINAL_ROOT / "capability-verify.json")
+    verify.add_argument("--splits-dir", type=Path, default=HERE / "data" / "splits")
     verify.set_defaults(func=cmd_verify)
     return parser
 

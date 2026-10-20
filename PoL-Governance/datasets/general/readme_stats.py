@@ -41,6 +41,15 @@ README 里出现的**每一个分布数字**都由本脚本重算，输入只有
 
 **这不是独立人工标注**：能力归属由来源自带的细分标签（native_domain / task / 文档类型）
 经固定映射得到，因此它与来源自己的切分口径绑定。抽样复核用 --samples。
+
+新并入的两批能力来源（v4 语料，共 +51,057 条）
+----------------------------------------------
+  C9  tasksource/bigbench：32 个 config，**按 config 逐项判读**（不是一律归数学）；
+      其中 known_unknowns（不可判定）与 evaluating_information_essentiality（数据充分性）
+      刻意判为 causal_uncertainty，与接入时写入 meta.capability 的口径不同（脚本会打印差异）。
+  C10 allenai/cosmos_qa：语境常识阅读理解，整份 reading_evidence。
+两条规则用 source.slug + source.config 命中（id 前缀自带连字符，不靠切 id 猜）。
+脚本会打印与数据里 meta.capability 的一致率，供交叉验证。
 """
 
 import argparse
@@ -315,6 +324,89 @@ KAIVOSS_CONTENT = {
 
 ZH_CONTENT = {"risk_harm": "safety_risk", "human_judgment": "safety_risk"}
 
+# ---- C9: tasksource/bigbench（32 个 config，按 config 细分）----
+# 依据 capability-sources.md P1-1/P2 的 config 级判读；config 名即来源原生任务名。
+# 与接入时写入 meta.capability 的口径相比，这里**刻意调整了 2 个 config**：
+#   known_unknowns（不可判定）、evaluating_information_essentiality（数据充分性/概率比较）
+#   -> causal_uncertainty。理由：题目本身就是"证据够不够 / 能否判定"，不是数值推演。
+BIGBENCH_CAP = {
+    # 数学与形式逻辑（18）
+    "arithmetic": "math_logic",
+    "elementary_math_qa": "math_logic",
+    "unit_conversion": "math_logic",
+    "cs_algorithms": "math_logic",
+    "intersect_geometry": "math_logic",
+    "date_understanding": "math_logic",
+    "mathematical_induction": "math_logic",
+    "formal_fallacies_syllogisms_negation": "math_logic",
+    "logical_fallacy_detection": "math_logic",
+    "analytic_entailment": "math_logic",
+    "epistemic_reasoning": "math_logic",
+    "logical_deduction": "math_logic",
+    "logic_grid_puzzle": "math_logic",
+    "symbol_interpretation": "math_logic",
+    "checkmate_in_one": "math_logic",
+    "tracking_shuffled_objects": "math_logic",
+    "navigate": "math_logic",
+    "temporal_sequences": "math_logic",
+    # 阅读理解与证据整合（12）
+    "vitaminc_fact_verification": "reading_evidence",
+    "winowhy": "reading_evidence",
+    "question_selection": "reading_evidence",
+    "presuppositions_as_nli": "reading_evidence",
+    "disambiguation_qa": "reading_evidence",
+    "sentence_ambiguity": "reading_evidence",
+    "entailed_polarity": "reading_evidence",
+    "implicit_relations": "reading_evidence",
+    "understanding_fables": "reading_evidence",
+    "snarks": "reading_evidence",
+    "riddle_sense": "reading_evidence",
+    "crash_blossom": "reading_evidence",
+    # 因果、反事实与不确定性判断（2，刻意调整）
+    "known_unknowns": "causal_uncertainty",
+    "evaluating_information_essentiality": "causal_uncertainty",
+}
+
+# ---- C10: allenai/cosmos_qa（语境常识阅读理解）----
+COSMOS_CAP = "reading_evidence"
+
+# 内容领域（辅口径）用的 bigbench config 归类
+BIGBENCH_CONTENT = {
+    "arithmetic": "math_structured",
+    "elementary_math_qa": "math_structured",
+    "unit_conversion": "math_structured",
+    "cs_algorithms": "math_structured",
+    "intersect_geometry": "math_structured",
+    "date_understanding": "math_structured",
+    "mathematical_induction": "math_structured",
+    "evaluating_information_essentiality": "math_structured",
+    "formal_fallacies_syllogisms_negation": "logic_game",
+    "logical_fallacy_detection": "logic_game",
+    "analytic_entailment": "logic_game",
+    "epistemic_reasoning": "logic_game",
+    "logical_deduction": "logic_game",
+    "logic_grid_puzzle": "logic_game",
+    "symbol_interpretation": "logic_game",
+    "checkmate_in_one": "logic_game",
+    "tracking_shuffled_objects": "logic_game",
+    "navigate": "logic_game",
+    "temporal_sequences": "logic_game",
+    "winowhy": "language_text",
+    "question_selection": "language_text",
+    "presuppositions_as_nli": "language_text",
+    "disambiguation_qa": "language_text",
+    "sentence_ambiguity": "language_text",
+    "entailed_polarity": "language_text",
+    "implicit_relations": "language_text",
+    "understanding_fables": "language_text",
+    "snarks": "language_text",
+    "crash_blossom": "language_text",
+    "vitaminc_fact_verification": "world_humanities",
+    "riddle_sense": "world_humanities",
+    "known_unknowns": "world_humanities",
+}
+
+COSMOS_CONTENT = "language_text"
 
 def _pick(mapping, key, fallback):
     return mapping.get(key, fallback)
@@ -355,6 +447,14 @@ def classify_capability(item):
         return "other", "C6-未命中"
     if item.get("domain") in ZH_CAP:
         return ZH_CAP[item["domain"]], "C7-中文补充域"
+    slug = src.get("slug")
+    if slug == "bigbench":
+        cfg = src.get("config")
+        if cfg in BIGBENCH_CAP:
+            return BIGBENCH_CAP[cfg], "C9-bigbench配置"
+        return "other", "C9-未命中"
+    if slug == "cosmos-qa":
+        return COSMOS_CAP, "C10-cosmos_qa"
     return "other", "C8-未命中"
 
 
@@ -393,6 +493,14 @@ def classify_content(item):
         return "other", "R6-未命中"
     if item.get("domain") in ZH_CONTENT:
         return ZH_CONTENT[item["domain"]], "R7-中文补充域"
+    slug = src.get("slug")
+    if slug == "bigbench":
+        cfg = src.get("config")
+        if cfg in BIGBENCH_CONTENT:
+            return BIGBENCH_CONTENT[cfg], "R9-bigbench配置"
+        return "other", "R9-未命中"
+    if slug == "cosmos-qa":
+        return COSMOS_CONTENT, "R10-cosmos_qa"
     return "other", "R8-未命中"
 
 
@@ -446,6 +554,12 @@ def main(argv=None):
     samples_con = collections.defaultdict(list)
     origin = collections.Counter()
     origin_split = collections.defaultdict(collections.Counter)
+    meta_cap = collections.Counter()          # 与来源自带 capability 标签的比对
+    meta_cap_diff = collections.Counter()
+    shapes_by_cohort = collections.defaultdict(collections.Counter)  # 代际 × 真值形态
+    cohort = collections.Counter()            # 语料代际：legacy / new
+    cohort_cap = collections.defaultdict(collections.Counter)
+    cap_src_n = collections.defaultdict(collections.Counter)
     domains = collections.Counter()
     ids_by_split = collections.defaultdict(set)
     groups_by_split = collections.defaultdict(set)
@@ -483,6 +597,19 @@ def main(argv=None):
                     " ".join((item.get("state") or "").split()).lower())
 
                 c, crule = classify_capability(item)
+                mcap = (item.get("meta") or {}).get("capability")
+                if mcap:
+                    if mcap == c:
+                        meta_cap["agree"] += 1
+                    else:
+                        meta_cap["diff"] += 1
+                        meta_cap_diff["%s|%s->%s" % (
+                            (item.get("source") or {}).get("config"), mcap, c)] += 1
+                coh = "new" if (item.get("source") or {}).get("slug") in (
+                    "bigbench", "cosmos-qa") else "legacy"
+                cohort[coh] += 1
+                cohort_cap[coh][c] += 1
+                cap_src_n[c][(item.get("source") or {}).get("slug")] += 1
                 cap[c] += 1
                 cap_split[c][name] += 1
                 cap_lang[c][item.get("lang")] += 1
@@ -527,6 +654,7 @@ def main(argv=None):
                             score_hist[int(sc["max"]) - int(sc["min"]) + 1] += 1
                 for t in (item.get("targets") or {}).values():
                     shapes[target_shape(t)] += 1
+                    shapes_by_cohort[coh][target_shape(t)] += 1
                 nd = (item.get("meta") or {}).get("native_domain")
                 if nd:
                     native_labels.add(str(nd))
@@ -591,6 +719,18 @@ def main(argv=None):
     w("| **合计** | **%d** | **100.00%%** | **%d** | **%d** | **%d** |\n" % (
         total, lang.get("en", 0), lang.get("zh", 0), len(datasets)))
 
+    top2 = cap.get("reading_evidence", 0) + cap.get("math_logic", 0)
+    w("\n阅读 + 数学合计 **%d 条（%s）**；其余四维合计 %d 条（%s）。\n" % (
+        top2, pct(top2, total), total - top2, pct(total - top2, total)))
+
+    if meta_cap:
+        tot = meta_cap["agree"] + meta_cap["diff"]
+        w("\n与数据里 meta.capability（接入时写入的标签）比对：%d / %d 一致（%s）。\n" % (
+            meta_cap["agree"], tot, pct(meta_cap["agree"], tot)))
+        if meta_cap_diff:
+            w("刻意不一致的 config：%s\n" % "、".join(
+                "%s（%s→%s，%d 条）" % (k.split("|")[0], k.split("|")[1], k.split("->")[-1], v)
+                for k, v in meta_cap_diff.most_common()))
     w("\n判定规则命中（能力维度）：\n\n| 规则 | 命中条目 |\n|---|---:|\n")
     for r, c in sorted(cap_rule.items()):
         w("| %s | %d |\n" % (r, c))
@@ -603,6 +743,24 @@ def main(argv=None):
     w("| 英文智能体工具选择 | %d | %s |\n" % (datasets.get(TOOL_SOURCES[1], 0),
                                               pct(datasets.get(TOOL_SOURCES[1], 0), total)))
     w("| 其余（流程路由、处置与判定） | %d | %s |\n" % (tool_n - sub, pct(tool_n - sub, total)))
+
+    w("\n### 1.3 按语料代际拆分（换了一种偏斜，不是消除偏斜）\n\n")
+    w("| 语料代际 | 条目 | 占全部 | 工具 | 数学 | 阅读 | 世界 | 因果 | 社会 |\n")
+    w("|---|---:|---:|---:|---:|---:|---:|---:|---:|\n")
+    for coh, label in (("legacy", "旧 11 来源（v3 及以前）"),
+                       ("new", "新并入 2 来源（bigbench + cosmos_qa）")):
+        n = cohort[coh]
+        w("| %s | %d | %s | %s |\n" % (
+            label, n, pct(n, total),
+            " | ".join(pct(cohort_cap[coh].get(k, 0), n)
+                       for k, _zh, _d in CAPABILITIES)))
+    w("\n（列按 §1 能力维度顺序：工具 / 数学 / 阅读 / 世界 / 因果 / 社会；"
+      "行内占比 = 该代际内部的构成。）\n")
+
+    w("\n### 1.4 每个能力维度的主要贡献来源\n\n| 能力维度 | 前三位来源（slug，条数） |\n|---|---|\n")
+    for key, zhname, _ in CAPABILITIES:
+        tops = cap_src_n[key].most_common(3)
+        w("| %s | %s |\n" % (zhname, "、".join("%s %d" % (s, v) for s, v in tops)))
 
     w("\n## 2. 能力维度 × 分区\n\n| 能力维度 | train | test | validation |\n|---|---:|---:|---:|\n")
     for key, zhname, _ in CAPABILITIES:
@@ -659,12 +817,24 @@ def main(argv=None):
         w("| %d | %d |\n" % (n_, c))
 
     w("\n## 5. 真值形态（问题级，口径同 CONTRACT.md 2.3）\n\n")
-    w("| 形态 | 问题数 | 占比 |\n|---|---:|---:|\n")
+    w("| 形态 | 问题数 | 占比 | 旧 11 来源 | 新并入 2 来源 |\n|---|---:|---:|---:|---:|\n")
     stotal = sum(shapes.values())
     for k, label in (("real", "真概率分布"), ("one_hot", "硬标签单点分布"),
                      ("uniform", "均匀分布（无信息）"), ("answer_only", "只有答案、无分布")):
-        w("| %s | %d | %s |\n" % (label, shapes.get(k, 0), pct(shapes.get(k, 0), stotal)))
+        w("| %s | %d | %s | %d | %d |\n" % (
+            label, shapes.get(k, 0), pct(shapes.get(k, 0), stotal),
+            shapes_by_cohort["legacy"].get(k, 0), shapes_by_cohort["new"].get(k, 0)))
     w("\n%d 个问题全部带真值答案。\n" % stotal)
+    legacy_q = sum(shapes_by_cohort["legacy"].values())
+    new_q = sum(shapes_by_cohort["new"].values())
+    w("\n新并入来源的真值形态：%s（共 %d 道题）。\n" % ("、".join(
+        "%s %d" % (label, shapes_by_cohort["new"].get(k, 0))
+        for k, label in (("real", "真分布"), ("one_hot", "单点分布"),
+                         ("uniform", "均匀分布"), ("answer_only", "只有答案"))), new_q))
+    w("\n旧 11 来源内部的真分布占其全部问题的 %s（%d / %d）；合并后降到 %s（%d / %d）。\n" % (
+        pct(shapes_by_cohort["legacy"].get("real", 0), legacy_q),
+        shapes_by_cohort["legacy"].get("real", 0), legacy_q,
+        pct(shapes.get("real", 0), stotal), shapes.get("real", 0), stotal))
 
     w("\n## 6. 泄漏检查（公开三区两两之间）\n\n")
     w("口径：id 逐字相同；组 = meta.group_id 或 meta.request_id；"

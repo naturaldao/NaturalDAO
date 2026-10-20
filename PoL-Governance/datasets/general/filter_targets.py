@@ -12,6 +12,12 @@
 旁挂文件只含**公开分区**（train/test/validation）：内部保留集 benchmark 的成员身份本身就是敏感信息，
 它的路由在仓外维护。本工具按同一条线分开算：
 
+**口径恒等式（v4）**：旁挂 **74,449** 条 + 中文补充 **3,148** 条 = 公开三分区 target 总数 **77,597** 条。
+中文补充（`db-zhtax-*`，只追加进 train 尾部、不参与切分）不在冻结语料里，因此**不写进旁挂件**——
+这是**口径决定**（两类来源不同，硬塞进同一个旁挂件会把 provenance 搅浑），**不是遗漏**；它们全部
+`answer_only`，由 `route_of_uncovered` 按形态兜底走 `classification`。运行输出的 A/B 段直接可见
+这个加法，所以任何人都不必猜「行数为什么对不上」。
+
 - 公开分区：covered（旁挂文件给了路由）+ uncovered（旁挂没覆盖、按形态兜底——中文补充就是这一类）。
   covered 合计必须恰好等于旁挂文件行数（少 = 有 target 没路由，多 = 路由指认了不存在的 target）。
 - 内部保留集：**不做兜底估算**。把它当「中文补充」那样估，会给出一个看起来合理的错数字，
@@ -229,6 +235,8 @@ def main():
                                 "routes": dict(supplement.most_common())}
         print(f"# B. 中文补充（split-manifest 记的 train-only 追加）：{supplement_items:,} 条 / "
               f"{supplement_total:,} target，全部 answer_only -> classification")
+        print(f"# 口径恒等式：旁挂 {len(sidecar):,}（A）+ 中文补充 {supplement_total:,}（B）= 公开三分区 "
+              f"target {len(sidecar) + supplement_total:,}；补充集不进旁挂件是口径决定，不是遗漏")
         print()
 
         train = report["splits"]["train"]

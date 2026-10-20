@@ -23,6 +23,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import time
 from pathlib import Path
 
 import verify_benchmark_package as vbp
@@ -36,12 +37,26 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _replace_with_retry(temporary: Path, path: Path, *, attempts: int = 50,
+                        delay: float = 0.1) -> None:
+    """os.replace，Windows 上目标被读者占住时短暂重试（WinError 5）。"""
+    last = None
+    for _ in range(attempts):
+        try:
+            os.replace(temporary, path)
+            return
+        except PermissionError as exc:
+            last = exc
+            time.sleep(delay)
+    raise last if last is not None else RuntimeError("replace 失败")
+
+
 def atomic_write_text(path: Path, text: str) -> None:
     """临时文件 + os.replace：并发读者要么看到旧版要么看到新版，不会读到半截文件。"""
     path = Path(path)
     temporary = path.with_name(path.name + ".tmp")
     temporary.write_text(text, encoding="utf-8", newline="\n")
-    os.replace(temporary, path)
+    _replace_with_retry(temporary, path)
 
 
 def atomic_copy(source: Path, target: Path) -> None:
@@ -49,7 +64,7 @@ def atomic_copy(source: Path, target: Path) -> None:
     target = Path(target)
     temporary = target.with_name(target.name + ".tmp")
     temporary.write_bytes(Path(source).read_bytes())
-    os.replace(temporary, target)
+    _replace_with_retry(temporary, target)
 
 
 def _table(rows, header) -> str:
@@ -79,15 +94,34 @@ def render_card(counts: dict, *, version: str, seed: int, ratios: dict, policy: 
     cap = policy.get("policy", {}).get("cap_items", 0)
     floor = policy.get("policy", {}).get("floor_items", 0)
     cap_policy = policy.get("policy", {}).get("cap_policy", "-")
-    max_row = max(policy.get("rows", []), key=lambda row: row["items"], default=None)
+    share_cap = policy.get("policy", {}).get("max_source_share", 0.25)
+    inverse = 1 / max(share_cap, 1e-9)
+    at_least = max(2, int(inverse) + (0 if float(inverse).is_integer() else 1))
+    rows = policy.get("rows", [])
+    n_sources = len(rows)
+    pool_total = policy.get("policy", {}).get("eligible_items") or 0
+    coverage_note = "按自然比例分配；本次没有来源被上限明显压缩。"
+    if rows and pool_total:
+        ordered = sorted(rows, key=lambda row: (-row["pool"], row["dataset"]))
+        held_pool = sum(row["pool"] for row in ordered[:2]) / pool_total
+        held_bench = sum(row["share"] for row in ordered[:2])
+        rest_pool = 1 - held_pool
+        if rest_pool > 0 and held_bench < held_pool:
+            coverage_note = (
+                f"语料里最大的两个来源合计占可进 benchmark 语料 {held_pool:.1%}，受 {share_cap:.0%} 上限"
+                f"约束在包内合计只占 {held_bench:.1%}；其余 {n_sources - 2} 个来源占语料 {rest_pool:.1%}、"
+                f"在包内占 {1 - held_bench:.1%}（放大约 {(1 - held_bench) / max(rest_pool, 1e-9):.1f} 倍）。"
+                "这是「覆盖原语料来源」的代价：**总分不能当语料自然分布的无偏估计**，请按来源分层报分。")
+    max_row = max(rows, key=lambda row: row["items"], default=None)
     lang_rows_text = _table(lang_rows, ("语言", "条目", "占本包"))
     domain_rows_text = _table(domain_rows, ("域", "条目", "占本包"))
     kind_rows_text = _table(kind_rows, ("原语", "条目（含该原语的条目）", "占本包", "该原语问题数"))
     source_rows_text = _table(source_rows, ("来源 dataset", "条目", "占本包", "该来源池子", "取用率"))
     limitation_text = "\n".join(f"- {item}" for item in known_limitations)
     exclusions = generation.get("benchmark_lang_policy", {}).get("exclusions", {})
-    exclusion_text = ("\n".join(f"- `{lang}`：{reason}" for lang, reason in exclusions.items())
-                      if exclusions else "- 无（语料里每种语言都可进 benchmark）")
+    exclusion_text = ("\n".join(f"  - `{lang}`：{reason}"
+                                 for lang, reason in exclusions.items())
+                      if exclusions else "无（语料里每种语言都可进 benchmark）")
     return f"""---
 license: other
 pretty_name: PoL 通用决策底座 · 内部 benchmark
@@ -135,17 +169,18 @@ private: true
 - 上限：任一来源占本包 **≤ {policy.get('policy', {}).get('max_source_share', 0):.0%}**
   （本次上限折算 {cap} 条，策略 {cap_policy}）；实际最大来源
   {max_row['dataset'] if max_row else '-'} 占 {policy.get('max_share', 0):.1%}。
-- 下限：每个来源 **≥ {policy.get('policy', {}).get('min_source_share', 0):.0%}**
-  （{floor} 条；池子不够时取全部），确保"各个来源都收集一点"。
-- 为什么是 25%：英文侧 6 个来源，25% 保证至少 4 个来源共同支撑总分；再收紧会把只占池子
-  2.8% 的小来源放大 5 倍以上，让 benchmark 偏离真实分布；25% 同时 ≤ 契约 40% 上限。
+- 下限：每个来源 **≥ max(占比 {policy.get('policy', {}).get('min_source_share', 0):.0%}, 绝对 {policy.get('policy', {}).get('min_source_items', 0)} 条) = {floor} 条**
+  （池子不够时取全部），确保"每个来源都有可单独报数的切片"且不把小来源抽干。
+- 为什么是 {share_cap:.0%}：本次 {n_sources} 个来源可进 benchmark；{share_cap:.0%} 上限意味着单一来源
+  最多 {cap} 条、且至少 {at_least} 个来源才能凑满 100%，任一来源都无法单独决定总分。
+- **覆盖 vs 占比失真（必读）**：{coverage_note}
 
 {source_rows_text}
 
 ## 语言政策
 
 - 允许进 benchmark：{', '.join(policy.get('benchmark_langs', []) or generation.get('benchmark_lang_policy', {}).get('benchmark_langs', []) or ['(不限)'])}
-- 显式排除：
+- 显式排除（每种语言都必须显式声明）：
 {exclusion_text}
 
 ## 字段

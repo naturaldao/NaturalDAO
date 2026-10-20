@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-10-20T08:56:47+00:00",
+  "plan": "datasets\\general\\data\\jev\\fill-plan-dist-zh-choice.jsonl",
+  "journal": "datasets\\general\\data\\jev\\fill-calls-dist.jsonl",
+  "out": "datasets\\general\\data\\jev\\jev-router-partial-probs.jsonl",
+  "variant": "distribution",
+  "filters": {
+    "lang": [
+      "zh"
+    ],
+    "kind": [
+      "choice"
+    ]
+  },
+  "plan_requests": 7872,
+  "journal_ok": 1883,
+  "written": 841,
+  "written_by_kind": {
+    "choice": 841
+  },
+  "written_by_lang": {
+    "zh": 841
+  },
+  "skipped": {
+    "not_called_or_failed": 5989,
+    "degenerate:one_hot": 1026,
+    "answer_mismatch": 16
+  },
+  "cost_usd": 0.584294,
+  "upstream_models": {
+    "z-ai/glm-5.3-flash": 1350,
+    "x-ai/grok-4.7": 170,
+    "z-ai/glm-5.3": 179,
+    "deepseek/deepseek-v4.1-flash-1017": 184
+  }
+}

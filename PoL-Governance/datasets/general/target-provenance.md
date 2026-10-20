@@ -1,6 +1,6 @@
 # target 溯源报告：probs 到底是怎么产生的
 
-**范围**：冻结语料 `D:\pol2-raw\general-private\data\items.final.jsonl.gz`（23,855 条 / 31,786 个 target，sha256 `ba615c96c0dc13cbc4caa8b0f83ac1326abc13700bde98579f2ebb9f38bdaece`，见 [items.final.report.json](data/items.final.report.json)）。
+**范围**：冻结语料 **v4** `data/items.final.jsonl`（**74,912 条 / 82,843 个 target**，sha256 `47df533e…`，见 [items.final.report.json](data/items.final.report.json)）。本报告的溯源分析建立在 **v3 子集**（23,855 条 / 31,786 target，sha256 `ba615c96…`）之上；该子集在 v4 中逐条未变，故 §1–§7 的规则与证据继续适用——**§0 的条数与占比已按 v4 全量重算，两个口径分开列**。
 **本轮只读**：不改数据、不动划分、不做任何 git 写操作。
 **产出**：本报告 + §6 的 `target_type` 回填提案（可被脚本直接执行）。
 
@@ -12,19 +12,22 @@
 
 ### 0.1 一句话
 
-同一个 `probs` 字段里装的是**至少 5 种不同的量**：教师模型的预测分布、按规则算出来的参考标签、并列选项的均分占位、我们自己用 `point_mass` 造出来的单点分布、以及**整条子流恒定的常量**。其中**只有 432 个 target（占全部 31,786 的 1.4%）在文档上被明确写成「由状态精确算出的概率」**，这才是「校准参照」意义上的那一个量；其余所谓「真分布」都是**教师信念**，只能当**软蒸馏目标**，不能当校准基准。
+同一个 `probs` 字段里装的是**至少 5 种不同的量**：教师模型的预测分布、按规则算出来的参考标签、并列选项的均分占位、我们自己用 `point_mass` 造出来的单点分布、以及**整条子流恒定的常量**。其中**只有 432 个 target（占 v4 全量 82,843 的 0.52%；v3 子集内为 1.4%）在文档上被明确写成「由状态精确算出的概率」**，这才是「校准参照」意义上的那一个量；其余所谓「真分布」都是**教师信念**，只能当**软蒸馏目标**，不能当校准基准。
 
-### 0.2 全量形态（实测，与任务书给的数字有一处 1,730 的错位）
+### 0.2 全量形态（v4 实测；两个口径分开列，不混用）
 
-| target 形态 | 条数 | 占比 |
-|---|---:|---:|
-| 伪 one-hot（含我们造的和来源自带的） | 14,119 | 44.4% |
-| 只有 answer、无 probs | 8,417 | 26.5% |
-| 真·非退化分布（soft） | 7,520 | 23.7% |
-| 全候选等值（uniform） | 1,730 | 5.4% |
-| **合计** | **31,786** | 100% |
+| target 形态 | v4 全量（82,843） | 落盘件·公开分区（74,449） | 占全量 |
+|---|---:|---:|---:|
+| 伪 one-hot（含我们造的和来源自带的） | 14,119 | 11,140 | 17.0% |
+| 只有 answer、无 probs·旧来源（R3 deepexi + R4 procedural） | 8,417 | 8,308 | 10.2% |
+| **只有 answer、无 probs·新来源（R14 bigbench + R15 cosmos_qa）** | **51,057** | **47,707** | **61.6%** |
+| 真·非退化分布（soft 7,286 + 并列子集 234） | 7,520 | 5,905 | 9.1% |
+| 全候选等值（uniform） | 1,730 | 1,389 | 2.1% |
+| **合计** | **82,843** | **74,449** | 100% |
 
-任务书写的是「真分布 9,250（29%）/ 伪 one-hot 14,119 / 均匀 1,730 / 只有 answer 6,687」。9,250 = 7,520 + 1,730，说明那份口径把 uniform 并进了「真分布」，同时又把 1,730 从 answer_only 里减掉了（8,417 − 1,730 = 6,687）——同一个 1,730 被移动了两次，四类全加仍是 31,786，所以总数对、分类错位。**本报告一律以实测 7,520 / 1,730 / 8,417 为准**；「29%」在本文中始终指 7,520 + 1,730 = 9,250 这个并集。
+口径：**全量** = `data/items.final.jsonl` 的全部 target（含内部保留集）；**落盘件** = `data/target-types.jsonl.gz`（只含公开分区）。两者差 **8,394** = 内部保留集的 target 数；中文补充 3,148 不在语料里，两个口径都不含。新来源 51,057 = R14 25,795 + R15 25,262（见 §6.3）。
+
+> **v3 任务书口径（历史说明）**：写的是「真分布 9,250（29%）/ 伪 one-hot 14,119 / 均匀 1,730 / 只有 answer 6,687」——9,250 = 7,520 + 1,730，把 uniform 并进「真分布」的同时又把 1,730 从 answer_only 里减掉（8,417 − 1,730 = 6,687），同一个 1,730 被移动两次，四类相加仍是 31,786（总数对、分类错位）。本文历史章节里的 7,520 / 1,730 / 8,417 均指 v3 子集口径。
 
 ### 0.3 那 29% 里有多少能当校准参照
 
@@ -38,7 +41,7 @@
 | uniform 全桶（其中 1,621 是**整条子流恒定 0.5**） | 1,730 | 无信息 | ❌ |
 | **合计** | **9,250** | | **432，即 4.7%** |
 
-一句话：**「29% 真分布」里只有 432 条（全语料的 1.4%）可以直接拿来做概率校准参照；另外 6,856 条是教师分布，能当软目标但拿它测校准等于在测「和教师像不像」；剩下 1,962 条（uniform + 并列均分）根本不携带方向信息，必须先从校准口径里剔除。**
+一句话：**「29% 真分布」（v3 子集口径，9,250 条；占 v4 全量 11.2%）里只有 432 条（v3 子集的 1.4%、v4 全量的 0.52%）可以直接拿来做概率校准参照；另外 6,856 条是教师分布，能当软目标但拿它测校准等于在测「和教师像不像」；剩下 1,962 条（uniform + 并列均分）根本不携带方向信息，必须先从校准口径里剔除。**
 
 ### 0.4 三条最容易踩的坑（本次实测新增）
 
@@ -79,9 +82,12 @@
 | open-jev | 792 | 4,479 | – | 4,221 | 57 | 201 |
 | system-one-270m | 447 | 1,500 | – | – | 8 | 1,492 |
 | jev-decisions-strata | 207 | 207 | – | 207 | – | – |
-| **合计** | **23,855** | **31,786** | **8,417** | **14,119** | **1,730** | **7,520** |
+| **合计（v3 子集）** | **23,855** | **31,786** | **8,417** | **14,119** | **1,730** | **7,520** |
 
-全部 31,786 个 target 都带 `answer`；8,417 个没有 `probs` 键。
+口径：本节是 **v3 子集**（v4 的 74,912 条里，上表 8 个旧来源共 23,855 条 / 31,786 target，逐条未变）；
+v4 新增的两个来源（bigbench / cosmos_qa，共 51,057 条 / 51,057 target）见 §0.2 与 §6.3 的 R14/R15。
+v3 子集的 31,786 个 target 全部带 `answer`，其中 8,417 个没有 `probs` 键；v4 新增的 51,057 个
+同样只有 `answer`、无 `probs`。
 
 ### 2.2 下钻到 `meta.native_source`：slug 内部的语义并不单一
 
@@ -531,7 +537,7 @@ URL：https://huggingface.co/datasets/Deepexi/openai-formate-function-calling-sm
 | `target_type_basis` | `source` \| `shape` | 该判定是「来源证据」还是「形态候选」 |
 | `semantics_confidence` | `high` \| `medium` \| `low` \| `unknown` | 语义判定的置信度 |
 | `calibration_role` | `reference_probability` \| `soft_target_only` \| `label_only` | 见 §5 |
-| `label_trust` | `rule_exact` \| `teacher_argmax` \| `behavioral` \| `unknown` | 答案本身可信度，用于 ECE 分层 |
+| `label_trust` | `rule_exact` \| `teacher_argmax` \| `behavioral` \| `unknown` \| `native_gold` | 答案本身可信度，用于 ECE 分层。**`native_gold` 是 v4 新增**：上游数据集的原生金标签（不是本仓库规则算出）——用 `rule_exact` 会系统性低估其可信度 |
 | `mechanism_unknown` | bool | 语义类别有文档、但**具体数值读数机制**无文档（目前只有 jev-distill `yuri_v3` / `yuri_v1` 为 true） |
 | `provenance_ref` | string[] | 命中的证据条目 id（对应 6.4 的证据表） |
 | `shape_note` | string \| null | **仅旁证**，例如「源向量全等值」「整条子流只有一个取值」。消费者可忽略 |
@@ -553,8 +559,18 @@ URL：https://huggingface.co/datasets/Deepexi/openai-formate-function-calling-sm
 | R11 | `source.slug = system-one-270m` | `soft_distribution` | `model_logits` | `soft_target_only` | `teacher_argmax` | 1,500 | E12, E13 |
 | R12 | 兜底：全候选等值（`max(probs) - min(probs) < 1e-9`）且未被 R10/R13 命中 | `uninformative_uniform` | 继承上一行语义 | `label_only` | 继承 | 109 | **形态候选**，`target_type_basis = shape` |
 | R13 | 兜底：非负权重在**正权重子集**上等值（并列均分） | `uninformative_uniform` | 继承 | `label_only` | 继承 | 232 | **形态候选**，`target_type_basis = shape`（open-jev 与 `openjev_v2` 的并列行） |
+| R14 | `source.slug = bigbench`（无 probs；`targets` 只有 `answer`） | `answer_only` | `none` | `label_only` | `native_gold` | — | E14 |
+| R15 | `source.slug = cosmos-qa`（无 probs；`targets` 只有 `answer`） | `answer_only` | `none` | `label_only` | `native_gold` | — | E15 |
 
-**合计自检**：`answer_only` 8,417（R3+R4）；`hard_label` 5,488（R1+R2）；`uninformative_uniform` 1,962（R10 1,621 + R12 109 + R13 232）；`soft_distribution` 15,919；总计 **31,786** ✅。
+**合计自检（v3 子集口径）**：`answer_only` 8,417（R3+R4）；`hard_label` 5,488（R1+R2）；`uninformative_uniform` 1,962（R10 1,621 + R12 109 + R13 232）；`soft_distribution` 15,919；总计 **31,786** ✅。
+
+**v4 重算（全量语料 82,843）**：`answer_only` 59,474（R3 7,872 + R4 545 + **R14 25,795 + R15 25,262**）/ `hard_label` 5,488 / `soft_distribution` 15,919 / `uninformative_uniform` 1,962；逐规则命中与分布一律由 `target_types.py` 现算，**不再写死**。
+
+> **v4 口径（2026-10-20 并入 bigbench / cosmos_qa 之后）**：上表条数是 v3 语料口径、仅供对照；
+> v4 起条数不再写死，由 `target_types.py` 从输入语料现算，`--verify` 只校验可推导/内部一致的结论。
+> R14/R15 的 `label_trust = native_gold`（v4 新增取值）表示「上游数据集的原生金标签」，
+> **不是**「由本仓库规则算出」（用 `rule_exact` 会系统性低估其可信度），也未经我们独立复核
+> 标注质量（属后续审计项）。
 
 ### 6.4 证据条目（规则表引用）
 
@@ -573,6 +589,8 @@ URL：https://huggingface.co/datasets/Deepexi/openai-formate-function-calling-sm
 | **E11** | 实测（**旁证**）：`yuri_v1` 原始 1,661 行 target 只有 1 个取值 `[0.5, 0.5]`。**常量向量不可能携带方向信息**，故判为无信息；"为什么是常量"本身仍未知。 |
 | **E12** | system-one-270m 卡面："top_logprobs returns a distribution"；"the ensemble mean is the target"；"Labels are gpt-oss-20b's judgement"；"Labels from logprobs ~100%"。URL：https://huggingface.co/datasets/kaivoss/system-one-270m-data/blob/f31d5a3f3da828021c792edf5ab4b93cf60fe01b/README.md |
 | **E13** | 上游代码 `generate.py`：`math.exp(alt.logprob)`、`UNSEEN_FLOOR = 1e-4`、`temperature=1.0`、`min_votes=3`、`round(p, 6)`。URL：https://github.com/Akicou/system-one-270m/blob/main/generate.py |
+| **E14** | tasksource/bigbench：每条 target 只有一个**原生金答案**——`multiple_choice_targets` 经去空/去重后由 `multiple_choice_scores` 定出 `answer_index`，分数**不保留**；转换器 `convert_capability.py` 0.2 只写 `{"answer": <选项 key>}`，无 probs。revision `210c156767d2f4f05d2f4fd0bb275017a67040fd`。URL：https://huggingface.co/datasets/tasksource/bigbench |
+| **E15** | allenai/cosmos_qa：4 选 1，`label` 为数据自带的**金答案（人工标注）**，转换器同上只写 `{"answer": <选项 key>}`，无 probs。dataset revision `28d9d5e2aae025e73e11177891a88dba51190013`，数据字节固定在上游 GitHub commit `8d4d7b40d0a027c6f6095f990c3809e9396a8e6f`。URL：https://huggingface.co/datasets/allenai/cosmos_qa |
 
 ### 6.5 落盘形态（旁挂，不动数据）
 
@@ -631,7 +649,8 @@ RULES = [  # (priority, predicate, payload)
 SHAPE_FALLBACK = dict(target_type="uninformative_uniform", target_type_basis="shape")
 ```
 
-**未命中任何规则的 target 一律写 `unknown` 并在报告里计数**——本提案的规则表覆盖全部 31,786 条（自检见 §6.3），所以实际未命中数应为 0；若脚本跑出非 0，说明映射已经变了，应停下来重查而不是猜。
+**未命中任何规则的 target 一律写 `unknown` 并在报告里计数**——v3 子集的规则表覆盖全部 31,786 条（自检见 §6.3；
+v4 起再补 R14/R15 覆盖新增的 51,057 条，合计 82,843 条），所以实际未命中数应为 0；若脚本跑出非 0，说明映射已经变了，应停下来重查而不是猜。
 
 ---
 

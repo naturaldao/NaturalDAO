@@ -12,10 +12,11 @@
 
 口径：**条数与真值数取自 [data/items.native.report.json](data/items.native.report.json) 的 units[].items / units[].with_targets**（原生四元组线；data/convert-report.json 是已退役的模板线报告，不要用它的数字）；样例全部来自 D:\pol2-raw\ 下各来源 rows.jsonl 的真实行（长文本标 [截断]）。样例是原文节选：**引号里都是源数据原样内容**，中文键名（如"候选数""问题数"）是本文的注释、不是源字段。本次实际落地合计 **15,983 条**，其中 **15,983 条带来源自带答案（100%）**。（本文早期版本写的推荐值 15,915 / 7,017 属模板线口径，已作废。）
 
-## 0. 全量来源登记表（当前交付语料 `data/items.final.jsonl`，23,855 条）
+## 0. 全量来源登记表（v3 基座 23,855 条；v4 语料 = 本表 8 个抓取单元 + 2 个能力补源 = 74,912 条）
 
-抓取单元 = 一个 slug + 一个 config；同一数据集的多个 config 各算一个单元。条数与带真值数来自
-`items.final.jsonl` 实测（2026-10-15），与 [items.final.report.json](data/items.final.report.json) 对账一致。
+抓取单元 = 一个 slug + 一个 config；同一数据集的多个 config 各算一个单元。本表条数实测于 **v3 基座**
+（2026-10-15）；v4 语料（2026-10-20 并入 bigbench / cosmos_qa，见 [capability-sources.md](capability-sources.md)）
+为 **74,912 条 / 82,843 target**，构成与指纹以现算的 [items.final.report.json](data/items.final.report.json) 为准。
 
 | # | 数据集（HF） | slug | 抓取单元（config / split / row_limit / 采样） | revision（40 位） | 许可 | 条目数 | 带来源自带答案 | 语种 |
 |---:|---|---|---|---|---|---:|---:|---|
@@ -160,8 +161,9 @@ default 配置一条：
 | system-one-270m | 447 | 447 |
 | **合计** | **15,983** | **15,983（100%）** |
 
-- 规模现状：**只用 System-1 来源就到 15,983 条**（英文原生线）；加上中文侧 7,872 条，
-  当前交付语料 `items.final.jsonl` 共 23,855 条（见 §0）。**不再有总量下限或每域下限要求**
+- 规模现状：**只用 System-1 来源就到 15,983 条**（英文原生线）；加上中文侧 7,872 条，v3 基座共
+  23,855 条（见 §0）；v4 并入能力补源 51,057 条后，`items.final.jsonl` 共 **74,912 条 / 82,843 target**。
+  **不再有总量下限或每域下限要求**
   （2026-10-15 门槛移除；`coverage.py` 只统计分布，不判定）。
 - **每个条目都带来源自己的答案（100%）**，但要分清形态（见 [CONTRACT.md](CONTRACT.md) §2.3）：真分布与硬标签单点分布
   在字段上长得一样，**不能一律当概率用**。本目录实测：真分布 7,520 个问题 / 伪 one-hot 14,119 / 均匀 1,730 / 只有 answer 11,565

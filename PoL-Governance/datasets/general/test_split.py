@@ -23,6 +23,7 @@ if str(SPLIT_DIR) not in sys.path:
     sys.path.insert(0, str(SPLIT_DIR))
 
 import split as sp  # noqa: E402
+import build_corpus as bc  # noqa: E402  （同目录：合并语料脚本）
 
 
 def question(kind: str) -> dict:
@@ -977,6 +978,127 @@ class DefaultOutputGuardTest(unittest.TestCase):
             root = Path(workspace)
             self.assertEqual(self.run_bare(root), 0)
             self.assertTrue((root / "splits" / "split-manifest.json").is_file())
+
+
+class SourceFloorTest(unittest.TestCase):
+    """绝对来源下限（--benchmark-min-source-items）：语料变大后固定 5% 会抽干小来源。"""
+
+    def test_absolute_floor_overrides_share_floor(self):
+        # 一个只有 100 条的小来源：自然占比 0.28%（约 11 条），必须被绝对下限托到 100 条。
+        # 注意不能设 min_share=0.05：那会算出 200 条的下限、按设计取 max(200, 100)=200，
+        # 就测不到"绝对下限"本身了。
+        pool = {"a": 9000, "b": 9000, "c": 9000, "d": 9000, "e": 100}
+        plan = sp.benchmark_source_quota(pool, 4000, max_share=0.25, min_share=0.01, min_items=100)
+        self.assertEqual(plan["floor"], 100)
+        self.assertEqual(plan["quota"]["e"], 100, "小来源必须拿到绝对下限，而不是按占比只分到 11 条")
+        self.assertTrue(all(value >= 100 for value in plan["quota"].values()))
+        self.assertEqual(sum(plan["quota"].values()), 4000)
+        # 占比下限更大时（5% → 200 条）按 max() 取占比下限，证明"两者取大"的方向
+        share_floor = sp.benchmark_source_quota(pool, 4000, max_share=0.25,
+                                                min_share=0.05, min_items=100)
+        self.assertEqual(share_floor["floor"], 200)
+
+    def test_zero_floor_keeps_pure_proportional(self):
+        # 5 个来源 → 25% 上限可行（policy 生效），此时不设下限就是"按池子比例 + 上限削顶"。
+        plan = sp.benchmark_source_quota({"a": 4000, "b": 3000, "c": 2000, "d": 800, "e": 200},
+                                         1000, max_share=0.25, min_share=0.0, min_items=0)
+        self.assertEqual(plan["floor"], 0)
+        self.assertEqual(sum(plan["quota"].values()), 1000)
+        self.assertEqual(plan["quota"]["e"], 50, "没有下限时小来源按比例分，不会被托底")
+        self.assertLess(plan["quota"]["e"], 100)
+
+
+class PublicReferenceExclusionTest(unittest.TestCase):
+    """被公开文件引用过的条目永不进 benchmark（--exclude-public-items 的核心）。"""
+
+    def test_excluded_items_never_enter_benchmark(self):
+        items = corpus(groups=30, variants=2, langs=("en",))
+        records = records_for(items)
+        excluded = frozenset({it["id"] for it in items[:10]})
+        splits, _labels, stats, _floors = sp.assign_all(
+            records, ratios=sp.DEFAULT_RATIOS, seed=21, salt="s",
+            min_per_domain=0, min_per_lang=0, min_per_kind=0, exclude_ids=excluded)
+        bench_ids = {it["id"] for it, split in zip(items, splits) if split == "benchmark"}
+        self.assertEqual(bench_ids & set(excluded), set(), "被公开引用的条目不得进 benchmark")
+        self.assertGreater(stats["benchmark_source_policy"]["excluded_public_items"], 0)
+
+    def test_scan_referenced_ids_finds_ids_in_plain_and_gz(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            plain = root / "doc.md"
+            plain.write_text("示例：db-procedural-typed-decisions-7fbb2123 与 db-bigbench-00aa11bb\n",
+                             encoding="utf-8")
+            packed = root / "notes.jsonl.gz"
+            with gzip.open(packed, "wb") as handle:
+                handle.write(b'{"id": "db-cosmos-qa-1234abcd"}\n')
+            found = sp.scan_referenced_ids(None, extra_paths=[plain, packed])
+            self.assertEqual(found["referenced_ids"],
+                             {"db-procedural-typed-decisions-7fbb2123", "db-bigbench-00aa11bb",
+                              "db-cosmos-qa-1234abcd"})
+            skipped = sp.scan_referenced_ids(None, extra_paths=[plain], skip_paths=[plain])
+            self.assertEqual(skipped["referenced_ids"], set(), "被跳过的派生件不得产生引用")
+
+
+class BuildCorpusTest(unittest.TestCase):
+    """合并脚本：基座字节保留、id 前缀防冲突、确定性、可预期的拒绝。"""
+
+    def write_items(self, path, items):
+        path.write_text("".join(json.dumps(it, ensure_ascii=False) + "\n" for it in items),
+                        encoding="utf-8")
+        return path
+
+    def base_items(self):
+        return [item(i, dataset="base") for i in range(5)]
+
+    def add_items(self):
+        rows = []
+        for i in range(3):
+            row = item(100 + i, dataset="add")
+            row["id"] = f"db-bigbench-{i:08x}"
+            rows.append(row)
+        return rows
+
+    def test_merge_preserves_base_bytes_and_is_deterministic(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            base = self.write_items(root / "base.jsonl", self.base_items())
+            add = self.write_items(root / "add.jsonl", self.add_items())
+            out1, out2 = root / "merged1.jsonl", root / "merged2.jsonl"
+            for out in (out1, out2):
+                ledger = bc.merge(base, [add], out, expect_total=8)
+                self.assertEqual(ledger["total_items"], 8)
+            self.assertEqual(out1.read_bytes(), out2.read_bytes(), "同输入两次合并必须逐字节一致")
+            base_lines = base.read_text(encoding="utf-8").split("\n")[:5]
+            self.assertTrue(out1.read_text(encoding="utf-8").startswith("\n".join(base_lines) + "\n"),
+                            "基座条目必须按原始字节保留在文件开头")
+
+    def test_prefix_or_id_collision_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            base = self.write_items(root / "base.jsonl", self.base_items())
+            clash = item(200, dataset="clash")
+            clash["id"] = self.base_items()[0]["id"]
+            add = self.write_items(root / "add.jsonl", [clash])
+            with self.assertRaises(bc.MergeError):
+                bc.merge(base, [add], root / "out.jsonl")
+
+    def test_unexpected_total_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            base = self.write_items(root / "base.jsonl", self.base_items())
+            add = self.write_items(root / "add.jsonl", self.add_items())
+            with self.assertRaises(bc.MergeError):
+                bc.merge(base, [add], root / "out.jsonl", expect_total=999)
+
+    def test_gz_output_is_deterministic(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            base = self.write_items(root / "base.jsonl", self.base_items())
+            add = self.write_items(root / "add.jsonl", self.add_items())
+            bc.merge(base, [add], root / "m1.jsonl", gz_out=root / "m1.jsonl.gz")
+            bc.merge(base, [add], root / "m2.jsonl", gz_out=root / "m2.jsonl.gz")
+            self.assertEqual((root / "m1.jsonl.gz").read_bytes(),
+                             (root / "m2.jsonl.gz").read_bytes(), "gzip mtime=0 → 逐字节一致")
 
 
 if __name__ == "__main__":

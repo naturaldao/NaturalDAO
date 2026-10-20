@@ -7,8 +7,8 @@
 两条纪律：
 
 1. **期望值一律推导，不写死。** 总数来自公开分区（train/test/validation）的 target 键减去中文补充；
-   分布与逐规则计数来自 target_types.RULES 与旁挂文件自身。旁挂件已从「全量 31,786」切成
-   「只含公开分区 28,667」，将来重切数字还会变——该红的是语义断了，不是数字变了。
+   分布与逐规则计数来自 target_types.RULES 与旁挂文件自身。旁挂件只含公开分区（v4：全量 82,843
+   → 落盘 74,449），将来重切数字还会变——该红的是语义断了，不是数字变了。
 2. **护栏盯内容级。** 旁挂文件不含答案，但它的 item_id 列等于一份成员名单：指认「谁属于内部
    benchmark」配上仍在 git 历史里可达的语料，就能精确还原保留集。所以除了 test_split.py 的公开面
    文本扫描，这里再从数据层断言 item_id 与 benchmark 成员零交集（两层，见 BenchmarkIsolationTest）。
@@ -53,7 +53,7 @@ FIELD_DOMAINS = {
     "target_type_basis": {"source", "shape"},
     "semantics_confidence": {"high", "medium", "low", "unknown"},
     "calibration_role": {"reference_probability", "soft_target_only", "label_only"},
-    "label_trust": {"rule_exact", "teacher_argmax", "behavioral", "unknown"},
+    "label_trust": {"rule_exact", "teacher_argmax", "behavioral", "unknown", "native_gold"},
     "shape_class": {"answer_only", "onehot_fabricated", "onehot_native", "soft",
                     "uniform_all_candidates", "tie_subset"},
     "training_route": {"drop", "classification", "distillation"},
@@ -234,7 +234,11 @@ class SidecarTest(unittest.TestCase):
         # 形态桶与 target_type 一一对得上（原 test_baseline_invariants 的意图）
         self.assertEqual(counts["hard_label"], shapes["onehot_fabricated"])
         self.assertEqual(counts["answer_only"], shapes["answer_only"])
-        self.assertEqual(counts["soft_distribution"], shapes["soft"] + shapes["onehot_native"])
+        # 非「并列均分构造」的 tie_subset 保留源语义 soft_distribution（v4 起出现），要一并算进来
+        soft_ties = sum(1 for row in self.rows
+                        if row["shape_class"] == "tie_subset" and row["shape_override"] is None)
+        self.assertEqual(counts["soft_distribution"],
+                         shapes["soft"] + shapes["onehot_native"] + soft_ties)
         # 无信息均匀有两个来源，且不重叠：来源规则自己就判它的（yuri_v1 常量流）+ 被形态覆盖降级的
         by_source = sum(1 for row in self.rows
                         if row["shape_override"] is None
@@ -277,9 +281,9 @@ class SidecarTest(unittest.TestCase):
                 self.assertEqual(row["training_route"], "classification")
             if row["shape_class"] == "uniform_all_candidates":
                 self.assertEqual(row["training_route"], "drop")
-        # 蒸馏目标必须是非退化软分布
-        self.assertEqual({row["shape_class"] for row in self.rows
-                          if row["training_route"] == "distillation"}, {"soft"})
+        # 蒸馏目标 = 真·软分布 + 保留源语义的并列子集（两者都必须是 soft_distribution）
+        self.assertLessEqual({row["shape_class"] for row in self.rows
+                              if row["training_route"] == "distillation"}, {"soft", "tie_subset"})
         self.assertEqual({row["target_type"] for row in self.rows
                           if row["training_route"] == "distillation"}, {"soft_distribution"})
 
@@ -380,8 +384,8 @@ class RegenerationTest(unittest.TestCase):
 
         白名单取不到就抛错（fail closed），不允许退回「全量落盘」——那等于把泄漏放回去。
         """
-        all_rows = tt.build_all_rows(CORPUS)
-        self.assertEqual(tt.self_check(all_rows), [])
+        all_rows, scan_stats = tt.build_all_rows(CORPUS)
+        self.assertEqual(tt.self_check(all_rows, scan_stats), [])
         rows = tt.public_rows(all_rows, tt.load_public_ids(SPLITS))
         self.assertTrue(rows, "公开分区过滤后一行都不剩，白名单大概率取错了")
         path = sidecar_file()

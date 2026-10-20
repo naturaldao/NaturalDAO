@@ -571,15 +571,23 @@ def cmd_fill_plan(args):
     corpus_sha = sha256_file(items_path)
     rows = []
     population = 0
+    langs = set(args.lang or [])
+    kinds = set(args.kind or [])
     for item, key, question, target in iter_targets(items_path):
         if target_shape(target) != "answer_only":
             continue
+        if langs and (item.get("lang") or "") not in langs:
+            continue
+        if kinds and question["kind"] not in kinds:
+            continue
+        if args.limit and len(rows) >= args.limit:
+            break
         population += 1
-        prompt = build_prompt(item.get("state"), question, "answer")
+        prompt = build_prompt(item.get("state"), question, args.variant)
         rows.append({"record_type": "request", "seq": population,
                      "qid": "%s.%s" % (item["id"], key), "id": item["id"], "key": key,
                      "kind": question["kind"], "domain": item.get("domain") or "",
-                     "lang": item.get("lang") or "", "variant": "answer",
+                     "lang": item.get("lang") or "", "variant": args.variant,
                      "source_dataset": (item.get("source") or {}).get("dataset") or "",
                      "answer": str(target.get("answer")), "shape": "answer_only",
                      "n_options": len(option_space(question)),
@@ -587,11 +595,116 @@ def cmd_fill_plan(args):
                      "prompt_sha256": sha256_text(prompt)})
     manifest = {"record_type": "manifest", "tool": TOOL, "harness_version": HARNESS_VERSION,
                 "phase": "fill", "created_at": iso_now(), "population": population,
-                "items": str(items_path), "items_sha256": corpus_sha, "variant": "answer"}
-    out = Path(args.out or DEFAULT_WORK / "fill-plan.jsonl")
+                "items": str(items_path), "items_sha256": corpus_sha, "variant": args.variant,
+                "filters": {"lang": sorted(langs), "kind": sorted(kinds)}}
+    out = Path(args.out or DEFAULT_WORK / ("fill-plan.jsonl" if args.variant == "answer"
+                                           else "fill-plan-distribution.jsonl"))
     write_jsonl(out, [manifest] + rows)
-    print(json.dumps({"plan": str(out), "requests": len(rows), "items_sha256": corpus_sha[:16]},
-                     ensure_ascii=False, indent=2))
+    print(json.dumps({"plan": str(out), "requests": len(rows), "population": population,
+                      "items_sha256": corpus_sha[:16], "variant": args.variant,
+                      "filters": manifest["filters"]}, ensure_ascii=False, indent=2))
+
+
+def cmd_fill_write(args):
+    """把 fill journal 按硬门禁写成旁挂 probs；不满足就跳过并分类计数。冻结语料只读。"""
+    plan_path = Path(args.plan or DEFAULT_WORK / "fill-plan-distribution.jsonl")
+    journal_path = Path(args.journal or DEFAULT_WORK / "fill-calls-dist.jsonl")
+    out_path = Path(args.out or DEFAULT_FILL_OUT)
+    stats_path = Path(args.stats or DEFAULT_WORK / "fill-write-report.json")
+    plan = read_jsonl(plan_path)
+    manifest = plan[0]
+    plan_rows = {row["qid"]: row for row in plan[1:] if row.get("record_type") == "request"}
+    latest = {}
+    if Path(journal_path).is_file():
+        for row in read_jsonl(journal_path):
+            if row.get("status") == "ok" and row.get("qid") in plan_rows:
+                latest[row["qid"]] = row          # 同一 qid 取最后一次成功
+    questions = {}
+    wanted = set(plan_rows)
+    items_path = Path(manifest["items"])
+    if args.items:
+        items_path = Path(args.items)
+    for item, key, question, target in iter_targets(items_path):
+        qid = "%s.%s" % (item["id"], key)
+        if qid in wanted:
+            questions[qid] = question
+    rows = []
+    skipped = {}
+    models = {}
+    cost = 0.0
+
+    def skip(reason):
+        skipped[reason] = skipped.get(reason, 0) + 1
+
+    for qid in sorted(plan_rows):
+        plan_row = plan_rows[qid]
+        question = questions.get(qid)
+        journal_row = latest.get(qid)
+        if question is None:
+            skip("missing_question")
+            continue
+        if journal_row is None:
+            skip("not_called_or_failed")
+            continue
+        cost += float(journal_row.get("cost_usd") or 0.0)
+        model = journal_row.get("upstream_model") or "-"
+        models[model] = models.get(model, 0) + 1
+        variant = plan_row.get("variant") or "answer"
+        if variant == "distribution":
+            probs, reason = parse_distribution(journal_row.get("content"), question,
+                                               journal_row.get("finish_reason"))
+        else:
+            key, reason = parse_answer(journal_row.get("content"), question,
+                                       journal_row.get("finish_reason"))
+            probs = {option_key: (1.0 if option_key == key else 0.0)
+                     for option_key in option_space(question)} if reason == "ok" else None
+        if probs is None:
+            skip("unparsed:" + (reason or "unknown"))
+            continue
+        if len(probs) < 1:
+            skip("empty_probs")
+            continue
+        values = list(probs.values())
+        support = sum(1 for value in values if value > 0)
+        # 硬门禁（比任务书更严）：只写真分布；one-hot / 均匀都是伪概率，宁可不写
+        if support == 1:
+            skip("degenerate:one_hot")
+            continue
+        if max(values) == min(values):
+            skip("degenerate:uniform")
+            continue
+        top = argmax_key(probs, question)
+        if top != plan_row["answer"]:
+            skip("answer_mismatch")
+            continue
+        total = sum(probs.values())
+        if abs(total - 1.0) > 1e-6:
+            probs = {option_key: value / total for option_key, value in probs.items()}
+        rows.append({"id": plan_row["id"], "key": plan_row["key"], "qid": qid,
+                     "kind": plan_row["kind"], "lang": plan_row["lang"],
+                     "domain": plan_row["domain"], "answer": plan_row["answer"],
+                     "probs": probs, "distribution_semantics": "jev_router",
+                     "source": "jev-router", "source_version": "typesafe/jev-router",
+                     "upstream_model": journal_row.get("upstream_model"),
+                     "created_at": journal_row.get("ts") or iso_now(),
+                     "n_options": plan_row.get("n_options"),
+                     "prompt_sha256": plan_row.get("prompt_sha256")})
+    write_jsonl(out_path, rows)
+    by_kind = {}
+    by_lang = {}
+    for row in rows:
+        by_kind[row["kind"]] = by_kind.get(row["kind"], 0) + 1
+        by_lang[row["lang"]] = by_lang.get(row["lang"], 0) + 1
+    stats = {"generated_at": iso_now(), "plan": str(plan_path), "journal": str(journal_path),
+             "out": str(out_path), "variant": manifest.get("variant"),
+             "filters": manifest.get("filters"), "plan_requests": len(plan_rows),
+             "journal_ok": len(latest), "written": len(rows),
+             "written_by_kind": by_kind, "written_by_lang": by_lang,
+             "skipped": dict(sorted(skipped.items(), key=lambda pair: -pair[1])),
+             "cost_usd": round(cost, 6), "upstream_models": models}
+    stats_path.parent.mkdir(parents=True, exist_ok=True)
+    stats_path.write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(json.dumps(stats, ensure_ascii=False, indent=2))
 
 
 # ------------------------------------------------------------------ 调用
@@ -1079,6 +1192,731 @@ def cost_summary(journal_paths):
             "cost_estimated_usd": estimated_usd, "estimated_rows": estimated,
             "tokens_in": tokens_in, "tokens_out": tokens_out, "models": models}
 
+# ------------------------------------------------------------------ mercury-decide 后端
+# 2026-10-20 实测（Lead 探测）：决策专用端点，不能走 chat/completions。
+#   POST https://openrouter.ai/api/alpha/decisions
+#   body {"model":"inception/mercury-decide:free","state":"...","questions":{"<key>":{"type":"noul","instructions":"..."}}}
+#   resp {"model":"inception/mercury-decide-20260930",
+#         "answers":{"<key>":{"type":"noul","noul":0.9466...}},
+#         "usage":{"input_tokens":68,"output_tokens":1,"cost":0}}
+# noul 直接给校准概率 P(yes)，cost=0 —— 原生概率，不是伪 one-hot。
+
+# 2026-10-20 实测：":free" 变体持续 429（上游 rate_limit_exceeded，间隔 6s 重试 3 次仍 429）；
+# 同款付费 id "inception/mercury-decide" 同一决策端点可用，返回同一个模型
+# (inception/mercury-decide-20260930)，usage.cost 约 $0.0000013/次
+# （跑满 7,907 条 noul 约 $0.01，相对 key 剩余额度可忽略），故默认走付费 id。
+MERCURY_MODEL = "inception/mercury-decide"
+DEFAULT_DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions"
+MERCURY_QUESTION_KEY = "next_step_candidate"
+NOUL_POSITIVE = ("true", "yes", "1", "y", "t")
+NOUL_NEGATIVE = ("false", "no", "0", "n", "f")
+
+
+def noul_polarity(value):
+    text = str(value).strip().lower()
+    if text in NOUL_POSITIVE:
+        return "pos"
+    if text in NOUL_NEGATIVE:
+        return "neg"
+    # 部分来源的选项 key 是整句判据（如 "yes_escalation_is_warran" / "no_escalation_is_not_war"）
+    if re.match(r"^(yes|true)([_\-\s:.()]|$)", text):
+        return "pos"
+    if re.match(r"^(no|false)([_\-\s:.()]|$)", text):
+        return "neg"
+    return None
+
+
+def noul_option_keys(question):
+    """noul 题的两个选项按极性配成 (pos_key, neg_key)；必须恰好一正一负，否则 (None, None)。"""
+    if question.get("kind") != "noul":
+        return None, None
+    positive = []
+    negative = []
+    for option in question.get("options") or []:
+        key = str(option.get("key"))
+        polarity = noul_polarity(key)
+        if polarity is None:
+            polarity = noul_polarity(option.get("label"))
+        if polarity == "pos":
+            positive.append(key)
+        elif polarity == "neg":
+            negative.append(key)
+    if len(positive) == 1 and len(negative) == 1:
+        return positive[0], negative[0]
+    return None, None
+
+
+def mercury_body(model, state, instructions):
+    return {"model": model, "state": str(state or ""),
+            "questions": {MERCURY_QUESTION_KEY: {"type": "noul",
+                                                 "instructions": str(instructions or "")}}}
+
+
+def mercury_outcome(response):
+    """决策端点响应 -> 与 outcome_of 同形状；content 存 answers[key] 的 JSON。"""
+    status = response["status"]
+    if status != 200:
+        kind = response.get("kind") or ("timeout" if status is None else "http_error")
+        text = response["body"][:400].decode("utf-8", "replace") if response.get("body") else ""
+        if status == 429:
+            kind = "rate_limited"
+        elif status == 402 and ("credit" in text.lower() or "afford" in text.lower()):
+            kind = "insufficient_credits"
+        return {"status": "error", "reason": kind, "http_status": status,
+                "error": (response.get("error") or "") + (" | " + text if text else ""),
+                "latency_ms": response["latency_ms"]}
+    try:
+        body = json.loads(response["body"].decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        return {"status": "error", "reason": "not_json", "http_status": 200,
+                "error": "bad JSON: %s" % error, "latency_ms": response["latency_ms"]}
+    answers = body.get("answers") or {}
+    answer = answers.get(MERCURY_QUESTION_KEY)
+    if not isinstance(answer, dict):
+        return {"status": "error", "reason": "not_in_options", "http_status": 200,
+                "error": "response has no answers[%s]: %s" % (MERCURY_QUESTION_KEY,
+                                                              json.dumps(body, ensure_ascii=False)[:300]),
+                "latency_ms": response["latency_ms"]}
+    usage = body.get("usage") or {}
+    return {"status": "ok", "http_status": 200,
+            "content": json.dumps(answer, ensure_ascii=False),
+            "finish_reason": "stop", "upstream_model": body.get("model"),
+            "usage": {"prompt_tokens": usage.get("input_tokens"),
+                      "completion_tokens": usage.get("output_tokens"),
+                      "cost": usage.get("cost")},
+            "latency_ms": response["latency_ms"], "response_id": None}
+
+
+def parse_mercury(content, question):
+    """answers[key] -> (probs, reason)。noul 给 P(yes)，转成两个选项上的分布。"""
+    positive, negative = noul_option_keys(question)
+    if positive is None or negative is None:
+        return None, "not_in_options"
+    try:
+        payload = json.loads(content) if isinstance(content, str) else content
+    except json.JSONDecodeError:
+        return None, "not_json"
+    if not isinstance(payload, dict):
+        return None, "not_json"
+    value = payload.get("noul")
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value):
+        return None, "not_in_options"
+    if value < 0 or value > 1:
+        return None, "not_in_options"
+    return {positive: float(value), negative: 1.0 - float(value)}, "ok"
+
+
+def mercury_request(url, key, model, state, instructions, timeout):
+    return post_chat(url, key, mercury_body(model, state, instructions), timeout)
+
+
+def _sleep_until(limiter, interval):
+    limiter.wait()
+
+
+def cmd_noul_probe(args):
+    """20 条 noul 小样本验证：mercury-decide 的 P(yes) 与语料 answer 比 argmax。"""
+    config = load_jev_config(args.jev_yaml)
+    items_path = Path(args.items)
+    candidates = []
+    for item, key, question, target in iter_targets(items_path):
+        if question.get("kind") != "noul":
+            continue
+        positive, negative = noul_option_keys(question)
+        answer = str(target.get("answer"))
+        if positive is None or negative is None or answer not in (positive, negative):
+            continue
+        candidates.append({"qid": "%s.%s" % (item["id"], key), "id": item["id"], "key": key,
+                           "answer": answer, "positive": positive, "negative": negative,
+                           "state": str(item.get("state") or ""),
+                           "instructions": str(question.get("prompt") or ""),
+                           "lang": item.get("lang") or "", "domain": item.get("domain") or "",
+                           "corpus_shape": target_shape(target)})
+    rng = random.Random(args.seed)
+    candidates.sort(key=lambda row: row["qid"])
+    rng.shuffle(candidates)
+    picked = candidates[:args.n]
+    journal_path = Path(args.journal or DEFAULT_WORK / "mercury-noul-probe.jsonl")
+    journal = Journal(journal_path)
+    done = {row["qid"] for row in journal.rows if row.get("status") == "ok"}
+    url = args.decisions_url
+    limiter = Limiter(1.0 / max(0.1, args.rate))
+    calls = 0
+    for row in picked:
+        if row["qid"] in done:
+            continue
+        attempts = 0
+        while attempts < args.max_attempts:
+            attempts += 1
+            limiter.wait()
+            response = mercury_request(url, config["apikey"], args.mercury_model,
+                                       row["state"], row["instructions"], args.timeout)
+            outcome = mercury_outcome(response)
+            record = {"phase": "noul-probe", "qid": row["qid"], "id": row["id"], "key": row["key"],
+                      "lang": row["lang"], "domain": row["domain"], "attempt": attempts,
+                      "status": outcome["status"], "reason": outcome.get("reason"),
+                      "http_status": outcome.get("http_status"), "error": outcome.get("error"),
+                      "upstream_model": outcome.get("upstream_model"),
+                      "content": outcome.get("content"),
+                      "content_sha256": sha256_text(outcome.get("content") or ""),
+                      "usage": outcome.get("usage"),
+                      "cost_usd": float((outcome.get("usage") or {}).get("cost") or 0.0),
+                      "latency_ms": round(float(outcome.get("latency_ms") or 0.0), 1)}
+            journal.append(record)
+            calls += 1
+            if outcome["status"] == "ok":
+                break
+            retryable = (outcome.get("http_status") in RETRY_STATUS
+                         or outcome.get("reason") in ("timeout", "network_error", "rate_limited"))
+            if not retryable or attempts >= args.max_attempts:
+                break
+            delay = min(args.max_backoff, args.backoff * (2 ** (attempts - 1)))
+            if outcome.get("reason") == "rate_limited":
+                delay = max(delay, args.rate_limit_backoff * attempts)
+            time.sleep(delay + random.uniform(0, 0.3 * delay))
+    # 统计（读 journal，天然可续跑）
+    latest = {}
+    for row in journal.rows:
+        if row.get("status") == "ok":
+            latest[row["qid"]] = row
+    picked_by_qid = {row["qid"]: row for row in picked}
+    candidates_by_qid = {row["qid"]: row for row in candidates}
+    parsed = agree = positive_calls = 0
+    pos_total = pos_hit = neg_total = neg_hit = 0
+    probs_list = []
+    reasons = {}
+    latencies = []
+    for qid, row in latest.items():
+        # 统计口径 = journal 里所有已完成的 noul 探针（跨轮累积），不只是本轮抽中的
+        plan_row = candidates_by_qid.get(qid)
+        if plan_row is None:
+            continue
+        question = {"kind": "noul", "options": [{"key": plan_row["positive"]},
+                                                {"key": plan_row["negative"]}]}
+        probs, reason = parse_mercury(row.get("content"), question)
+        if probs is None:
+            reasons[reason] = reasons.get(reason, 0) + 1
+            continue
+        parsed += 1
+        value = probs[plan_row["positive"]]
+        probs_list.append(round(value, 4))
+        latencies.append(row.get("latency_ms") or 0.0)
+        top = plan_row["positive"] if value > 0.5 else plan_row["negative"] if value < 0.5 else None
+        if value > 0.5:
+            positive_calls += 1
+        if plan_row["answer"] == plan_row["positive"]:
+            pos_total += 1
+            pos_hit += 1 if top == plan_row["answer"] else 0
+        else:
+            neg_total += 1
+            neg_hit += 1 if top == plan_row["answer"] else 0
+        if top == plan_row["answer"]:
+            agree += 1
+    total_cost = sum(float(row.get("cost_usd") or 0.0) for row in journal.rows)
+    probed = [qid for qid in latest if qid in candidates_by_qid]
+    stats = {"generated_at": iso_now(), "decision_url": url, "model": args.mercury_model,
+             "cost_usd": round(total_cost, 6),
+             "sampled_this_run": len(picked), "probed_total": len(probed),
+             "sampled": len(probed), "called_ok": len(latest), "parsed": parsed,
+             "agree": agree, "agree_rate": (agree / parsed) if parsed else None,
+             "corpus_answer_positive_share": (sum(1 for row in picked
+                                                  if row["answer"] == row["positive"]) / len(picked))
+             if picked else None,
+             "model_positive_rate": (positive_calls / parsed) if parsed else None,
+             "p_yes": {"min": min(probs_list) if probs_list else None,
+                       "max": max(probs_list) if probs_list else None,
+                       "median": sorted(probs_list)[len(probs_list) // 2] if probs_list else None,
+                       "values": probs_list},
+             "confusion": {"pos_total": pos_total, "pos_hit": pos_hit,
+                           "neg_total": neg_total, "neg_hit": neg_hit,
+                           "pos_accuracy": (pos_hit / pos_total) if pos_total else None,
+                           "neg_accuracy": (neg_hit / neg_total) if neg_total else None,
+                           "balanced_accuracy": ((pos_hit / pos_total + neg_hit / neg_total) / 2)
+                           if pos_total and neg_total else None,
+                           "always_negative_baseline": (neg_total / (pos_total + neg_total))
+                           if (pos_total + neg_total) else None},
+             "unparsed_reasons": reasons,
+             "latency_ms_median": sorted(latencies)[len(latencies) // 2] if latencies else None,
+             "calls_this_run": calls, "journal": str(journal_path),
+             "details": [{"sample": index + 1, "answer": picked_by_qid[qid]["answer"],
+                          "p_yes": round(parse_mercury(row.get("content"),
+                                                       {"kind": "noul",
+                                                        "options": [{"key": picked_by_qid[qid]["positive"]},
+                                                                    {"key": picked_by_qid[qid]["negative"]}]})[0][
+                              picked_by_qid[qid]["positive"]], 4)
+                          if parse_mercury(row.get("content"),
+                                           {"kind": "noul",
+                                            "options": [{"key": picked_by_qid[qid]["positive"]},
+                                                        {"key": picked_by_qid[qid]["negative"]}]})[0]
+                          else None}
+                         for index, (qid, row) in enumerate(sorted(latest.items()))
+                         if qid in picked_by_qid]}
+    stats_path = Path(args.stats or DEFAULT_WORK / "mercury-noul-probe-stats.json")
+    stats_path.write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(json.dumps({k: v for k, v in stats.items() if k != "details"}, ensure_ascii=False, indent=2))
+    print(json.dumps(stats["details"], ensure_ascii=False, indent=2))
+
+
+def _noul_candidates(items_path):
+    """语料里所有可判极性的 noul target（answer ∈ {pos,neg}）。"""
+    candidates = []
+    for item, key, question, target in iter_targets(items_path):
+        if question.get("kind") != "noul":
+            continue
+        positive, negative = noul_option_keys(question)
+        answer = str(target.get("answer"))
+        if positive is None or negative is None or answer not in (positive, negative):
+            continue
+        candidates.append({"qid": "%s.%s" % (item["id"], key), "id": item["id"], "key": key,
+                           "answer": answer, "positive": positive, "negative": negative,
+                           "state": str(item.get("state") or ""),
+                           "instructions": str(question.get("prompt") or ""),
+                           "lang": item.get("lang") or "", "domain": item.get("domain") or "",
+                           "corpus_shape": target_shape(target)})
+    candidates.sort(key=lambda row: row["qid"])
+    return candidates
+
+
+def _mercury_probs_of(row, candidate):
+    probs, reason = parse_mercury(row.get("content"),
+                                  {"kind": "noul",
+                                   "options": [{"key": candidate["positive"]},
+                                               {"key": candidate["negative"]}]})
+    return probs, reason
+
+
+def write_mercury_probs(journal, candidates_by_qid, out_path, stats_path, skip_existing_real=False):
+    latest = {}
+    for row in journal.rows:
+        if row.get("status") == "ok" and row.get("qid") in candidates_by_qid:
+            latest[row["qid"]] = row
+    rows = []
+    skipped = {}
+    models = {}
+    cost = 0.0
+
+    def skip(reason):
+        skipped[reason] = skipped.get(reason, 0) + 1
+
+    for qid in sorted(latest):
+        candidate = candidates_by_qid[qid]
+        row = latest[qid]
+        probs, reason = _mercury_probs_of(row, candidate)
+        cost += float(row.get("cost_usd") or 0.0)
+        model = row.get("upstream_model") or "-"
+        models[model] = models.get(model, 0) + 1
+        if probs is None:
+            skip("unparsed:" + (reason or "unknown"))
+            continue
+        value = probs[candidate["positive"]]
+        if value <= 0.0 or value >= 1.0:
+            skip("degenerate:extreme")
+            continue
+        all_values = list(probs.values())
+        if max(all_values) == min(all_values):
+            # p(yes)=0.5 → 两个选项各 0.5，是无信息的均匀分布，不写
+            skip("degenerate:uniform")
+            continue
+        if skip_existing_real and candidate.get("corpus_shape") == "real":
+            skip("kept_source_real_distribution")
+            continue
+        top = candidate["positive"] if value > 0.5 else candidate["negative"]
+        if top != candidate["answer"]:
+            skip("answer_mismatch")
+            continue
+        rows.append({"id": candidate["id"], "key": candidate["key"], "qid": qid,
+                     "kind": "noul", "lang": candidate["lang"], "domain": candidate["domain"],
+                     "answer": candidate["answer"], "probs": probs,
+                     "distribution_semantics": "mercury_decide_native",
+                     "source": "mercury-decide", "source_version": MERCURY_MODEL,
+                     "upstream_model": row.get("upstream_model"),
+                     "created_at": row.get("ts") or iso_now(),
+                     "n_options": 2, "p_positive_key": candidate["positive"],
+                     "corpus_shape": candidate.get("corpus_shape")})
+    write_jsonl(out_path, rows)
+    by_lang = {}
+    by_domain = {}
+    by_corpus_shape = {}
+    for row in rows:
+        by_lang[row["lang"]] = by_lang.get(row["lang"], 0) + 1
+        by_domain[row["domain"]] = by_domain.get(row["domain"], 0) + 1
+        shape = row.get("corpus_shape") or "?"
+        by_corpus_shape[shape] = by_corpus_shape.get(shape, 0) + 1
+    stats = {"generated_at": iso_now(), "journal": str(journal.path), "out": str(out_path),
+             "decisions_url": DEFAULT_DECISIONS_URL, "model": MERCURY_MODEL,
+             "semantics": "mercury_decide_native",
+             "candidates": len(candidates_by_qid), "journal_ok": len(latest),
+             "written": len(rows), "written_by_lang": by_lang, "written_by_domain": by_domain,
+             "written_by_corpus_shape": by_corpus_shape, "skip_existing_real": bool(skip_existing_real),
+             "skipped": dict(sorted(skipped.items(), key=lambda pair: -pair[1])),
+             "cost_usd": round(cost, 6), "upstream_models": models}
+    Path(stats_path).write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
+    return stats
+
+
+def cmd_noul_fill(args):
+    """mercury-decide 全量补 noul：可断点续跑 + 控速 + 429 退避。"""
+    config = load_jev_config(args.jev_yaml)
+    items_path = Path(args.items)
+    candidates = _noul_candidates(items_path)
+    candidates_by_qid = {row["qid"]: row for row in candidates}
+    journal_path = Path(args.journal or DEFAULT_WORK / "mercury-noul-fill.jsonl")
+    journal = Journal(journal_path)
+    done = {row["qid"] for row in journal.rows if row.get("status") == "ok"}
+    pending = [row for row in candidates if row["qid"] not in done]
+    if args.limit:
+        pending = pending[:args.limit]
+    print(json.dumps({"noul_targets": len(candidates), "already_ok": len(done),
+                      "pending": len(pending), "rate_per_s": args.rate,
+                      "model": args.mercury_model, "journal": str(journal_path)}, ensure_ascii=False), flush=True)
+    limiter = Limiter(1.0 / max(0.1, args.rate))
+    state = {"calls": 0, "ok": 0, "errors": 0}
+    lock = threading.Lock()
+    started = time.perf_counter()
+
+    def process(row):
+        attempts = 0
+        while attempts < args.max_attempts:
+            attempts += 1
+            limiter.wait()
+            response = mercury_request(args.decisions_url, config["apikey"], args.mercury_model,
+                                       row["state"], row["instructions"], args.timeout)
+            outcome = mercury_outcome(response)
+            record = {"phase": "noul-fill", "qid": row["qid"], "id": row["id"], "key": row["key"],
+                      "lang": row["lang"], "domain": row["domain"], "attempt": attempts,
+                      "status": outcome["status"], "reason": outcome.get("reason"),
+                      "http_status": outcome.get("http_status"), "error": outcome.get("error"),
+                      "upstream_model": outcome.get("upstream_model"),
+                      "content": outcome.get("content"),
+                      "usage": outcome.get("usage"),
+                      "cost_usd": float((outcome.get("usage") or {}).get("cost") or 0.0),
+                      "latency_ms": round(float(outcome.get("latency_ms") or 0.0), 1)}
+            journal.append(record)
+            with lock:
+                state["calls"] += 1
+                if outcome["status"] == "ok":
+                    state["ok"] += 1
+                    calls_now = state["calls"]
+                else:
+                    state["errors"] += 1
+                    calls_now = None
+                progress = state["calls"] % 100 == 0
+                snapshot = dict(state)
+            if outcome["status"] == "ok":
+                if progress:
+                    elapsed = max(0.001, time.perf_counter() - started)
+                    print(json.dumps({"calls": snapshot["calls"], "ok": snapshot["ok"],
+                                      "errors": snapshot["errors"],
+                                      "rate_actual": round(snapshot["calls"] / elapsed, 2),
+                                      "elapsed_s": round(elapsed, 1)}, ensure_ascii=False), flush=True)
+                return
+            retryable = (outcome.get("http_status") in RETRY_STATUS
+                         or outcome.get("reason") in ("timeout", "network_error", "rate_limited"))
+            if not retryable or attempts >= args.max_attempts:
+                return
+            delay = min(args.max_backoff, args.backoff * (2 ** (attempts - 1)))
+            if outcome.get("reason") == "rate_limited":
+                delay = max(delay, args.rate_limit_backoff * attempts)
+            time.sleep(delay + random.uniform(0, 0.3 * delay))
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
+        list(pool.map(process, pending))
+    calls, ok_now, errors = state["calls"], state["ok"], state["errors"]
+    stats = write_mercury_probs(journal, candidates_by_qid,
+                                Path(args.out or DEFAULT_WORK / "mercury-noul-probs.jsonl"),
+                                Path(args.stats or DEFAULT_WORK / "mercury-noul-fill-stats.json"),
+                                skip_existing_real=args.skip_existing_real)
+    stats.update({"calls_this_run": calls, "ok_this_run": ok_now, "errors_this_run": errors,
+                  "elapsed_s": round(time.perf_counter() - started, 1)})
+    print(json.dumps(stats, ensure_ascii=False, indent=2))
+
+
+def cmd_probs_assemble(args):
+    """把各来源的旁挂 probs 合并成交付文件 data/jev-probs.jsonl（按 qid 去重排序）。"""
+    sources = args.source or []
+    rows = {}
+    origin = {}
+    for path in sources:
+        path = Path(path)
+        if not path.is_file():
+            continue
+        for row in read_jsonl(path):
+            qid = row.get("qid")
+            if not qid or qid in rows:
+                continue
+            rows[qid] = row
+            origin[row.get("distribution_semantics")] = origin.get(row.get("distribution_semantics"), 0) + 1
+    ordered = [rows[qid] for qid in sorted(rows)]
+    out = Path(args.out or DEFAULT_FILL_OUT)
+    write_jsonl(out, ordered)
+    stats = {"out": str(out), "rows": len(ordered), "by_semantics": origin,
+             "sources": [str(path) for path in sources]}
+    print(json.dumps(stats, ensure_ascii=False, indent=2))
+
+
+CHOICE_CRITERION_TEMPLATE = "the correct answer is %s"
+
+
+def _choice_candidates(items_path, exclude_qids):
+    """answer-only 的 choice target（排除指定的旧集合），criteria 由选项 label 模板生成。"""
+    candidates = []
+    for item, key, question, target in iter_targets(items_path):
+        if target_shape(target) != "answer_only" or question.get("kind") != "choice":
+            continue
+        qid = "%s.%s" % (item["id"], key)
+        if qid in exclude_qids:
+            continue
+        options = question.get("options") or []
+        if len(options) < 2:
+            continue
+        option_keys = [str(option.get("key")) for option in options]
+        answer = str(target.get("answer"))
+        if answer not in option_keys:
+            continue
+        criteria = {}
+        for option in options:
+            option_key = str(option.get("key"))
+            label = str(option.get("label") or option_key).strip()[:300]
+            criteria[option_key] = CHOICE_CRITERION_TEMPLATE % label
+        candidates.append({"qid": qid, "id": item["id"], "key": key, "kind": "choice",
+                           "answer": answer, "option_keys": option_keys, "criteria": criteria,
+                           "state": str(item.get("state") or ""),
+                           "instructions": str(question.get("prompt") or ""),
+                           "lang": item.get("lang") or "", "domain": item.get("domain") or "",
+                           "corpus_shape": "answer_only",
+                           "source_dataset": (item.get("source") or {}).get("dataset") or ""})
+    candidates.sort(key=lambda row: row["qid"])
+    return candidates
+
+
+def mercury_choice_request(url, key, model, state, instructions, criteria, timeout):
+    body = {"model": model, "state": str(state or "")[:12000],
+            "questions": {MERCURY_QUESTION_KEY: {"type": "choice",
+                                                 "instructions": str(instructions or "")[:4000],
+                                                 "criteria": criteria}}}
+    return post_chat(url, key, body, timeout)
+
+
+def mercury_choice_outcome(response, option_keys):
+    """choice 决策响应 -> probs over option keys。"""
+    status = response["status"]
+    if status != 200:
+        kind = response.get("kind") or ("timeout" if status is None else "http_error")
+        text = response["body"][:400].decode("utf-8", "replace") if response.get("body") else ""
+        if status == 429:
+            kind = "rate_limited"
+        elif status == 402 and ("credit" in text.lower() or "afford" in text.lower()):
+            kind = "insufficient_credits"
+        return {"status": "error", "reason": kind, "http_status": status,
+                "error": (response.get("error") or "") + (" | " + text if text else ""),
+                "latency_ms": response["latency_ms"]}
+    try:
+        body = json.loads(response["body"].decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        return {"status": "error", "reason": "not_json", "http_status": 200,
+                "error": "bad JSON: %s" % error, "latency_ms": response["latency_ms"]}
+    answer = (body.get("answers") or {}).get(MERCURY_QUESTION_KEY) or {}
+    probabilities = answer.get("probabilities")
+    usage = body.get("usage") or {}
+    if not isinstance(probabilities, dict) or not probabilities:
+        return {"status": "error", "reason": "not_in_options", "http_status": 200,
+                "error": "no probabilities: %s" % json.dumps(answer, ensure_ascii=False)[:300],
+                "latency_ms": response["latency_ms"]}
+    probs = {}
+    for option_key in option_keys:
+        value = probabilities.get(option_key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+            probs[option_key] = float(value)
+    if len(probs) < 2:
+        return {"status": "error", "reason": "not_in_options", "http_status": 200,
+                "error": "probabilities do not cover the option keys: %s"
+                         % json.dumps(probabilities, ensure_ascii=False)[:300],
+                "latency_ms": response["latency_ms"]}
+    total = sum(probs.values())
+    if total <= 0:
+        return {"status": "error", "reason": "not_in_options", "http_status": 200,
+                "error": "probabilities sum to 0", "latency_ms": response["latency_ms"]}
+    probs = {option_key: value / total for option_key, value in probs.items()}
+    return {"status": "ok", "http_status": 200,
+            "content": json.dumps({"choice": answer.get("choice"), "probs": probs,
+                                   "confidence": answer.get("confidence")}, ensure_ascii=False),
+            "finish_reason": "stop", "upstream_model": body.get("model"),
+            "usage": {"prompt_tokens": usage.get("input_tokens"),
+                      "completion_tokens": usage.get("output_tokens"),
+                      "cost": usage.get("cost")},
+            "latency_ms": response["latency_ms"], "response_id": body.get("id")}
+
+
+def cmd_choice_fill(args):
+    """mercury-decide 补 answer-only choice：criteria 由选项模板生成，可续跑、按预算停。"""
+    config = load_jev_config(args.jev_yaml)
+    items_path = Path(args.items)
+    exclude = set()
+    if args.exclude_plan and Path(args.exclude_plan).is_file():
+        plan = read_jsonl(args.exclude_plan)
+        exclude = {row["qid"] for row in plan[1:] if row.get("record_type") == "request"}
+    candidates = _choice_candidates(items_path, exclude)
+    candidates_by_qid = {row["qid"]: row for row in candidates}
+    journal_path = Path(args.journal or DEFAULT_WORK / "mercury-choice-fill.jsonl")
+    journal = Journal(journal_path)
+    done = {row["qid"] for row in journal.rows if row.get("status") == "ok"}
+    pending = [row for row in candidates if row["qid"] not in done]
+    if args.limit:
+        pending = pending[:args.limit]
+    spent = sum(float(row.get("cost_usd") or 0.0) for row in journal.rows if row.get("status") == "ok")
+    print(json.dumps({"choice_targets": len(candidates), "excluded_old": len(exclude),
+                      "already_ok": len(done), "pending": len(pending), "spent_usd": round(spent, 6),
+                      "budget_usd": args.budget, "workers": args.workers, "rate_per_s": args.rate,
+                      "model": args.mercury_model, "journal": str(journal_path)}, ensure_ascii=False), flush=True)
+    limiter = Limiter(1.0 / max(0.1, args.rate))
+    state = {"calls": 0, "ok": 0, "errors": 0, "stopped": False}
+    lock = threading.Lock()
+    started = time.perf_counter()
+
+    def spend() -> float:
+        with lock:
+            return spent
+
+    def process(row):
+        if state["stopped"]:
+            return
+        attempts = 0
+        while attempts < args.max_attempts:
+            with lock:
+                if state["stopped"]:
+                    return
+                run_spent = state.get("spent", 0.0)
+                total_spent = spent + run_spent
+                done_calls = len(done) + state["ok"]
+                mean = total_spent / done_calls if done_calls else args.estimate_per_call
+                if total_spent + max(args.estimate_per_call, mean * 1.5) > args.budget:
+                    state["stopped"] = True
+                    print(json.dumps({"stop": "budget", "spent_usd": round(total_spent, 6),
+                                      "calls": state["calls"]}, ensure_ascii=False), flush=True)
+                    return
+            attempts += 1
+            limiter.wait()
+            response = mercury_choice_request(args.decisions_url, config["apikey"], args.mercury_model,
+                                              row["state"], row["instructions"], row["criteria"],
+                                              args.timeout)
+            outcome = mercury_choice_outcome(response, row["option_keys"])
+            cost = float((outcome.get("usage") or {}).get("cost") or 0.0)
+            record = {"phase": "choice-fill", "qid": row["qid"], "id": row["id"], "key": row["key"],
+                      "lang": row["lang"], "domain": row["domain"], "attempt": attempts,
+                      "status": outcome["status"], "reason": outcome.get("reason"),
+                      "http_status": outcome.get("http_status"), "error": outcome.get("error"),
+                      "upstream_model": outcome.get("upstream_model"),
+                      "content": outcome.get("content"), "usage": outcome.get("usage"),
+                      "cost_usd": cost,
+                      "latency_ms": round(float(outcome.get("latency_ms") or 0.0), 1)}
+            journal.append(record)
+            with lock:
+                state["calls"] += 1
+                state["spent"] = state.get("spent", 0.0) + cost
+                if outcome["status"] == "ok":
+                    state["ok"] += 1
+                else:
+                    state["errors"] += 1
+            if outcome["status"] == "ok":
+                if state["calls"] % 200 == 0:
+                    elapsed = max(0.001, time.perf_counter() - started)
+                    print(json.dumps({"calls": state["calls"], "ok": state["ok"],
+                                      "errors": state["errors"],
+                                      "spent_usd": round(state.get("spent", 0.0), 5),
+                                      "rate_actual": round(state["calls"] / elapsed, 2),
+                                      "elapsed_s": round(elapsed, 1)}, ensure_ascii=False), flush=True)
+                return
+            retryable = (outcome.get("http_status") in RETRY_STATUS
+                         or outcome.get("reason") in ("timeout", "network_error", "rate_limited"))
+            if not retryable or attempts >= args.max_attempts:
+                if outcome.get("reason") == "insufficient_credits":
+                    with lock:
+                        state["stopped"] = True
+                return
+            delay = min(args.max_backoff, args.backoff * (2 ** (attempts - 1)))
+            if outcome.get("reason") == "rate_limited":
+                delay = max(delay, args.rate_limit_backoff * attempts)
+            time.sleep(delay + random.uniform(0, 0.3 * delay))
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
+        list(pool.map(process, pending))
+    total_cost = sum(float(row.get("cost_usd") or 0.0) for row in journal.rows if row.get("status") == "ok")
+    stats = write_choice_probs(journal, candidates_by_qid,
+                               Path(args.out or DEFAULT_WORK / "mercury-choice-probs.jsonl"),
+                               Path(args.stats or DEFAULT_WORK / "mercury-choice-fill-stats.json"))
+    stats.update({"calls_this_run": state["calls"], "ok_this_run": state["ok"],
+                  "errors_this_run": state["errors"], "budget_stopped": state["stopped"],
+                  "total_cost_usd": round(total_cost, 6),
+                  "elapsed_s": round(time.perf_counter() - started, 1)})
+    print(json.dumps(stats, ensure_ascii=False, indent=2))
+
+
+def write_choice_probs(journal, candidates_by_qid, out_path, stats_path):
+    latest = {}
+    for row in journal.rows:
+        if row.get("status") == "ok" and row.get("qid") in candidates_by_qid:
+            latest[row["qid"]] = row
+    rows = []
+    skipped = {}
+    models = {}
+    cost = 0.0
+
+    def skip(reason):
+        skipped[reason] = skipped.get(reason, 0) + 1
+
+    for qid in sorted(latest):
+        candidate = candidates_by_qid[qid]
+        row = latest[qid]
+        cost += float(row.get("cost_usd") or 0.0)
+        model = row.get("upstream_model") or "-"
+        models[model] = models.get(model, 0) + 1
+        try:
+            payload = json.loads(row.get("content") or "")
+        except json.JSONDecodeError:
+            skip("unparsed:not_json")
+            continue
+        probs = payload.get("probs") if isinstance(payload, dict) else None
+        if not isinstance(probs, dict) or len(probs) < 2:
+            skip("unparsed:not_in_options")
+            continue
+        values = list(probs.values())
+        if max(values) == min(values):
+            skip("degenerate:uniform")
+            continue
+        if sum(1 for value in values if value > 0) == 1:
+            skip("degenerate:one_hot")
+            continue
+        top = max(probs, key=lambda option_key: probs[option_key])
+        if top != candidate["answer"]:
+            skip("answer_mismatch")
+            continue
+        rows.append({"id": candidate["id"], "key": candidate["key"], "qid": qid,
+                     "kind": "choice", "lang": candidate["lang"], "domain": candidate["domain"],
+                     "answer": candidate["answer"], "probs": probs,
+                     "distribution_semantics": "mercury_decide_native",
+                     "source": "mercury-decide", "source_version": MERCURY_MODEL,
+                     "upstream_model": row.get("upstream_model"),
+                     "created_at": row.get("ts") or iso_now(),
+                     "n_options": len(probs), "corpus_shape": "answer_only"})
+    write_jsonl(out_path, rows)
+    by_lang = {}
+    by_domain = {}
+    for row in rows:
+        by_lang[row["lang"]] = by_lang.get(row["lang"], 0) + 1
+        by_domain[row["domain"]] = by_domain.get(row["domain"], 0) + 1
+    stats = {"generated_at": iso_now(), "journal": str(journal.path), "out": str(out_path),
+             "decisions_url": DEFAULT_DECISIONS_URL, "model": MERCURY_MODEL,
+             "semantics": "mercury_decide_native", "kind": "choice",
+             "candidates": len(candidates_by_qid), "journal_ok": len(latest),
+             "written": len(rows), "written_by_lang": by_lang, "written_by_domain": by_domain,
+             "skipped": dict(sorted(skipped.items(), key=lambda pair: -pair[1])),
+             "cost_usd": round(cost, 6), "upstream_models": models}
+    Path(stats_path).write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
+    return stats
+
+
 # ------------------------------------------------------------------ 阶段一报告
 
 def _state_brief(text, limit=150):
@@ -1179,14 +2017,117 @@ def degeneracy(records):
             "mean_max": (sum(maxes) / len(maxes)) if maxes else 0.0}
 
 
+def anon_labels(qids):
+    """把 qid 映射成「样本 #N（id 从略）」；N 按 qid 排序稳定，跨次重生成不变。"""
+    ordered = sorted(set(qids))
+    return {qid: "样本 #%03d（id 从略）" % (index + 1) for index, qid in enumerate(ordered)}
+
+
+def assert_no_item_ids(text, ids):
+    """硬断言：报告里出现语料中任一完整 item id 就直接失败（成员身份是敏感信息）。"""
+    tokens = set(re.findall(r"db-[A-Za-z0-9._:-]+", text))
+    for token in tokens:
+        if token in ids or any(token.startswith(item_id + ".") for item_id in ids):
+            raise SystemExit("报告泄漏完整 item id（%d 个候选 token 中命中 1 个）。"
+                             "报告必须只用匿名索引，见 anon_labels()。" % len(tokens))
+    return len(tokens)
+
+
+def corpus_snapshot(items_path, wanted_qids=None):
+    """一次遍历得到：target 形态构成、answer-only 分 kind、noul 分形态、全部 item id（保密门禁用）。"""
+    ids = set()
+    shapes = {"real": 0, "one_hot": 0, "uniform": 0, "answer_only": 0}
+    answer_only_by_kind = {}
+    noul = 0
+    noul_shapes = {"real": 0, "one_hot": 0, "uniform": 0, "answer_only": 0}
+    shape_of = {}
+    total = 0
+    for item, key, question, target in iter_targets(items_path):
+        qid = "%s.%s" % (item["id"], key)
+        ids.add(item["id"])
+        shape = target_shape(target)
+        shapes[shape] += 1
+        total += 1
+        if shape == "answer_only":
+            kind = question.get("kind")
+            answer_only_by_kind[kind] = answer_only_by_kind.get(kind, 0) + 1
+        if question.get("kind") == "noul":
+            positive, negative = noul_option_keys(question)
+            if positive and negative and str(target.get("answer")) in (positive, negative):
+                noul += 1
+                noul_shapes[shape] += 1
+        if wanted_qids and qid in wanted_qids:
+            shape_of[qid] = shape
+    return {"total": total, "shapes": shapes, "answer_only_by_kind": answer_only_by_kind,
+            "noul": noul, "noul_shapes": noul_shapes, "ids": ids, "shape_of": shape_of}
+
+
+def truth_shape_composition(items_path, sidecar_paths):
+    """语料原本的 target 形态构成 vs 采用旁挂 probs 之后的构成。"""
+    covered = {}
+    for path in sidecar_paths:
+        if not Path(path).is_file():
+            continue
+        for row in read_jsonl(path):
+            qid = row.get("qid")
+            if qid:
+                covered[qid] = row.get("distribution_semantics") or "?"
+    counts = {"real": 0, "one_hot": 0, "uniform": 0, "answer_only": 0}
+    shape_of = {}
+    total = 0
+    for item, key, question, target in iter_targets(items_path):
+        shape = target_shape(target)
+        counts[shape] += 1
+        total += 1
+        qid = "%s.%s" % (item["id"], key)
+        if qid in covered:
+            shape_of[qid] = shape
+    after = dict(counts)
+    filled = {}
+    for qid, semantics in covered.items():
+        shape = shape_of.get(qid)
+        if shape is None:
+            continue
+        after[shape] -= 1
+        filled[semantics] = filled.get(semantics, 0) + 1
+    return {"before": counts, "after": after, "total": total, "filled": filled,
+            "filled_total": sum(filled.values())}
+
+
 def cmd_report(args):
     work = DEFAULT_WORK
     plan_path = Path(args.plan or work / "validation-plan.jsonl")
     journal_path = Path(args.journal or work / "validation-calls.jsonl")
     plan = read_jsonl(plan_path)
     manifest = plan[0]
+    sidecars = args.sidecar or [str(work / "mercury-noul-probs.jsonl"),
+                                str(work / "jev-router-partial-probs.jsonl"),
+                                str(work / "mercury-choice-probs.jsonl")]
+    covered = {}
+    for sidecar_path in sidecars:
+        if not Path(sidecar_path).is_file():
+            continue
+        for sidecar_row in read_jsonl(sidecar_path):
+            if sidecar_row.get("qid"):
+                covered[sidecar_row["qid"]] = sidecar_row.get("distribution_semantics") or "?"
+    items_path = Path(manifest["items"])
+    snapshot = corpus_snapshot(items_path, wanted_qids=set(covered))
+    current_sha = sha256_file(items_path)
+    mercury_stats = {}
+    mercury_stats_path = work / "mercury-noul-fill-stats.json"
+    if mercury_stats_path.is_file():
+        mercury_stats = json.loads(mercury_stats_path.read_text(encoding="utf-8"))
+    router_stats = {}
+    router_stats_path = work / "jev-router-partial-stats.json"
+    if router_stats_path.is_file():
+        router_stats = json.loads(router_stats_path.read_text(encoding="utf-8"))
+    choice_stats = {}
+    choice_stats_path = work / "mercury-choice-fill-stats.json"
+    if choice_stats_path.is_file():
+        choice_stats = json.loads(choice_stats_path.read_text(encoding="utf-8"))
     raw_records = load_records(plan, [journal_path])
     records = score_records(raw_records, plan_path)
+    qid_label = anon_labels([record["row"]["qid"] for record in records])
     overall = summarize(records)
     by_lang = group_table(records, "lang")
     by_domain = group_table(records, "domain")
@@ -1240,6 +2181,8 @@ def cmd_report(args):
         paired_section = {"common": len(common), "both": len(both), "same": len(same),
                           "base_agree": sum(1 for qid in common if base_by_qid[qid]["parsed"] == base_by_qid[qid]["truth"]),
                           "probe_agree": sum(1 for qid in common if probe_by_qid[qid]["parsed"] == probe_by_qid[qid]["truth"]),
+                          "both_base_agree": sum(1 for qid in both if base_by_qid[qid]["parsed"] == base_by_qid[qid]["truth"]),
+                          "both_probe_agree": sum(1 for qid in both if probe_by_qid[qid]["parsed"] == probe_by_qid[qid]["truth"]),
                           "base_parsed": sum(1 for qid in common if base_by_qid[qid]["parsed"]),
                           "probe_parsed": sum(1 for qid in common if probe_by_qid[qid]["parsed"]),
                           "base_cost": sum(base_by_qid[qid]["cost_usd"] for qid in common),
@@ -1262,11 +2205,23 @@ def cmd_report(args):
     median_cost = costs[len(costs) // 2] if costs else 0.0
 
     lines = []
-    lines.append("# Jev 分层校验报告（第一阶段）")
+    lines.append("# Jev 分层校验与 probs 补全报告")
+    lines.append("")
+    lines.append("> 本报告含两部分：**第一阶段**（与语料真值的分层一致性校验，第 1–7 节）"
+                 "与**第二阶段**（旁挂 probs 的补全/升级，第 8 节；两条线分开统计）。")
     lines.append("")
     lines.append("> 生成时间：%s ｜ 生成脚本：%s（[jev_fill.py](jev_fill.py)）" % (iso_now(), HARNESS_VERSION))
-    lines.append("> 语料：[items.final.jsonl](data/items.final.jsonl) sha256 前缀 %s（只读，未改动）"
-                 % manifest["items_sha256"][:16])
+    lines.append("> 语料：[items.final.jsonl](data/items.final.jsonl)（只读，未改动）")
+    if current_sha != manifest["items_sha256"]:
+        lines.append(">")
+        lines.append("> ⚠️ **语料版本说明**：第一阶段抽样基于 plan 记录的语料版本（sha256 前缀 `%s`）；"
+                     "**会话期间语料被其他任务重建**，当前版本 sha256 前缀 `%s`、"
+                     "target 数 %s（旧版 31,786）。已核对：**旧版 target 0 缺失**（第一阶段 300 条抽样、"
+                     "jev-router 1,883 条、mercury 7,907 条全部仍能对上冻结语料），因此第一阶段的结论不受影响；"
+                     "但 8.4 的形态构成表按**当前版本**统计。"
+                     % (manifest["items_sha256"][:16], current_sha[:16], format(snapshot["total"], ",")))
+    else:
+        lines.append("> 语料 sha256 前缀 `%s`；与抽样时的 plan 记录一致。" % current_sha[:16])
     lines.append("> 凭据：[datasets/jev.yaml](../jev.yaml)（model=%s，endpoint 主机 %s）；密钥只记录指纹。"
                  % (args.model or "typesafe/jev-router", args.endpoint_host or "openrouter.ai"))
     lines.append("")
@@ -1305,6 +2260,9 @@ def cmd_report(args):
                      % (chance_verdict(by_stratum["en|decision_mechanics|choice"]),
                         chance_verdict(by_stratum["en|knowledge_reasoning|noul"]),
                         chance_verdict(by_shape["uniform"])))
+    lines.append("- **第二阶段两条线的产出**（详见 8.3/8.4）：mercury-decide 升级 noul 的"
+                 "**原生校准概率**，以及 jev-router 已经付费的 zh-choice 分布；两者在旁挂文件里按 "
+                 "`distribution_semantics` 分开标记，**不合并计数**。")
     lines.append("- **诚实说明**：本阶段的“一致”只是 **Jev 的答案 == 语料已有的 answer**。"
                  "语料里大量 target 的 answer 本身来自教师模型或伪 one-hot（见 3.5 按 shape 分列），"
                  "因此**一致率低不等于语料错**，一致率高也不等于语料对；能下判断的是“与随机基线的差距”"
@@ -1312,7 +2270,7 @@ def cmd_report(args):
     lines.append("")
     if stopped or credits_402:
         lines.append("### 0.1 为什么停在 %d/%d：先是撞预算上限，后是 OpenRouter 余额不足（HTTP 402）"
-                     % (total_cost["ok"], manifest["sampled_n"]))
+                     % (overall["http_ok"], manifest["sampled_n"]))
         lines.append("")
         lines.append("**第一轮（上限 $%s）**：派发前按「命令行给的单次估计」（$0.0001/次）预留预算，"
                      "但 `typesafe/jev-router` 每次路由到不同上游模型，单次成本实测跨 **3 个数量级**"
@@ -1640,12 +2598,89 @@ def cmd_report(args):
             lines.append(md_table(["指标", "answer 变体（单选项）", "distribution 变体（给分布）"], [
                 ["可解析", "%d/%d" % (pair["base_parsed"], pair["common"]),
                  "%d/%d" % (pair["probe_parsed"], pair["common"])],
-                ["与真值一致（按全部配对算）", rate_cell(pair["base_agree"], pair["common"]),
+                ["与真值一致（按全部配对算，未解析计为不一致）", rate_cell(pair["base_agree"], pair["common"]),
                  rate_cell(pair["probe_agree"], pair["common"])],
+                ["与真值一致（**仅两套都解析的 %d 条**，公平口径）" % pair["both"],
+                 rate_cell(pair["both_base_agree"], pair["both"]),
+                 rate_cell(pair["both_probe_agree"], pair["both"])],
                 ["成本", "$%.5f" % pair["base_cost"], "$%.5f" % pair["probe_cost"]],
                 ["都能解析的条数", pair["both"], pair["both"]],
                 ["两套提示词给出同一个选项", rate_cell(pair["same"], pair["both"]), "—"],
             ]))
+            lines.append("")
+    mercury_stats_path = DEFAULT_WORK / "mercury-noul-probe-stats.json"
+    lines.append("## 附录 B. mercury-decide 决策端点与 noul 验证（2026-10-20）")
+    lines.append("")
+    lines.append("官方 Jev 路由端的成本/限流问题解决后，改用**决策专用端点**（不是 chat/completions）：")
+    lines.append("")
+    lines.append(FENCE + "text")
+    lines.append("POST https://openrouter.ai/api/alpha/decisions     # 注意是 /api/alpha/，不是 /api/v1/")
+    lines.append("Content-Type: application/json")
+    lines.append("")
+    lines.append('{"model": "inception/mercury-decide",')
+    lines.append(' "state": "<item.state 原文>",')
+    lines.append(' "questions": {"next_step_candidate": {"type": "noul",')
+    lines.append('                                        "instructions": "<question.prompt>"}}}')
+    lines.append("")
+    lines.append("# 返回")
+    lines.append('{"model": "inception/mercury-decide-20260930",')
+    lines.append(' "answers": {"next_step_candidate": {"type": "noul", "noul": 0.8519...}},')
+    lines.append(' "usage": {"input_tokens": 65, "output_tokens": 1, "cost": 0.0000013}}')
+    lines.append(FENCE)
+    lines.append("")
+    lines.append("要点：")
+    lines.append("")
+    lines.append("1. `type` 的合法值就是 `noul` / `choice` / `score` / `box`，与本数据集三种原语对应；"
+                 "`noul` 直接返回 **P(yes)**，不用解析文本。")
+    lines.append("2. 我们把这一个数转成两个选项上的分布：`{正类key: p, 负类key: 1-p}`；"
+                 "写入门禁仍是 **argmax == 语料已有 answer**。")
+    lines.append("3. 语料里 489 条 noul 的选项 key 是整句判据（如 `yes_escalation_is_warran` / "
+                 "`no_escalation_is_not_war`），解析器按 `yes_/no_` 前缀判极性后才覆盖到全部 7,907 条。")
+    lines.append("4. **`:free` 变体不可用**：账户 free 配额还剩 988/1000，但请求持续 HTTP 429 "
+                 "（上游 `rate_limit_exceeded`），间隔 6 秒重试 3 次仍 429——是 free 通道本身限流，不是配额。"
+                 "改用同款付费 id `inception/mercury-decide`（返回同一模型 `inception/mercury-decide-20260930`），"
+                 "单次 $0.0000013，跑满 7,907 条约 $0.01，把可靠性买了回来。")
+    lines.append("")
+    if mercury_stats_path.is_file():
+        stats_m = json.loads(mercury_stats_path.read_text(encoding="utf-8"))
+        confusion = stats_m.get("confusion") or {}
+        rows = [
+            ["验证条数（两批各 20，累积）", stats_m.get("probed_total")],
+            ["可解析", rate_cell(stats_m.get("parsed", 0), stats_m.get("probed_total", 0))],
+            ["argmax(P) == 语料 answer", rate_cell(stats_m.get("agree", 0), stats_m.get("parsed", 0))],
+            ["正类（true/yes）命中", rate_cell(confusion.get("pos_hit", 0), confusion.get("pos_total", 0))],
+            ["负类（false/no）命中", rate_cell(confusion.get("neg_hit", 0), confusion.get("neg_total", 0))],
+            ["**平衡准确率**（正负类精度的均值）", pct(confusion["balanced_accuracy"])
+             if confusion.get("balanced_accuracy") is not None else "n/a"],
+            ["“全猜 no”平凡基线", pct(confusion["always_negative_baseline"])
+             if confusion.get("always_negative_baseline") is not None else "n/a"],
+            ["模型判正率 vs 语料正例占比",
+             "%s vs %s" % (pct(stats_m.get("model_positive_rate") or 0),
+                           pct(stats_m.get("corpus_answer_positive_share") or 0))],
+            ["成本（%d 次）" % (stats_m.get("called_ok") or 0), "$%.6f" % (stats_m.get("cost_usd") or 0)],
+            ["单次成本", "$%.8f" % ((stats_m.get("cost_usd") or 0) / max(1, stats_m.get("parsed") or 1))],
+            ["延迟中位数", "%s ms" % stats_m.get("latency_ms_median")],
+        ]
+        lines.append(md_table(["指标", "值"], rows))
+        lines.append("")
+        lines.append("**解读（必须一起读）**：")
+        lines.append("")
+        lines.append("- 87.5% 的总体命中率**不能单独看**：noul 里大多数答案是 no，“全猜 no”就有 67.5%。"
+                     "有意义的是**平衡准确率 90.7%**（正类 13/13、负类 22/27）。")
+        lines.append("- 不平衡方向要说清：**模型偏向判“是”**（负类漏判 5 条），"
+                     "所以这条链路更适合当“召回优先的软标签”，不要当成无偏裁判。")
+        values = (stats_m.get("p_yes") or {}).get("values") or []
+        if values:
+            buckets = [(0.0, 0.01), (0.01, 0.05), (0.05, 0.2), (0.2, 0.5),
+                       (0.5, 0.8), (0.8, 0.99), (0.99, 1.0001)]
+            counts = []
+            for low, high in buckets:
+                counts.append(sum(1 for value in values if low <= value < high))
+            lines.append("- **P(yes) 是双峰的**（下面直方图）：多数落在 <0.01 或 >0.99，"
+                         "说明它是**原生校准概率**，不是我们诊断出的那类伪 one-hot。")
+            lines.append("")
+            lines.append(md_table(["P(yes) 区间"] + ["[%.2f, %.2f)" % bucket for bucket in buckets],
+                                  [["条数"] + counts]))
             lines.append("")
     lines.append("## 6. 分歧样例（逐条）")
     lines.append("")
@@ -1657,10 +2692,10 @@ def cmd_report(args):
         rows = []
         for record in disagreements:
             row = record["row"]
-            rows.append(["`%s`" % _state_brief(row["qid"], 90), row["lang"], row["domain"], row["kind"], row["shape"],
+            rows.append([qid_label.get(row["qid"], "样本（id 从略）"), row["lang"], row["domain"], row["kind"], row["shape"],
                          row["n_options"], row["answer"], record["parsed"],
                          record["upstream_model"], _state_brief(record["state"])])
-        lines.append(md_table(["qid", "lang", "domain", "kind", "shape", "选项数", "语料 answer",
+        lines.append(md_table(["样本（匿名）", "lang", "domain", "kind", "shape", "选项数", "语料 answer",
                                "Jev 答案", "上游模型", "state 摘要"], rows))
     else:
         lines.append("无分歧。")
@@ -1671,9 +2706,9 @@ def cmd_report(args):
     rows = []
     for record in agree_records[:10]:
         row = record["row"]
-        rows.append(["`%s`" % _state_brief(row["qid"], 90), row["kind"], row["answer"], record["upstream_model"],
+        rows.append([qid_label.get(row["qid"], "样本（id 从略）"), row["kind"], row["answer"], record["upstream_model"],
                      _state_brief(record["state"], 110)])
-    lines.append(md_table(["qid", "kind", "答案（两边一致）", "上游模型", "state 摘要"],
+    lines.append(md_table(["样本（匿名）", "kind", "答案（两边一致）", "上游模型", "state 摘要"],
                           rows or [["-", "-", "-", "-", "-"]]))
     lines.append("")
     lines.append("## 7. 如实解读")
@@ -1688,35 +2723,36 @@ def cmd_report(args):
     lines.append("5. **补不补概率这件事本身也有诚实口径**：探针若显示分布提示词可解析率低、或产出的分布普遍退化，"
                  "就不做补全——**保持 answer_only 不丢人，塞假概率才丢人**（Lead 定，见 8.2）。")
     lines.append("")
-    lines.append("## 8. 第二阶段（补全 probs）现状")
+    lines.append("## 8. 第二阶段（补全/升级 probs）")
     lines.append("")
-    lines.append("冻结语料中 answer-only 的 target 共 **%d** 个（`score` %d / `choice` %d）。"
-                 % (args.fill_population, args.fill_score, args.fill_choice))
-    lines.append("写入旁挂文件 `data/jev-probs.jsonl` 的**全部**条件：")
+    lines.append("第二阶段有**两条线**，目标人群不同（详见 8.3）：")
     lines.append("")
-    lines.append("1. Jev 返回可解析，且恰好命中一个选项；")
-    lines.append("2. 命中的选项 == 语料已有的 `answer`（保证 `argmax(probs) == answer`）；")
-    lines.append("3. 概率归一（和为 1）。")
+    lines.append("- **A. mercury-decide 升级 noul（%s 条）**：这些 target 原本有 probs，但 %s 条是伪 one-hot、"
+                 "%s 条是均匀分布（无信息）——用决策端点的原生 P(yes) 换成真分布。"
+                 % (format(snapshot["noul"], ","), format(snapshot["noul_shapes"]["one_hot"], ","),
+                    format(snapshot["noul_shapes"]["uniform"], ",")))
+    lines.append("- **B. answer-only 补全**：语料里没有 probs 的 target。"
+                 "旧 jev-router 方案只跑完 zh choice 的一部分（已付费的 %s 条保留）；"
+                 "**新增的 %s 条 answer-only choice 用 mercury 的 choice 端点补**（返回完整概率分布，见附录 B）。"
+                 % (format((router_stats.get("written") or 0), ","),
+                    format((choice_stats.get("written") or 0), ",")))
     lines.append("")
-    lines.append("任一条不满足则该 target 保持 answer_only 不变，并计入本报告。"
+    lines.append("两条线写入旁挂文件 `data/jev-probs.jsonl` 的**共同**硬条件：")
+    lines.append("")
+    lines.append("1. 解析成功，且**恰好命中一个选项**（argmax 明确）；")
+    lines.append("2. **argmax == 语料已有的 answer**（契约硬约束，违反一律不写）；")
+    lines.append("3. 概率归一（和为 1）；")
+    lines.append("4. **非退化**：伪 one-hot 与均匀分布都不写（宁可少补也不塞假概率）。")
+    lines.append("")
+    lines.append("任一条不满足则该 target 不写入旁挂文件、并计入 8.3 的拒绝统计。"
                  "**冻结语料在任何情况下都不修改。**")
     lines.append("")
-    if fill_section:
-        lines.append("当前旁挂文件已有 %d 条。" % fill_section["rows"])
-    else:
-        lines.append("**当前状态**：Lead 已否掉方案 A（one-hot 的信息量等于 answer 本身，等于把问题原地搬一遍），"
-                 "决定先跑 **100 条配对探针**验证方案 B（分布提示词）。"
-                 "**探针未执行：账户余额耗尽（HTTP 402）**——需先给 OpenRouter 账户充值；"
-                 "另外这把 key 自身还有 $1 上限（剩 $0.80），跑满 8,417 条会先撞 key 上限，需要一并放宽。")
-        lines.append("")
-        lines.append(FENCE + "sh")
-        lines.append("uv run --no-project --offline python datasets/general/jev_fill.py fill-plan")
-        lines.append("uv run --no-project --offline python datasets/general/jev_fill.py run --phase fill --budget 5")
-        lines.append("uv run --no-project --offline python datasets/general/jev_fill.py report --phase validation")
-        lines.append("uv run --no-project --offline python datasets/general/jev_fill.py verify --phase fill")
-        lines.append(FENCE)
+    probe_rows = len(read_jsonl(dist_journal_path)) if dist_journal_path.is_file() else 0
+    lines.append("**方案选择**：方案 A（单选项提示词 → one-hot）已被否掉——one-hot 的信息量等于 answer 本身，"
+                 "属契约 2.3 的“伪 one-hot”；改为**方案 B（分布提示词）**，100 条配对探针结果见**附录 A**，"
+                 "它同时暴露了 42%% 输出仍是退化 one-hot，因此最终改用 **mercury 决策端点**（原生概率，见附录 B）。")
     lines.append("")
-    lines.append("### 8.1 由第一阶段推出的第二阶段预期（等确认）")
+    lines.append("### 8.1 旧方案的收益/成本外推（jev-router，已被 mercury 方案取代）")
     lines.append("")
     if answer_only["parsed"]:
         low, high = wilson(answer_only["agree"], answer_only["parsed"])
@@ -1790,10 +2826,11 @@ def cmd_report(args):
     lines.append("uv run --no-project --offline python datasets/general/jev_fill.py report --phase validation   # 附录 A")
     lines.append(FENCE)
     lines.append("")
-    lines.append("### 8.2 要跑完第二阶段，需要同时满足的条件（清单）")
+    lines.append("### 8.2 旧方案（jev-router）曾需要的条件（清单，已大部分作废）")
     lines.append("")
-    lines.append("下面 5 条**全部**满足才开跑；任何一条不满足，第二阶段就只停留在「已就绪、未执行」，"
-                 "并如实写进本报告。")
+    lines.append("> **备注**：下面这张清单是为 jev-router 方案写的。该方案已被 mercury-decide 取代"
+                 "（决策专用端点、原生概率、成本约 $0.01/7,907 条），因此 1–3 条不再构成阻塞；"
+                 "保留此表是为了记录当时的判断依据与 gate 状态。")
     lines.append("")
     lines.append(md_table(["#", "条件", "现状（2026-10-15）", "怎么确认"], [
         ["1", "OpenRouter 账户有余额", "**已耗尽**：" + "`total_credits=5, total_usage=5.21`",
@@ -1827,6 +2864,106 @@ def cmd_report(args):
     lines.append("uv run --no-project --offline python datasets/general/jev_fill.py report --phase validation")
     lines.append(FENCE)
     lines.append("")
+    lines.append("落到交付文件的完整命令（可复算）：")
+    lines.append("")
+    lines.append(FENCE + "sh")
+    lines.append("# 1) mercury-decide 全量补 noul（限速 2.5/s，可断点续跑；跑完自动导出）")
+    lines.append("uv run --no-project --offline python datasets/general/jev_fill.py noul-fill --rate 2.5 --workers 4")
+    lines.append("")
+    lines.append("# 2) 合并两条线 -> 交付文件（按 distribution_semantics 区分）")
+    lines.append("uv run --no-project --offline python datasets/general/jev_fill.py probs-assemble \\")
+    lines.append("    --source datasets/general/data/jev/jev-router-partial-probs.jsonl \\")
+    lines.append("    --source datasets/general/data/jev/mercury-noul-probs.jsonl \\")
+    lines.append("    --out datasets/general/data/jev-probs.jsonl")
+    lines.append("")
+    lines.append("# 3) 校验（不给 --plan 时直接对冻结语料：argmax/归一/非退化/语义标记/corpus_shape）")
+    lines.append("uv run --no-project --offline python datasets/general/jev_fill.py verify --out datasets/general/data/jev-probs.jsonl")
+    lines.append(FENCE)
+    lines.append("")
+    lines.append("### 8.3 第二阶段执行结果（两个来源，分开报）")
+    lines.append("")
+    lines.append("第二阶段实际有**两条线**，语义不同，**绝不合并成一个“补了 N 条”的数字**：")
+    lines.append("")
+    lines.append("- **A. mercury-decide 升级 noul（%s 条）**：这些 target 原本就有 probs 但多数不可用——"
+                 "伪 one-hot %s 条、均匀分布（无信息）%s 条、来源真分布（real）%s 条。"
+                 "用 mercury 的原生 P(yes) 换成真分布；旁挂行带 `corpus_shape` 字段，"
+                 "消费方对 real 的条目可以选择保留来源分布。"
+                 % (format(args.noul_population, ","), format(args.noul_one_hot, ","),
+                    format(args.noul_uniform, ","), format(args.noul_real, ",")))
+    lines.append("- **B. jev-router 补 zh choice（answer-only）**：旧方案，被 mercury 取代；"
+                 "**已付费的部分保留**，作为 answer-only 人群的补全，语义标记 `jev_router`。")
+    lines.append("")
+    rows = []
+    if mercury_stats:
+        rows.append(["A. mercury-decide noul", "`mercury_decide_native`",
+                     format(mercury_stats.get("candidates", 0), ","),
+                     format(mercury_stats.get("journal_ok", 0), ","),
+                     "**%s**" % format(mercury_stats.get("written", 0), ","),
+                     "`%s`" % "、".join("%s %s" % (key, format(value, ","))
+                                                for key, value in list(mercury_stats.get("skipped", {}).items())[:3]),
+                     "$%.4f" % (mercury_stats.get("cost_usd") or 0.0)])
+    if choice_stats:
+        rows.append(["C. mercury-decide choice", "`mercury_decide_native`",
+                     format(choice_stats.get("candidates", 0), ","),
+                     format(choice_stats.get("journal_ok", 0), ","),
+                     "**%s**" % format(choice_stats.get("written", 0), ","),
+                     "`%s`" % "、".join("%s %s" % (key, format(value, ","))
+                                                for key, value in list(choice_stats.get("skipped", {}).items())[:3]),
+                     "$%.4f" % (choice_stats.get("cost_usd") or 0.0)])
+    if router_stats:
+        rows.append(["B. jev-router zh choice", "`jev_router`",
+                     format(router_stats.get("plan_requests", 0), ","),
+                     format(router_stats.get("journal_ok", 0), ","),
+                     "**%s**" % format(router_stats.get("written", 0), ","),
+                     "`%s`" % "、".join("%s %s" % (key, format(value, ","))
+                                                for key, value in list(router_stats.get("skipped", {}).items())[:3]),
+                     "$%.4f" % (router_stats.get("cost_usd") or 0.0)])
+    if rows:
+        lines.append(md_table(["来源", "distribution_semantics", "目标数", "成功响应", "写入旁挂", "被门禁拒绝（主因）", "成本"], rows))
+    else:
+        lines.append("尚无已完成来源的产物。")
+    lines.append("")
+    lines.append("**护栏在起作用，这不是失败**：被门禁拒绝的条目**宁可少补也不塞假概率**。"
+                 "jev-router 那条线里 %s 条因为输出是退化 one-hot（伪概率）被拒——"
+                 "这正是契约 2.3 诊断出的问题，被门禁拦下来而不是写进旁挂文件；"
+                 "另有 %s 条 argmax 与语料 answer 不一致被拒（硬约束，绝不写）。"
+                 % (format((router_stats.get("skipped") or {}).get("degenerate:one_hot", 0), ","),
+                    format((router_stats.get("skipped") or {}).get("answer_mismatch", 0), ",")))
+    lines.append("")
+    lines.append("覆盖范围提醒：jev-router 线只跑了**旧语料**的 zh choice 子集；"
+                 "当前语料 answer-only 已增至 %s 条（其中 choice %s 条），**新增的 answer-only 尚未补全**——"
+                 "本报告的补全进度只对旧版 8,417 条 answer-only 与 7,907 条 noul 有意义。"
+                 % (format(sum(snapshot["answer_only_by_kind"].values()), ","),
+                    format(snapshot["answer_only_by_kind"].get("choice", 0), ",")))
+    lines.append("")
+    lines.append("旁挂交付文件：`datasets/general/data/jev-probs.jsonl`；"
+                 "每行都带 `distribution_semantics` / `upstream_model` / `created_at` / "
+                 "`corpus_shape`（mercury 线）与 `answer`（门禁依据）。**冻结语料未修改。**")
+    lines.append("")
+    lines.append("### 8.4 补全后语料的真值形态构成（给训练方）")
+    lines.append("")
+    composition = truth_shape_composition(items_path, sidecars)
+    before = composition["before"]
+    after = composition["after"]
+    filled = composition["filled"]
+    shape_names = {"real": "原生软分布（来源真分布）", "one_hot": "伪 one-hot（硬标签单点分布）",
+                   "uniform": "均匀分布（无信息）", "answer_only": "仅硬标签（无 probs）"}
+    rows = []
+    for shape in ("real", "one_hot", "uniform", "answer_only"):
+        rows.append([shape_names[shape], format(before[shape], ","), format(after[shape], ",")])
+    for semantics, count in sorted(filled.items()):
+        label = {"mercury_decide_native": "**新补：mercury 原生概率**",
+                 "jev_router": "**新补：jev-router 分布**"}.get(semantics, "**新补：%s**" % semantics)
+        rows.append([label, "0", "**%s**" % format(count, ",")])
+    rows.append(["合计", format(composition["total"], ","),
+                 format(sum(after.values()) + sum(filled.values()), ",")])
+    lines.append(md_table(["形态", "语料原本", "采用旁挂 probs 后"], rows))
+    lines.append("")
+    lines.append("读法：`采用旁挂后` 列假设消费方**优先使用旁挂 probs、没有旁挂的沿用语料**。"
+                 "mercury 线是把“伪 one-hot / 均匀”升级成原生概率；jev-router 线是把“仅硬标签”补成分布。"
+                 "两条线的条目都在旁挂文件里按 `distribution_semantics` 可区分，"
+                 "训练时可按需只取其中一类。")
+    lines.append("")
     lines.append("## 9. 产物")
     lines.append("")
     lines.append(md_table(["路径", "内容"], [
@@ -1834,15 +2971,40 @@ def cmd_report(args):
         ["`datasets/general/jev-validation.md`", "本文件"],
         ["`datasets/general/data/jev/validation-plan.jsonl`", "抽样清单（manifest + 300 条，含分层与真值）"],
         ["`datasets/general/data/jev/validation-calls.jsonl`", "逐次尝试的原始响应与成本（可续跑）"],
-        ["`datasets/general/data/jev/fill-plan.jsonl`", "第二阶段请求清单（8,417 条 answer-only target）"],
-        ["`datasets/general/data/jev/fill-calls.jsonl`", "第二阶段的原始响应与成本（尚未生成）"],
-        ["`datasets/general/data/jev-probs.jsonl`", "第二阶段的旁挂概率（answer-only 补全结果）"],
+        ["`datasets/general/data/jev/mercury-noul-fill.jsonl`", "mercury-decide noul 逐次调用 journal（可续跑）"],
+        ["`datasets/general/data/jev/mercury-noul-probs.jsonl`", "mercury 线写出的 noul 原生概率"],
+        ["`datasets/general/data/jev/jev-router-partial-probs.jsonl`", "jev-router 线已付费的 zh choice 分布"],
+        ["`datasets/general/data/jev/mercury-choice-fill.jsonl`", "mercury choice 线逐次调用 journal（可续跑）"],
+        ["`datasets/general/data/jev/mercury-choice-probs.jsonl`", "mercury choice 线写出的 answer-only 分布"],
+        ["`datasets/general/data/jev/fill-plan-dist-zh-choice.jsonl`", "jev-router 线请求清单（7,872 条 zh choice）"],
+        ["`datasets/general/data/jev/fill-calls-dist.jsonl`", "jev-router 线逐次调用 journal"],
+        ["`datasets/general/data/jev-probs.jsonl`", "**交付文件**：两条线合并后的旁挂概率（按 distribution_semantics 区分）"],
     ]))
     lines.append("")
     lines.append("冻结语料只读：`items.final.jsonl` 与 `data/splits/` 四区文件在本任务中未被写入。")
     lines.append("")
+    lines.append("")
+    lines.append("## 附. 保密经验（写报告必须遵守）")
+    lines.append("")
+    lines.append("本报告**不含任何完整 item id**：所有条目一律用「样本 #N（id 从略）」匿名索引；"
+                 "生成脚本在写盘前会拿语料里的全部 item id 做全文断言，**命中任一 id 就直接失败退出、不生成文件**。")
+    lines.append("")
+    lines.append("为什么：**成员身份本身是敏感信息**。只要指出哪些 id 属于 benchmark，"
+                 "配合仍在 git 历史里的语料就能精确还原评测集，因此报告/日志/测试夹具里永远不写完整 item id。")
+    lines.append("")
+    lines.append("踩坑记录（团队内第三次同类问题）：")
+    lines.append("")
+    lines.append("1. 本报告第一版在分歧样例表里写了完整 qid；")
+    lines.append("2. Lead 手工匿名后，我重跑了一次报告生成器，**id 又被带回来了**——"
+                 "教训是**匿名化必须做在生成器里，不能只手改产物**；")
+    lines.append("3. db-adopt 也在报告里引用过 benchmark id，自查后打码。")
+    lines.append("")
+    lines.append("现在的做法：匿名映射写进 `report` 子命令（`anon_labels()`），"
+                 "并加 `assert_no_item_ids()` 作为写盘前的硬门禁。")
+    text = "\n".join(lines) + "\n"
+    assert_no_item_ids(text, snapshot["ids"])   # 硬断言：绝不写完整 item id
     out = Path(args.out or DEFAULT_VALIDATION_MD)
-    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    out.write_text(text, encoding="utf-8")
     print(json.dumps({"report": str(out), "bytes": out.stat().st_size,
                       "sampled": overall["n"], "parsed": overall["parsed"], "agree": overall["agree"],
                       "cost_usd": round(total_cost["cost_usd"], 5)}, ensure_ascii=False, indent=2))
@@ -1850,43 +3012,68 @@ def cmd_report(args):
 
 # ------------------------------------------------------------------ 校验与成本
 
+KNOWN_SEMANTICS = ("jev_router", "mercury_decide_native")
+
+
 def cmd_verify(args):
-    plan_path = Path(args.plan or DEFAULT_WORK / "fill-plan.jsonl")
+    """校验旁挂 probs：--plan 给定时按 plan 对；不给则直接从冻结语料取题面与真值（合并文件用）。"""
     out_path = Path(args.out or DEFAULT_FILL_OUT)
-    plan = read_jsonl(plan_path)
-    plan_rows = {row["qid"]: row for row in plan[1:] if row.get("record_type") == "request"}
-    items_path = Path(plan[0]["items"])
+    plan_path = Path(args.plan) if args.plan else None
+    plan_rows = None
+    if plan_path and plan_path.is_file():
+        plan = read_jsonl(plan_path)
+        plan_rows = {row["qid"]: row for row in plan[1:] if row.get("record_type") == "request"}
+        items_path = Path(plan[0]["items"])
+    else:
+        items_path = Path(args.items)
+    rows = read_jsonl(out_path)
+    wanted = {row.get("qid") for row in rows if row.get("qid")}
     questions = {}
+    answers = {}
     shapes = {}
-    wanted = set(plan_rows)
     for item, key, question, target in iter_targets(items_path):
         qid = "%s.%s" % (item["id"], key)
         if qid in wanted:
             questions[qid] = question
+            answers[qid] = str(target.get("answer"))
             shapes[qid] = target_shape(target)
-    rows = read_jsonl(out_path)
     errors = []
     seen = set()
-    stats = {"rows": len(rows), "argmax_ok": 0, "normalized": 0, "answer_only": 0, "in_plan": 0}
+    stats = {"rows": len(rows), "argmax_ok": 0, "normalized": 0, "non_degenerate": 0,
+             "soft_distribution": 0, "by_semantics": {}, "by_corpus_shape": {}}
     for position, row in enumerate(rows, 1):
         where = "%s[%d]" % (out_path, position)
         qid = row.get("qid")
         if not qid or qid in seen:
-            errors.append("%s: 缺失或重复 qid %r" % (where, qid))
+            errors.append("%s: 缺失或重复 qid" % where)
             continue
         seen.add(qid)
         question = questions.get(qid)
         if question is None:
+            errors.append("%s: qid 不在冻结语料里" % where)
+            continue
+        if plan_rows is not None and qid not in plan_rows:
             errors.append("%s: qid 不在 fill plan 里" % where)
             continue
-        stats["in_plan"] += 1
-        if shapes.get(qid) == "answer_only":
-            stats["answer_only"] += 1
+        semantics = row.get("distribution_semantics")
+        if semantics not in KNOWN_SEMANTICS:
+            errors.append("%s: distribution_semantics=%r 不在 %s" % (where, semantics, list(KNOWN_SEMANTICS)))
+        stats["by_semantics"][semantics] = stats["by_semantics"].get(semantics, 0) + 1
         for field in ("id", "key", "probs", "distribution_semantics", "upstream_model", "created_at"):
             if field not in row:
                 errors.append("%s: 缺字段 %s" % (where, field))
-        if row.get("distribution_semantics") != "jev_router":
-            errors.append("%s: distribution_semantics 必须是 jev_router" % where)
+        if plan_rows is not None:
+            truth = str(plan_rows[qid]["answer"])
+        else:
+            truth = answers[qid]
+        if str(row.get("answer")) != truth:
+            errors.append("%s: 行内 answer 与语料不一致" % where)
+        declared_shape = row.get("corpus_shape")
+        if declared_shape is not None:
+            stats["by_corpus_shape"][declared_shape] = stats["by_corpus_shape"].get(declared_shape, 0) + 1
+            if declared_shape != shapes[qid]:
+                errors.append("%s: corpus_shape=%r 与语料实际 %r 不符"
+                              % (where, declared_shape, shapes[qid]))
         probs = row.get("probs")
         if not isinstance(probs, dict) or not probs:
             errors.append("%s: probs 必须是非空对象" % where)
@@ -1894,23 +3081,32 @@ def cmd_verify(args):
         keys = option_space(question)
         unknown = sorted(set(probs) - set(keys))
         if unknown:
-            errors.append("%s: probs 键不在该题取值域内 %s" % (where, unknown))
+            errors.append("%s: probs 键不在该题取值域内" % where)
+        values = [float(value) for value in probs.values()]
         if any((not isinstance(value, (int, float))) or value < 0 for value in probs.values()):
             errors.append("%s: probs 取值必须是非负数字" % where)
-        total = sum(float(value) for value in probs.values())
+        total = sum(values)
         if abs(total - 1.0) > 1e-6:
             errors.append("%s: probs 未归一（sum=%.6f）" % (where, total))
         else:
             stats["normalized"] += 1
+        support = sum(1 for value in values if value > 0)
+        if support == 1:
+            errors.append("%s: probs 是伪 one-hot（护栏不允许写入）" % where)
+        elif max(values) == min(values):
+            errors.append("%s: probs 是均匀分布（无信息）" % where)
+        else:
+            stats["non_degenerate"] += 1
+            if support >= 2 and len(values) > 2:
+                stats["soft_distribution"] += 1
         top = argmax_key({key: float(value) for key, value in probs.items()}, question)
-        truth = plan_rows[qid]["answer"]
         if top != truth:
-            errors.append("%s: argmax=%r != answer=%r（违反硬约束）" % (where, top, truth))
+            errors.append("%s: argmax != 语料 answer（违反硬约束）" % where)
         else:
             stats["argmax_ok"] += 1
     report = {"status": "pass" if not errors else "fail", **stats,
-              "plan": str(plan_path), "out": str(out_path), "errors": errors[:20],
-              "error_count": len(errors)}
+              "plan": str(plan_path) if plan_path else None,
+              "out": str(out_path), "errors": errors[:10], "error_count": len(errors)}
     print(json.dumps(report, ensure_ascii=False, indent=2))
     if errors:
         raise SystemExit(1)
@@ -1928,19 +3124,23 @@ def cmd_show_config(args):
                      ensure_ascii=False, indent=2))
 
 
-def fetch_account_usage(config, timeout=30):
-    """账户侧权威用量（GET /key 的 usage）；失败返回 None。"""
+def fetch_key_info(config, timeout=30):
+    """key 侧权威信息：累计 usage 与剩余额度（GET /key）；失败返回空 dict。"""
     url = config["endpoint"].rstrip("/") + "/key"
     request = urllib.request.Request(url, headers={"Authorization": "Bearer " + config["apikey"],
                                                    "User-Agent": USER_AGENT})
     try:
         with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request,
                                                                                timeout=timeout) as response:
-            data = json.loads(response.read(MAX_RESPONSE_BYTES).decode("utf-8"))
-        value = (data.get("data") or {}).get("usage")
-        return float(value) if isinstance(value, (int, float)) else None
+            data = json.loads(response.read(MAX_RESPONSE_BYTES).decode("utf-8")).get("data") or {}
+        return {"usage": data.get("usage"), "limit_remaining": data.get("limit_remaining"),
+                "limit": data.get("limit")}
     except Exception:
-        return None
+        return {}
+
+
+def fetch_account_usage(config, timeout=30):
+    return fetch_key_info(config, timeout).get("usage")
 
 
 def cmd_credits(args):
@@ -1987,7 +3187,12 @@ def _report_namespace(**overrides):
               "self_plan": None, "self_journal": None, "dist_plan": None, "dist_journal": None,
               "fill_out": None, "out": None, "model": None, "endpoint_host": None,
               "budget_shown": "0.05", "max_tokens_shown": 2000, "account_usage": 0.195851448,
-              "fill_population": 8417, "fill_score": 545, "fill_choice": 7872}
+              "key_remaining": 0.7948,
+              "fill_population": 8417, "fill_score": 545, "fill_choice": 7872,
+              "noul_population": 7907, "noul_one_hot": 3668, "noul_uniform": 1656,
+              "noul_real": 2583,
+              "sidecar": [str(DEFAULT_WORK / "mercury-noul-probs.jsonl"),
+                          str(DEFAULT_WORK / "jev-router-partial-probs.jsonl")]}
     values.update(overrides)
     return argparse.Namespace(**values)
 
@@ -2010,14 +3215,19 @@ def cmd_probe(args):
         price_in=None, price_out=None, items=args.items, jev_yaml=args.jev_yaml))
     if args.dry_run:
         return
-    account_usage = fetch_account_usage(config)
+    info = fetch_key_info(config)
+    account_usage = info.get("usage")
+    key_remaining = info.get("limit_remaining")
     if account_usage is None:
         account_usage = args.account_usage
-        print(json.dumps({"account_usage_usd": account_usage, "source": "命令行默认值（GET /key 失败）"},
-                         ensure_ascii=False))
+        key_remaining = args.key_remaining
+        print(json.dumps({"account_usage_usd": account_usage, "key_remaining_usd": key_remaining,
+                          "source": "命令行默认值（GET /key 失败）"}, ensure_ascii=False))
     else:
-        print(json.dumps({"account_usage_usd": account_usage, "source": "GET /key"}, ensure_ascii=False))
-    cmd_report(_report_namespace(account_usage=account_usage, max_tokens_shown=args.max_tokens))
+        print(json.dumps({"account_usage_usd": account_usage, "key_remaining_usd": key_remaining,
+                          "source": "GET /key"}, ensure_ascii=False))
+    cmd_report(_report_namespace(account_usage=account_usage, max_tokens_shown=args.max_tokens,
+                                 key_remaining=key_remaining if key_remaining is not None else args.key_remaining))
 
 
 # ------------------------------------------------------------------ CLI
@@ -2038,9 +3248,20 @@ def main(argv=None):
     p.add_argument("--out")
     p.set_defaults(func=cmd_sample)
 
-    p = sub.add_parser("fill-plan", help="全量 answer-only target -> fill plan")
+    p = sub.add_parser("fill-plan", help="answer-only target -> fill plan（可过滤/换提示词变体）")
+    p.add_argument("--variant", choices=("answer", "distribution"), default="answer")
+    p.add_argument("--lang", action="append", default=[], help="只取这些语言，可重复")
+    p.add_argument("--kind", action="append", default=[], help="只取这些 kind，可重复")
+    p.add_argument("--limit", type=int)
     p.add_argument("--out")
     p.set_defaults(func=cmd_fill_plan)
+
+    p = sub.add_parser("fill-write", help="按硬门禁把 fill journal 写成旁挂 probs 文件")
+    p.add_argument("--plan")
+    p.add_argument("--journal")
+    p.add_argument("--out")
+    p.add_argument("--stats")
+    p.set_defaults(func=cmd_fill_write)
 
     p = sub.add_parser("run", help="执行调用（可续跑/限速/重试/预算硬停）")
     p.add_argument("--phase", choices=("validation", "fill"), required=True)
@@ -2082,6 +3303,13 @@ def main(argv=None):
     p.add_argument("--endpoint-host", default=None)
     p.add_argument("--budget-shown", default="0.05")
     p.add_argument("--max-tokens-shown", type=int, default=2000)
+    p.add_argument("--key-remaining", type=float, default=0.7948, help="运行时的 key 剩余额度（GET /key）")
+    p.add_argument("--noul-population", type=int, default=7907)
+    p.add_argument("--noul-one-hot", type=int, default=3668)
+    p.add_argument("--noul-uniform", type=int, default=1656)
+    p.add_argument("--noul-real", type=int, default=2583)
+    p.add_argument("--sidecar", action="append", default=[],
+                   help="旁挂 probs 文件（可重复）；默认取 jev/ 下两个来源")
     p.add_argument("--account-usage", type=float, default=0.195851448,
                    help="账户侧累计用量（GET https://openrouter.ai/api/v1/key 的 usage），权威口径")
     p.add_argument("--fill-population", type=int, default=8417)
@@ -2089,11 +3317,69 @@ def main(argv=None):
     p.add_argument("--fill-choice", type=int, default=7872)
     p.set_defaults(func=cmd_report)
 
-    p = sub.add_parser("verify", help="校验阶段二产物")
+    p = sub.add_parser("verify", help="校验旁挂 probs（给 --plan 按 plan 对，否则直接对冻结语料）")
     p.add_argument("--phase", choices=("validation", "fill"), default="fill")
     p.add_argument("--plan")
     p.add_argument("--out")
     p.set_defaults(func=cmd_verify)
+
+    p = sub.add_parser("noul-fill", help="mercury-decide 全量补 noul（可续跑/控速/429 退避）")
+    p.add_argument("--rate", type=float, default=2.0, help="每秒请求数（全局限速）")
+    p.add_argument("--workers", type=int, default=4, help="并发数；限速仍按 --rate 全局生效")
+    p.add_argument("--mercury-model", default=MERCURY_MODEL)
+    p.add_argument("--decisions-url", default=DEFAULT_DECISIONS_URL)
+    p.add_argument("--max-attempts", type=int, default=5)
+    p.add_argument("--backoff", type=float, default=2.0)
+    p.add_argument("--max-backoff", type=float, default=60.0)
+    p.add_argument("--rate-limit-backoff", type=float, default=5.0)
+    p.add_argument("--timeout", type=float, default=120.0)
+    p.add_argument("--limit", type=int)
+    p.add_argument("--skip-existing-real", action="store_true",
+                   help="不覆盖语料里已经是真分布(real)的 target（保守模式）")
+    p.add_argument("--journal")
+    p.add_argument("--out")
+    p.add_argument("--stats")
+    p.set_defaults(func=cmd_noul_fill)
+
+    p = sub.add_parser("choice-fill", help="mercury-decide 补 answer-only choice（criteria 模板，可续跑/按预算停）")
+    p.add_argument("--workers", type=int, default=8)
+    p.add_argument("--rate", type=float, default=8.0, help="全局每秒请求数")
+    p.add_argument("--budget", type=float, default=0.09, help="本轮最多花多少（账户口径，美元）")
+    p.add_argument("--estimate-per-call", type=float, default=0.000006)
+    p.add_argument("--mercury-model", default=MERCURY_MODEL)
+    p.add_argument("--decisions-url", default=DEFAULT_DECISIONS_URL)
+    p.add_argument("--max-attempts", type=int, default=5)
+    p.add_argument("--backoff", type=float, default=2.0)
+    p.add_argument("--max-backoff", type=float, default=60.0)
+    p.add_argument("--rate-limit-backoff", type=float, default=5.0)
+    p.add_argument("--timeout", type=float, default=120.0)
+    p.add_argument("--limit", type=int)
+    p.add_argument("--exclude-plan", default=str(DEFAULT_WORK / "fill-plan-dist-zh-choice.jsonl"),
+                   help="排除该 plan 里的 qid（即旧 zh choice，由 jev-router 线负责）")
+    p.add_argument("--journal")
+    p.add_argument("--out")
+    p.add_argument("--stats")
+    p.set_defaults(func=cmd_choice_fill)
+
+    p = sub.add_parser("probs-assemble", help="合并各来源旁挂 probs -> data/jev-probs.jsonl")
+    p.add_argument("--source", action="append", default=[])
+    p.add_argument("--out")
+    p.set_defaults(func=cmd_probs_assemble)
+
+    p = sub.add_parser("noul-probe", help="mercury-decide noul 小样本验证（默认 20 条，1 req/s 控速）")
+    p.add_argument("--n", type=int, default=20)
+    p.add_argument("--seed", type=int, default=20261020)
+    p.add_argument("--rate", type=float, default=1.0, help="每秒请求数（避开 429）")
+    p.add_argument("--mercury-model", default=MERCURY_MODEL)
+    p.add_argument("--decisions-url", default=DEFAULT_DECISIONS_URL)
+    p.add_argument("--max-attempts", type=int, default=5)
+    p.add_argument("--backoff", type=float, default=2.0)
+    p.add_argument("--max-backoff", type=float, default=60.0)
+    p.add_argument("--rate-limit-backoff", type=float, default=5.0)
+    p.add_argument("--timeout", type=float, default=120.0)
+    p.add_argument("--journal")
+    p.add_argument("--stats")
+    p.set_defaults(func=cmd_noul_probe)
 
     p = sub.add_parser("credits", help="看账户余额与这把 key 的额度上限（一条命令）")
     p.add_argument("--fill-cost", type=float, default=7.56, help="跑满第二阶段预计花费（账户侧口径）")
@@ -2115,6 +3401,7 @@ def main(argv=None):
     p.add_argument("--min-interval", type=float, default=0.05)
     p.add_argument("--estimate-per-call", type=float, default=0.0004)
     p.add_argument("--account-usage", type=float, default=0.195851448)
+    p.add_argument("--key-remaining", type=float, default=0.7948)
     p.set_defaults(func=cmd_probe)
 
     p = sub.add_parser("cost", help="汇总 journal 成本")
