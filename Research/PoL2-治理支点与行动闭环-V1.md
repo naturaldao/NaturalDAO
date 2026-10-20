@@ -1,4 +1,4 @@
-# PoL2 的治理支点：把规则接到行动、执行与修正上
+# PoL2 的物理世界治理支点：把规则接到具身智能行动、执行与修正上
 
 **核心术语：** PoL2（Proof of Love2）；Typed Decision Model（TDM，类型化决策模型）
 
