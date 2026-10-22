@@ -329,6 +329,9 @@ python finetune/calibrate.py apply --predictions <evals>/val-preds.jsonl --tempe
 - `run_plan.py`：为 GPU 恢复生成分阶段 bash 脚本（env-check / base-test / lm-eval / calibrate / track-b-smoke / track-b-full / seeds）。
 - `eval_decision_scorer.py`：Track B（adapter + scorer_head）独立评测；与 Track A 评测同口径输出 JSON，并可导出逐行概率供校准。
 - `collect_results.py --seed-eval`：多 seed 汇总（均值 ± 95% CI，t 分布）。
+- `datasets/general/build_mixed_view.py`：通用视图与专用视图按比例混合（mix-1，输出仓库外 + manifest）。
+- `run_plan.py --stages pol2-mix --pol2-ratio 0.1`：PoL2 混合训练一键链（builder 自带 training_approved 门禁；未批准会第一步失败）。
+
 
 ~~~bash
 # GPU 恢复后：生成整套脚本并执行

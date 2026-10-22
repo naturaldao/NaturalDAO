@@ -43,7 +43,17 @@ class RunPlanTest(unittest.TestCase):
         self.assertIn("track-a-val-seed20261024.json", script)
         self.assertIn("collect_results.py", script)
         self.assertIn("eval_decision_scorer.py", script)
+        self.assertIn("build_mixed_view.py", script)
+        self.assertIn("pol2-train-view.jsonl", script)
         self.assertIn("multiseed-track-a.md", script)
+
+    def test_pol2_mix_ratio_label(self):
+        script = run_plan.build_script(["pol2-mix"], "$HOME/src/polgov", "/mnt/c/repo",
+                                       "model-x", "adapter-x", pol2_ratio=0.2)
+        self.assertIn("mixed-train-view-20pct.jsonl", script)
+        self.assertIn("--ratio 0.2", script)
+        self.assertIn("--allow-pol2", script)
+        self.assertIn("build_pol2_training_view.py", script)
 
     def test_custom_paths_appear(self):
         script = run_plan.build_script(["lm-eval"], "/custom/home", "/custom/repo",

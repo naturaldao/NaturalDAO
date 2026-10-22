@@ -15,7 +15,7 @@ from typing import Dict, List, Optional, Sequence
 
 DEFAULT_REPO_WSL = "/mnt/c/Projects/DAism/NaturalDAO/PoL-Governance"
 DEFAULT_HOME = "$HOME/src/polgov"
-STAGES = ("env-check", "base-test", "lm-eval", "calibrate", "track-b-smoke", "track-b-full", "seeds")
+STAGES = ("env-check", "base-test", "lm-eval", "calibrate", "track-b-smoke", "track-b-full", "seeds", "pol2-mix")
 
 
 def header(home: str, repo: str) -> List[str]:
@@ -31,7 +31,8 @@ def header(home: str, repo: str) -> List[str]:
     ]
 
 
-def stage_commands(stage: str, home: str, repo: str, model: str, adapter: str) -> List[str]:
+def stage_commands(stage: str, home: str, repo: str, model: str, adapter: str,
+                   pol2_ratio: float = 0.1) -> List[str]:
     evals = f"{home}/evals"
     data = f"{home}/data"
     runs = f"{home}/runs"
@@ -116,16 +117,38 @@ def stage_commands(stage: str, home: str, repo: str, model: str, adapter: str) -
             f'--seed-eval "track-a={evals}/track-a-val-seed20261025.json" '
             f'--out "{evals}/multiseed-track-a.md"',
         ]
+    elif stage == "pol2-mix":
+        # PoL2 混合（9:1 / 8:2）：builder 自带 training_approved 门禁；未批准时本阶段第一步即失败
+        pct = int(round(pol2_ratio * 100))
+        lines += [
+            f'rm -f "{data}/pol2-train-view.jsonl" "{data}/mixed-train-view-{pct}pct.jsonl"',
+            f'python datasets/pol2/build_pol2_training_view.py '
+            f'--freeze datasets/pol2/data/freeze-8705-v1/splits/train.units.jsonl '
+            f'--region train --out "{data}/pol2-train-view.jsonl"',
+            f'python datasets/general/build_mixed_view.py '
+            f'--base "{data}/general-train-view.jsonl" --extra "{data}/pol2-train-view.jsonl" '
+            f'--ratio {pol2_ratio} --allow-pol2 --overwrite '
+            f'--out "{data}/mixed-train-view-{pct}pct.jsonl"',
+            f'python -u finetune/train_decision_sft.py '
+            f'--train-view "{data}/mixed-train-view-{pct}pct.jsonl" '
+            f'--eval-view "{data}/general-validation-view.jsonl" --model "{model}" '
+            f'--output-dir "{runs}/track-a-mix-pol2-{pct}pct" --epochs 1 --batch-size 8 '
+            f'--grad-accum 4 --seq-len 1024 --eval-limit 500 --eval-every 400',
+            f'python -u finetune/eval_decision.py --eval-view "{data}/general-validation-view.jsonl" '
+            f'--model "{model}" --adapter "{runs}/track-a-mix-pol2-{pct}pct/adapter" '
+            f'--batch-size 32 --json > "{evals}/track-a-mix-pol2-{pct}pct-val.json"',
+        ]
     else:
         raise ValueError(f"unknown stage: {stage}")
     lines.append("")
     return lines
 
 
-def build_script(stages: Sequence[str], home: str, repo: str, model: str, adapter: str) -> str:
+def build_script(stages: Sequence[str], home: str, repo: str, model: str, adapter: str,
+                 pol2_ratio: float = 0.1) -> str:
     lines = header(home, repo)
     for stage in stages:
-        lines += stage_commands(stage, home, repo, model, adapter)
+        lines += stage_commands(stage, home, repo, model, adapter, pol2_ratio)
     lines += ['echo "ALL_STAGES_DONE"', ""]
     return "\n".join(lines)
 
@@ -139,6 +162,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--repo-wsl", default=DEFAULT_REPO_WSL)
     parser.add_argument("--model", default=DEFAULT_HOME + "/models/Qwen3-1.7B")
     parser.add_argument("--adapter", default=DEFAULT_HOME + "/runs/track-a-e1-rocm/adapter")
+    parser.add_argument("--pol2-ratio", type=float, default=0.1,
+                        help="pol2-mix 阶段中 PoL2 行占比（默认 0.1 即 9:1；0.2 即 8:2）")
     parser.add_argument("--out", help="输出脚本路径；省略则打印到 stdout")
     args = parser.parse_args(argv)
     stages = [stage.strip() for stage in args.stages.split(",") if stage.strip()]
@@ -151,7 +176,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     if unknown:
         print(f"unknown stages: {unknown}", file=sys.stderr)
         return 2
-    script = build_script(stages, args.project_home, args.repo_wsl, args.model, args.adapter)
+    script = build_script(stages, args.project_home, args.repo_wsl, args.model, args.adapter,
+                          pol2_ratio=args.pol2_ratio)
     if args.out:
         with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(script)

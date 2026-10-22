@@ -127,3 +127,25 @@ python -m unittest datasets.general.test_build_training_view -v
 - `test_benchmark_guard_exit_2`：输入路径包含 benchmark/holdout 时拒绝执行（exit 2）；
 - `test_rid_conflict_and_invalid_options`：重复 rid、非法选项数（<2）或非法 scale 边界报错；
 - `test_strict_route_flag`：`--strict-route` 开关对未覆盖行的精确过滤。
+
+## 7. 混合视图（mix-1）
+
+[tv-1](#) 视图可以与专用视图（如 PoL2 pv-1）按比例混合成一个训练视图，用于 M2-3 的
+"通用:PoL = 9:1 或 8:2" 基线。实现：[build_mixed_view.py](build_mixed_view.py)。
+
+~~~powershell
+# 输出必须在仓库外；--allow-pol2 仅在 PoL2 训练授权确认后使用
+python datasets/general/build_mixed_view.py `
+  --base D:/pol2-train/data/general-train-view.jsonl `
+  --extra D:/pol2-train/data/pol2-train-view.jsonl `
+  --ratio 0.1 --allow-pol2 --out D:/pol2-train/data/mixed-train-view-10pct.jsonl
+~~~
+
+- 口径 `mix-1`：ratio = 混合后 extra 行占比；extra 行数 = round(base × ratio/(1−ratio))，
+  不足时按输入顺序循环、多余只取前 N 行；输出按等距插入（确定性），每行带 `mix_group`
+  字段（base/extra）；
+- 输出逐字节确定（同输入两次一致），同时写 `<out>.manifest.json`：输入 sha256、行数、
+  实际比例、输出 sha256 与 bytes；
+- 安全门：`--out` 必须在仓库外、拒绝覆盖输入、extra 含 `src="pol2-freeze-8705-v1"` 行时
+  必须显式 `--allow-pol2`；输入行缺 `rid/prompt/options/answer_idx/kind` 立即报错；
+- 测试：`python -m unittest datasets.general.test_build_mixed_view -v`（9 个离线用例）。
