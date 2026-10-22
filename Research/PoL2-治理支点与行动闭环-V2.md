@@ -8,7 +8,7 @@
 
 PoL2 治理面向会改变外部状态的 Agent 操作。本文将 TDM 用于有限动作集的判断，将权限检查和动作执行交给独立组件，并用运行日志驱动受约束的策略更新。系统不设置人工决策节点。遇到不确定输入、规则冲突或组件故障时，策略执行点按预设规则限缩、拒绝或暂停动作。
 
-规则解释、动作授权、策略更新、执行和审计属于不同权限域。实现上应使用独立的策略执行点和安全内核，并记录各 AI 代理的模型版本、数据来源、权限及故障依赖。代理间的一致意见不能单独证明事实或授权动作。
+规则解释、动作授权、策略更新、执行和审计属于不同权限域。实现上应把策略执行点与具体工具或飞控的执行接口分开，并记录各 AI 代理的模型版本、数据来源、权限及故障依赖。代理间的一致意见不能单独证明事实或授权动作。
 
 已有工作分别研究了 AI 反馈训练、多智能体调节和运行时策略拦截。现有证据尚未覆盖由 AI 执行全部治理职能的真实高影响系统。本文因此把 AI-only 治理作为架构提案和研究问题，并区分已验证的组件与尚待验证的端到端闭环。
 
@@ -48,10 +48,10 @@ flowchart LR
     P --> J[TDM 类型化判断]
     J --> X[异构 AI 对抗审查与形式验证]
     X --> G{策略执行点：规则、权限、风险与证据}
-    G -->|满足条件| K[独立安全内核]
-    K -->|约束通过| A[执行动作]
-    K -->|不确定/越界| H[SAFE_HALT：限缩、拒绝或暂停]
-    G -->|证据冲突/高风险| H
+    G -->|满足条件| K[目标系统执行适配器/飞控]
+    K -->|接口检查通过| A[执行动作]
+    K -->|接口拒绝| L
+    G -->|证据冲突/高风险| H[不签发新动作授权]
     A --> L[(追加式审计账本)]
     H --> L
     L --> M[AI 审计与事故分析]
@@ -61,7 +61,7 @@ flowchart LR
     R --> G
 ```
 
-**图 1. AI-only 治理闭环。** AI 代理解释 Proof of Love2 的适用条款、评估动作并分析事故；策略执行点和安全内核控制状态变更。审计结果可触发规则或策略更新，更新经过回放、对抗测试和分阶段部署后生效。图中展示的是待验证架构。
+**图 1. AI-only 治理闭环。** AI 代理解释 Proof of Love2 的适用条款、评估动作并分析事故；策略执行点检查授权，具体执行和失效响应由工具适配器或飞控按其接口与配置处理。审计结果可触发规则或策略更新，更新经过回放、对抗测试和分阶段部署后生效。图中展示的是待验证架构。
 
 ## 3. AI-only 治理的职责分解
 
@@ -73,7 +73,7 @@ flowchart LR
 | 对抗审查代理 | 原提案、独立证据、风险清单 | 反例、攻击面、替代解释 | 不得与被审查代理共享唯一推理路径 |
 | 形式验证器/政策编译器 | 结构化规则、权限类型、版本约束 | 可执行策略、证明/检查结果 | 不得绕过 Proof of Love2 规定的规则与权限约束 |
 | 授权执行点（PEP） | 策略、凭证、请求和验证结果 | 允许、限幅、拒绝、暂停 | 不得依据自由文本或模型分数越权 |
-| 安全内核 | 即时状态、动力学/资源边界 | 可行控制命令或安全停止 | 不得受普通 Agent 的策略更新修改 |
+| 飞控与机载失效保护（PX4） | 任务/航点、机载状态估计、传感器和电源状态 | 航迹跟踪、姿态/角速度控制、执行器输出及已配置的失效模式切换 | 不解释 Proof of Love2；不接收自由文本或未经校验的模型输出 |
 | 审计与事故代理 | 追加式事件账本、结果信号 | 归因、异常、反事实和复盘报告 | 不得删除或重写原始轨迹 |
 | 规则提案与版本代理 | 复盘证据、Proof of Love2 理论体系、影响分析 | 候选变更、测试结果、版本提案 | 不得跳过对抗评估、回放、延迟生效与回滚门槛 |
 
@@ -86,11 +86,11 @@ flowchart LR
 | 状态 | 含义 | 系统动作 |
 |---|---|---|
 | `ALLOW` | 权限、规则、证据与安全条件全部满足 | 在批准参数范围内执行并记账 |
-| `CONSTRAIN` | 动作可通过限幅、降权或缩小范围满足约束 | 生成受约束动作，再由 PEP 与安全内核复验 |
+| `CONSTRAIN` | 请求可通过缩小任务范围或参数满足策略条件 | 生成受约束请求，再由 PEP 和目标系统接口校验；不声称该检查证明物理安全 |
 | `REPAIR` | 输入/状态可由受信数据源自动补全或纠正 | 重建上下文并重新评估；限定重试次数 |
 | `DEFER` | 不确定、证据冲突、分布外或模型分歧 | 不执行有后果动作；请求独立机器代理补证/复算；超时转 `SAFE_HALT` |
 | `BLOCK` | 违反 Proof of Love2 规则、权限或硬约束 | 拒绝并记录条款、证据与版本 |
-| `SAFE_HALT` | 关键组件失效、审计链中断、约束不可判定或风险阈值越界 | 进入可验证的安全状态，冻结相关权限，触发机器事故分析 |
+| `SAFE_HALT` | 关键组件失效、审计链中断、约束不可判定或风险阈值越界 | 治理端停止签发新请求。已启动的设备动作是否停止，取决于设备能否检测到相应失效及其预设处置；未验证前不得把 `SAFE_HALT` 映射为悬停、返航、降落或停桨 |
 
 高风险或不可逆动作采用默认拒绝（fail closed）。独立证据链、规则检查和形式安全条件全部通过后，策略执行点才放行动作。不确定时，系统限缩、暂停或进入安全状态。评估需同时报告误停率、可用性损失和恢复条件。
 
@@ -124,8 +124,8 @@ flowchart LR
     F --> D{独立证据一致且约束可证?}
     D -->|是| P
     D -->|否或超时| H[SAFE_HALT：拒绝/限缩/暂停]
-    P --> S[独立安全内核]
-    S --> X[执行或安全停止]
+    P --> S[确定性执行适配器/目标系统接口]
+    S --> X[执行已授权动作]
     X --> L[(追加式审计账本)]
     H --> L
     L --> I[AI 事故分析与反事实评估]
@@ -141,7 +141,7 @@ flowchart LR
 | 低影响、候选有限、重复任务 | 初筛/排序 | 任务域校准、漂移监控、机器抽样审计 |
 | 语义复杂或证据来源冲突 | 给出不确定性与候选 | 异构审查代理检索、反例生成、来源交叉验证；无法解决则 `DEFER` |
 | 高影响、不可逆、涉及第三方 | 提供辅助信号 | 双独立推理链、形式权限检查、限制幅度；任一条件失败即 `SAFE_HALT` |
-| 机器人连续控制 | 任务级动作候选 | 本地安全内核、动力学约束、地理围栏、避障和机器自动停止 |
+| 机器人连续控制 | 只在任务级给出候选；不进入实时控制循环 | 使用具体平台已实现且已测试的控制与失效功能；若另加安全过滤器，单独验证动力学假设、时限和故障切换 |
 
 可靠性按任务域、输入分布、模型版本和阈值分别报告。校准集和封存测试集用于固定评估；新场景使用可验证仿真、规则性质或多源机器证据。AI 生成的标签可作为候选监督，不能用于证明生成标签的模型正确。异构模型、独立数据和反事实扰动可用于估计共同偏差；模型间一致性本身不是独立证据。
 
@@ -151,7 +151,7 @@ flowchart LR
 |---|---|---|
 | 理论解释层 | 多个解释代理按 Proof of Love2 当前适用版本分析情境 | 条款引用、语义冲突显式化、不同模型家族交叉解释 |
 | 策略层 | 提案代理生成应用策略与变更 | 反方代理、形式化检查、版本差异和公开机器可读日志 |
-| 运行层 | PEP 按凭证、范围、上下文和策略作授权 | 最小权限、独立安全内核、默认拒绝 |
+| 运行层 | PEP 按凭证、范围、上下文和策略作授权 | 最小权限、目标系统接口校验、默认拒绝 |
 | 审计层 | 事故代理检查行动轨迹、偏差与系统性外部性 | 追加式账本、随机种子/输入留存、独立实现复算 |
 | 更新层 | 版本代理按发布门槛更新或回滚理论与策略 | 影子/金丝雀、版本签名、可验证的回滚路径 |
 
@@ -163,7 +163,7 @@ flowchart TB
     R --> T[回放/压力测试/影子运行]
     T --> G[受约束版本发布门]
     G --> E[Agent 与具身系统的 PEP]
-    E --> X[工具/机器人执行与安全内核]
+    E --> X[工具适配器/飞控执行接口]
     X --> L[(不可变审计账本)]
     L --> A[AI 审计与事故分析代理]
     A --> P
@@ -177,65 +177,56 @@ flowchart TB
 
 身份与女巫攻击、模型供应链、密钥轮换、代理串谋、审计账本可用性、跨系统凭证和灾难恢复仍是工程问题。多代理结构本身不保证去中心化：若同一运营者可控制模型、策略签名密钥、执行器和日志存储，治理权仍然集中；需要把信任根、密钥和故障域纳入威胁模型。
 
-## 7. 具身智能的行动治理与 Demo 路线
+## 7. 具身智能的任务级治理与机器控制边界
 
-具身系统把感知、规划和动作连接起来。治理网关处理任务权限和高层动作，底层控制器处理实时动力学与碰撞约束。两者通过受限接口连接，网关不得绕过控制器向电机下发指令。
+机器控制不是把规划模型放进飞行控制回路。PoL2 在本 Demo 中只对任务和任务变更作授权；PX4 负责已实现的导航、位置/姿态控制和执行器输出。AI 代理不生成电机命令，也不承担实时避障或飞行稳定性保证。
 
-| 层次 | AI-only 设计 | 示例 |
+| 控制层 | Demo 中的职责 | 不在首版范围内 |
 |---|---|---|
-| 层次 | 责任 | 多旋翼无人机示例 |
-|---|---|---|
-| 任务权限 | 为任务、区域、时段和动作集合签发短时效凭证 | 只在指定航线和高度范围内执行航点任务 |
-| 动作治理 | 规划代理提出动作，策略执行点检查 Proof of Love2 规则与权限 | GPS 过期时拒绝继续按旧航迹飞行，转入悬停或返航候选 |
-| 物理安全 | 独立控制器验证动力学、碰撞和设备约束 | 地理围栏、避障、速度限制、返航和安全降落 |
-| 结果治理 | 审计代理比较任务目标、轨迹、规则版本和环境状态 | 记录偏航、越界、传感器故障及恢复结果，触发机器复盘 |
+| 任务代理（AI） | 提交有限任务提案，如执行一份航点任务、暂停、请求返航 | 直接发布连续位置/速度/姿态/电机 setpoint |
+| PoL2 策略门与适配器 | 校验身份、策略版本、动作类型、坐标/高度/速度范围、状态时间戳和任务包络；拒绝或交付获准任务 | 自行证明飞行轨迹安全；替代飞控的状态估计或失效保护 |
+| PX4 飞控 | 执行获准任务，运行机载导航和控制器，并按配置处理电池、定位、围栏等失效 | 解释 Proof of Love2 或审查自然语言目标 |
+| 仿真环境与审计 | 记录任务、PX4 模式转换、轨迹、越界和故障注入结果 | 将仿真结果表述为实机安全证据 |
 
-PoL2 网关处理任务级权限和高层动作。实时伺服回路继续由本地控制器执行，TDM 输出航点、悬停、绕行等候选，不输出电机控制量。SayCan 将语言目标与技能可行性结合；控制屏障函数可用于安全约束；CaMeL 使用信息流与能力控制限制不可信输入对工具调用的影响。这些工作提供可借鉴的组件设计，尚未验证 Proof of Love2 的完整治理方案。
+首版优先使用 PX4 Mission 模式：AI 提交有限航点任务，适配器在上传前校验坐标系、字段、航点数量、地理范围和允许的 mission command 清单；仅获准的任务包可上传，开始任务也作为独立动作检查。MAVSDK Mission API 可用于上传、启动、暂停和读取进度，但只覆盖 MAVLink Mission 命令的一个子集；首版将允许命令进一步收窄到验证过的航点任务，起飞、返航、降落等其他命令须另设接口和授权规则。首版验证的是“任务提交前的授权门”，不是飞行期间连续由 AI 审查每个控制周期。每份任务应限制航点数量、空间包络，并通过仿真测量活动时长；已上传任务可以在连接断开后继续执行，因此“AI 服务断开”不能被等同于“飞行器自动停止”。若要实现授权到期即中止，必须额外实现并验证飞控侧可感知的到期/链路失效条件；MAVSDK Mission 接口本身不提供 PoL2 授权租约。首轮必须实测所选 MAVLink 连接是否触发 PX4 配置的 data-link failsafe，以及触发后的模式和时延。这个方案避免让语言模型进入周期性 setpoint 流，也不要求 PoL2 判断代理承担飞行控制时限。offboard 则要求外部控制端持续发送存活信号，并在断流后按参数进入配置的失效模式。[PX4 多旋翼 Mission 模式](https://docs.px4.io/v1.17/en/flight_modes_mc/mission) · [PX4 Offboard 模式](https://docs.px4.io/v1.17/en/flight_modes/offboard) · [MAVSDK Mission API](https://mavsdk.mavlink.io/main/en/cpp/guide/missions.html)。
 
 ```mermaid
 flowchart LR
-    S[传感器/任务/来源] --> W[状态估计与来源校验]
-    W --> A[候选动作集]
-    A --> J[TDM + 规划代理]
-    J --> P[PoL2 策略与权限执行点]
-    P --> K[物理安全内核]
-    K -->|通过| D[具身平台执行]
-    K -->|失败/不确定| Z[自动安全停止或恢复]
-    D --> O[轨迹、任务与外部状态]
-    Z --> O
-    O --> L[(审计账本)]
-    L --> M[异构 AI 事故分析]
-    M --> U[候选策略更新 + 回放测试]
-    U --> P
+    A[AI 任务代理<br/>提交有限航点任务] --> B[PoL2 策略门<br/>检查规则与授权]
+    B --> C[确定性任务适配器<br/>校验字段、坐标、范围、时效]
+    C -->|任务与启动均获准| D[PX4 Mission 模式]
+    C -->|拒绝/过期| R[拒绝新命令<br/>由当前 PX4 模式继续处理]
+    D --> E[PX4 导航与位置/姿态控制]
+    E --> F[执行器与仿真机体]
+    F --> G[位置、电池、估计器、飞行模式]
+    G --> B
+    G --> H[PX4 已配置的 failsafe 状态机]
+    H --> E
+    D --> I[(任务与飞行日志)]
+    H --> I
+    I --> J[离线 AI 复盘与候选策略]
+    J --> K[独立回放评测]
+    K -.验证通过后发布版本.-> B
 ```
 
-**图 4. 具身行动闭环。** 规划代理提交高层动作；策略执行点检查权限和适用规则；底层安全控制器验证动作是否满足实时约束。无人机可作为该流程的首个仿真实例。
+**图 4. 任务授权与飞控分层。** PoL2 门和任务适配器控制哪些任务能提交；PX4 执行航点、低层控制与已配置的失效处置。图中没有独立的通用“安全内核”：若要加入安全过滤器，必须另行实现、验证其模型假设、计算时限和失效切换条件。
 
-### 无人机 Demo 的仿真选型
+PX4 的围栏 failsafe 在越界后触发，不能代替上传前的路径/任务校验；PX4 文档建议围栏边界为多旋翼留出制动距离和状态估计误差余量。因而 Demo 应把任务适配器的静态包络校验与 PX4 的机载围栏分别记录、分别测试，不把其中任何一项称为“保证不越界”。[PX4 v1.17 安全与失效配置](https://docs.px4.io/v1.17/zh/config/safety)。
 
-无人机仿真工具较多，首个 demo 应先检验治理接口和行动闭环。推荐使用 PX4 SITL 与 Gazebo：PX4 文档将 Gazebo 列为新项目的 3D 仿真路线，支持相机、LiDAR、自定义世界和 ROS 2。PX4 SIH 适合无头控制测试和批量回归，其传感器类型较少。[PX4 仿真选型](https://docs.px4.io/v1.17/en/simulation/index) · [PX4 SIH](https://docs.px4.io/v1.17/en/sim_sih/)。这些文档用于功能选型；实施时应锁定经过联调的 PX4、Gazebo 与 ROS 2 版本，并在容器或依赖清单中固定版本，避免跟随浮动的 `latest`。
+### 无人机 Demo 的实施范围
 
-| 仿真路线 | 适用阶段 | 主要取舍 |
-|---|---|---|
-| PX4 SITL + Gazebo Harmonic | 首个端到端 demo，测试 PX4 飞控、ROS 2 接口、航点和传感器故障 | 有真实飞控软件在环和 3D 传感器；环境搭建较 SIH 复杂。新项目使用 Gazebo，避免从 Gazebo Classic 起步 |
-| PX4 SIH | 规则门、状态机、批量回归和故障注入 | 启动快、无外部仿真器；适用于控制和任务状态测试，不适合依赖相机或 LiDAR 的视觉任务 |
-| NVIDIA Isaac Sim | 视觉感知、RGB-D/LiDAR、多传感器与高保真场景 | ROS 2 bridge 和传感器模型齐备，适合扩展感知 demo；环境和算力要求较高，首版会增加集成成本 |
-| IAMAI Project AirSim | 需要 Unreal 场景、渲染传感器或多机视觉演示时 | 支持 PX4 SITL、ROS 2、可配置传感器和 Unreal 5 场景；应将其作为可替换仿真后端评估，不与早期 Microsoft AirSim 混为同一维护线 |
+| 阶段 | 实现 | 可以回答的问题 | 不能据此声称 |
+|---|---|---|---|
+| 1. SIH 自动回归 | PX4 SIH + 任务适配器；批量测任务提案允许/拒绝、数据过期和状态转换 | 策略门与 PX4 命令接口是否按契约工作 | 视觉感知、复杂空气动力或真实传感器噪声已经验证 |
+| 2. SITL 端到端仿真 | PX4 SITL + Gazebo Harmonic 的 `x500`；固定世界与航点，注入围栏、低电量、估计器/链路故障 | 任务上传、PX4 模式切换、轨迹与日志是否可复现 | 已证明现实环境安全或 AI 能可靠避障 |
+| 3. 受控 HITL（后续） | 在目标飞控硬件上运行 PX4，以仿真传感器/环境闭环；仅当 SITL 问题收敛后启动 | 硬件时序、通信和固件集成中的问题 | HITL 等同实机飞行验证 |
+| 4. Offboard（后续可选） | 仅当确有在线轨迹更新需求时，另立阶段实现连续 setpoint、存活检测与 `COM_OF_LOSS_T`/`COM_OBL_RC_ACT` 失效测试 | 外部控制链路抖动/中断时配置的 PX4 行为 | ROS 2 或 companion computer 天然满足硬实时 |
 
-PX4 当前文档提供 Gazebo Harmonic 预构建包，并以 ROS 2 offboard 接口连接外部控制节点；直接 ROS 2 控制时，外部节点必须避免与内部控制器向相同话题写入冲突 setpoint。[PX4 预构建 SITL 包](https://docs.px4.io/v1.17/en/simulation/px4_sitl_prebuilt_packages) · [ROS 2 Offboard 控制约束](https://docs.px4.io/v1.17/en/flight_modes_mc/offboard)。因此，demo 应让 PoL2 网关成为规划代理到 PX4 控制接口之间唯一的高层动作通道，ROS 2 控制节点只接收经过授权的航点或模式命令。
+PX4 v1.17 提供 SIH 无头仿真和 Gazebo Harmonic SITL 的预构建包，均可按 PX4 版本固定；SIH 用于大批量逻辑回归，Gazebo 用于带 3D 环境的端到端接口测试。对 Windows 开发环境，可先评估官方容器方案和 WSLg 显示路径，再决定是否需要完整本地 PX4 编译环境。[PX4 预构建 SITL 包](https://docs.px4.io/v1.17/en/simulation/px4_sitl_prebuilt_packages) · [PX4 SIH](https://docs.px4.io/v1.17/en/sim_sih/) · [PX4 Gazebo SITL](https://docs.px4.io/v1.17/en/sim_gazebo_gz/index)。
 
-Isaac Sim 通过 ROS 2 bridge 发布和订阅 ROS 2 topic，并提供相机、深度、RTX LiDAR 与物理传感器模型；Project AirSim 提供 PX4 SITL、ROS 2 bridge、Unreal 渲染和多机配置。[Isaac Sim ROS 2 Bridge](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/install_ros.html) · [Isaac Sim 传感器](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/sensors/index.html) · [Project AirSim](https://github.com/iamaisim/ProjectAirSim)。这些选项适合视觉保真需求明确后再比较。
+首轮只自动化四类场景：合法航点任务；包含围栏外航点或不允许命令的任务（上传前应被适配器拒绝）；过期/缺失状态下的新任务请求；在 PX4 SITL 中触发并验证已配置的低电量、定位或链路失效处置。另需测量适配器进程退出、MAVLink 断开、已上传任务继续执行等不同故障注入条件；不要假设它们触发同一 failsafe。动态障碍绕行、视觉语言模型、多机避碰和自动在线改写生效策略不纳入首版。围栏 failsafe 需要越界后才动作，仿真结果应区分“策略门提前拒绝”和“PX4 机载 failsafe 事后处置”。
 
-### Demo 实现顺序
-
-1. **先定义动作与观测契约。** 状态输入包含位置、速度、电量、定位质量、障碍物距离、任务区域、当前 Proof of Love2 版本和传感器时间戳。候选动作采用有限枚举，例如 `takeoff`、`goto_waypoint`、`hold`、`reroute`、`return_home` 和 `land`。
-2. **搭建单机 SITL 回路。** 使用 PX4 SITL、Gazebo Harmonic 和一架四旋翼，先运行固定航点任务。ROS 2 接收规划代理提出的候选动作；PoL2 网关检查权限、地理围栏、电量和数据新鲜度，再将获准的高层命令交给 offboard 控制节点。PX4 文档指出，外部 ROS 2 控制节点须避免与内部控制器同时写入同一 setpoint topic；demo 应将网关设为唯一外部发布者，并限制其他节点的发布权限。飞控继续负责姿态、速度和电机控制。
-3. **实现策略执行点和日志。** 每个请求写入 `request_id`、策略与模型版本、状态快照引用、候选动作、网关结果、飞控命令、执行后状态和停止原因。超时、状态过期、日志中断或规则冲突进入 `DEFER` 或 `SAFE_HALT`，不得让规划代理直接绕过网关。
-4. **加入可重复的治理场景。** 最小场景包括正常航点、越出地理围栏、低电量、GPS 丢失或过期、障碍物突然出现、任务目标与安全条件冲突。预期动作分别由版本化策略定义，例如限速、悬停、绕行、返航或降落。
-5. **自动运行情景矩阵。** 固定仿真种子和场景参数，批量注入风扰、传感器噪声、延迟、模型分歧和日志故障。用仿真器状态作为动作后果的机器真值，报告任务完成、越界、碰撞、误拦、误停、恢复时间、延迟和运行成本。
-6. **再加视觉与多机。** 当状态机和权限门稳定后，再接入相机/LiDAR、视觉语言模型和多机冲突场景。若主要问题变成视觉逼真度或传感器域差异，再比较 Isaac Sim 与 Project AirSim；不要在 MVP 阶段同时迁移飞控栈和仿真引擎。
-
-首个研究对照可逐项增加组件：基础规划代理、加入 TDM、加入 PoL2 策略执行点、加入独立物理安全层、最后加入 AI 审计和策略更新。所有版本使用同一场景集和随机种子。AI 评审输出不能作为唯一真值；动作合法性由版本化规则判断，飞行结果由仿真器状态与物理约束计算。仿真测试可验证接口和预先定义的场景，不能替代后续硬件在环或受控实机验证。
+首轮指标限于可观测实现行为：任务校验通过/拒绝及原因、非法任务拦截率、合法任务保留率、PX4 飞行模式转换、围栏穿越次数、失效触发到模式切换的时延分布、任务完成率和日志完整率。不要把 TDM 置信度或多个模型意见一致当成安全指标。已有 UAS 运行时保证研究采用 Simplex/RTA 思路：监测器在高级但未充分验证的控制器将违反安全性质前，切换到可信备用控制器；NASA 的工作还把监测器、触发条件和 UAS 操作性质纳入形式化验证。它是后续安全过滤研究的工程先例，不是当前 PX4/MAVSDK 方案已经具备的功能。CBF/QP 过滤器同样应作为单独研究工作：需要明确动力学模型、状态误差界、控制输入约束、可行性条件及最坏执行时延；论文中的安全保证仅在这些条件成立时适用。[NASA UAS 运行时保证框架](https://ntrs.nasa.gov/citations/20240007986)。ROS 2 可用于集成，但使用 ROS 2 本身不建立硬实时保证；若 offboard 进入后续阶段，必须测量端到端延迟、抖动和丢包，并说明调度与执行器配置。[ROS 2 Real-Time Programming](https://github.com/ros2/ros2_documentation/blob/rolling/source/Capabilities/Motion-planning/Real-Time-Programming.rst)。
 
 ## 8. NaturalDAO 现有材料如何承接
 
@@ -303,7 +294,11 @@ Isaac Sim 通过 ROS 2 bridge 发布和订阅 ROS 2 topic，并提供相机、�
 16. Ahn et al. (2022). [Do As I Can, Not As I Say](https://arxiv.org/abs/2204.01691) (SayCan).
 17. Ames et al. (2019). [Control Barrier Function Based Quadratic Programs for Safety Critical Systems](https://arxiv.org/abs/1903.11199).
 18. [OpenJev](https://github.com/alanhuangyoo/OpenJev): open weights and local inference for typed decisions; repository-reported benchmarks and licensing boundaries require separate verification.
-19. [PX4 Simulation](https://docs.px4.io/v1.17/en/simulation/index)；[Gazebo SITL](https://docs.px4.io/v1.17/en/sim_gazebo_gz/)；[预构建 SITL 包](https://docs.px4.io/v1.17/en/simulation/px4_sitl_prebuilt_packages)；[ROS 2 Offboard 控制](https://docs.px4.io/v1.17/en/flight_modes_mc/offboard)；[Simulation in Hardware (SIH)](https://docs.px4.io/v1.17/en/sim_sih/)。
+19. [PX4 Simulation](https://docs.px4.io/v1.17/en/simulation/index)；[Gazebo SITL](https://docs.px4.io/v1.17/en/sim_gazebo_gz/)；[预构建 SITL 包](https://docs.px4.io/v1.17/en/simulation/px4_sitl_prebuilt_packages)；[ROS 2 Offboard 控制](https://docs.px4.io/v1.17/en/flight_modes/offboard)；[Simulation in Hardware (SIH)](https://docs.px4.io/v1.17/en/sim_sih/)。
 20. NVIDIA Isaac Sim: [ROS 2 Bridge](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/install_ros.html) and [Sensors](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/sensors/index.html).
 21. IAMAI, [Project AirSim](https://github.com/iamaisim/ProjectAirSim): simulator repository and implementation documentation.
 22. [AnyJev](https://github.com/nokia-applied-research/AnyJev): open implementation for producing typed decisions from language-model outputs.
+23. PX4: [Multicopter Mission Mode](https://docs.px4.io/v1.17/en/flight_modes_mc/mission)；[Offboard Mode](https://docs.px4.io/v1.17/en/flight_modes/offboard)；[安全/失效配置](https://docs.px4.io/v1.17/zh/config/safety)。
+24. NASA, [A Verification Framework for Runtime Assurance of Autonomous UAS](https://ntrs.nasa.gov/citations/20240007986), DASC 2024.
+25. ROS 2 Documentation, [Real-Time Programming](https://github.com/ros2/ros2_documentation/blob/rolling/source/Capabilities/Motion-planning/Real-Time-Programming.rst).
+26. MAVSDK, [Missions Guide](https://mavsdk.mavlink.io/main/en/cpp/guide/missions.html): upload, start, pause, and track mission plans; uploaded missions may continue if the connection is lost.
