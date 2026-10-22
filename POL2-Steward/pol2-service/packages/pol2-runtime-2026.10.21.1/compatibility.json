@@ -1,0 +1,14 @@
+{
+  "package_format": 1,
+  "source_commit": "c70227fbc13b64f189c54efe2d45f2d77bc3babf",
+  "language": [
+    "zh-CN"
+  ],
+  "retrieval": {
+    "backend": "lexical_ngram_v1",
+    "requires_embedding_model": false,
+    "semantic_embedding": "deferred",
+    "minimum_python": "3.10",
+    "config": "knowledge/retrieval-config.json"
+  }
+}

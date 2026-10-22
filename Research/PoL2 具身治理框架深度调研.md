@@ -1,4 +1,3 @@
-
 # 把 PoL2 具身治理落到可验证系统
 
 **执行结论：** Proof of Love2 具身治理框架（PoL2-EG）可以作为一个研究和工程提案：在运行时不设人工逐案审批节点，由 AI 组件解释已版本化的 PoL2 规则、提出有限任务、进行机器审查和事故复盘，再由确定性策略执行点把获准任务交给 PX4 等飞控。它的第一步应是一个受限的任务授权网关，而不是让语言模型进入实时飞行控制，也不是让 AI 在第一版里自行改写理论。现有工程和学术工作分别支持 AI 反馈、模拟治理代理、Agent 工具策略拦截、PX4 任务执行与失效处置，以及特定 UAS 的运行时保证研究；**本次聚焦检索没有发现一个在真实高影响具身系统中，完成规范制定、动作授权、事故纠正和规范演化的端到端全 AI 治理实例**。NaturalDAO 已有理论文本、类型化判断数据契约、合成评测 fixture 和治理模拟，但没有发现 PoL2 策略门接入 PX4 并通过端到端仿真或飞行验证的记录。框架名宜用 **PoL2 具身治理框架（PoL2-EG）**；“无人工运行时治理”是需要定义和测试的架构属性，RSI 则应限于 AI 递归提升自身能力的议题。
@@ -34,7 +33,7 @@
 具身控制领域提供的是另一组边界。PX4 的 Mission 模式、MAVLink/MAVSDK 任务协议、Offboard 心跳与多种 failsafe 是现成飞控工程能力；NASA 对 UAS 的 Runtime Assurance (RTA) 工作提供特定安全监测和控制切换的研究/试验先例。这些组件可支撑分层系统，但不含 PoL2 的规则权威、授权票据、机器申诉或理论更新。NeurIPS 2024 的 Embodied Agent Interface (EAI) 基准将目标解释、子目标分解、动作排序和状态转移预测分别评估，并记录幻觉、可供性与规划等错误，说明具身 Agent 应拆解模块诊断；它不是 UAV 治理安全认证或现实飞行证据（[EAI, NeurIPS 2024](https://proceedings.neurips.cc/paper_files/paper/2024/hash/b631da756d1573c24c9ba9c702fde5a9-Abstract-Datasets_and_Benchmarks_Track.html)）。
 
 | 先例类别 | 证据成熟度 | 已有证据实际覆盖 | 对 PoL2-EG 的可借鉴机制 | 不能据此声称 |
-|---|---|---|---|
+|---|---|---|---|---|
 | Constitutional AI / RLAIF | 论文/模型训练研究 | 在给定原则下产生模型自评和训练反馈 | AI 可以批评、比较、排序或生成候选判断 | AI 自主产生规范、合法更改规范或授权现实行动 |
 | ARDE / DAO-AI | 同行评审研究 + 预印本模拟 | 模拟平台调节、治理提案判定或代理投票 | 分层治理代理、指标反馈、结构化治理信号 | 现实治理制度已由 AI 接管，或具身行动已得到安全授权 |
 | GaaS / Policies on Paths | 预印本与参考框架 | 模拟或概念化的 Agent 工具动作拦截 | 在工具执行边界设置可测试策略点 | PoL2 语义解释正确、无人机端到端验证或外部问责已完成 |
@@ -178,4 +177,3 @@ PoL2-EG 最有研究价值的切口不是笼统宣称“AI 能治理具身智能
 - [NASA UAS Runtime Assurance verification framework](https://ntrs.nasa.gov/citations/20240007986)
 - [EAI, NeurIPS 2024](https://proceedings.neurips.cc/paper_files/paper/2024/hash/b631da756d1573c24c9ba9c702fde5a9-Abstract-Datasets_and_Benchmarks_Track.html) and [GUARD, CoRL 2023](https://proceedings.mlr.press/v229/tu23a.html)
 - [NIST AI RMF 1.0](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/) and [EU AI Act Article 14](https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng)
-

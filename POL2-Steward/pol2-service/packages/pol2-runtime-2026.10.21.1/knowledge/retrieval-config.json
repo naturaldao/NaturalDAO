@@ -1,0 +1,11 @@
+{
+  "version": "pol2-retrieval-1",
+  "always_loaded_rules": [
+    "POL2-R001", "POL2-R002", "POL2-R003", "POL2-R004", "POL2-R005",
+    "POL2-R007", "POL2-R008", "POL2-R010", "POL2-R011", "POL2-R012",
+    "POL2-R015", "POL2-R020", "POL2-R023", "POL2-R024"
+  ],
+  "top_k": 16,
+  "semantic_embedding": null,
+  "semantic_status": "deferred_until_fixed_embedding_package_is_available"
+}
