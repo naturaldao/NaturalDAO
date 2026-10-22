@@ -92,3 +92,20 @@
 1. `jev_fill.py` 唯一交付导出入口 `probs-public`：写盘前现读 benchmark 全量 id，命中即非零退出、不覆盖文件
 2. 交付件必须先按公开三区过滤，生成后跑 `--audit-public-surface` 才允许提交
 3. 生成器层硬断言（报告/旁挂件/交付件三处同款）
+
+## 2026-10-22 收尾：把 v5 接回 main
+
+**重要更正**：PR #23（「通用决策数据集制备」）是 **2026-10-05 合并的 v3**。v4/v5 的 20 个提交一直留在分支 `pol/DATA-02/wenbo` 上，**从未开过 PR、从未进 main**。
+
+本轮做的事：
+1. **把 main 合入分支**（含协作者的 `da9f5f7 Unify repository license declarations`，无冲突）；`regist` license 现为 `Proof of Love2`
+2. **补登 `datasets/registry.json`** —— `datasets/README.md` 第 2 条要求每个数据集在这登记，general 此前缺失
+3. **开 PR #43**：https://github.com/naturaldao/NaturalDAO/pull/43
+4. 合并后 `check.py` **pass**（478 links / 769 tests）
+
+### 协作者数据动态（全 23 条远端分支核查）
+
+- 非 Wenbo 作者动过 `datasets/` 的提交，**全历史只有 1 条**：`da9f5f7`（Shenton YAN，许可证统一，只改 `registry.json` 的 license 字符串）
+- **`datasets/pol2`（PoL2 专用数据集）在所有分支上都停在 `9bf336c`（2026-10-02，Wenbo）**，协作者**没有任何上传或更新**
+- 协作者近三天的提交集中在：媒体库（Sticker/歌曲/图片）、`Research/` 治理文档、许可证统一、README —— **没有数据内容**
+- 看板 6 个任务：DATA-02（本人，待集成）、EVAL-01 / GOV-01×3 / LIT-01（Shenton，评测与治理，非数据）
