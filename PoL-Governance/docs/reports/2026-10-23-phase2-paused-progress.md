@@ -54,3 +54,16 @@
 ## 6. 需要 owner 决定/开启
 
 GPU 恢复时间；PR 集成方式（#44/#45 已关闭）；HF 上传；PoL2 训练授权；底座档位（1.7B→4B）；评测阈值确认。
+
+## 7. 补充（至 Round 10：文档与校验工具）
+
+- **HF 上传后远程校验** `datasets/general/verify_hf_remote.py`：上传后无需全量下载即可比对远端文件树与本地 MANIFEST
+  （LFS sha256/bytes、非 LFS 小文件下载复算、缺失/多余/401 处理、私有仓库 token 文件）；10 个 CPU 测试；
+  HF 状态复核：`naturaldao` 公开数据集列表为空、目标仓库 401 → 仍为 **READY / NOT UPLOADED**。
+- **PoL2 训练授权前置清单** `datasets/pol2/APPROVAL-CHECKLIST.md`：owner 确认项、解禁步骤、训练前验收、报告要求、回滚与批准记录；
+  未执行任何解禁步骤。
+- **P8 补源筛选**（内部研究）：14 个候选 + 不可用清单；Top3 = MedMCQA / SHPDRG（有条件）/ e-CARE，预算测算可把世界知识 1.74%→~5.5%、因果 0.83%→~2.3%；
+  政策问题（学术基准 train 划分、SHPDRG 许可）待 owner 书面意见。
+- **文档**：阶段报告索引 `docs/reports/README.md`；Track B 结果卡必填项；内部目标评估（核心交付达成，HF 执行与下一阶段 GPU 工作待 owner）。
+- **周期性复检**：视图 sha256（train/val/test）、HF 导出离线 verify、POL2 freeze 17 项检查均通过。
+- 本轮仍**无新增 GPU 结果**；GPU 暂停令继续生效。
