@@ -1,0 +1,17 @@
+source,id,stage,reason,set
+arXiv,2610.02516,full text,"Builds a fixed-taxonomy ModernBERT/DeBERTa routing classifier (no caller-declared options); Jev and Laya are only cited for positioning, neither is measured or compared.",late-indexed
+arXiv,2610.07242,title,"Quantum ML for bank impersonation-fraud detection; ""calibrated decision threshold"" is an incidental phrase match.",post-window
+arXiv,2610.07586,title,"Transonic shocks in nozzles (PDE analysis); ""System One"" phrase match is accidental.",post-window
+arXiv,2610.08743,abstract,"RL with conformal/calibrated pruning for sequential recommendation; RLCP acronym match, no typed decision model.",post-window
+arXiv,2610.09286,abstract,"Bi-temporal graph system for LLM database agents; ""typed answers/claims"" are verifier claim types, no typed decision model.",post-window
+Zenodo,22806344,title,"Mathematical physics toy model (Lorentzian signature emergence); ""TypeSafe"" is an accidental description match. Likely an earlier (count-only) exclusion of the 1 Oct screen.",re-screened
+Zenodo,23077245,title,Soil eDNA biodiversity dataset (French Guiana); RLCD acronym match is accidental. Likely an earlier (count-only) exclusion.,re-screened
+Zenodo,22956802,abstract,"tasksource v0.1.0 software release (dataset-harmonisation framework, concept first released 2022); adds a ""jev"" recast format for training data but measures no typed model.",re-screened
+Zenodo,23065177,abstract,"SWATPlus-Builder hydrological run-tree archive; ""typed decision log"" is a workflow ledger, no typed decision model.",re-screened
+Zenodo,23205210,abstract,wisp-science v1.18.0 desktop-app release notes (subagents); concept first released July 2026; no typed decision model measured.,post-window
+Zenodo,23019391,full text,"Semantic Relativity Theory v3.3P: the three tested configurations are Sonnet 4.5, Gemini 3.1 Flash Lite and GPT-5 with structured outputs (generative LLMs); no typed decision model (0 mentions of Jev/Laya).",re-screened
+Zenodo,23024634,full text,"Schema-conformance pilot on the same 41-text corpus with Sonnet 4.5, Gemini 3.1 Flash Lite and GPT-5 structured outputs; no typed decision model measured.",re-screened
+Zenodo,23048160,full text,Decision-theory framework paper; JEV discussed only from vendor documentation; its empirical routing experiment uses logged LLM outputs (no Jev or other typed model call).,re-screened
+Zenodo,23167634,full text,isotherm: weather prediction-market forecaster (log opinion pool of market price and EMOS-GFS plus MLP) with a Jev-style answer wrapper; not a model over a free-form state with caller-declared options; nothing measured bears on G1-G7.,post-window
+grey,trio-spark-v1.0,full text,"Hosted typed model (MachineFi, released 2026-09-30) added to Awesome System One Models on 2026-10-05; entry records vendor documentation and vendor-reported numbers only (vendor docs are context, not evidence).",post-window
+Zenodo,23187206,full text,"Read in full during coding: the ""typed supervisor"" is never identified as a typed decision model and runs through the same API as a generative model (Table 6), so no typed model is evaluated (paper/review/coding/docs_update_Z2.md).",post-window

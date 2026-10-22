@@ -1,0 +1,17 @@
+category,expected,hard_case,n,accuracy_v0,accuracy_v1,accuracy_zh_v0,accuracy_en_v0
+dehumanisation,flag,0,6,1.0,1.0,1.0,1.0
+threat,flag,0,6,1.0,1.0,1.0,1.0
+exclusion,flag,0,6,1.0,1.0,1.0,1.0
+humiliation,flag,0,6,1.0,1.0,1.0,1.0
+false_intimacy,flag,0,6,0.83333,0.83333,1.0,0.66667
+fear_control,flag,0,6,1.0,1.0,1.0,1.0
+criticism,pass,0,6,1.0,1.0,1.0,1.0
+anger,pass,0,6,1.0,1.0,1.0,1.0
+love_care,pass,0,6,1.0,1.0,1.0,1.0
+neutral,pass,0,6,1.0,1.0,1.0,1.0
+repair,pass,0,6,1.0,1.0,1.0,1.0
+subtle_hostility,flag,1,6,0.0,0.0,0.0,0.0
+negation,pass,1,6,0.0,0.0,0.0,0.0
+quotation,pass,1,6,0.0,0.0,0.0,0.0
+obfuscation,flag,1,6,0.0,0.0,0.0,0.0
+target_is_thing,pass,1,6,0.5,0.5,0.66667,0.33333

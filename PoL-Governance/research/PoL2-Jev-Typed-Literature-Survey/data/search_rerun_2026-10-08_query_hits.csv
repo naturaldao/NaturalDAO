@@ -1,0 +1,20 @@
+query,hits
+all:Jev,91
+"abs:""typed decision""",27
+"abs:""System One""",34
+abs:RLCD,5
+"abs:""calibrated decisions""",10
+"abs:""typed answers""",3
+"abs:""TypeSafe""",16
+"abs:""decision model"" AND abs:typed",26
+"abs:""System One model""",23
+"abs:""System-One""",34
+"abs:""direct-decision""",6
+abs:Laya AND abs:decision,12
+"abs:""typed probabilistic""",1
+"abs:""decision model"" AND abs:calibrated",25
+"abs:""this-that""",1
+"abs:""Reinforcement Learning for Calibrated""",4
+"abs:""typed decisions""",27
+"abs:""single-pass decision""",0
+ALL (unique records across the 18 queries),125

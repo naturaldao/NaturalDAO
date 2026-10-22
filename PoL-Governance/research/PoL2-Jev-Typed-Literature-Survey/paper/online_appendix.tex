@@ -1,0 +1,27 @@
+\documentclass[11pt]{article}
+% Online appendix of the paper (separate PDF on GitHub). Build: python paper/build.py (after main).
+\input{preamble}
+% Labels of the paper (written by build.py), so that \cref prints the paper's numbers
+\InputIfFileExists{main_labels}{}{}
+\renewcommand{\thesection}{\Alph{section}}
+\counterwithin*{table}{section}
+\renewcommand{\thetable}{\thesection\arabic{table}}
+\hypersetup{pdftitle={Online Appendix: Can Typed Decision Models Serve as Automated Safeguards?}}
+\def\UrlBreaks{\do\/\do\-\do\_\do\.}
+\title{\sffamily\bfseries Online Appendix\\[4pt]\large Can Typed Decision Models Serve as Automated Safeguards?\\ A Clause-Level Assessment Against the Proof of Love2 Specification}
+\author{Shentao Yan}
+\date{}
+
+\begin{document}
+\maketitle
+\noindent Section, table and figure numbers without a letter refer to the paper. The coding data (one row per study and requirement, with code, comparator, design rating, rationale and locator), the catalogue of studies, the excluded records and the scripts are in the \nolinkurl{data/} and \nolinkurl{scripts/} directories of the same repository.
+
+\input{sections/app_A}
+\input{sections/app_B}
+\input{sections/app_C}
+\input{sections/app_D}
+\input{sections/app_E}
+
+\bibliographystyle{unsrtnat}
+\bibliography{pol2,corpus,corpus_update,grey,background}
+\end{document}

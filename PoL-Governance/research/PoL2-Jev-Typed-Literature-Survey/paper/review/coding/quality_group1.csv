@@ -1,0 +1,28 @@
+doc,verification,independence,design,size_uncertainty,quality,notes
+arx23959,full text,author-built system,held-out,n+CI,higher,JevLite is the authors' open readout; recipe chosen with test-set exposure; synthetic callers; gray families n=3/5; non-inferiority vs one judge from the same model family that wrote the calls.
+arx24881,full text,independent,held-out,n+CI,higher,"Jev evaluated as a zero-shot comparator in App. E.10 against the authors' own PINOCCHIO; single draw (Jev non-deterministic, about 0.02 AUROC run-to-run); text-only subset."
+arx27678,full text,independent,held-out,n+CI,higher,Official ContractNLI test split; 30-anchor stability panel with 3 repeats x 4 conditions; unadjusted intervals; small panel.
+arx28919,full text,author-built system,case study,n only,lower,Emulated enterprise; 46 synthetic author-written scenarios with author-only tags; classifier called live; vendor list prices; no intervals on savings.
+arx28940,full text,author-built system,case study,none,lower,Single run per condition on one target with the author's own harness (NeuroSploit); author states no statistical power; re-test used a changed harness.
+arx30706,full text,author-built system,held-out,n+CI,higher,"Single seed; synthetic dialogues for controlled study; real ABCD/SGD out-of-distribution tests; Jev numbers quoted third-party, not measured."
+arx31142,full text,independent,held-out,n+CI,higher,"Read from arXiv HTML; jev-1.13.0 pinned, one date; identical re-run noise floor; fixed non-adaptive attacks; labels largely model-derived."
+arx33843,full text,independent,preregistered,n+CI,higher,Read from arXiv HTML; E2-E8 prospectively preregistered (E1 retrospective); labels from a synthetic teacher; no generative comparator run; Jev figures third-party only.
+arx35293,full text,author-built system,held-out,n only,moderate,Read from arXiv HTML; authors' pipeline on frozen Jev with 488 fitted coefficients; test labels used only for evaluation; margin vs other teams untested; intervals only on dev ablations.
+arx36154,full text,independent,held-out,n+CI,higher,"Zero-shot frozen protocol, one response per case; subject-cluster bootstrap CIs for accuracy but no intervals for calibration metrics; previously uncoded."
+arx36399,full text,independent,held-out,n+CI,higher,"Exploratory, not preregistered; repeated across eight request designs (ICC 0.997); two countries; one questionnaire translation."
+arx36965,full text,author-built system,held-out,n only,moderate,Authors' own model and own benchmark (CJ-Bench) from the same data pipeline; no intervals; Jev latency includes network.
+arx38850,full text,author-built system,held-out,n+CI,higher,Open RLCD implementation by the authors; 3 seeds with paired tests; 1.7B model only; no hosted Jev measured.
+grazian,live source,independent,held-out,n+CI,higher,Blog post read live 2026-10-04; prompt tuned per dataset then scored on held-out test; 95% sampling-error bars per bin; single author.
+willison,live source,independent,non-empirical,none,lower,Opinion/explainer blog post read live 2026-10-04; one informal anecdote.
+zen22849329,full text,independent,held-out,n+CI,higher,main.pdf read; self-described exploratory; generated item sets n=5-60 plus 200 ZebraLogic puzzles; Wilson/exact CIs; one run per condition.
+zen22866847,full text,independent,non-empirical,none,lower,PDF read; transcript of LLM conversations framed by the author's Bridge360 framework.
+zen22885291,full text,independent,held-out,n+CI,higher,PDF read; disclosure states no vendor ties; paired bootstrap with Holm correction; full-split replication; public benchmarks possibly in training data.
+zen22887464,full text,independent,non-empirical,none,lower,"DOCX read; position/technical note, no data."
+zen22952571,full text,independent,held-out,n+CI,higher,"arxiv-preprint.pdf read; separate dev/test families, 3 repetitions, family bootstrap; labels from author-written executable policies, no human adjudication; local freeze, not public preregistration."
+zen22953637,full text,author-built system,case study,n only,lower,bajev-preprint.pdf read (Italian); no typed decision model is evaluated; author-written corpus and unit tests.
+zen22954807,full text,independent,case study,n only,lower,PDF read; feasibility check on 10 constructed items; Jev 5 repeats; paraphrase crossover not run on final design.
+zen22998941,full text,independent,single-run,n+CI,lower,Dataset record: RESULTS-SUMMARY.md and results workbook read; 16 MB evidence zip not opened; one complete session per model; manually authored synthetic bank; Wilson and case-bootstrap intervals.
+zen23022986,full text,author-built system,single-run,n+CI,lower,basal-1.pdf read; authors' own model and generated test items (stated to favour their model); test split consulted during development; one seed per variant.
+zen23032384,full text,independent,preregistered,n+CI,higher,PDF v1.1 read; timestamped preregistration; deviations logged; single task (ChaosNLI) and version.
+zen23038928,full text,independent,preregistered,n+CI,higher,PDF read; hypotheses frozen before the run with logged deviations; single run; open Kev-0.8B only; synthetic template items.
+zen23065532,full text,independent,held-out,n only,moderate,PDF read; controlled 2x2 pilot with three identical reruns per cell; 41 texts; thresholds and per-case outputs proprietary; no intervals.

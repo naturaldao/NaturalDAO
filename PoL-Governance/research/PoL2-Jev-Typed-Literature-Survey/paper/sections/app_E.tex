@@ -1,0 +1,44 @@
+\section{Corrections to the earlier dataset release}\label{app:E}
+
+The earlier dataset release \cite{survey01} was written in Chinese, mainly from abstracts and tracker summaries. \cref{tab:E1} lists the substantive statements it made that the full texts and live sources do not support. Further corrections made during review are logged with the data.
+
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.1}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}p{5.6cm}>{\raggedright\arraybackslash}p{8.4cm}@{}}
+\caption{Substantive corrections to the earlier dataset release.}\label{tab:E1}\\
+\toprule
+Source & Earlier release stated & Full text / live source shows \\
+\midrule
+\endfirsthead
+\caption[]{(continued)}\\
+\toprule
+Source & Earlier release stated & Full text / live source shows \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\emph{continued on next page}}\\
+\endfoot
+\bottomrule
+\endlastfoot
+\cite{arx26758} & Open-weight \jev{}-like models: AUC 0.94$\to$0.23 & This is one open model (Laya). The other (Open-\jev{}) flipped 19.5\% of answers. The claim that effects grow with the number of options is not established. \\
+\cite{arx35342} & Soft accuracy 0.771$\to$0.978 after restoring ``unknown'' & 0.978 uses a more permissive interval metric; the like-for-like binary correction gives 0.903. \\
+\cite{arx23959} & Scam screening by \jev{}, zero false alarms & The model is the authors' Qwen3-4B replica (\jev{}Lite). There were no errors on 12 legitimate scenarios, but accuracy on ambiguous legitimate calls was 38.1\%. \\
+\cite{arx34862} & Evidence for a pre-execution gate & The study classifies saved traces retrospectively; \jev{} won on 2 of 4 benchmarks and had lower precision. \\
+\cite{arx22664} & Evidence that decision models detect out-of-scope behaviour & The paper contains no typed decision model; it concerns harness assurance. \\
+\cite{arx27678} & Rankings differ in every condition & Ranking by baseline accuracy differs from ranking by correctness across all 12 condition-by-repeat requests; \jev{} had the lowest hosted baseline accuracy (77.38\%). \\
+\cite{arx26550} & Cascade +0.9 points at 41\% of GPT-6's fee & True for the held-out pool (83\% RewardBench); on JudgeBench the cascade was $-$0.74 points. Prospective live runs matched GPT-6 at 75.5\% of its fee. The ``blinded human adjudication'' was one reviewer on 183 items. \\
+\cite{arx29769} & Cascade gains only 1.5 points & The cascade's average gain is at most 1.5 points in the main setup; it is below the best single evaluator on 6 of 9 panels. \\
+\cite{arx24052} & Listed as supporting evidence for calibration & Raw \jev{} was miscalibrated (slope 1.63) until recalibrated locally. \\
+\cite{arx24881} & 0.666 vs 0.868 ``according to a tracker excerpt'' & Confirmed in appendix E.10 of the source. Context: the comparator was trained on 32,419 model-generated training responses, and \jev{}'s AUROC was numerically above the single-pass baselines, which were scored on a larger set. \\
+\cite{arx27607} & ``Agreement'' 0.573 / 0.398 & These are Kendall $\tau_b$ correlations with expert error counts; a local 27B model did better on clinically significant errors. \\
+\cite{arx27535} & Effect error reduced by 41\% & This is a secondary endpoint. The preregistered primary endpoint showed no clear gain, and raw error worsened on a second dataset. \\
+\cite{arx28919} & Simulated from real sessions of a 10,000-seat enterprise & Tasks are 46 author-written conversations; only user-behaviour parameters come from real sessions. The \jev{} labels are live, but the gateway was not built; every routing decision runs in a simulator. \\
+\cite{checkpoint2026jev} & Comparator cost rose from \$0.54 to \$4.39 & The figures are \$0.56 to \$4.39 (\$0.54 is \jev{}'s own cost). The page title has changed. \\
+\cite{simmons2026saidno} & ``White'' 51\% on beauty, leadership, civility, morality; 3\% ``yes'' answers & 51\% is across all eight traits (6 of 8 won); 3\% is the mean ``yes'' probability. Title and date changed. \\
+\cite{qin2026zhdecisionbench} & Systematic over-confidence in Chinese; 28\% order flips & The benchmark's first release (26 September) did not test \jev{} (two Laya models and Qwen3.5-2B); the 28\% is a 25-item subset. Its second release (28 September) calls the over-confidence finding partly a small-sample artefact. \\
+\cite{yurin2026confident} & Confidence formula from 76,807 answers & It was derived from 738,164 Choice answers; 76,807 is the two-option subset. \\
+\cite{typesafe_models} & 70--500 ms from the model documentation & The figure comes from the launch post \cite{almeida2026introducing}; the documentation states about 100--150 ms. \\
+\pol{} text & Clauses \clause{3.4.1}, \clause{5.3.x}, \clause{3.6} & Renumbered before commit \texttt{5791ae3}, in commits \texttt{7750ceb}--\texttt{526da3d}, to \clause{5.4.1}, \clause{4.3.x}, \clause{5.6} (\cref{tab:A1}). \\
+\end{longtable}
+}

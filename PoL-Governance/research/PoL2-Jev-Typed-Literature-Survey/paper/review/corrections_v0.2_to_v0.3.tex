@@ -1,0 +1,43 @@
+% Corrections relative to the unpublished version 0.2, moved out of the paper after round-2 review (R2-arg-16).
+\paragraph{Version 0.3.}
+Version~0.2 of this analysis was checked by five independent review passes (fidelity of every claim to its source, internal consistency, argument and method, and arXiv and \pol{} fidelity), whose 174 findings and their resolutions are logged in the data release.
+\Cref{tab:corrections3} lists the substantive corrections to statements about sources; changes of method and framing are described in \cref{sec:method}.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{@{}p{0.13\linewidth}p{0.38\linewidth}p{0.43\linewidth}@{}}
+\caption{Substantive corrections relative to version~0.2.}\label{tab:corrections3}\\
+\toprule
+Source & Version 0.2 stated & Version 0.3, after re-reading the source \\
+\midrule
+\endfirsthead
+\toprule
+Source & Version 0.2 stated & Version 0.3 \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\cite{arx29429} & Median ECE 0.168 against 0.074 ``for a constant predictor'' & 0.074 is the ECE expected from sampling noise under perfect calibration; on human-validated labels the default threshold did as well as a fitted one. \\
+\cite{zen22901853} & \jev{}'s judge collapsed on absent information (0.99 vs 0.31) & The collapsing judge was the open Laya model; a generative evaluator scored 1.00 on the same items. \\
+\cite{arx33671} & ``A guardrail trained for one language loses another'' & Both benchmarks are Chinese; the loss is across domains, and 98.85\% is the fine-tuned model alone, not the cascade.  \\
+\cite{zen22959854} & A fixed 0.8 threshold did not hold, in two studies & One study; the threshold failed only at the raw temperature, not at the served one. \\
+\cite{zen23022986} & Polish model and \jev{} indistinguishable in English & Only on the authors' English set; on public English JevBench items \jev{} scored higher (0.861 vs 0.740). \\
+\cite{yurin2026confident} & Dummy options raised reported confidence from 0.20 to 0.58 & These values follow from the reconstructed formula; no such experiment was reported. \\
+\cite{zen22848952} & \jev{} cannot separate conflict from ignorance & Its yes/no probabilities did not; a Choice question naming both states did, in all four cases. \\
+\cite{arx24881} & Listed as evidence of usable calibration & The authors find it not usable off the shelf (ECE 0.133). \\
+\cite{arx24052} & Recalibration ``on the same labels'' & Out of fold; raw probabilities were too close to the middle, not over-confident. \\
+\cite{arx37470} & \jev{}'s decision loss worse than always deferring, attached to the interface comparison & The loss belongs to the multiclass task, where always deferring is nearly optimal; a post-trained open model's interface gap was similar (34.2\%). \\
+\cite{arx33971} & Fine-grained answers differed; Laya composed better & Total variation is at category level; Laya was less coherent (0.42--0.69) and started from 23\% accuracy. \\
+\cite{arx27678} & \jev{} lowest hosted baseline accuracy & Also second of ten on all-condition correctness. \\
+\cite{arx29769} & Peer judges repeat 96\% of confident errors (in the abstract and conclusion without caveat) & An upper bound, from items selected as \jev{}'s most confident errors, on rubric grading by low-cost evaluators; the caveat is now carried everywhere. \\
+\cite{arx34862} & Coded as unconditional support & Recoded as qualifying: wins on two of four benchmarks with lower precision. \\
+\cite{checkpoint2026jev} & 25/27 multi-turn attacks; ``untrusted'' labels barely help & The strongest of three attackers; marking content untrusted made no meaningful difference. \\
+\cite{arx22664} & Counted in the corpus & Measures no typed model; treated as context. \\
+\pol{} \clause{5.5}, \clause{5.6} & Any LLM ``can be brought under'' governance; governed AI is ``expected to'' quantify each person & The text says any LLM ``may accept'' governance, and lists quantification among things governed AI ``can'' do. \\
+\pol{} \clause{5.4}, \clause{5.4.1} & Governance layer ``around'' LLMs; hate language blocked at the input & ``Within'' the LLM architecture; blocked ``where necessary''. \\
+\pol{} \clause{4.3.3.1} & ``Cognitive calibration'' anchors the probability-calibration requirement & It means calibrating the cognitive model against the framework's principles (value alignment); G4 is now anchored in the state of absence and self-reflection. \\
+\pol{} commit & Commit \texttt{5791ae3} renumbered three chapters & The renumbering was made by the framework's originator in commits \texttt{7750ceb}--\texttt{526da3d} before \texttt{5791ae3}. \\
+\end{longtable}
+\endgroup
+

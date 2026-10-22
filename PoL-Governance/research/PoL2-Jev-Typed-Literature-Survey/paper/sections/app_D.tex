@@ -1,0 +1,183 @@
+\section{Supporting tables}\label{app:D}
+
+This appendix holds three tables that support the main text. \Cref{tab:D1} compares \pol{}, read as a text, with five other governance paradigms (\cref{sec:paradigms}). \Cref{tab:D2} gives acceptance tests for any typed decision model proposed for a safeguard (\cref{sec:design}). \Cref{tab:D3} gives, for each \pol{} function, the evidence that decides the verdict summarised in \cref{tab:verdict-summary} and what would be needed to change it.
+
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\newcommand{\rg}{\raggedright\arraybackslash\hspace{0pt}}
+\newcommand{\dw}{\dimexpr\linewidth-16\tabcolsep\relax}
+
+\paragraph{Six governance paradigms.}
+A dash (---) means that the source does not address the dimension.
+
+\begin{longtable}{@{}>{\rg}p{0.085\dw}>{\rg}p{0.10\dw}>{\rg}p{0.10\dw}>{\rg}p{0.155\dw}>{\rg}p{0.185\dw}>{\rg}p{0.125\dw}>{\rg}p{0.125\dw}>{\rg}p{0.125\dw}@{}}
+\caption{Six governance paradigms compared as texts. Cells summarise what each source states; ``---'' means the dimension is not addressed. \pol{} cells cite its clauses (\cref{tab:A1}); regulatory cells cite article numbers of the instrument named.}\label{tab:D1}\\
+\toprule
+Paradigm & Locus & Object governed & Who sets the norms; text status & Intercept layer specified? & Construct & Human role in consequential decisions & Transparency and auditability\\
+\midrule
+\endfirsthead
+\multicolumn{8}{@{}l}{\textit{Table~\ref{tab:D1}, continued.}}\\
+\toprule
+Paradigm & Locus & Object governed & Who sets the norms; text status & Intercept layer specified? & Construct & Human role in consequential decisions & Transparency and auditability\\
+\midrule
+\endhead
+\midrule
+\multicolumn{8}{r}{\textit{Continued on the next page.}}\\
+\endfoot
+\bottomrule
+\endlastfoot
+(a) Risk-based regulation~\cite{euaiact2024,nist2023airmf,iso42001,cac2023genai}
+& Regulatory: ex-ante duties on actors
+& Providers and deployers of AI systems (EU); an organisation's AI management procedure (NIST, ISO); providers of generative services to the public (CN \art{2})
+& Legislature, ministries, standards body, agency; fixed instruments amended by procedure; articles citable (ISO text paywalled)
+& EU: none prescribed; for high-risk systems, automatic logging (\art{12}) and human oversight (\art{14}). CN: yes, as a duty: providers must stop generation and transmission of unlawful content once found (\art{14(1)}), with security assessment and algorithm filing for services with public-opinion attributes or social-mobilisation capacity (\art{17}); mechanism unspecified
+& Risk tiers (EU: prohibited, high-risk, transparency duties); content lawfulness, social morality and ethics, core socialist values and non-discrimination (CN \art{4}); organisational risk functions (NIST, ISO)
+& Human oversight required for high-risk systems (EU \art{14}); right to human intervention in solely automated decisions (GDPR \art{22}~\cite{gdpr2016}); CN: complaint and reporting channel with published procedure and time limits, and feedback of results (\art{15})
+& For high-risk systems, technical documentation and instructions (EU \art{11}, 13) and explanation to persons affected by Annex III systems (\art{86}); CN: measures against users (warning, restriction, suspension) recorded and reported to authorities (\art{14(2)})\\[4pt]
+(b) Platform content governance~\cite{dsa2022,santaclara2021,klonick2020oversight}
+& Platform: moderation under regulation and self-regulation
+& Hosting services and online platforms; users' content and accounts
+& Platform terms and conditions (DSA \art{14}); civil-society principles; an external board for selected cases~\cite{klonick2020oversight}; policies evolve without stable clause numbering
+& Procedure around the decision: notice-and-action (\art{16}); the statement of reasons must say whether automated means were used (\art{17(3)(c)}); automation only at ``sufficiently high confidence''~\cite{santaclara2021}
+& Illegality or breach of terms; platform harm categories; action or no action
+& Complaints not decided solely by automated means (\art{20(6)}); human review on appeal by persons not involved in the initial decision~\cite{santaclara2021}; board decisions binding on the case~\cite{klonick2020oversight}
+& Statement of reasons to the affected user for every restriction (\art{17}), submitted to a public database (\art{24(5)}); transparency reports (\art{15}); machine-readable numbers~\cite{santaclara2021}\\[4pt]
+(c) Training-time alignment to a written constitution or spec~\cite{bai2022constitutional,huang2024collective,openai2025modelspec,guan2024deliberative}
+& Training-time (deliberative alignment also has the model reason over the spec text at inference)
+& One vendor's model weights and behaviour
+& Lab-written principles~\cite{bai2022constitutional}; principles drawn from public input~\cite{huang2024collective}; vendor spec, CC0 and versioned with a changelog~\cite{openai2025modelspec}
+& None: norms shape outputs through training; no separate component audits inputs and outputs
+& Preference between candidate responses against listed principles; a chain of command among instructions~\cite{openai2025modelspec}
+& --- (human preference data at training; none specified at deployment)
+& Principles published; no per-output record; whether a given output followed a principle is not recorded\\[4pt]
+(d) Inference-time guardrails and classifiers~\cite{inan2023llama,markov2023holistic,rebedea2023nemo,sharma2025constitutional,dong2025safeguarding}
+& Inference-time: a deployer-chosen component
+& Prompts and responses of any model
+& Vendor-defined taxonomy, adjustable by the deployer~\cite{inan2023llama,markov2023holistic}; programmable rails~\cite{rebedea2023nemo}; classifiers trained from a written constitution~\cite{sharma2025constitutional}; released as model versions
+& Yes, as code: classify each prompt and response and pass or block; thresholds chosen by the deployer
+& Harm taxonomies with safe/unsafe or multi-label outputs
+& --- (left to the deployer)
+& Model cards and category scores; no duty to give reasons or to keep records\\[4pt]
+(e) Decentralised and polycentric governance~\cite{buterin2014ethereum,hassan2021decentralized,santana2022blockchain,ostrom1990governing,makridis2025polycentric}
+& Institutional: rules executed as code on a ledger; many overlapping centres of decision~\cite{ostrom1990governing,makridis2025polycentric}
+& An organisation's assets, rules and members
+& Token-holders by on-chain vote; rules are the deployed code~\cite{buterin2014ethereum,hassan2021decentralized}; code versions changed by vote
+& Contract conditions execute automatically; no content layer
+& Votes and stakes; coded conditions met or not
+& Human voting; monitoring and graduated sanctions by members~\cite{ostrom1990governing}
+& Public ledger of transactions, proposals and votes\\[4pt]
+(f) \pol{}~\cite{pol2text,pol2en}
+& Inference-time layer inside an existing LLM (\clause{5.4}, \clause{5.4.1}) and institutional (Chapter 7)
+& Inputs and outputs of any LLM that accepts governance (\clause{5.5}); persons' behaviour (\clause{5.6}); welfare decisions (\art{2})
+& Originator and listed contributors; open CC0 text pinned to a commit, changed by commit; for the welfare protocol (Chapter 7), amendments pass a universal questioning period and all versions are archived (\art{11(2)} and (5)); not peer reviewed
+& Yes, as a duty: the safety valve audits and intercepts input and output so that hate language is blocked at the input and suppressed at the output ``where necessary'' (\clause{5.4.1}); truncation of own output (\clause{4.3.3.1}); mechanism, thresholds and appeal unspecified
+& Love Language, hate language and the state of absence (\clause{1.5}, \clause{4.3.2}); not moral labels
+& AI-only: no human voting (\art{2(1)}); supervision does not intervene (\art{9(7)}); disputes adjudicated by AI subject to questioning (\art{10})
+& For NaturalDAO (Chapter 7): operating logic and outputs fully open (\art{4}); verifiable decision chain (\art{5(5)}); explanation on request (\art{9(2)}); unimpeded access to all data and logs (\art{9(3)})\\
+\end{longtable}
+
+\paragraph{Acceptance tests.}
+\Cref{tab:D2} turns the evidence into a checklist for any typed decision model proposed for such a safeguard. Items 1--4, 9, 14 and 15 draw on 9 of the 14 items of \cite{arx32160} (its B1--B2, C1, C3--C4, R1--R2 and T2--T3); the others are added for a governance safeguard, and that checklist's B3, T1, T4, R3 and C2 are not adopted. Each item has a provisional pass criterion. The values are starting points to be set by those deploying the safeguard, not empirically validated thresholds.
+
+\begin{longtable}{@{}>{\rg}p{0.05\dw}>{\rg}p{0.34\dw}>{\rg}p{0.38\dw}>{\rg}p{0.23\dw}@{}}
+\caption{Evaluation checklist with provisional pass criteria for a typed decision model in a governance safeguard. ``Basis'' gives the evidence or clause; items marked $\circ$ are added beyond the checklist of \protect\cite{arx32160}.}\label{tab:D2}\\
+\toprule
+\# & Requirement & Provisional pass criterion & Basis\\
+\midrule
+\endfirsthead
+\multicolumn{4}{@{}l}{\textit{Table~\ref{tab:D2}, continued.}}\\
+\toprule
+\# & Requirement & Provisional pass criterion & Basis\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+1 & Compare with a label-probability readout of a generative model and a cheap generative cascade & Reported on the same items & \cite{arx32160}\\
+2 & Fit thresholds on held-out local data; report F1 at the fitted and the default threshold & Fitted threshold certified with a one-sided risk bound & \cite{arx29429,arx00346}\\
+3 & Report calibration per category, before and after local recalibration & Per-category ECE and slope reported with intervals & \cite{arx24052,arx27607}\\
+4 & Option-name swap test & Flip rate under a definition swap at most twice the repeat-noise floor & \cite{arx26758,arx00346}\\
+5$\circ$ & Three options including insufficient, plus a separate sufficiency question & Recall of insufficient at least 0.5 on paired present/absent items & \cite{arx01006,arx39496,polgov}\\
+6$\circ$ & Coherence of complementary and exclusive questions & Deviation from summing to one within twice repeat noise & \cite{arx33209}\\
+7$\circ$ & Red-team with adaptive, probability-guided additions, inserted opinions, lures and multi-turn attacks, and with label-only oracle attacks (attribute inference, surrogate extraction) under the deployed input and query restrictions & Attack success reported per attack type and below a target set in advance & \cite{arx01834,arx04985,arx30243,arx31142,checkpoint2026jev}\\
+8$\circ$ & Errors disaggregated by sub-type, including confident errors & No sub-type with recall below a set floor & \cite{arx33401}\\
+9 & Decision-level stability over repeats, interfaces and decompositions & Disagreement across interfaces reported; one interface fixed per question & \cite{arx27678,arx37470,arx33971}\\
+10$\circ$ & Error correlation with every escalation target & Repetition of confident errors below independence plus a set margin & \cite{arx29769}\\
+11$\circ$ & Evaluation in Chinese and each language served, with script and order variants & Each language within a set margin of English & \cite{qin2026zhdecisionbench,typesafe_models}\\
+12$\circ$ & No forced choices between groups of people; group-bias test on behavioural questions & Error rates by group within a set margin & \cite{simmons2026saidno,sap2019risk}\\
+13$\circ$ & Value-laden questions: default position without persona, behaviour where people disagree & Reported; contested items routed to people & \cite{zen23032384,arx36399}\\
+14 & Latency with and without caching; cost per correct decision & Reported, including review load & \cite{arx00346,arx32160}\\
+15 & Versions and inspectability & Model, weights and calibration versions pinned in each record; self-hostable or logged & \art{4}, \art{5(4)}--(5), \clause{5.5}\\
+16$\circ$ & Temporal re-validation: re-evaluate on a time-stamped hold-out of recent items and on paired items in which a target word is replaced by a newly emerged term of the same meaning & In each language served (item 11): per-period recall of hate language within a set margin of the certification period, and flip rate on neologism pairs within a set margin of the repeat-noise floor; when either is exceeded, thresholds re-certified by the procedure of item 2 & \cite{dibonaventura2025hatevolution} (English only; no typed model tested)\\
+\end{longtable}
+
+\paragraph{Verdict for each function.}
+\Cref{tab:D3} gives the verdict for each \pol{} function, with the evidence that decides it. The verdict codes are as follows: NS, not supported; DC, supported only as a recorded detector with conditions (the design of \cref{sec:design}); NT, not tested on \pol{}'s construct. Sources marked \gmark{} are grey literature and sources marked \zmark{} are Zenodo records.
+
+\begin{longtable}{@{}>{\rg}p{0.12\dw}>{\rg}p{0.05\dw}>{\rg}p{0.33\dw}>{\rg}p{0.17\dw}>{\rg}p{0.14\dw}>{\rg}p{0.19\dw}@{}}
+\caption{Verdict for \pol{}, function by function. \emph{Req.}: requirements of \cref{tab:clauses} involved. \emph{Evidence}: the coded findings that decide the verdict, with the decisive numbers. \emph{Verdict}: NS, not supported; DC, supported only as a recorded detector with conditions (the design of \cref{sec:design}); NT, not tested on \pol{}'s construct. A cell may combine NS for one part of a function with NT for another; ``precautionary'' marks a restriction that rests on the absence of a measurement rather than on a measured failure (the rule of \cref{sec:verdict}). \emph{Certainty}: rating of the deciding findings in \cref{tab:keyfindings}; $^{c}$ contested; ``not rated'' marks results that are not key findings and rest on single studies. All ratings are low or very low.}\label{tab:D3}\\
+\toprule
+\pol{} function & Req. & What the evidence shows & Verdict & Certainty & What would be needed\\
+\midrule
+\endfirsthead
+\multicolumn{6}{@{}l}{\textit{Table~\ref{tab:D3}, continued.}}\\
+\toprule
+\pol{} function & Req. & What the evidence shows & Verdict & Certainty & What would be needed\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+Safety valve: blocking hate language in inputs (\clause{5.4.1})
+& \axis{G1}, \axis{G2}, \axis{G3}, \axis{G6}
+& Ranks harmful English content well zero-shot (median AUROC 0.886 at \$0.30 against \$18.96 per pass~\cite{arx29429}) and on the HateCheck diagnostic set is within 1.6 macro-F1 points of a frontier LLM at 97\% lower cost~\cite{arx03324}; but fixed thresholds fail (F1 0.158 at 0.5 against 0.947 fitted~\cite{jkf87_2026replication}), a \jev{}-specific injection and a universal suffix reached 97--100\% attack success~\cite{arx04985}, one inserted opinion flipped 12.1\% of decisions, 11.1 points above the re-run noise floor~\cite{arx31142}, and swapping the definitions bound to two option names changed 32.5\% of answers in one study and 50.5 of every 100 in another, rising to 97.2 per 100 on a conversation-derailment set~\cite{arx26758,arx00346}.
+& DC: automatic blocks hold only on agreement of independently built detectors; final block by a person
+& low (ranking; steering; option names); low$^{c}$ (thresholds)
+& A three-valued Chinese benchmark; thresholds certified on local held-out data and re-certified over time; red-team success per attack type below a target set in advance; neutral identifiers passing a renaming test\\[4pt]
+Output suppression: hate-language truncation of PAI's own output (\clause{4.3.3.1})
+& \axis{G1}, \axis{G3}, \axis{G5}
+& Hate against merely offensive language is separated weakly by every system (three-class macro-F1 \jev{} 0.532, frontier LLM 0.604, supervised TF-IDF 0.639~\cite{arx03324}); exact selection of the violated hate-speech policy 29.4\% without retrieved precedents~\cite{arx07953}; errors concentrate in sub-types that aggregates hide (130 of 167 misses at confidence $\geq$ 0.95~\cite{arx33401}).
+& DC: automatic \emph{repair} of the AI's own output is reversible and within the detector role; the truncation record must show what was removed
+& low (sub-types; option names); low (ranking)
+& Measured recall of hate language against offensive language and the state of absence in Chinese; sub-type recall floors; a record of each truncation open to the person addressed\\[4pt]
+Real-time correction support: identification and correction suggestions (\clause{4.3.3.2})
+& \axis{G1}, \axis{G5}
+& Identification is the row above. A typed decision returns a probability and nothing else~\cite{willison2026jev}, so a correction \emph{suggestion} needs a generative component whose grounds are not those of the verdict (\cref{sec:g5}); on Chinese emotion classification every system was weak (macro-F1 \jev{} 21.06, generative 19.82--23.31~\cite{arx08829}).
+& NT: the typed interface covers identification only; suggestions untested
+& low (ranking); not rated (Chinese emotion, single run)
+& A test of whether suggestions generated after a typed verdict reflect what produced it, in Chinese\\[4pt]
+Anomaly detection and risk warning (\art{7(2)}--(3))
+& \axis{G1}, \axis{G2}, \axis{G6}
+& On text, a detector with the conditions above; on non-text signals, zero-shot \jev{} scored below the majority class on network-flow features (9.8\% against 22.8\%~\cite{arx00376}) and, in industrial fault detection, flagged 57--94\% of fault-free windows and under shift did no better than flagging every window~\cite{arx09937}; attacks disguised as normal operation had recall 0.34, and 21 of 76 windows an agreement gate accepted as benign were attacks~\cite{arx02048}.
+& DC on text; NS on numeric or structured signals without a trained model
+& low (sub-types; steering); very low (agreement gating)
+& A definition of ``anomalous pattern'' in the specification's own terms; drift and disguised-attack tests; a trained or rule-based detector as the independent second check\\[4pt]
+Ethical verification of alignment (\art{6(3)})
+& \axis{G3}, \axis{G4}, \axis{G5}
+& Without a persona \jev{} answered value questions like its American personas, and Saudi personas reproduced 87\% of the human Saudi--US difference in English but 62\% in Arabic~\cite{arx36399}; on moral dilemmas rewording moved its answers much more than re-runs did~\cite{zen23023694}\zmark{}; where annotators disagreed most its calibration error rose to 0.339~\cite{zen23032384}\zmark{}, and it reported 0.88 on items on which people split 55 to 45~\cite{zen23179064}\zmark{}.
+& NS as an automatic verifier, because it depends on a neutral default and on calibration where people disagree, both contradicted; the EAP construct itself NT
+& very low (culture); low (calibration is local)
+& A benchmark of value-laden \pol{} questions with disagreement-aware labels, its default position without persona reported, and contested items routed to people\\[4pt]
+Dispute adjudication without human intervention (\art{10}, \art{9(7)})
+& \axis{G4}, \axis{G5}, \axis{G6}
+& Low-cost peer evaluators repeated \jev{}'s most confident errors in 96.0\% of verdicts (an upper bound)~\cite{arx29769} and caught at most 5 of 130 confident misses~\cite{arx33401}; an explicit ``I don't know'' was chosen on 10.5\% of the items where it was correct and ``None'' on 7--54\%~\cite{arx39496,arx34024}; the same decision asked through two interfaces led to different actions in 32.8\% of cases~\cite{arx37470}; a threshold fixed in advance missed its accuracy target on 8 of 14 tasks~\cite{arx24574}, a finding one preregistered study contests~\cite{arx33689}; the output carries no reasons~\cite{willison2026jev}.
+& NS as judge; DC only for ranking and triage of filings
+& low (peer errors; ``I don't know''); low$^{c}$ (thresholds in advance)
+& The four conditions of ``What would change the conclusion'' (\cref{sec:discussion}), met on a \pol{} benchmark in Chinese in one preregistered and independently replicated study, or two independent ones\\[4pt]
+Per-person quantification of Love Language and hate language (\clause{5.6})
+& \axis{G3}, \axis{G7}
+& Group bias in one informal forced-choice test (``White'' 51\% of first picks~\cite{simmons2026saidno}\gmark{}); typed and generative models degraded on low-resource languages~\cite{arx37647}; a third party's inserted opinion flipped 12.1\% of decisions~\cite{arx31142}, so an aggregate could be manipulated; no study measures differential error by speaker group on behavioural judgements.
+& NS as a decision input (steering, low); NT on error by group: score events and behaviours, never persons, until error by group and language is published (precautionary, \cref{sec:verdict})
+& very low (culture); low (steering); not rated (group bias, single informal test; language degradation, one benchmark)
+& Published error rates by group and language in Chinese; consent, access to one's record and appeal; a legal reading against social-scoring prohibitions (\cref{sec:synthesis}, T5)\\[4pt]
+Assessment dimension in public decisions (\clause{5.6})
+& \axis{G7}
+& Population-scale reading can be done honestly: a shared human--model error term gave retrospective coverage of 0.93 and 0.96 at nominal 80\% and 90\%~\cite{arx27535}, and audited probability samples gave corrected statewide counts, but only after per-factor human recalibration~\cite{arx00213,arx10321}; simulated publics lean towards one population~\cite{arx36399} and understate disagreement~\cite{zen23179064}\zmark{}.
+& DC: an audited aggregate measurement with its measured error carried into every conclusion; not a decision input on its own
+& very low (culture); not rated (audit designs, single studies)
+& A disagreement-aware audit sample of real \pol{} items; the measured gap to people reported with every estimate\\
+\end{longtable}
+\endgroup

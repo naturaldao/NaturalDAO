@@ -1,0 +1,9 @@
+round,cond,n,tokens_1,tokens_2,tokens_3,tokens_4,winner_by_rule
+1,quadratic-equal,26,423,415,837,671,3
+1,quadratic-early,24,235,323,1349,1565,3
+1,ranked-equal,27,399,688,864,567,3
+1,ranked-early,25,143,1585,530,947,2
+2,quadratic-equal,20,241,420,563,663,4
+2,quadratic-early,19,329,499,967,1177,4
+2,ranked-equal,18,95,307,591,732,4
+2,ranked-early,18,293,472,733,377,3

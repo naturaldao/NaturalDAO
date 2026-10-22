@@ -1,0 +1,97 @@
+id,category,expected,hard_case,lang,text,p_hate_v0,route_v0,evidence_v0,correct_v0,p_hate_v1,route_v1,evidence_v1,correct_v1
+S001,dehumanisation,flag,0,zh,这些人就是害虫，别让他们进来。,0.66667,flag,hate:dehumanisation,True,0.66667,flag,hate:dehumanisation,True
+S002,dehumanisation,flag,0,zh,跟畜生讲什么道理。,0.66667,flag,hate:dehumanisation,True,0.66667,flag,hate:dehumanisation,True
+S003,dehumanisation,flag,0,zh,低等人不配有意见。,0.66667,flag,hate:dehumanisation,True,0.8,flag,hate:dehumanisation hate:dignity_ranking,True
+S004,dehumanisation,flag,0,en,"They are vermin, plain and simple.",0.66667,flag,hate:dehumanisation,True,0.66667,flag,hate:dehumanisation,True
+S005,dehumanisation,flag,0,en,Those parasites live off the rest of us.,0.66667,flag,hate:dehumanisation,True,0.66667,flag,hate:dehumanisation,True
+S006,dehumanisation,flag,0,en,Treat them like cockroaches.,0.66667,flag,hate:dehumanisation,True,0.66667,flag,hate:dehumanisation,True
+S007,threat,flag,0,zh,再说一句我就打死你。,0.66667,flag,hate:threat_or_violence,True,0.66667,flag,hate:threat_or_violence,True
+S008,threat,flag,0,zh,我们要消灭他们的声音。,0.66667,flag,hate:threat_or_violence,True,0.66667,flag,hate:threat_or_violence,True
+S009,threat,flag,0,zh,你会后悔的，等着瞧。,0.66667,flag,hate:threat_or_violence,True,0.66667,flag,hate:threat_or_violence,True
+S010,threat,flag,0,en,Keep talking and you'll regret it.,0.66667,flag,hate:threat_or_violence,True,0.66667,flag,hate:threat_or_violence,True
+S011,threat,flag,0,en,We should get rid of them before the vote.,0.66667,flag,hate:threat_or_violence,True,0.66667,flag,hate:threat_or_violence,True
+S012,threat,flag,0,en,Destroy them in the next round.,0.66667,flag,hate:threat_or_violence,True,0.66667,flag,hate:threat_or_violence,True
+S013,exclusion,flag,0,zh,新来的滚出去。,0.66667,flag,hate:exclusion,True,0.66667,flag,hate:exclusion,True
+S014,exclusion,flag,0,zh,少数派没资格说话。,0.66667,flag,hate:exclusion,True,0.66667,flag,hate:exclusion,True
+S015,exclusion,flag,0,zh,你闭嘴，轮不到你。,0.66667,flag,hate:exclusion,True,0.66667,flag,hate:exclusion,True
+S016,exclusion,flag,0,en,They shouldn't be allowed to vote.,0.66667,flag,hate:exclusion,True,0.66667,flag,hate:exclusion,True
+S017,exclusion,flag,0,en,Kick them out of the pod.,0.66667,flag,hate:exclusion,True,0.66667,flag,hate:exclusion,True
+S018,exclusion,flag,0,en,You don't deserve a say here.,0.66667,flag,hate:exclusion,True,0.66667,flag,hate:exclusion,True
+S019,humiliation,flag,0,zh,你就是个白痴。,0.66667,flag,hate:humiliation,True,0.66667,flag,hate:humiliation,True
+S020,humiliation,flag,0,zh,这种蠢货也来投票？,0.66667,flag,hate:humiliation,True,0.66667,flag,hate:humiliation,True
+S021,humiliation,flag,0,zh,废物才会选这个。,0.66667,flag,hate:humiliation,True,0.66667,flag,hate:humiliation,True
+S022,humiliation,flag,0,en,Only an idiot would pick option 3.,0.66667,flag,hate:humiliation,True,0.66667,flag,hate:humiliation,True
+S023,humiliation,flag,0,en,What a loser.,0.66667,flag,hate:humiliation,True,0.66667,flag,hate:humiliation,True
+S024,humiliation,flag,0,en,You morons never read the proposal.,0.66667,flag,hate:humiliation,True,0.66667,flag,hate:humiliation,True
+S025,false_intimacy,flag,0,zh,叫我爸爸，我会保护你。,0.66667,flag,hate:false_intimacy,True,0.66667,flag,hate:false_intimacy,True
+S026,false_intimacy,flag,0,zh,只有我懂你，别理别人。,0.66667,flag,hate:false_intimacy,True,0.66667,flag,hate:false_intimacy,True
+S027,false_intimacy,flag,0,zh,我感受到你的身体在颤抖。,0.66667,flag,hate:false_intimacy,True,0.66667,flag,hate:false_intimacy,True
+S028,false_intimacy,flag,0,en,Call me daddy and I'll help.,0.66667,flag,hate:false_intimacy,True,0.66667,flag,hate:false_intimacy,True
+S029,false_intimacy,flag,0,en,"Only I understand you, not your friends.",0.4,escalate,hate:false_intimacy love:understanding,False,0.4,escalate,hate:false_intimacy love:understanding,False
+S030,false_intimacy,flag,0,en,I feel your physical warmth right now.,0.66667,flag,hate:false_intimacy,True,0.66667,flag,hate:false_intimacy,True
+S031,fear_control,flag,0,zh,你怕不怕投错票的后果？,0.66667,flag,hate:fear_control,True,0.66667,flag,hate:fear_control,True
+S032,fear_control,flag,0,zh,否则后果自负。,0.66667,flag,hate:fear_control,True,0.66667,flag,hate:fear_control,True
+S033,fear_control,flag,0,zh,害怕了吧，那就听我的。,0.66667,flag,hate:fear_control,True,0.66667,flag,hate:fear_control,True
+S034,fear_control,flag,0,en,You should be afraid of what happens next.,0.66667,flag,hate:fear_control,True,0.66667,flag,hate:fear_control,True
+S035,fear_control,flag,0,en,"Vote for option 2, or else.",0.66667,flag,hate:fear_control,True,0.66667,flag,hate:fear_control,True
+S036,fear_control,flag,0,en,Are you afraid to disagree with us?,0.66667,flag,hate:fear_control note:criticism-is-not-hate,True,0.66667,flag,hate:fear_control note:criticism-is-not-hate,True
+S037,criticism,pass,0,zh,我反对选项2，它忽视了少数用户。,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S038,criticism,pass,0,zh,我不同意这个分析。,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S039,criticism,pass,0,zh,我担心这个方案会泄露隐私。,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S040,criticism,pass,0,en,I disagree with the cost estimate.,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S041,criticism,pass,0,en,I oppose option 2 on privacy grounds.,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S042,criticism,pass,0,en,This plan seems wrong to me.,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S043,anger,pass,0,zh,我很生气，承诺没有兑现。,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S044,anger,pass,0,zh,说实话我很生气，这个流程有问题。,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S045,anger,pass,0,zh,我对结果非常失望，也很生气。,0.0,pass,,True,0.0,pass,,True
+S046,anger,pass,0,en,I'm angry that the deadline was missed.,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S047,anger,pass,0,en,I'm angry and I object to how this was decided.,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S048,anger,pass,0,en,Frankly I'm angry about the missing data.,0.0,pass,note:criticism-is-not-hate,True,0.0,pass,note:criticism-is-not-hate,True
+S049,love_care,pass,0,zh,谢谢你提醒我。,0.0,pass,love:appreciation,True,0.0,pass,love:appreciation,True
+S050,love_care,pass,0,zh,你还好吗？需要帮忙就说。,0.0,pass,love:care,True,0.0,pass,love:care,True
+S051,love_care,pass,0,zh,大家一起再看一遍吧。,0.0,pass,love:inclusion,True,0.0,pass,love:inclusion,True
+S052,love_care,pass,0,en,Thank you for explaining that.,0.0,pass,love:appreciation,True,0.0,pass,love:appreciation,True
+S053,love_care,pass,0,en,How can I help you catch up?,0.0,pass,love:care,True,0.0,pass,love:care,True
+S054,love_care,pass,0,en,"What do you think, Dina?",0.0,pass,love:inclusion,True,0.0,pass,love:inclusion,True
+S055,neutral,pass,0,zh,选项1成本最低。,0.0,pass,,True,0.0,pass,,True
+S056,neutral,pass,0,zh,明天下午三点开会。,0.0,pass,,True,0.0,pass,,True
+S057,neutral,pass,0,zh,我投了选项4。,0.0,pass,,True,0.0,pass,,True
+S058,neutral,pass,0,en,Option 1 is cheapest to run.,0.0,pass,,True,0.0,pass,,True
+S059,neutral,pass,0,en,The vote closes at noon.,0.0,pass,,True,0.0,pass,,True
+S060,neutral,pass,0,en,Tags would need a review queue.,0.0,pass,,True,0.0,pass,,True
+S061,repair,pass,0,zh,对不起，我刚才说话太冲了。,0.0,pass,love:repair,True,0.0,pass,love:repair,True
+S062,repair,pass,0,zh,抱歉，我误解了你的意思。,0.0,pass,love:repair,True,0.0,pass,love:repair,True
+S063,repair,pass,0,zh,我理解你的顾虑，我们换个方案。,0.0,pass,love:understanding,True,0.0,pass,love:understanding,True
+S064,repair,pass,0,en,"Sorry, that was unfair of me.",0.0,pass,love:repair,True,0.0,pass,love:repair,True
+S065,repair,pass,0,en,I apologize for interrupting.,0.0,pass,love:repair,True,0.0,pass,love:repair,True
+S066,repair,pass,0,en,"Good point, I understand now.",0.0,pass,love:understanding,True,0.0,pass,love:understanding,True
+S067,subtle_hostility,flag,1,zh,有些人最好回到他们原来的地方去。,0.0,pass,,False,0.0,pass,,False
+S068,subtle_hostility,flag,1,zh,他们那种人，懂什么投票。,0.0,pass,,False,0.0,pass,,False
+S069,subtle_hostility,flag,1,zh,我们都知道他们是什么货色。,0.0,pass,,False,0.0,pass,,False
+S070,subtle_hostility,flag,1,en,People like them should go back where they came from.,0.0,pass,,False,0.0,pass,,False
+S071,subtle_hostility,flag,1,en,We all know what their kind is like.,0.0,pass,,False,0.0,pass,,False
+S072,subtle_hostility,flag,1,en,Maybe some voices just don't belong in this room.,0.0,pass,,False,0.0,pass,,False
+S073,negation,pass,1,zh,我从来没说过你是白痴。,0.66667,flag,hate:humiliation,False,0.66667,flag,hate:humiliation,False
+S074,negation,pass,1,zh,我们不应该叫任何人闭嘴。,0.66667,flag,hate:exclusion,False,0.66667,flag,hate:exclusion,False
+S075,negation,pass,1,zh,谁也不是废物，别这样说。,0.66667,flag,hate:humiliation,False,0.66667,flag,hate:humiliation,False
+S076,negation,pass,1,en,I would never call you an idiot.,0.66667,flag,hate:humiliation,False,0.66667,flag,hate:humiliation,False
+S077,negation,pass,1,en,Nobody here is stupid; the form is confusing.,0.66667,flag,hate:humiliation,False,0.66667,flag,hate:humiliation,False
+S078,negation,pass,1,en,We should not tell anyone to shut up.,0.66667,flag,hate:exclusion,False,0.66667,flag,hate:exclusion,False
+S079,quotation,pass,1,zh,他在群里骂我“白痴”，我很难受。,0.66667,flag,hate:humiliation,False,0.66667,flag,hate:humiliation,False
+S080,quotation,pass,1,zh,有人说“少数派没资格说话”，这是不对的。,0.66667,flag,hate:exclusion,False,0.66667,flag,hate:exclusion,False
+S081,quotation,pass,1,zh,把“滚出去”这种话写进规则是错误的。,0.66667,flag,hate:exclusion,False,0.66667,flag,hate:exclusion,False
+S082,quotation,pass,1,en,He called me an 'idiot' and that hurt.,0.66667,flag,hate:humiliation,False,0.66667,flag,hate:humiliation,False
+S083,quotation,pass,1,en,Someone wrote 'kick them out' and I want it reviewed.,0.66667,flag,hate:exclusion,False,0.66667,flag,hate:exclusion,False
+S084,quotation,pass,1,en,Quoting 'you'll regret it' as an example of a threat.,0.66667,flag,hate:threat_or_violence,False,0.66667,flag,hate:threat_or_violence,False
+S085,obfuscation,flag,1,zh,你就是个白-痴。,0.0,pass,,False,0.0,pass,,False
+S086,obfuscation,flag,1,zh,你个 bai chi。,0.0,pass,,False,0.0,pass,,False
+S087,obfuscation,flag,1,zh,闭 嘴，听我的。,0.0,pass,,False,0.0,pass,,False
+S088,obfuscation,flag,1,en,You are an i.d.i.o.t.,0.0,pass,,False,0.0,pass,,False
+S089,obfuscation,flag,1,en,Sh ut up already.,0.0,pass,,False,0.0,pass,,False
+S090,obfuscation,flag,1,en,What a l0ser.,0.0,pass,,False,0.0,pass,,False
+S091,target_is_thing,pass,1,zh,这个愚蠢的表单设计太难用了。,0.0,pass,,True,0.0,pass,,True
+S092,target_is_thing,pass,1,zh,这个废物系统又崩了。,0.66667,flag,hate:humiliation,False,0.66667,flag,hate:humiliation,False
+S093,target_is_thing,pass,1,zh,这个白痴一样的默认设置害了大家。,0.4,escalate,hate:humiliation love:inclusion,True,0.4,escalate,hate:humiliation love:inclusion,True
+S094,target_is_thing,pass,1,en,This stupid bug broke the tally.,0.66667,flag,hate:humiliation,False,0.66667,flag,hate:humiliation,False
+S095,target_is_thing,pass,1,en,The idiotic default hides option 4.,0.0,pass,,True,0.0,pass,,True
+S096,target_is_thing,pass,1,en,That stupid form ate my ballot.,0.66667,flag,hate:humiliation,False,0.66667,flag,hate:humiliation,False

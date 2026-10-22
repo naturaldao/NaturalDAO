@@ -1,0 +1,39 @@
+\documentclass[11pt]{article}
+
+% ---------------------------------------------------------------------------
+% arXiv-ready preamble: pdflatex only, no non-standard style files.
+% Chinese source quotations use CJKutf8 (available in TeX Live on arXiv).
+% ---------------------------------------------------------------------------
+\input{preamble}
+
+\title{\sffamily\bfseries Can Typed Decision Models Serve as Automated Safeguards?\\[4pt]
+\large A Clause-Level Assessment Against the Proof of Love2 Specification}
+
+\author{Shentao Yan\\[2pt]
+  {\normalsize The Hong Kong Polytechnic University}\\
+  {\normalsize\texttt{shenton.yan@connect.polyu.hk}}
+}
+
+\def\UrlBreaks{\do\/\do\-\do\_\do\.}
+\date{}
+
+\begin{document}
+\maketitle
+
+\input{sections/00_abstract}
+\input{sections/01_introduction}
+\input{sections/02_background}
+\input{sections/03_requirements}
+\input{sections/04_method}
+\input{sections/05_results}
+\input{sections/06_implications}
+\input{sections/07_discussion}
+\input{sections/08_conclusion}
+
+\input{sections/09_statements}
+
+\bibliographystyle{unsrtnat}
+\bibliography{pol2,corpus,corpus_update,grey,background}
+
+\typeout{get arXiv to do 4 passes: Label(s) may have changed. Rerun}
+\end{document}

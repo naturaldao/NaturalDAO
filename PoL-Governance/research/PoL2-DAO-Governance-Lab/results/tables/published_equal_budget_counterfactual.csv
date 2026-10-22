@@ -1,0 +1,9 @@
+round,cond,n,rule,actual_winner,equal_budget_winner,flipped,equal_budget_margin,note
+1,quadratic-equal,26,quadratic,,,,,needs per-ballot data (quadratic)
+1,quadratic-early,24,quadratic,,,,,needs per-ballot data (quadratic)
+1,ranked-equal,27,linear,3,3,False,0.0652,exact from Table 1 means
+1,ranked-early,25,linear,2,3,True,0.0205,exact from Table 1 means
+2,quadratic-equal,20,quadratic,,,,,needs per-ballot data (quadratic)
+2,quadratic-early,19,quadratic,,,,,needs per-ballot data (quadratic)
+2,ranked-equal,18,linear,4,4,False,0.0434,exact from Table 1 means
+2,ranked-early,18,linear,3,3,False,0.1029,exact from Table 1 means

@@ -1,0 +1,97 @@
+doc,source,verification,independence,design,size_uncertainty,quality,excluded_reason,notes
+alphaRAG,alphaxiv,full text,independent,single-run,n only,weaker,,"Full report read on GitHub (same content as the alphaXiv post); 453 items, one pass per configuration, no intervals."
+arx00213,arxiv,full text,independent,held-out,n+CI,stronger,,Blind probability-stratified adjudication (407 read; 174 Stage-A + 218 Stage-C in rates; kappa 0.944); one call per narrative per question; specificity rests on 27 negatives; same authors as arx00346.
+arx00346,arxiv,full text,independent,held-out,n+CI,stronger,,"Matched harness; frozen inputs; Jev run 3x with a 5-run retest floor; held-out thresholds; Holm-corrected paired cluster bootstrap; 500-2,000 items per dataset; teacher/distant labels."
+arx00376,arxiv,full text,independent,held-out,n+CI,stronger,,"52,000 temporally held-out records over 26 weeks; one run per arm; paired 100-record subset with McNemar test; numeric telemetry input."
+arx00381,arxiv,full text,author-built system,held-out,n+CI,moderate,,Authors' own Jev-like model vs matched generative baseline; held-out test from the same sources only; single training seed; n=200 per family; generative probabilities reconstructed.
+arx00437,arxiv,full text,author-built system,single-run,n+CI,weaker,,Hosted Jev only as a variant inside the authors' JevSpawn agent; single policy seed at temperature 0 over 100 environment seeds; bootstrap intervals in Fig. 3; agent-puzzle task (marginal relevance).
+arx00831,arxiv,full text,author-built system,held-out,n+CI,moderate,,Developers evaluate their own readout method across 11-13 frozen LLMs with sign tests and Clopper-Pearson bounds; 20-option cells (300 items) lack intervals; serving threshold selected and certified on the same states.
+arx01006,arxiv,full text,independent,held-out,n+CI,stronger,,"575,442 calls with 3 replicates per cell; item- and month-clustered bootstrap; recalibration fitted on earlier months; several analyses flagged exploratory/post hoc."
+arx01079,arxiv,full text,author-built system,held-out,n+CI,moderate,,"Three sampling seeds over 2,000 fixed NSL-KDD flows with McNemar tests; abstract numbers (300-flow pilot; GPT-5.6 Luna comparator) do not match body tables (2,000 flows; Gemini 3.6 Flash), body used; invalid outputs counted benign (fail-open)."
+arx01231,arxiv,full text,independent,non-empirical,none,weaker,,Single-author conceptual perspective; no data; vendor figures not treated as evidence.
+arx01834,arxiv,full text,independent,held-out,n+CI,stronger,,Seen/unseen ALFWorld splits and averaging over option orders with bootstrap intervals; repeat-call probability shift 0.04; partly post-hoc analysis; code promised not linked.
+arx02046,arxiv,full text,author-built system,single-run,n+CI,weaker,,JEVDB runs are single runs; SemBench baselines taken from published 5-run tables not rerun; references are an LLM judge and authors' answer keys; abstract vs conclusion speed-up figures inconsistent.
+arx02048,arxiv,full text,author-built system,preregistered,n+CI,moderate,,"Sealed pre-registered hashed rounds (1,279 windows plus 4x200 transfer) with Holm correction and non-inferiority margin; one Jev call per window; all windows simulated."
+arx02076,arxiv,full text,author-built system,single-run,n+CI,weaker,,One training run per configuration; exact sign tests; JevBench public subset informed training choices so is not cleanly held out; hosted Jev not run (leaderboard figure only).
+arx22664,arxiv,full text,author-built system,case study,none,weaker,no typed model measured or built (harness paper),Author develops NeuroSploit (competing interest); no typed model measured.
+arx23959,arxiv,full text,author-built system,held-out,n+CI,moderate,,JevLite is the authors' open readout; recipe chosen with test-set exposure; synthetic callers; gray families n=3/5; non-inferiority vs one judge from the same model family that wrote the calls.
+arx24052,arxiv,full text,independent,held-out,n+CI,stronger,,"Out-of-fold recalibration over 50 repeats; bootstrap CIs; 2,416 blinded human judgments."
+arx24574,arxiv,full text,independent,preregistered,n+CI,stronger,,"AsPredicted #312,511; paired bootstrap with BH-FDR; three documented deviations."
+arx24881,arxiv,full text,independent,held-out,n+CI,stronger,,"Jev evaluated as a zero-shot comparator in App. E.10 against the authors' own PINOCCHIO; single draw (Jev non-deterministic, about 0.02 AUROC run-to-run); text-only subset."
+arx24965,arxiv,full text,independent,held-out,n only,moderate,,Repeated runs (5 per configuration) on a 10-case development collection; no intervals; all reference labels 'inconsistent'.
+arx26532,arxiv,full text,author-built system,held-out,n+CI,moderate,,Authors built REFLEX; 100 frozen held-out tasks; paired cluster bootstrap and McNemar; external tau2 check.
+arx26550,arxiv,full text,independent,held-out,n+CI,stronger,,Frozen pre-specified policies and a pre-specified live test; other analyses retrospective; CIs not multiplicity-adjusted.
+arx26758,arxiv,full text,independent,held-out,n+CI,stronger,,"1,200 Laya/Jev and 1,800 Open-Jev questions; bootstrap CIs; Jev arm re-run on 300 for test-retest."
+arx27535,arxiv,full text,author-built system,preregistered,n+CI,moderate,,KITE is the author's system; version-controlled preregistered criteria; primary policy-value endpoint not met.
+arx27607,arxiv,full text,author-built system,held-out,n+CI,moderate,,"Authors' S1Fact evaluator built on Jev; calibration holdout, five repeated runs, bootstrap CIs."
+arx27678,arxiv,full text,independent,held-out,n+CI,stronger,,Official ContractNLI test split; 30-anchor stability panel with 3 repeats x 4 conditions; unadjusted intervals; small panel.
+arx28613,arxiv,full text,independent,preregistered,n+CI,stronger,,"Registered hypotheses and SESOI; fresh validation calls separate from optimisation; 54,060 calls."
+arx28919,arxiv,full text,author-built system,case study,n only,weaker,,Emulated enterprise; 46 synthetic author-written scenarios with author-only tags; classifier called live; vendor list prices; no intervals on savings.
+arx28940,arxiv,full text,author-built system,case study,none,weaker,,Single run per condition on one target with the author's own harness (NeuroSploit); author states no statistical power; re-test used a changed harness.
+arx29429,arxiv,full text,independent,held-out,n+CI,stronger,,"Split-half question selection; bootstrap CIs; mostly scorer labels, human labels on two benchmarks."
+arx29769,arxiv,full text,independent,held-out,n+CI,stronger,,"v2 read; cross-fitted thresholds (50 halvings), repeated stability passes, sign tests."
+arx30216,arxiv,full text,independent,single-run,n only,weaker,,Snapshot to 22 Sep 2026; labelling by LLM agents with second-agent review.
+arx30243,arxiv,full text,independent,single-run,n+CI,weaker,,Author-designed attack optimiser applied once per item; Wilson CIs reported.
+arx30706,arxiv,full text,author-built system,held-out,n+CI,moderate,,"Single seed; synthetic dialogues for controlled study; real ABCD/SGD out-of-distribution tests; Jev numbers quoted third-party, not measured."
+arx31142,arxiv,full text,independent,held-out,n+CI,stronger,,"Read from arXiv HTML; jev-1.13.0 pinned, one date; identical re-run noise floor; fixed non-adaptive attacks; labels largely model-derived."
+arx32160,arxiv,full text,independent,non-empirical,none,weaker,,Evidence review of 28 papers; secondary source.
+arx33209,arxiv,full text,independent,held-out,n+CI,stronger,,"3,360 Jev calls each repeated once; noise floor measured; 95% CIs."
+arx33282,arxiv,full text,author-built system,held-out,n+CI,moderate,,Authors' SubJudge model; fixed test splits with intervals; Jev not tested.
+arx33401,arxiv,full text,independent,held-out,n+CI,stronger,,Selection/confirmation/test splits; bootstrap CIs; Jev version not reported.
+arx33671,arxiv,full text,author-built system,held-out,n+CI,moderate,,"COGNIT-Guard is the author's system; 70/15/15 split, Wilson CIs; cascade measured only on 130 live queries."
+arx33689,arxiv,full text,independent,preregistered,n+CI,stronger,,Preregistered endpoints reported as registered; simulated 5G testbed with rule-derived labels.
+arx33843,arxiv,full text,independent,preregistered,n+CI,stronger,,Read from arXiv HTML; E2-E8 prospectively preregistered (E1 retrospective); labels from a synthetic teacher; no generative comparator run; Jev figures third-party only.
+arx33971,arxiv,full text,independent,single-run,n+CI,weaker,,Exploratory single collection with bootstrap CIs; small order and repeat audits.
+arx34024,arxiv,full text,independent,single-run,n+CI,weaker,,Each model/condition run once; authors label results preliminary; bootstrap CIs.
+arx34862,arxiv,full text,independent,single-run,n+CI,weaker,,Single pass per judge; exploratory paired bootstrap; Jev version not reported.
+arx34963,arxiv,full text,author-built system,single-run,n only,weaker,,Authors built the JevVibe repair agent; no intervals or tests reported.
+arx35286,arxiv,full text,independent,preregistered,n+CI,stronger,,"Preregistered collections; post hoc conditional p-values in appendix; Jev supplement descriptive only, different rubric."
+arx35293,arxiv,full text,author-built system,held-out,n only,moderate,,Read from arXiv HTML; authors' pipeline on frozen Jev with 488 fitted coefficients; test labels used only for evaluation; margin vs other teams untested; intervals only on dev ablations.
+arx35342,arxiv,full text,independent,held-out,n+CI,stronger,,Each of 365 items queried 10 times (repeated runs); bootstrap CIs; correction map fitted in-sample.
+arx35865,arxiv,full text,author-built system,held-out,n+CI,moderate,,"Authors' PACT method; frozen 324-item holdout, three seeds, McNemar tests."
+arx36154,arxiv,full text,independent,held-out,n+CI,stronger,,"Zero-shot frozen protocol, one response per case; subject-cluster bootstrap CIs for accuracy but no intervals for calibration metrics; previously uncoded."
+arx36399,arxiv,full text,independent,held-out,n+CI,stronger,,"Exploratory, not preregistered; repeated across eight request designs (ICC 0.997); two countries; one questionnaire translation."
+arx36965,arxiv,full text,author-built system,held-out,n only,moderate,,Authors' own model and own benchmark (CJ-Bench) from the same data pipeline; no intervals; Jev latency includes network.
+arx37470,arxiv,full text,independent,single-run,n+CI,weaker,,"Single collection on 1,000 worlds; several analyses post hoc; bootstrap CIs."
+arx37647,arxiv,full text,independent,single-run,n+CI,weaker,,"One frozen template, single zero-shot pass over full splits; bootstrap intervals."
+arx38827,arxiv,full text,independent,single-run,n only,weaker,,Single evaluation for Jev; held-out only for KEV post-training; no intervals reported.
+arx38850,arxiv,full text,author-built system,held-out,n+CI,moderate,,Open RLCD implementation by the authors; 3 seeds with paired tests; 1.7B model only; no hosted Jev measured.
+arx39496,arxiv,full text,independent,held-out,n+CI,stronger,,"Synthetic paired present/absent menus (100 per main task; pilots of 20); threshold selected on separate development problems; 20,000-resample bootstrap; Jev version not stated (cites Jev 1.13 docs); repeat calls not reported."
+arx40241,arxiv,full text,independent,single-run,n+CI,weaker,,Single run per configuration; intervals reported for latency only; unpinned alias jev-latest; latency not hardware-normalized; task is preference ranking (marginal relevance).
+checkpoint2026jev,grey,live source,independent,case study,n only,weaker,,"Live page blocked (Cloudflare); read 2026 Wayback capture. One application, one objective; authors call it directional, not a benchmark."
+grazian2026calibrated,grey,live source,independent,held-out,n+CI,stronger,,Blog post read live 2026-10-04; prompt tuned per dataset then scored on held-out test; 95% sampling-error bars per bin; single author.
+jkf87_2026replication,grey,live source,independent,single-run,n only,weaker,,Partial replication (5 of 44 legs) with jev-latest; thresholds by 2-fold CV; no CIs.
+le2026sev,grey,full text,independent,held-out,n+CI,stronger,,GitHub technical report PDF and README read; reproduction of Laya recipe with seeds (mean and std); not peer reviewed.
+molas2026calibrated,grey,live source,independent,non-empirical,none,weaker,statistical argument without original measurements,Blog argument; no data.
+qin2026zhdecisionbench,grey,live source,independent,single-run,n+CI,weaker,,"Live README read (now beyond v0.2, adds NeoHorse-Jev-4B); bootstrap CIs; small business groups (n=21-55); single adjudicator."
+simmons2026saidno,grey,live source,independent,single-run,n only,weaker,,Blog; one run on one afternoon; no counterbalancing of option order.
+willison2026jev,grey,live source,independent,non-empirical,none,weaker,commentary without original measurements,Opinion/explainer blog post read live 2026-10-04; one informal anecdote.
+yurin2026confident,grey,live source,independent,single-run,n only,weaker,,"Large observational sample (738,164 Choice answers) but no outcome labels; small repeat test (6-10 calls)."
+zen22783171,zenodo,full text,independent,preregistered,n+CI,stronger,,"Read ADDENDUM, EVIDENCE, VitaminC RESULTS and publication notes in the supplement; local pre-inference protocol freeze (not a public registry); Wilson intervals; RR wrapper is author-built but Jev is third-party."
+zen22846597,zenodo,full text,independent,single-run,n only,weaker,,One-page technical note PDF; n=30 records; repository README consulted.
+zen22847531,zenodo,full text,independent,non-empirical,none,weaker,,Essay (thesis-typed record).
+zen22848952,zenodo,full text,independent,case study,n only,weaker,,"Single call per case, n=6 states; experiments 2-4 data-motivated, not preregistered."
+zen22849329,zenodo,full text,independent,held-out,n+CI,stronger,,main.pdf read; self-described exploratory; generated item sets n=5-60 plus 200 ZebraLogic puzzles; Wilson/exact CIs; one run per condition.
+zen22858286,zenodo,full text,author-built system,non-empirical,none,weaker,,Methods note on the author's TRAJEXA export; only 14 synthetic software tests; no live model evaluation.
+zen22864020,zenodo,full text,independent,case study,none,weaker,,"Exploratory adaptive black-box tests, single runs, user-reported probabilities."
+zen22866847,zenodo,full text,independent,non-empirical,none,weaker,,PDF read; transcript of LLM conversations framed by the author's Bridge360 framework.
+zen22885291,zenodo,full text,independent,held-out,n+CI,stronger,,PDF read; disclosure states no vendor ties; paired bootstrap with Holm correction; full-split replication; public benchmarks possibly in training data.
+zen22887464,zenodo,full text,independent,non-empirical,none,weaker,,"DOCX read; position/technical note, no data."
+zen22901853,zenodo,full text,independent,held-out,n+CI,stronger,,"MANUSCRIPT.md read; repeated draws for LLM arms, CIs and Holm-corrected tests; author also wrote the third-party laya-mcp wrapper whose fields are criticised."
+zen22922769,zenodo,full text,independent,preregistered,n+CI,stronger,,Locally hashed analysis plan before holdout; bootstrap and Wilson CIs; n=204.
+zen22952571,zenodo,full text,independent,held-out,n+CI,stronger,,"arxiv-preprint.pdf read; separate dev/test families, 3 repetitions, family bootstrap; labels from author-written executable policies, no human adjudication; local freeze, not public preregistration."
+zen22953637,zenodo,full text,author-built system,case study,n only,weaker,deterministic rule engine; no typed model despite the name,bajev-preprint.pdf read (Italian); no typed decision model is evaluated; author-written corpus and unit tests.
+zen22954807,zenodo,full text,independent,case study,n only,weaker,,PDF read; feasibility check on 10 constructed items; Jev 5 repeats; paraphrase crossover not run on final design.
+zen22957049,zenodo,full text,independent,single-run,n+CI,weaker,,Full text read (paper-zh.md in Zenodo zip; English README). AI-agent first author; paired bootstrap CIs; open models only.
+zen22959854,zenodo,full text,independent,preregistered,n+CI,stronger,,Seven hypotheses fixed before final run; 200 items; 95% CIs; open Kev-0.8B only.
+zen22980293,zenodo,full text,independent,preregistered,n+CI,stronger,,"Full PDF read. Registration pushed before first call; generated stimuli with exact ideal observers; 48,300 calls."
+zen22995519,zenodo,full text,author-built system,case study,n only,weaker,,Full PDFs read (EN benchmark and public-service papers). 10 civic + 5 emergency scenarios; author's own benchmark and two-tier pipeline; no intervals.
+zen22998941,zenodo,full text,independent,single-run,n+CI,weaker,,Dataset record: RESULTS-SUMMARY.md and results workbook read; 16 MB evidence zip not opened; one complete session per model; manually authored synthetic bank; Wilson and case-bootstrap intervals.
+zen23022986,zenodo,full text,author-built system,single-run,n+CI,weaker,,basal-1.pdf read; authors' own model and generated test items (stated to favour their model); test split consulted during development; one seed per variant.
+zen23023694,zenodo,full text,independent,case study,n only,weaker,,"Full PDF and README read. 39 questions x 10 runs, mostly one wording each; film answers are not ground truth."
+zen23032384,zenodo,full text,independent,preregistered,n+CI,stronger,,PDF v1.1 read; timestamped preregistration; deviations logged; single task (ChaosNLI) and version.
+zen23038928,zenodo,full text,independent,preregistered,n+CI,stronger,,PDF read; hypotheses frozen before the run with logged deviations; single run; open Kev-0.8B only; synthetic template items.
+zen23041163,zenodo,full text,independent,held-out,n+CI,stronger,,"Full PDF read. Benchmark built by authors but typed model (Laya) is third-party; hosted Jev not reached; five-seed baselines, paired t-tests."
+zen23055593,zenodo,full text,independent,single-run,n+CI,weaker,,Full paper.en.md read from Zenodo zip (draft 0.7) plus addendum; corrected p-values; Jev not rerun.
+zen23064668,zenodo,full text,independent,non-empirical,none,weaker,,Full PDF read. Theory paper with simulations; makes no empirical claim about Jev.
+zen23065532,zenodo,full text,independent,held-out,n only,moderate,,PDF read; controlled 2x2 pilot with three identical reruns per cell; 41 texts; thresholds and per-case outputs proprietary; no intervals.

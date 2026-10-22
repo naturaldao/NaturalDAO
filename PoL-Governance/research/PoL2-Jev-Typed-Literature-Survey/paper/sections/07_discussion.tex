@@ -1,0 +1,63 @@
+\section{Discussion}
+\label{sec:discussion}
+
+We derived testable requirements from a governance specification and found that, on the first weeks of evidence, typed models meet them as detectors under added conditions but not as judges.
+This section asks how far that result reaches beyond \pol{}, how certain it is, what the assessment cannot establish and what evidence would change it.
+
+\paragraph{Beyond one specification.}
+Any proposal that puts an automated filter in front of AI systems faces G1--G5 and, where it automates oversight, the escalation question of G6.
+Constitutional classifiers, the Chinese duty to stop unlawful generation and the DSA's provisions on automated means all move toward such a layer~\cite{sharma2025constitutional,cac2023genai,dsa2022}.
+G7 and the rest of G6 arise only where a proposal also gives disputes to AI or scores people.
+The case also shows that a governance text can be read clause by clause as a set of testable requirements, and that this reading exposes tensions that a reading of the text as a statement of values does not~\cite{whittlestone2019role}.
+How a problem is formulated already decides much of what a system can do fairly~\cite{passi2019problem}, and a specification that states its construct and its point of interception makes that formulation open to inspection.
+
+\paragraph{Certainty.}
+No finding reaches moderate certainty, and four are contested (\cref{tab:keyfindings}): that injection rarely selects the attacker's target, that escalation to a stronger reasoner saves cost at similar accuracy, and the two threshold findings.
+Each is opposed by at least one study.
+For the two threshold findings the opposing preregistered study ranks as high as the strongest supporting one, so both fall from moderate to low (\oa{C}).
+The rating rules were revised during internal review, after reviewers found that they worked only upwards, and every finding was then re-rated on the whole corpus (\oa{B}).
+All ratings are low or very low because the sources are preprints posted within days of a model's release, many results rest on one study, the one reproduction of a headline study re-ran its authors' code and data, and no study measures the specification's own construct.
+
+\paragraph{What this assessment cannot establish.}
+The assessment can show where the evidence supports or fails a requirement. It cannot measure how often a \pol{} safeguard built on a typed model would block or miss content, because no study measures the specification's construct.
+It also cannot show that typed models are worse than the people they would assist, because no study compares them with trained human reviewers on a governance task.
+Agreement with the requirements is therefore necessary for the detector role, but it is not sufficient: a safeguard that passes every test of \oa{D} would still need to be evaluated on \pol{}'s own items before deployment.
+
+\paragraph{What would change the conclusion.}
+We would revise ``not a judge'' for a function if one study design met all of the following on a held-out, independently annotated three-valued \pol{} benchmark in Chinese.
+Each criterion answers one of the decisive findings, so each is necessary.
+A typed model with risk-controlled thresholds would have to keep its false-block and miss rates within targets set in advance (thresholds), change fewer answers under name and definition swaps than twice its repeat-noise floor (option names), and flip fewer than 5\% of decisions under single-opinion insertion and under an adaptive attack with a budget of 64 accepted queries, the budget of the strongest optimised attack in the corpus~\cite{arx30243} (steering).
+It would also have to agree with an independent panel of trained reviewers at least as well as the reviewers agree with each other, so that its errors are no worse than the disagreement the task already carries.
+The evidence would have to come from one preregistered study with an independent replication, or from two independent studies.
+
+Generative evaluators tested under the same protocol decide only how specific the conclusion is. If they passed where typed models failed, the conclusion would become specific to typed models; if they failed as well, it would extend to automated judges of this cost tier as a finding rather than as a precaution.
+
+The first open problem is therefore that benchmark.
+It needs independent annotation, disagreement-aware labels~\cite{davani2022dealing}, time stamps and periodic refreshing~\cite{dibonaventura2025hatevolution}, and a held-out set kept outside any repository.
+Other open problems are a comparison of typed detectors with trained human reviewers on the same governance items, a matched comparison of the typed readout with label-probability readouts on that benchmark, generative comparators for the failures that were never compared, tests of whether hiding or coarsening probabilities and restricting queries reduce attacks, and independent replication of the main findings on new data.
+Harms can enter at every stage of such a system's life cycle~\cite{suresh2021framework}, so these tests would need to be repeated after deployment, not run once.
+
+\section{Limitations}
+\label{sec:limitations}
+
+\paragraph{Scope of the claims.}
+Our corpus is limited to preprints and grey literature from the first 24 days after the release of \jev{}, and none of its sources is peer reviewed.
+We coded the results that studies reported and did not reproduce them.
+The corpus is a lower bound on this literature: of the 103 coded sources dated by 1~October (96 studies and 7 grey sources), 85 were in the corpus before the run of 8~October and 18 entered it only after that run, namely 5 arXiv papers not retrieved on 1 or 4~October, possibly because the search interface changed, and 13 Zenodo records whose earlier screening outcome is unknown. The search may therefore still have missed some.
+The requirements reflect one reading of \pol{}, so the analysis may miss strengths of typed models that it does not ask about.
+
+\paragraph{Quality of the sources.}
+Many sources come from single authors working quickly.
+Of the 27 early studies graded by a community tracker, none was rated at low risk of bias~\cite{rafe2026awesome}, and studies of failures may be over-represented.
+Several studies use open models rather than the hosted one, and some do not report the hosted version.
+
+\paragraph{Coding.}
+The tallies pool hosted and open models and count studies by the same authors separately, and their largest category, Q, does not separate mixed results from conditional successes.
+Screening, coding and verification were carried out by AI agents of one model family under the author's direction. The agreement statistic ($\kappa = \nKappaAll{}$) may therefore misstate, in either direction, how reproducible the codebook is for human coders, and it was measured before the codebook reached its final form. It also implies that a share of the pairs coded only once would be coded differently on a second reading.
+A human re-coding of a random sample would test this directly.
+
+\paragraph{The typed interface is not isolated.}
+This analysis assesses typed models as deployed, not the typed interface as such.
+The closest prior work compared the typed readout with label-probability readouts of comparable models and found that, in the early literature, the readout had not yet shown an independent accuracy advantage~\cite{arx32160}.
+We did not repeat that comparison, and our comparator field records generative evaluators only.
+A failure we attribute to typed models may therefore come from the backbone, the training or the task rather than from the interface, and the verdict applies to hosted \jev{} and to the typed models tested beside it, not to the interface in general.

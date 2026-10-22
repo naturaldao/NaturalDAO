@@ -1,0 +1,11 @@
+scenario,step,minority_win,minority_win_ci,regret,minority_voice_share
+baseline,ranked 20/80 free talk,0.174,0.02351,0.21709,0.12439
+baseline,+ equal power,0.414,0.03054,0.13712,0.19809
+baseline,+ quadratic voting,0.638,0.0298,0.07688,0.19809
+baseline,+ turn- taking,0.698,0.02847,0.06065,0.2
+baseline,+ EAP screening,0.619,0.03011,0.08043,0.2
+hostile,ranked 20/80 free talk,0.103,0.01885,0.23886,0.06965
+hostile,+ equal power,0.17,0.02329,0.21314,0.11519
+hostile,+ quadratic voting,0.352,0.02962,0.15683,0.11519
+hostile,+ turn- taking,0.678,0.02897,0.06566,0.2
+hostile,+ EAP screening,0.758,0.02656,0.04699,0.2

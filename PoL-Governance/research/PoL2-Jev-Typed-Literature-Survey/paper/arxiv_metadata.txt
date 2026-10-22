@@ -1,0 +1,15 @@
+Title:
+Can Typed Decision Models Serve as Automated Safeguards? A Clause-Level Assessment Against the Proof of Love2 Specification
+
+Authors:
+Shentao Yan
+
+Abstract (1918 characters; arXiv limit 1920: OK):
+Typed decision models return a probability over caller-declared options instead of text, which makes screening every message affordable, but whether they can serve as automated safeguards has not, to our knowledge, been assessed against what a governance text requires. We assess them against the Proof of Love2 (PoL2) specification, an open text that prescribes a "safety valve" against hate language, provides for AI-only adjudication of welfare disputes and permits per-person assessment. We derive seven testable requirements from its clauses and assess them against 163 studies and 7 grey sources on the first typed model, Jev, and on open counterparts, published in the model's first 24 days. AI agents working under the author's direction read in full, appraised and coded the 133 that bear on a requirement, and we read the evidence back into the specification as five tensions, a reference design and a verdict. The evidence supports typed models as detectors under added conditions, since they rank risky English content well at a fraction of the cost of generative evaluators. It does not support them as judges: thresholds do not transfer, decisions can follow option names and can be steered by inserted content, and "I don't know" is rarely chosen when correct. Where compared with generative evaluators, typed models were not generally worse, but most failures were never compared, so they are not shown to be specific to typed models. On current evidence, at low or very low certainty, hosted Jev is not suitable for any PoL2 function that decides, and it can serve the safety valve only as a recorded, three-valued, locally calibrated detector whose consequential decisions end with a person. Even this extrapolates from English, as no study measures PoL2's construct in Chinese. We release the coding data, the certainty script and 16 acceptance tests for implementers of PoL2 and similar safeguards.
+
+Comments:
+35 pages, 3 figures. Online appendix: https://github.com/naturaldao/NaturalDAO/blob/main/PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey/paper/online_appendix.pdf. Data, evidence coding, review logs and scripts: https://github.com/naturaldao/NaturalDAO (PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey)
+
+Primary category (suggested): cs.CY (Computers and Society)
+Cross-list (suggested): cs.AI
+License (suggested): CC BY 4.0

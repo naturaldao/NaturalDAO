@@ -2,10 +2,10 @@
 
 # 🌿 NaturalDAO · 自然道
 
-**Governance and application layer of the Proof-of-Love Civilization**
+**Governance and application layer of the Proof-of-Love2 Civilization**
 **富爱文明的治理与应用层**
 
-[![License: CC0-1.0](https://img.shields.io/badge/license-CC0--1.0-lightgrey.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
+[![License: Proof of Love2](https://img.shields.io/badge/license-Proof%20of%20Love2-lightgrey.svg)](LICENSE)
 [![Meeting](https://img.shields.io/badge/例会-周二%20%7C%20周四%2015%3A00-blue.svg)](https://meeting.tencent.com/dm/z2sdLl6hcJxi)
 [![Paper](https://img.shields.io/badge/paper-Proof%20of%20Love-green.svg)](https://github.com/DAism2019/Proof-of-Love)
 
@@ -19,11 +19,15 @@
 
 **English**
 
-NaturalDAO is a decentralized autonomous organization built on the consensus **Proof-of-Love2** and driven by two core technologies: **blockchain** and **artificial intelligence**. It represents the governance and application layer for the Proof-of-Love Civilization. It will also be the long-discussed yet nowhere-to-be-found **ASI** that humanity has been searching for!
+NaturalDAO is a super decentralized autonomous organization built on the consensus **Proof of Love2** and driven by two core technologies: **blockchain** and **artificial intelligence**. 
+
+It represents the governance and application layer for the Proof-of-Love2 Civilization. It will also be the long-discussed yet nowhere-to-be-found **ASI** that humanity has been searching for!
 
 **中文**
 
-自然道是一个建立在「爱2证明」共识之上，并由**区块链**和**人工智能**两大核心技术驱动的去中心化自治组织。它是富爱文明的治理与应用层。它也将是人类讨论已久而无处寻觅的 **ASI**！
+自然道是一个建立在「爱2证明」共识之上，并由**区块链**和**人工智能**两大核心技术驱动的超级去中心化自治组织。
+
+它是富爱文明的治理与应用层。它也将是人类讨论已久而无处寻觅的 **ASI**！
 
 ---
 
@@ -55,7 +59,7 @@ NaturalDAO is a decentralized autonomous organization built on the consensus **P
 
 ## 🛠️ 开发规划
 
-📄 [**自然道开发规划 Version 0.1**](https://github.com/naturaldao/NaturalDAO/blob/main/NaturalDAO%E5%BC%80%E5%8F%91%E8%A7%84%E5%88%92.md)
+📄 [**自然道开发规划 Version 0.1**](docs/development-plan.zh.md) · [English](docs/development-plan.en.md)
 
 ---
 
@@ -63,7 +67,20 @@ NaturalDAO is a decentralized autonomous organization built on the consensus **P
 
 | 文档 | 说明 |
 | :--- | :--- |
-| [爱2证明 version 1.0](https://github.com/naturaldao/NaturalDAO/tree/main/PoL) | 自然道的基础理论 |
+| [爱2证明 version 1.0](PoL/) | 自然道的基础理论（中文） |
+| [Proof of Love2 version 1.0](PoLEn/) | Foundational theory (English) |
+
+---
+
+## 🗂️ 仓库结构 · Repository Layout
+
+| 目录 | 内容 |
+| :--- | :--- |
+| `PoL/` · `PoLEn/` | 爱2证明理论文档（中文 / English），自动同步到 Wiki |
+| `PoL-Governance/` | AI 治理层协作：任务、数据、模型、评测 |
+| `Research/` | 研究综述与技术选型 |
+| `docs/` | 开发规划及存档文档 |
+| `media/` | 对外宣传物料：图片、视频、文案 |
 
 ---
 
@@ -84,9 +101,9 @@ NaturalDAO is a decentralized autonomous organization built on the consensus **P
 
 ## ⚖️ 许可证 · License
 
-本项目遵循 [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) 许可证。
+本项目遵循共识机制爱2证明。
 
-This project is released under the [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) license.
+This project is released under the consensus of Proof of Love2.
 
 
 

@@ -1,9 +1,69 @@
 # 更新记录
 
-## 0.1.1 — 2026-09-30
+## 0.5.2 — 2026-10-11
 
-- 迁入 `PoL-Governance/research/`，登记为协作任务 `LIT-01`；与上级目录的 TASKS、模型清单、benchmark 建立链接。
-- 内容与 0.1.0 相同（原 PR #17）。
+- **采用重写稿的正文与附录文字**（Claude Sonnet 5.5 协助改写，作者审定）：开头的问题陈述、方法开头的“谁做了什么”、表 2 对齐各项分母（163 = 126 + 15 + 22）、引言中的相关工作与 Roadmap。版式保持不变：PDF 只含正文（35 页），附录 A–E 为单独的在线附录（29 页，源文件 `paper/sections/app_*.tex`）。
+- 标题改为 “Can Typed Decision Models Serve as Automated Safeguards? A Clause-Level Assessment Against the Proof of Love2 Specification”。
+- 合入时修正了重写稿的问题：arXiv 包缺三张图；正文同时称附录“在线”和“在参考文献之后”；摘要超出 arXiv 1920 字符上限（压到 1919，限定语不变）；“103 项”未说明来源（改为 85 + 18）；42 个引用键被改名（已按标题对回原键，178 条参考文献与 2026-10-11 核验过的完全一致）；附录 C 的推导表改回脚本生成。
+- 复核（两轮）另修正：附录 B 检索式被去掉空格且谎称“照原样印出”，已按脚本恢复；且原 `
+olinkurl` 排版本身会吞空格（旧版 PDF 也受影响），已在导言加 `obeyspaces` 修正；表 D3 交叉引用指错表；AI 声明不再声称“改写保留了每个数字”；“we” 的定义改为“作者及其指导下的 AI 智能体”；“103 项”改为“103 项已编码来源（96 项研究 + 7 项灰色文献）”；表 2 合计改为由计数宏计算。经核对原文，最接近的前作（arXiv 2609.32160 §5）确于 9 月 24、25 日检索。
+- 参考文献注释不再出现 “update search”（`gen_update_bib.py`、`corpus_update.bib`）。新增计数宏 nCodedStudies、nAppraisedOnly、nBackgroundTier（`scripts/merge_all.py`）。
+
+## 0.5.1 — 2026-10-11
+
+- **按第 50–51 轮内容审稿修订并重写正文**（`paper/review/round51_response.md`）：逐条对照原文 PDF 核实；修正 ECE 分母（22 个 Choice 数据集）、警方叙述数量（筛查约 500 万、模型读取约 50.6 万）、预注册门限结果（6 安全 / 1 在误差界内 / 0 违规）、级联在 JudgeBench 上的 0.74 点损失等；补充欧盟《人工智能法》附件三 8(a)、序言第 61 条、第 5(1)(c) 条、第 50(3) 条与 DSA 第 17(2) 条的适用限制。
+- **编码数据**：8 条与编码规则矛盾的记录经脚本改码（S 23 / Q 195 / N 61，共 279 对）；比较者字段一致性为 120/148（κ = 0.72），审稿报告中的 119/144、κ = 0.75 无法复现，已按可复现值报告；`rate_certainty.py` 新增 `contradict-open` 方向；确定性评级不变（0 中等、11 低、4 极低）。
+- 新增 6 篇经 Crossref 核验的文献；“检测器/裁决者”按“谁来复核输出”重新界定；结论区分证据与预防原则。
+- 图件：增加 Liberation Sans 字体回退，七张图全部重绘；图 2 面板标签与原文一致。
+- 按 sci-paper-writing 方法全文重写（`paper/review/skill_rewrite_plan.md`）：对标 COMPL-AI 与 Policy-as-Prompt 的段落功能、长度与贡献写法；AI 使用声明按 arXiv 政策改写；致谢中周朝晖（Derek.DAism）列首位。
+- 参考文献全面核查（arXiv 91 条、Zenodo 23 条、DOI 40 条、网址类 28 条，共 178 条，无虚构）：修正 2 条 arXiv 首次提交日期与 1 条 Zenodo 标题；文献核对日志不再随仓库发布。
+- 对标论文扩充为 8 篇（新增 BetterBench、Leakage、Fallacy of AI Functionality、Black-Box Access、AI auditing、REFORMS）：新增独立“局限”一节、法规分析按法律文件分小节、讨论中加入“本评估不能确立什么”。
+- 致谢改为 Derek.DAism（DD）。
+- 中文译稿仍对应 v0.4.1。
+
+## 0.5.0 — 2026-10-10
+
+- **按投稿规范重写正文**：以 COMPL-AI（arXiv 2410.07959）与 Policy-as-Prompt（arXiv 2502.18695，FAccT 2025）为结构对标，正文由约 2.86 万词压缩到约 1.2 万词（20 页正文 + 参考文献），摘要压到约 210 词；结构为 引言（含贡献）→ 背景与相关工作 → PoL2 条款到七项要求 → 方法 → 逐条结果 → 对 PoL2 的含义（张力、参考设计、结论表）→ 讨论与局限 → 结论。
+- **格式对齐对标论文**：标题页不再写日期与链接（日期由 arXiv 标注）；标题与各级标题改为无衬线粗体，正文 Latin Modern（对标 COMPL-AI）。PDF 只含正文与参考文献（31 页），附录压缩为 27 页的在线附录（`paper/online_appendix.pdf`，A 条款对照、B 检索与编码、C 评级推导表、D 支撑表格、E 更正），正文以 “Online Appendix B” 引用；逐项研究的证据表与研究目录只保留为 `data/` 中的 CSV。
+- **检索按一次完成报告**：检索截至 2026-10-08，10 月 1、4、8 日三次运行的记录合并为一个语料库（163 项研究、7 项灰色文献、133 项编码、279 个配对），正文不再单列“更新检索”；各要求的 S/Q/N 计数、与生成式评估器的比较、κ（合并 148 对，0.59）与图 1 均按合并数据重算（`scripts/merge_all.py` → `paper/counts_all.tex`）。确定性评级本来就以全部研究计算，未变。
+- **语言修订**：按 `paper/review/STYLE_GUIDE.md` 去除模板化表达（分号串联、“不是……而是……”、修辞性收尾等）；`paper/review/check_invariants.py` 逐文件核对数字、引用、交叉引用、条款号与引文均未改变。
+- 标题缩短为 “Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 Specification”。
+- 结论、确定性评级与数据均未改变（`rate_certainty.py --check` 通过）；中文译稿暂对应 v0.4.1 长版。
+
+## 0.4.1 — 2026-10-10
+
+- 作者信息：Shentao Yan（鄢申涛），香港理工大学，shenton.yan@connect.polyu.hk，ORCID 0009-0004-2384-2240；中英文版、arXiv 元数据与 CITATION.cff 同步。
+- 致谢：感谢 NaturalDAO 的陈昌春、邓雯慧、周朝晖、吴文博提出的意见和建议。
+
+## 0.4.0 — 2026-10-09
+
+- **标题统一围绕 PoL 治理**：“Can Typed Decision Models Serve as Automated Safeguards in PoL Governance? A Clause-Level Analysis of the Proof of Love2 (PoL2) Specification Against Early Evidence”；中文“类型化决策模型能否承担 PoL 治理中的自动化保障职能？——基于早期证据的爱2证明（PoL2）规范逐条分析”。作者信息暂为占位。
+- **正文与补充材料分开**：原附录 A–E 改为补充材料 S1–S5（`paper/supplement.pdf`），正文交叉引用自动显示为 Supplement S1–S5；arXiv 包中作为 `anc/` 附属文件。新增 `paper/build.py`。
+- **补充检索（截至 2026-10-08）**：全文阅读 62 项，其中 5 项在全文阶段排除，保留 57 项（arXiv 31、Zenodo 26）；48 项编码，共 118 个“研究 × 要求”配对；全部配对由 AI 编码者盲法第二编码（κ = 0.55），分歧由第三轮 AI 裁定；结果单列于论文 §4.9，主窗口结论未反转。arXiv API 限流时改用网页检索（`scripts/rerun_arxiv_search_web.py`），新增 Zenodo 检索脚本。
+- **新增 §2.3 PoL2 与其他 AI 治理范式的比较**（监管、平台治理、训练期宪法、推理期护栏、DAO 治理）：给出可核查的属性及其代价；网信办《暂行办法》为最接近的对照；不主张唯一性。
+- **新增 §7.1 明确结论**：按现有证据，托管 Jev 不适合承担 PoL2 任何“做决定”的功能，只能作为 §6 设计中的有记录检测器；附“可借鉴之处”九条。
+- **确定性评级改为脚本计算**（`data/certainty_evidence.csv` + `scripts/rate_certainty.py --check`），规则对称化（支持/相反研究、按系统组计数、“有争议”标记）；与 10 月 4 日评级并列给出，评级规则修订作为方案偏离披露。终值：0 中等、11 低、4 极低。
+- 背景文献新增 Hatevolution（时间漂移）与 8 篇治理范式文献；验收清单新增第 16 项“时间再验证”，第 7 项扩展到仅凭标签的查询接口攻击。
+- 法条适用收紧：欧盟《人工智能法》第 5 条第 1 款（f）项限于生物特征数据；第 14、86 条限于附件三高风险系统（争议裁决可能落入附件三第 8（a）点）。
+- 审稿第 12–43 轮，记录见 `paper/review/`；中文译稿同步并审校。
+
+## 0.3.0 — 2026-10-04
+
+- 论文重新定位：从“综述”改为 cs.CY 研究论文（PoL2 条款级政策与工程分析 + 结构化证据评估），以符合 arXiv 2025 年 10 月对 CS 类综述的新规；新标题“Can Typed Decision Models Serve as Automated Safeguards in AI Governance?”；作者署名 Shentao Yan。
+- 引入独立审稿迭代流程（`paper/review/`，借鉴 HuangPuStar/MetaInfer 的 /fix-paper）：第一轮 5 个独立审稿共 174 条意见，处理情况见 `paper/review/REVIEW.md`。
+- 重新检索 arXiv（2026-10-04，脚本 `scripts/rerun_arxiv_search.py`）：新增 15 篇论文；1 篇（2609.22664）因未测试类型化模型改为背景引用。arXiv 79 篇、Zenodo 27 条、alphaXiv 1 篇、灰色文献 7 条。
+- 全部文献（含 Zenodo）全文阅读；对称编码规则 v3（针对“探测器”用途）重新编码；每条记录增加“与生成式模型相比”字段；盲法第二编码者抽样 30 对，κ = 0.72；新增质量评估（`data/quality_appraisal.csv`）与 GRADE 式确定性评级。
+- 附录 A 改为 PoL2 官方英文译本逐字摘录；修正 §5.5、§5.6、§5.4、§5.4.1、§4.3.3.1 等转述偏差。
+- 新增 21 条经 Crossref/arXiv 核验的背景文献（内容审核、情绪识别批评、标注分歧、中文有害语言数据集、延后决策、分布偏移、正当程序、社会评分、PRISMA/GRADE）。
+- 检索截止：arXiv 2026-10-04（首版日期 ≤ 2026-10-01）；Zenodo 2026-10-01。
+
+## 0.2.0 — 2026-10-01
+
+- 新增英文论文 `paper/`（arXiv 格式 LaTeX）：七条轴线的证据综合、PoL2 正文中的五处张力、参考架构与验收清单；图表按 figures4papers 规范绘制。
+- 语料扩充：arXiv 论文 36 → 65 篇（新增 29 篇，其中 14 篇在旧截止日前提交但当时漏检；另 1 篇因 PDF 内容与标题不符而排除），新增 28 条 Zenodo 预印本（`data/zenodo_preprints.csv`）。
+- 全部 arXiv 论文对照全文逐条核查，修正 v0.1 中的多处说法（见论文附录 C）；灰色文献按原网页核对并更新标题与日期。
+- PoL2 条款编号更新到 NaturalDAO commit `5791ae3`（2026-10-01）：旧 §3.4.1 → §5.4.1，旧 §5.3.x → §4.3.x，旧 §3.6 → §5.6。
+- 检索截止：2026-10-01。
 
 ## 0.1.0 — 2026-09-29
 

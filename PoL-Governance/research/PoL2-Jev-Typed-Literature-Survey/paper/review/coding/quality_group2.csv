@@ -1,0 +1,28 @@
+doc,verification,independence,design,size_uncertainty,quality,notes
+arx24052,full text,independent,held-out,n+CI,higher,"Out-of-fold recalibration over 50 repeats; bootstrap CIs; 2,416 blinded human judgments."
+arx24574,full text,independent,preregistered,n+CI,higher,"AsPredicted #312,511; paired bootstrap with BH-FDR; three documented deviations."
+arx24965,full text,independent,held-out,n only,moderate,Repeated runs (5 per configuration) on a 10-case development collection; no intervals; all reference labels 'inconsistent'.
+arx26532,full text,author-built system,held-out,n+CI,higher,Authors built REFLEX; 100 frozen held-out tasks; paired cluster bootstrap and McNemar; external tau2 check.
+arx26550,full text,independent,held-out,n+CI,higher,Frozen pre-specified policies and a pre-specified live test; other analyses retrospective; CIs not multiplicity-adjusted.
+arx28613,full text,independent,preregistered,n+CI,higher,"Registered hypotheses and SESOI; fresh validation calls separate from optimisation; 54,060 calls."
+arx29429,full text,independent,held-out,n+CI,higher,"Split-half question selection; bootstrap CIs; mostly scorer labels, human labels on two benchmarks."
+arx30243,full text,independent,single-run,n+CI,lower,Author-designed attack optimiser applied once per item; Wilson CIs reported.
+arx33689,full text,independent,preregistered,n+CI,higher,Preregistered endpoints reported as registered; simulated 5G testbed with rule-derived labels.
+arx33971,full text,independent,single-run,n+CI,lower,Exploratory single collection with bootstrap CIs; small order and repeat audits.
+arx34024,full text,independent,single-run,n+CI,lower,Each model/condition run once; authors label results preliminary; bootstrap CIs.
+arx34963,full text,author-built system,single-run,n only,lower,Authors built the JevVibe repair agent; no intervals or tests reported.
+arx35286,full text,independent,preregistered,n+CI,higher,"Preregistered collections; post hoc conditional p-values in appendix; Jev supplement descriptive only, different rubric."
+arx35342,full text,independent,held-out,n+CI,higher,Each of 365 items queried 10 times (repeated runs); bootstrap CIs; correction map fitted in-sample.
+arx37470,full text,independent,single-run,n+CI,lower,"Single collection on 1,000 worlds; several analyses post hoc; bootstrap CIs."
+arx37647,full text,independent,single-run,n+CI,lower,"One frozen template, single zero-shot pass over full splits; bootstrap intervals."
+arx38827,full text,independent,single-run,n only,lower,Single evaluation for Jev; held-out only for KEV post-training; no intervals reported.
+checkpoint,live source,independent,case study,n only,lower,"Live page blocked (Cloudflare); read 2026 Wayback capture. One application, one objective; authors call it directional, not a benchmark."
+replication,live source,independent,single-run,n only,lower,Partial replication (5 of 44 legs) with jev-latest; thresholds by 2-fold CV; no CIs.
+zen22957049,full text,independent,single-run,n+CI,lower,Full text read (paper-zh.md in Zenodo zip; English README). AI-agent first author; paired bootstrap CIs; open models only.
+zen22980293,full text,independent,preregistered,n+CI,higher,"Full PDF read. Registration pushed before first call; generated stimuli with exact ideal observers; 48,300 calls."
+zen22995519,full text,author-built system,case study,n only,lower,Full PDFs read (EN benchmark and public-service papers). 10 civic + 5 emergency scenarios; author's own benchmark and two-tier pipeline; no intervals.
+zen23023694,full text,independent,case study,n only,lower,"Full PDF and README read. 39 questions x 10 runs, mostly one wording each; film answers are not ground truth."
+zen23041163,full text,independent,held-out,n+CI,higher,"Full PDF read. Benchmark built by authors but typed model (Laya) is third-party; hosted Jev not reached; five-seed baselines, paired t-tests."
+zen23055593,full text,independent,single-run,n+CI,lower,Full paper.en.md read from Zenodo zip (draft 0.7) plus addendum; corrected p-values; Jev not rerun.
+zen23064668,full text,independent,non-empirical,none,lower,Full PDF read. Theory paper with simulations; makes no empirical claim about Jev.
+zhbench,live source,independent,single-run,n+CI,lower,"Live README read (now beyond v0.2, adds NeoHorse-Jev-4B); bootstrap CIs; small business groups (n=21-55); single adjudicator."

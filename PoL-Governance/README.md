@@ -13,6 +13,7 @@
 | 提交训练与评估结果 | [results](results/README.md) |
 | 深入调研模型 | [Research Agent Prompt](research/model-research-example.md) |
 | 查 Jev 类模型的研究证据 | [文献综述](research/PoL2-Jev-Typed-Literature-Survey/README.md)（37 篇论文，对照 PoL2 条款） |
+| 看 PoL2 条款如何落到 DAO 投票与审议 | [治理机制实验室](research/PoL2-DAO-Governance-Lab/README.md)（14 个实验，含公开试例评测） |
 
 **已有**：20 条公开合成试例、盲输入导出、双人标注/分歧工具、诊断评估器、Kev 本地适配器、41 项自动化测试（benchmark 34 + board 7）。
 **待完成**：独立标注、正式数据、真实训练与模型评测、插件。现有建议标签不是金标准。
@@ -23,6 +24,6 @@
 uv run --no-project --offline python tools/check.py
 ```
 
-本目录可完整复制到其他仓库独立使用，无需安装模型。原创代码与文档采用随附 [CC0](LICENSE)；外部数据、模型及引用保留各自许可，不随本目录变更。
+本目录可完整复制到其他仓库独立使用，无需安装模型。原创代码与文档的当前许可声明遵循随附 [Proof of Love2](LICENSE)；此前版本已授予的 CC0 或其他许可不因本次更新而撤销。外部数据、模型及引用保留各自许可。
 
 主分支尚未包含本目录时，可从提供本目录的初始化分支开任务分支，或将整个目录复制到自己的仓库；不必等待初始化 PR 合并。

@@ -1,0 +1,16 @@
+source,id,stage,reason
+arXiv,2609.20587,title,cell-motility physics model; accidental keyword match
+arXiv,2609.23513,title,quantum physics; accidental phrase match
+arXiv,2609.32893,title,astronomy (61 Cygni); accidental phrase match
+arXiv,2609.32191,title,pure mathematics; accidental match
+arXiv,2609.36093,title,economics; "direct decision" unrelated
+arXiv,2609.28182,abstract,safety certification of generic AI controllers; no typed decision model
+arXiv,2609.38334,abstract,LLM-agent post-training; "direct decision supervision" unrelated
+arXiv,2609.37009,abstract,generative LLM agents for evacuation simulation; no typed decision model
+arXiv,2609.38861,abstract,"literature QA system; ""typed answers"" are evaluator answer types"
+arXiv,2609.33609,full text,"""Jev-LDE"" is an unrelated generative model; no TypeSafe or typed-decision interface"
+arXiv,2609.35039,full text,PDF contains a different manuscript without results (excluded in v0.2)
+arXiv,2609.22664,full text (reclassified),measures and builds no typed model; cited as context
+Zenodo,22953637,full text,deterministic rule engine; no typed model despite the name
+grey,willison2026jev,full text (reclassified),commentary without original measurements; cited as context
+grey,molas2026calibrated,full text (reclassified),statistical argument without original measurements; cited as context

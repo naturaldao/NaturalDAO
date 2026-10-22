@@ -1,0 +1,28 @@
+doc,verification,independence,design,size_uncertainty,quality,notes
+alphaRAG,full text,independent,single-run,n only,lower,"Full report read on GitHub (same content as the alphaXiv post); 453 items, one pass per configuration, no intervals."
+arx22664,full text,author-built system,case study,none,lower,Author develops NeuroSploit (competing interest); no typed model measured.
+arx26758,full text,independent,held-out,n+CI,higher,"1,200 Laya/Jev and 1,800 Open-Jev questions; bootstrap CIs; Jev arm re-run on 300 for test-retest."
+arx27535,full text,author-built system,preregistered,n+CI,higher,KITE is the author's system; version-controlled preregistered criteria; primary policy-value endpoint not met.
+arx27607,full text,author-built system,held-out,n+CI,higher,"Authors' S1Fact evaluator built on Jev; calibration holdout, five repeated runs, bootstrap CIs."
+arx29769,full text,independent,held-out,n+CI,higher,"v2 read; cross-fitted thresholds (50 halvings), repeated stability passes, sign tests."
+arx30216,full text,independent,single-run,n only,lower,Snapshot to 22 Sep 2026; labelling by LLM agents with second-agent review.
+arx32160,full text,independent,non-empirical,none,lower,Evidence review of 28 papers; secondary source.
+arx33209,full text,independent,held-out,n+CI,higher,"3,360 Jev calls each repeated once; noise floor measured; 95% CIs."
+arx33282,full text,author-built system,held-out,n+CI,higher,Authors' SubJudge model; fixed test splits with intervals; Jev not tested.
+arx33401,full text,independent,held-out,n+CI,higher,Selection/confirmation/test splits; bootstrap CIs; Jev version not reported.
+arx33671,full text,author-built system,held-out,n+CI,higher,"COGNIT-Guard is the author's system; 70/15/15 split, Wilson CIs; cascade measured only on 130 live queries."
+arx34862,full text,independent,single-run,n+CI,lower,Single pass per judge; exploratory paired bootstrap; Jev version not reported.
+arx35865,full text,author-built system,held-out,n+CI,higher,"Authors' PACT method; frozen 324-item holdout, three seeds, McNemar tests."
+bernoulli,live source,independent,single-run,n only,lower,"Large observational sample (738,164 Choice answers) but no outcome labels; small repeat test (6-10 calls)."
+molas,live source,independent,non-empirical,none,lower,Blog argument; no data.
+sev,full text,independent,held-out,n+CI,higher,GitHub technical report PDF and README read; reproduction of Laya recipe with seeds (mean and std); not peer reviewed.
+simmons,live source,independent,single-run,n only,lower,Blog; one run on one afternoon; no counterbalancing of option order.
+zen22783171,full text,independent,preregistered,n+CI,higher,"Read ADDENDUM, EVIDENCE, VitaminC RESULTS and publication notes in the supplement; local pre-inference protocol freeze (not a public registry); Wilson intervals; RR wrapper is author-built but Jev is third-party."
+zen22846597,full text,independent,single-run,n only,lower,One-page technical note PDF; n=30 records; repository README consulted.
+zen22847531,full text,independent,non-empirical,none,lower,Essay (thesis-typed record).
+zen22848952,full text,independent,case study,n only,lower,"Single call per case, n=6 states; experiments 2-4 data-motivated, not preregistered."
+zen22858286,full text,author-built system,non-empirical,none,lower,Methods note on the author's TRAJEXA export; only 14 synthetic software tests; no live model evaluation.
+zen22864020,full text,independent,case study,none,lower,"Exploratory adaptive black-box tests, single runs, user-reported probabilities."
+zen22901853,full text,independent,held-out,n+CI,higher,"MANUSCRIPT.md read; repeated draws for LLM arms, CIs and Holm-corrected tests; author also wrote the third-party laya-mcp wrapper whose fields are criticised."
+zen22922769,full text,independent,preregistered,n+CI,higher,Locally hashed analysis plan before holdout; bootstrap and Wilson CIs; n=204.
+zen22959854,full text,independent,preregistered,n+CI,higher,Seven hypotheses fixed before final run; 200 items; 95% CIs; open Kev-0.8B only.

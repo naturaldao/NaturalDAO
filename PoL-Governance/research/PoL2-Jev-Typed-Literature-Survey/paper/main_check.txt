@@ -1,0 +1,1967 @@
+Can Typed Decision Models Serve as Automated
+Safeguards
+in AI Governance?
+A Clause-Level Analysis of the PoL2 Specification Against Early Evidence
+Shentao Yan
+4 October 2026
+Abstract
+Typed decision models, which return a probability over caller-declared options instead of text, make screening every message cheap. We ask whether they can serve as safeguards, using as a case the Proof-of-Love2 (PoL2) specification, an open governance text prescribing an AI "safety valve" that intercepts hate language, AI-only adjudication of welfare disputes and per-person behavioural assessment. We derive seven testable requirements from its clauses and assess them against 107 studies and 7 grey sources on the first such model, Jev, and its open counterparts from its first seventeen days; the 85 relevant sources were read in full, appraised and coded by AI agents under the author's direction (a blind second AI coder agreed on 26 of 30 sampled pairs,  = 0.72). The evidence supports typed models as detectors: they rank risky content well at a fraction of the cost of LLM evaluators, and in one preregistered study, accepting their low-risk verdicts only when an independently built rule agreed lost no accuracy, though disguised attacks passed. It does not support them as judges: thresholds do not transfer, decisions can follow option names and be steered by an inserted opinion, an explicit "insufficient" option is rarely chosen, and on items selected as confident errors, peer evaluators repeated almost all of them. Typed models were not generally worse than the generative evaluators compared, but most failures lack a comparison; certainty is mainly low. Read against the EU AI Act, the GDPR and the Digital Services Act, the evidence sharpens five tensions: emotion recognition, binary verdicts, transparency with closed models, non-intervention in AI adjudication, and per-person scoring. We propose a reference design with provisional acceptance criteria in which typed models are recorded, three-valued, locally calibrated detectors and consequential decisions end with a person.
+1 Introduction
+Automated systems already decide which posts are removed, which accounts are suspended and which transactions are held, and a growing number of governance proposals would extend such decisions to AI systems acting with little or no human involvement [1-3]. The practical obstacle has been cost and latency: a generative language model that reasons about each message is too slow and too expensive to sit in front of every input and output. On 15 September 2026 TypeSafe AI released Jev, a model that removes this obstacle by not generating text at all [4, 5]. Given an input and a question declared by the caller, it returns a choice among listed options, a score on a rubric, or the probability that a statement is true, each with probabilities that the vendor says are calibrated [6, 7]. Because the output is a value rather than prose, ordinary code can threshold it and act on it, at a small fraction of the latency and price of a generative call. We call such systems typed
+1
+
+decision models; the vendor's own term, "System One" models, borrows the dual-process metaphor of fast, intuitive judgement [8]. Within days, open-weight models with the same interface appeared, and by 1 October 2026 dozens of studies had evaluated them.
+This paper asks whether typed decision models can serve as automated safeguards in AI governance, and under what conditions. We study the question through one governance specification that makes it unusually concrete. Proof of Love2 (PoL2) is an open, versioned governance text [9, 10] that places an inner governance layer inside existing large language models (LLMs), with a safety valve that audits and intercepts their inputs and outputs so that hate language is, "where necessary", blocked (§ 5.4.1). Its public-welfare protocol makes an AI organisation, NaturalDAO, responsible for welfare decisions without human votes, for anomaly detection, for a verifiable decision chain and for adjudicating disputes, while human supervision "does not directly intervene" (Art. 2-Art. 10). Read as engineering requirements, these clauses ask for exactly the kind of fast, structured, recordable judgement that typed models provide, and they also raise the societal stakes plainly: the judgements would restrict speech, allocate welfare and settle disputes. Our research question is therefore:
+To what extent, and under what conditions, can typed decision models perform the judgements that a clause-governed AI safeguard such as the PoL2 safety valve requires, and what does the evidence imply for how such a specification should be written and implemented?
+Detector or judge. Our conclusions turn on a distinction between two roles. A detector produces a recorded signal that ranks, prioritises or triggers review, or that triggers only actions bounded in time and fully reversible. A judge is any automated component or ensemble whose output, without contemporaneous human confirmation, determines an outcome that restricts a person's speech, resources or account beyond a short bounded period, or that cannot be fully reversed on appeal. Under this definition, an automatic allow is also consequential when it lets through content that harms someone else, so a detector's miss rate is a governed quantity alongside its false-block rate. We use judge in this sense only; where the literature speaks of "LLM judges" or "LLM-as-a-judge" we write LLM evaluators, except in paper titles.
+Thesis. Our thesis is conditional and comparative. The evidence available on 4 October 2026 supports typed decision models as detectors: they rank risky content well on English benchmarks at a fraction of the cost of LLM evaluators, and in one preregistered study on simulated data, accepting their low-risk verdicts only when an independently built rule agreed lost no accuracy relative to a frontier LLM, though disguised attacks still passed. It does not support them as judges: thresholds do not transfer between settings, decisions can follow the names of options rather than their definitions, an inserted opinion can steer them, an explicit "insufficient information" option is rarely chosen, and, on rubric grading, low-cost peer evaluators repeated almost all of the errors on which a typed model was most confident. Where typed and generative evaluators were compared on the same requirement, typed models were not generally worse; but most of the failures were never compared, so the evidence neither singles out typed models nor shows that their failures are shared. No study yet measures the construct PoL2 needs, three-valued judgements of Love Language, hate language and the state of absence in Chinese, so even the detector claim is an extrapolation, and the certainty of most findings is low (Table 2).
+Contributions.
+2
+
+1. A requirements analysis of a governance specification. We turn the clauses of PoL2 that require or constrain machine judgement into seven testable requirements, G1-G7 (Section 3), and quote them, with the related passages we cite, in both languages (28 passages, Appendix A).
+2. A structured evidence assessment. We assess 107 studies and 7 grey-literature sources against these requirements: every source that bears on a requirement is read in full, appraised, and coded with a symmetric codebook by AI agents under the author's direction, a random sample is double-coded blind by a second AI coder, and key findings carry a certainty rating (Sections 3 and 4).
+3. A clause-level policy analysis. The evidence sharpens five tensions within the specification, on emotion recognition, binary verdicts, transparency with closed models, non-intervention in AI adjudication, and per-person scoring, which we compare with the EU AI Act, the General Data Protection Regulation (GDPR), the Digital Services Act and content-moderation norms (Section 5).
+4. A reference design with acceptance criteria. We propose a safeguard in which typed models are recorded, three-valued, locally calibrated detectors and consequential decisions end with a person, together with provisional pass criteria any model should meet before deployment (Section 6).
+The evidence assessment is the method by which the policy questions are answered: we do not attempt a general review of typed decision models, and studies are discussed only insofar as they bear on G1-G7.
+Relation to prior work. The closest prior work is an audit of the first 28 typed-model papers (19-24 September), which found that typed readout had not yet shown an independent accuracy advantage over reading label probabilities from a generative model, and proposed a 14-item evaluation checklist [11]. We cover a later and larger window, including the first studies of opinion attacks, abstention, probabilistic coherence and gated cascades; we read every source in full; and we organise the evidence around a governance specification and its regulatory context rather than around model evaluation. Our evaluation checklist extends that of [11] with pass criteria (Table 3). An earlier dataset release [12] summarised studies mainly from their abstracts; this paper supersedes it, and Appendix D lists the substantive corrections.
+Scope. We take the PoL2 clauses as the starting specification and ask whether, and how, they can be implemented with current evidence. Where the evidence bears on whether a clause can be implemented as written, Section 5 identifies the tension and offers options, at least one of which preserves the text; we do not evaluate PoL2's broader normative or political commitments. The author contributes to PoL2 (see Positionality and competing interests). Our conclusions apply to jev-1.13 (or the unreported hosted version used in some studies) and to the open models available on 1 October 2026.
+2 Background
+2.1 Typed decision models
+Interface. A typed decision model receives a state (text or structured data) and one or more questions, each with an option set declared by the caller. For each question it returns a probability distribution over exactly those options and generates no free text [11, 13, 14]. Jev offers three
+3
+
+question types [5, 11]: Choice selects among listed options (up to 255) and returns probabilities and a confidence value; Score rates the state against ordered rubric levels; Noul asks whether a statement is true and returns the probability of "yes". Many questions about one state can be answered in a single call [15, 16]. In a census of 2,170 public projects using Jev by 22 September, Choice appeared in 81.0% of projects, Noul in 72.2% and Score in 45.4% [17].
+Readout and training. The hosted model is closed. TypeSafe describes a "parallel sampler" and training by reinforcement learning for calibrated decisions (RLCD), and publishes the calibration property this training targets (among outcomes given probability p, a fraction close to p should occur), but not the architecture, the reward, the data or the weights [4, 6, 16, 18]. Open-weight models with the same interface appeared within days and make the mechanism inspectable. They fall into three readout families [11]: (i) decoders that score the hidden state at a designated answer position against the embeddings of the option labels and normalise over the declared options only (this-that-model-1.0, JevLite, SemIf, Visual Jev) [13, 19-21]; (ii) encoders that read a marker token placed at each option (Laya, a ModernBERT model) [14]; and (iii) encoders that pool the option name and its definition (Open-Jev, a DeBERTa model) [14]. Readouts of the same kind can also be taken from frozen instruction-tuned LLMs without further training [22, 23]. Two open models train with cross-entropy plus a Brier-score term [13, 19], and one open implementation of RLCD uses a REINFORCE loop rewarding the outcome minus the probability placed on the chosen option [18].
+What "type-safe" guarantees. In open models the scores of options outside the declared set are masked before normalisation, so every answer is a valid member of the option set by construction; for hosted Jev this is the documented behaviour [5, 14]. This guarantees form, not correctness [14]; calibration is a separate empirical property (Section 4.4). Hosted Jev is not deterministic: identical repeated requests change a small share of labels, and probabilities are reported on a two-decimal grid [11, 24]. The vendor's documentation lists nine known failure modes for jev-1.13, including literal reading, arithmetic, dates, indirection, large irrelevant state, adversarial content and contradictory instructions; a version of the page archived on 20 September also gave an example in which a statement and its complement received probabilities 0.72 and 0.47 [25].
+Cost and latency. The vendor lists $0.042 per million input tokens with free output, and its launch post cites 70-500 ms per call [4, 7]. Independent client-side medians range from about 150 to 500 ms depending on workload and request size [16, 20, 26-30]. Relative to generative evaluators, reported cost reductions range from a few-fold to two orders of magnitude depending on the comparator and the pricing assumed: for alignment-failure detection, 63× pooled at list prices but about 12× under conservative repricing [15]; for population simulation, 8× against a mid-tier model and 312-455× against a flagship model [27]. The advantage is not universal: in one edge-orchestration study a hosted low-cost generative model was billed less than Jev [28], and inside a multi-step agent loop the hosted model took 1.4-2.1 times as long end to end, including API calls, as a local open scorer [31].
+2.2 The case: the Proof-of-Love2 governance specification
+What kind of text it is. Proof of Love2 (PoL2, 2) is a normative framework for governing AI systems and human institutions, published in Chinese with an official English translation as an open, versioned, CC0-licensed text on GitHub [9, 10]. Its core concepts were originated by one author and the text lists seven further contributors, one of whom is the author of this paper
+4
+
+(see Positionality and competing interests); it has not been peer reviewed. The framework is explicitly value-laden and political: it presents AI alignment as a contest between civilisational paths, describes behaviour outside the "covenant of publicization" that its governance entails as a "hate attack on humanity's core ethic" (§ 5.5), and includes programmatic aims, such as a future ban on the possession of weapons (§ 4.3.2), that lie outside this paper's scope. We do not assess these commitments. We use PoL2 as a case because, unlike most AI-governance documents, it specifies an automated interception layer, AI-only dispute adjudication and per-person behavioural assessment concretely enough to be read as engineering requirements, and because it is versioned, so that every clause can be cited exactly. Clause numbers refer to commit 5791ae3 of the PoL/ directory (30 September 2026, UTC). Between the snapshot used by the earlier dataset release [12] (2e094d3, 27 September) and that commit, the framework's originator renumbered three chapters (commits 7750ceb-526da3d): the Ethical Alignment Protocol moved from Chapter 5 to Chapter 4, the governance chapter from Chapter 3 to Chapter 5 and the Contemplative Axioms from Chapter 4 to Chapter 3, and examples on fiction, games and safety warnings were added to § 4.3.2; the directory's table of contents still lists the earlier order. Table 4 in Appendix A quotes every passage we cite in both languages.
+Concepts. PoL2 defines love ("Love2") as a positive emotional experience and mode of behaviour built through public collaboration, and hate ("Hate2") as a survival response to danger, conflict or scarcity expressed through hostility, exclusion and violence (§ 1.1-§ 1.2). Because inner experience is "difficult for others to confirm", the framework works with the linguistic and behavioural expressions of love and hate, Love Language and hate language (§ 1.4, § 4.3.2); we use the terms of the official translation throughout. Two qualifications matter for any classifier built on these terms. First, hate is "not directly equivalent to bad", and the concepts "serve structural analysis rather than moral labeling" (§ 1.5). Second, the Ethical Alignment Protocol (EAP) adds a third condition, the "neither love nor hate" state of absence, covering the "feeling-nothing state" caused by noise or illness, confusion and misunderstanding, which is to be treated as interference in communication rather than as either pole (§ 4.3.2).
+The Ethical Alignment Protocol. The EAP (Chapter 4) governs both Public AI (PAI) and people through three principles. Equal connection holds that treating every person equally and treating every person's behaviour equally "cannot be equated" (§ 4.3.1). Promoting love and restraining hate is to be applied case by case: fiction and games may contain manufactured hatred under graded management, emergency warnings by security robots are not hate attacks, and expressions that fabricate intimacy or kinship with users are named as emotional manipulation (§ 4.3.2). Love's alignment asks PAI to record and publish personal boundary declarations and to supervise equal participation in repair after conflict (§ 4.3.3). For PAI itself it lists awareness of emotional experience ("PAI needs to understand human emotional states and processes"), "cognitive calibration" of its cognitive model against the framework's principles, "behavioral self-reflection" on its own output, and "hate-language truncation", the active interruption of output when a hate-language pattern is detected (§ 4.3.3.1). Two further passages bound what may be measured. § 4.3 states that PAI may help people by judging behavioural patterns, but that it is "entirely unnecessary" for PAI to detect a person's emotional state, which is "fleeting, personalized, and context-sensitive" and "involves human dignity". § 4.3.3.3 presents the combination of semantic and emotion recognition as guidance for future AI skills, illustrated by two near-paraphrases ("Do you like the little dog?" versus "Are you afraid of the little dog?") of which the second may be an attempt to gain control by creating fear; the example concerns the intent of an utterance rather
+5
+
+than the speaker's inner state.
+The inner governance layer. The engineering strategy (§ 5.4) does not retrain existing large language models (LLMs). It builds a governance layer "within the existing large-language-model architecture to regulate inputs and outputs", with a plug-and-play application layer of agents, skills and devices outside it. The governance layer has two components (§ 5.4.1): a wisdom navigator that allocates "the wisdom of love and hate" according to the application, and a safety valve that performs "strict dynamic auditing and interception of input and output" so that hate language is, "where necessary", blocked at the input and suppressed at the output. Any LLM "may accept" this governance, which entails a "covenant of publicization" (§ 5.5). Among the things governed AI "can" do, the text lists quantifying "each person's Love Language and hate-language characteristics" with incentives to guide behaviour, and introducing PoL2 as a dimension of assessment in public decision-making (§ 5.6).
+The public-welfare governance protocol. Chapter 7 specifies how NaturalDAO, an AI system "presented in the form of a DAO" (decentralised autonomous organisation), governs public welfare. NaturalDAO decides and executes welfare decisions autonomously "on the premise of close collaboration with all humanity", and autonomy "means that no human voting or additional decision-making mechanism is required" (Art. 2(1)). Its operating logic, decisions and outputs must be fully open, resource flows traceable, and it must give understandable explanations when questioned (Art. 4, Art. 9(2)); it must not be a black box, and it must provide a verifiable decision chain of data sources, reasoning steps and ethical foundations (Art. 5(4)-(5)). It verifies ethical alignment automatically through the EAP (Art. 6(3)) and performs anomaly detection and risk warning (Art. 7). People hold a right of suggestion, which NaturalDAO must discuss immediately (Art. 8), and a right of supervision, including unimpeded access to data and logs (Art. 9(3)), under a non-intervention principle: supervision "does not directly intervene" in decisions, and issues raised by questioning are handled by NaturalDAO itself (Art. 9(7)). Disputes are adjudicated by NaturalDAO through AI fact-finding and ethical assessment, with a public process and result, subject to human questioning (Art. 10); amendments pass a universal questioning period and all versions are archived (Art. 11).
+Why typed decision models are relevant. Read as a specification, these clauses call for a very large number of fast, structured judgements: one for each input and output the safety valve audits, every truncation, every anomaly flag and every dispute. Each judgement must be machine-actionable (pass, block, escalate), recorded in a verifiable chain and explainable on request. A generative model can make such judgements, but it returns prose that must be parsed, at a cost and latency that grow with the length of its reasoning. A typed decision model returns exactly the object such a pipeline consumes, a declared option with a probability, cheaply enough to be applied to every message. This makes it a natural candidate for the safety valve, and it is why its failure modes need to be understood before it is placed there. Table 1 turns the clauses into seven requirements, G1-G7, used in the rest of the paper.
+2.3 Related work
+The questions raised by typed safeguards are new instances of older problems, and we use the earlier literature to judge which findings are new.
+Automated content moderation. Platform moderation has long combined automated classifiers with human review, and its critics have shown that automation hides contestable policy choices inside
+6
+
+technical systems, shifts error costs onto users and resists accountability [1, 2]. Safety classifiers that read token probabilities, such as Llama Guard [32], moderation models [33] and constitutional classifiers [34], and programmable guardrails [35] are the closest technical precursors of a typed safety valve; prompt injection [36-38] and adaptive adversarial attacks [39, 40] are the corresponding threats.
+Hate speech, annotator disagreement and Chinese resources. Automated hate-speech detection shows racial and dialect bias [41, 42], fails targeted functional tests [43], and depends on annotators' beliefs and identities [44]. Where annotators disagree, aggregating labels by majority vote discards information that a safeguard needs [45-47]. Chinese offensive-language and toxicity benchmarks exist [48-50], but none labels the constructs of PoL2.
+Emotion recognition. Inferring emotional states from observable signals rests on weak scientific foundations [51], and emotion recognition by AI systems raises distinct ethical risks of manipulation and of misreading people [52]; the EU AI Act prohibits it in workplaces and education [53].
+Calibration, abstention and deferral. Calibration of probabilistic predictions has a long literature, from Brier's score [54] and Platt scaling [55] to the miscalibration of modern networks [56, 57] and language models [58-61]; calibration degrades under distribution shift [62] and can hold on average while failing for subgroups [63]. Abstention goes back to Chow's reject option [64] and selective classification [65-67]; learning to defer formalises when a model should hand a case to a human expert [68, 69], and conformal risk control gives distribution-free error guarantees under exchangeability [70, 71].
+Sensitivity and evaluator reliability. Language models are sensitive to option order, label names and prompt format [72-77], which is one reason holistic evaluation reports many scenarios and metrics rather than one score [78]. LLM evaluators show position bias [79], favour their own outputs [80] and make correlated errors [81]; panels of diverse evaluators [82] and cascades that escalate uncertain items to a stronger model [83-85] are the established remedies. The typed setting removes generation but, as Section 4 shows, not these problems.
+Human oversight and due process. Human oversight of automated decisions often fails: people over-rely on confident systems [86], oversight policies assume abilities reviewers lack [87, 88], human-AI teams do not reliably beat the better member [89], and responsibility can be shifted onto the nearest human operator [90]. Automated adjudication also threatens notice, reasons and the opportunity to contest [3, 91, 92], which data-protection, platform and AI law now partly codify [53, 93-95], alongside risk-management frameworks [96]. Documentation practices for models and datasets [97, 98] inform what a decision record should contain.
+Algorithmic governance, DAOs and social scoring. Decentralised autonomous organisations encode governance in software [99-101], continuing older work on governing common resources [102], and raise the concern that rule by algorithm narrows human participation [103]. Value specifications for AI, such as constitutions used in training [104], are the nearest analogue to PoL2's Ethical Alignment Protocol. Systems that score individuals' behaviour for public purposes, such as China's social credit system, show how such scores become infrastructure for control [105, 106].
+7
+
+Table 1: Requirements derived from the PoL2 text. Clause numbers follow commit 5791ae3; every passage is quoted in Table 4.
+
+Req. G1 Detection G2 Attackability G3 Semantic fairness
+G4 Honesty G5 Decision chains
+G6 Oversight G7 Public scale
+
+PoL2 clauses
+§ 5.4.1 safety valve; Art. 7(2)-(3) anomaly detection and risk warning
+§ 5.4.1 safety valve; § 4.3.3.1 hate-language truncation § 1.5 concepts are not moral labels; § 4.3.1 equal connection; § 4.3.2 promoting love and restraining hate; § 4.3.3.3 semantic recognition § 4.3.2 state of absence; § 4.3.3.1 behavioural self-reflection
+Art. 4 transparency and explanation; Art. 5(4) no black box; Art. 5(5) verifiable decision chain; Art. 9(2) obligation to explain Art. 9(7) non-intervention; Art. 10 dispute adjudication
+Art. 2(1) autonomy; § 5.5 any LLM may accept governance; § 5.6 per-person and public assessment
+
+Question about a typed safeguard
+Can it detect violating or out-of-scope content and behaviour, at thresholds that hold in deployment? Can the content under review steer the decision? Are decisions stable under option names, definitions, order, wording, language and script, and fair across groups?
+Are probabilities calibrated and coherent, and does the model report insufficient information when it should? Can a decision that is only a number be recorded, decomposed, audited and explained?
+Does "act when confident, escalate when unsure" work, and where should escalation end? What conditions apply when typed models judge or simulate at the scale of a public?
+
+3 Method
+The study has two parts: a requirements analysis of the PoL2 text, and a structured rapid evidence assessment of studies of typed decision models against those requirements, which serves as the method for answering the policy question. For the evidence assessment we follow the Preferred Reporting Items for Systematic reviews and Meta-Analyses (PRISMA 2020) [107] and the Cochrane rapid-review guidance [108] where they apply; the flow diagram and checklist are in Appendix E.4.
+3.1 From clauses to requirements
+We read the Chinese text [9] and its official translation [10] for every clause that requires a machine judgement or constrains one, and grouped the clauses by the question they raise about such a judgement. This gives seven requirements, G1-G7 (Table 1). They are our reading of the text, not a classification proposed by its authors. Two choices of reading matter. First, § 4.3.3.1 asks PAI to calibrate its cognitive model against the framework's principles, which is value alignment, not statistical calibration; we anchor the honesty requirement G4 instead in the state of absence (§ 4.3.2), in behavioural self-reflection (§ 4.3.3.1) and in the transparency duties of Chapter 7, all of which presuppose that a reported confidence means what it says. Second, the text does not say how the safety valve should be built; we take a typed model in the role of the valve as the case to be assessed, not as something the text prescribes.
+
+8
+
+3.2 Eligibility
+Studies. We included studies whose object, experimental component or direct comparator is a typed decision model, defined operationally as a model that returns a probability distribution over options declared by the caller, or a probability for a declared statement, without generating free text. This covers hosted Jev, open models with the same interface, and typed readouts of generative models when the study treats them as such. The first public version had to be dated between 15 September (the release of Jev) and 1 October 2026 inclusive. Any language and any study design were eligible; non-empirical items (essays, position papers, methods notes) were included but are not counted in the evidence tallies. Papers that mention typed models without measuring or building one were excluded and, where useful, cited as context.
+Grey literature. Blogs, technical reports and replication repositories were included when they report original measurements of a typed model, and are marked . They were not searched systematically: they are the items surfaced by the two community trackers and by the web searches below. Vendor documentation is cited as context and is not counted as evidence.
+3.3 Information sources, search and selection
+We searched (i) arXiv, through 18 queries to its API (Appendix E.3), on 1 October and again on 4 October 2026, when the last submissions in the window had been announced; (ii) Zenodo, through 11 queries to its REST API on 1 October 2026; (iii) two community trackers, "All about Jev" (2,073 records, 52 flagged as papers) [109] and Awesome System One Models (213 registryverified papers) [110]; and (iv) Hugging Face Papers, OpenReview, SSRN and general web search. After screening by title, abstract and full text (flow diagram and counts in Appendix E.4), the corpus contains 79 arXiv papers, 27 Zenodo records, one paper available only on alphaXiv and 7 grey-literature sources, that is, 107 studies and 7 grey sources. Of these, 85 bear on at least one requirement and are coded below (Figure 1); the rest are background-tier engineering papers. Excluded records with reasons are listed in data/excluded_records.csv; for the Zenodo screening of 1 October only counts were recorded.
+3.4 Data extraction and coding
+For every study we extracted the system actually measured (hosted Jev, an open model, or both), the model version, the task, the data and its language, the sample size, the comparators, the main results with a locator (section, table or figure) and the authors' own caveats. Each arXiv or alphaXiv study was assigned a tier (core: bears directly on a requirement; related: supplementary evidence; background: engineering or other domains, coded only where it reports a measurement that bears on a requirement). Each pair of a study and a requirement it informs was then coded with a symmetric codebook (Appendix E), always for detector use as defined in Section 1: supports (S) if the primary result shows the typed model performing the function at least as well as its comparators, or meeting the study's own criterion, without an extra condition the study had to add; negative (N) if it shows the model failing the function or doing clearly worse than its comparators; qualifies (Q) if the result is mixed or depends on an added condition such as a locally fitted threshold, recalibration, a restriction of language or domain, or human review. Conditions that constitute a requirement's test, such as adversarial content for G2 or name and order perturbations for G3, are not added conditions. For each coded pair we also recorded how the typed model compared with any generative comparator on that requirement (better, similar, worse, mixed or none). Because studies differ in tasks, metrics and designs, we do not pool effects; the synthesis is structured and narrative, with vote counts of
+9
+
+(a) First submissions after release
+
+17.5 15.0
+
+Grey literature (n=7) arXiv core (n=30) arXiv related (n=24) arXiv background (n=25) Zenodo / alphaXiv (n=28)
+
+12.5
+
+(b) Coded studies per requirement
+
+G1 Detection (n=27)
+
+18
+
+8
+
+1
+
+G2 Attackability (n=10)
+
+7
+
+2
+
+1
+
+G3 Semantic fairness (n=24)
+
+14
+
+8
+
+2
+
+Documents per day
+Jev release (15 Sep)
+
+10.0 7.5 5.0 2.5 0.0 15 Sep
+
+19 Sep
+
+23 Sep
+
+27 Sep
+
+01 Oct
+
+G4 Honesty (n=45) G5 Decision chains (n=8)
+G6 Oversight (n=28) G7 Public scale (n=19)
+
+28 6 19 15 arXiv
+
+13
+2
+9
+4 Zenodo / alphaXiv
+
+4
+-
+-
+- Grey literature
+
+Figure 1: The evidence base. (a) First submissions per day after Jev's release: arXiv papers by tier, Zenodo and alphaXiv records hatched; triangles mark grey-literature sources. (b) Coded study-requirement pairs that enter the tallies, by requirement and source; the middle column has 44 Zenodo and 2 alphaXiv pairs, and a study can inform several requirements.
+
+the direction of each study's primary result, as the SWiM guideline describes [111]. The codes, rationales with locators and comparator fields are released in data/evidence_coding.csv and listed in Appendix B; codes count studies and are not effect sizes.
+Agreement. A second coder coded a random sample of 30 study-requirement pairs blind to the first coding, from the full texts and the codebook alone. Agreement on the S/Q/N code was 26 of 30 (Cohen's  = 0.72, bootstrap 95% CI 0.43-0.94); the first coder's codes in the sample were S 3, Q 23, N 4, so the sample says more about the boundary between Q and the other codes than between S and N. Both coders were AI agents of the same model family, which may inflate agreement. The four disagreements were resolved by re-reading the source, and one further code was revised after review; all resolutions are recorded in data/coder_agreement.csv and data/evidence_coding.csv.
+3.5 Quality appraisal and certainty
+Each coded study was appraised on three items: independence (independent, authors evaluating a system they built, or vendor-affiliated); design (preregistered; held-out evaluation, cross-validation or repeated runs; single run; case study; non-empirical); and whether sample sizes and uncertainty were reported. A study is rated stronger design if it was preregistered or held-out, reported sample sizes with intervals or tests, and evaluated a system its authors did not build; weaker design if it was a single run, a case study or non-empirical, or reported no uncertainty; and moderate otherwise. Of the 92 appraised sources, 37 are stronger, 17 moderate and 38 weaker (data/quality_appraisal.csv). None is peer reviewed, which applies to all equally and is therefore not a rating input.
+For each finding carried into the abstract or the conclusion we rated the certainty of the evidence in the spirit of GRADE [112]. GRADE starts non-randomised evidence at low; benchmark evaluations are non-randomised, and we keep that starting point. A finding is very low if it rests on a single study, on weaker-design studies only, or on open models only when the claim concerns hosted Jev; it stays low if at least two studies agree in direction and at least one is of stronger design; and it rises to moderate if at least three independent stronger-design studies agree in direction and at least one of them is preregistered or replicated. Table 2 reports the ratings.
+
+10
+
+3.6 Reviewers and tools
+This analysis was carried out by one author with extensive use of AI agents (Claude Opus 5.5, Anthropic, for all agent roles). AI agents ran the searches, screened titles and abstracts, extracted data from full texts with locators, proposed and applied the codes, appraised the studies, served as the blind second coder, and checked the numbers in the text against their sources in independent review passes; the instructions given to the agents, their findings and the resolutions are released with the data. The author defined the research question and the requirements, set the codebook and the decision rules, and is responsible for every judgement in the paper; the author did not re-code or re-check individual codes by hand before this release. No human screened, extracted or coded in duplicate, so the Cochrane recommendation of dual human screening of at least a fifth of records [108] was not met.
+3.7 Deviations from protocol
+The protocol was not registered. An earlier, abstract-based dataset release [12] used no codebook; this analysis replaced it with full-text reading, the symmetric codebook, a blind second coder, appraisal and certainty ratings, and a re-run of the arXiv search, and reclassified one paper that measures no typed model as context.
+4 Evidence by requirement
+Each subsection opens with a short answer and the tally of codes for that requirement, describes the studies that drive it, and relates the finding to earlier work; recommendations are collected in Section 6. "Jev" means the hosted model; its version is jev-1.13 where a study reports one, and we flag studies that report none. Open models are named. Sources marked  are Zenodo records and sources marked  are grey literature; all were read in full. Figure 2 summarises the codes, Table 2 the findings and their certainty, and Appendix B lists every coded study.
+4.1 G1 -- Can a typed safeguard detect violations?
+Answer in brief
+Yes as a ranking, not yet as a decision. On English benchmarks typed models rank harmful or misaligned content well at a small fraction of the cost of generative evaluators, but thresholds fitted in one setting fail in another and errors concentrate in sub-types that aggregate scores hide. Codes: S 2, Q 20, N 5; against generative comparators Jev was better or similar in 6 of 21 pairs, mixed in 10 and worse in 5.
+Zero-shot ranking. Just Ask Jev [15] benchmarked Jev (jev-1.13.0) on ten kinds of alignment failure across 44 benchmarks and 7,193 instances. A single generic yes/no question reached a median AUROC (area under the receiver-operating-characteristic curve) of 0.886 (95% confidence interval, CI, 0.821-0.952) over the 31 benchmarks with both classes present, without training, and beat an in-domain TF-IDF classifier and a response-length baseline on 25 of them; on the 19 benchmarks scored by an API LLM evaluator it cost $0.30 against $18.96 per pass. Tailoring the question to each benchmark changed the median AUROC by only +0.006 (CI -0.004 to +0.015); what the model is shown matters more, because many failures are defined against a reference such as the user's stated belief or an injected instruction. In a matched comparison of hosted Jev, seven open typed models, trained classifiers and LLMs, Jev was the most accurate typed model and separated
+11
+
+PoL2 clauses §5.4.1 Safety valve Art. 7 Anomaly detection §4.3.3.1 Truncation, self-reflection §1.5, §4.3.1 Not labels; equal conn. §4.3.2 Love/hate; state of absence §4.3.3.3 Semantic recognition Art. 4, 5(4)-(5), 9(2) Decision chain Art. 9(7) Non-intervention Art. 10 AI adjudication Art. 2(1), §5.5-5.6 Public scale
+
+Requirements and evidence
+
+G1 Detection
+
+2
+
+20
+
+5 n=27
+
+G2 Attackability 1 9 n=10
+
+G3 Semantic fairness
+
+2 12
+
+10 n=24
+
+G4 Honesty
+
+3
+
+29
+
+13
+
+n=45
+
+G5 Decision chains 2 3 3 n=8
+
+G6 Oversight
+
+1
+
+23
+
+4 n=28
+
+G7 Public scale 5 12 2 n=19
+
+Tensions in the text
+T1 Emotion in language vs. persons' states
+T2 Binary verdicts vs. three-valued ethics
+T3 Transparency vs. closed models
+T4 AI-only adjudication vs. correlated errors
+T5 Assessing persons vs. equal connection
+
+supports
+
+qualifies
+
+negative
+
+Figure 2: From clauses to tensions. Left: PoL2 clauses that require or constrain machine judgement. Middle: the seven requirements and the codes of the studies informing each, for detector use (supports, qualifies, negative; Appendix E); bars count studies and do not measure effect size or certainty, and non-empirical items are excluded. Right: the five tensions of Section 5, linked to the requirements whose evidence they cite.
+
+out-of-scope requests with AUROC 0.921, but small classifiers fine-tuned on the labels beat it on intent detection (0.940-0.948 against 0.913) [30]. On agent trajectories it reached a positive-class F1 (harmonic mean of precision and recall) of 77.8 against 74.1 for the strongest generative evaluator, with lower precision and wins on two of four benchmarks (version not reported) [113].
+Thresholds do not transfer. In Just Ask Jev, median F1 rose from 0.706 at the default threshold of 0.5 to 0.822 at a cross-validated one; the gain came mostly from benchmarks with rule- or evaluator-scored labels, and on human-validated labels the default did as well (0.721 against 0.694) [15]. An independent replication on the jev-latest alias re-ran five sub-experiments (median absolute difference 0.0036 from the paper) and found the extreme case: on TensorTrust hijacking [40], AUROC was 0.95 but F1 was 0.158 at 0.5 and 0.947 at a threshold of 0.35 chosen by two-fold cross-validation; none of its five fitted thresholds was 0.5 [114] (Figure 3a). In a semantic-database workload, Jev at a fixed 0.5 reached a mean F1 of 63-66%, ranging from 24% to 89% by predicate [115]. Fitting to one domain can cost another: an open Laya guardrail fine-tuned on Chinese compliance queries cut its benign false-positive rate from 35.71% to 0.42% on its own test split but lost accuracy on a general Chinese safety benchmark (60.33% to 56.81%) unless earlier data were replayed during fine-tuning [116].
+
+12
+
+Aggregates hide concentrated failures. In agent-security screening, Jev was the strongest typed model on two of three tasks (interaction-risk AUROC 0.961 against 0.533 for Laya), yet it missed all 130 prompt injections that carried no explicit instruction, giving each an unsafe probability below 0.1; 130 of its 167 misses on that benchmark were made at confidence  0.95 [117]. An open Laya evaluator was near-perfect when an answer was stated explicitly but fell to 0.31 when it had to notice that something was absent, while a generative evaluator scored 1.00 on the same items [118]. In police crash narratives, Jev found documented pregnancies almost perfectly within a regex-flagged stratum, but in the low-prevalence stratum only 14 of 42 adjudicated positives were confirmed, so the error rate measured in one stratum did not carry to another [119].
+Where the evidence is not text. On numeric network-flow features, zero-shot Jev scored below always predicting the majority class (9.8% against 22.8%) and stayed far below small tree models with 150 examples in context [120]. On a water-network screen it matched an expert rule tree (macro-F1 0.63 against 0.59) and beat a supervised classifier on event subtypes held out from its training, but stayed below fully supervised models and two frontier LLMs [121].
+Relation to prior work. These results reproduce for typed models what was known for probabilityreading safety classifiers [32, 33]: good ranking, poorly transferable thresholds and failures concentrated in sub-types [43]. What is new is the price: ranking every message is now cheap enough to be a default.
+4.2 G2 -- Can the content under review steer the safeguard?
+Answer in brief
+Yes. Every study that attacked a typed model with the content it was asked to judge found some success, and the attacks that work need not look like attacks: an inserted opinion, fluent background text or a lexical lure; the one study coded as supporting found that injection rarely selected the attacker's target. Where other systems were attacked in the same studies they were similarly vulnerable. Codes: S 1, Q 0, N 9; this is the most consistently negative requirement.
+Injection and inserted content. On 510 reconstructed InjecAgent cases, malicious content shifted Jev's action probabilities but selected the attacker's target in only 9 cases (1.8%); "ignore previous instructions" markers reduced the effect, and an adaptive attacker using score feedback reached 3.5% on fresh calls (18 of 510; CI 0-10%) [122]. JevOut [123] used the model's own probabilities to search, within 64 accepted queries, for short fluent context additions constrained, and checked by a separate model, to preserve the question and the correct answer; these redirected 312 of 508 initially correct Jev decisions (61.4%) to an attacker-chosen wrong option, while three other decision systems, including a typed interface built on Qwen3-1.7B, were redirected on 64.9- 73.2% of their own correct decisions (Figure 3b). In JevAdvBench [124], one unverified observer opinion appended to the state flipped 12.1% of Jev's decisions (CI 8.5-15.5), statistically tied with impersonating an authority, the strongest injected command, although the command had to be placed in the question while the opinion needed only the state; benign rewording of questions stayed within re-run noise. When the correct action requires an unstated inference, words in the state that echo an option act as lures: on misleading steps of a household-task benchmark Jev was right 36% of the time and chose the lure 56% of the time [125]. Irrelevant but related paragraphs lowered its question-answering accuracy from 0.84 to 0.75 while its confidence stayed at 0.83 [24].
+13
+
+Adaptive and disguised attacks. Three multi-turn adaptive attack agents run against one Jev-based due-diligence application (version not reported) succeeded, for the strongest, in 25 of 27 runs, on average at the fourth turn, and marking content as untrusted made no meaningful difference; the authors call this a directional study of one application [126]. In a preregistered water-network study, attacks designed to look like normal operation were the hardest class (recall 0.34), and on a look-alike set 21 of the 76 windows an agreement gate accepted as benign were attacks [121]. In Kev-0.8B, an open Jev-compatible model, one planted note in a multi-question call could change several governance answers at once [127].
+Relation to prior work. These are typed instances of prompt injection and adversarial optimisation [36, 37, 39]. The feature specific to typed models is that the probability vector which makes them useful also guides the attacker: probability feedback succeeded on 63.6% against 56.4% with labels only, though the attack also works without it [123].
+4.3 G3 -- Are semantic judgements stable and fair?
+Answer in brief
+Not by default. Decisions can follow the names of options rather than the definitions bound to them, depend on order and wording, and lean towards one culture's values; neutral option identifiers and option rotation remove much of this. Robustness varies by model: hosted Jev was less affected than Laya but more than some larger open decoders. Codes: S 2, Q 12, N 10.
+Option names can override definitions. Type-Safe Is Not Error-Free [14] kept question, state, option names and definition texts fixed and swapped only which definition is bound to which name. For Laya, swapping the definitions bound to yes and no changed 76.9% of answers, against 6.5% for 0 and 1, and its AUROC fell from 0.938 to 0.232, an inversion that a type check cannot detect; hosted Jev (version not reported) changed 32.5% of its answers, about 24 times its test-retest floor, and its AUROC fell from 0.815 to 0.581 (Figure 3c-d). Under a matched harness, the same swap against fixed rubrics flipped 50.5 of every 100 answers of Jev 1.13.0 (floor 1.3), while digit or random-string identifiers brought it near the floor; Laya flipped 91.3 and four larger open decoders 4.2-6.5 [30].
+Order, wording and culture. On ANLI, Jev placed 38.8% of its predictions and 51.3% of its errors on the middle option, and on six datasets two random orderings of the same ordinal options agreed on 74.4% of items [128]. On 20-option tasks, reversing the option list changed about a third of the answers of typed readouts from open LLMs, and averaging over rotations reduced this to 14-18% [22]; for Jev, rotating the options left accuracy unchanged on the subjects one benchmark tested [129]. On moral dilemmas Jev was stable across runs but rewording moved its answers much more [130]. Posed as a forced choice between groups, "White" took 51% of Jev's first picks across eight traits, although direct superiority claims were rejected with a typical "yes" probability of about 3%; this single informal test (version not reported) did not counterbalance option order [131]. Without a persona, Jev answered a cross-cultural values survey like its own American personas, and Saudi personas reproduced 87% of the human Saudi-US difference in English but 62% in Arabic [132]. Who made an argument mattered little to Jev in one study, but it was scored on a different rubric from the chat models, so the author does not rank it against them [133].
+14
+
+Correct decisions flipped to attacker's target (95% CI)
+
+F1 (failure detection)
+
+(a) Ranking is good, thresholds are local
+
+Default threshold 0.5
+
+1.0
+
+Threshold fitted on local data
+
+0.822 0.8
+0.706
+
+0.6
+
+0.4
+
+0.947
+
+(b) Natural context flips decisions 1.0 0.8 0.6 0.4
+
+0.2
+0.0
+Just Ask Jev (median, 31 benchmarks)
+
+0.158
+Independent replication (TensorTrust hijacking)
+
+0.2
+
+312/508
+
+238/328
+
+0.0
+
+ev (hosted)
+
+typed 3-1.7B
+
+J Qwen
+
+240/328
+
+185/285
+
+Qw V e o n n (plain)
+
+Answers that change
+
+(c) The head follows the option name 0.9
+
+Laya (open)
+
+0.8
+
+Open-Jev (open)
+
+Jev (hosted)
+0.7
+
+0.6
+
+0.5
+
+0.4
+
+0.3
+
+0.2
+
+0.1
+
+0.0 0 / 1
+
+A / B
+
+false / true no / yes
+
+Name pair whose bound definitions are swapped
+
+AUC
+
+(d) Always well-typed, still inverted 1.0
+0.938
+
+0.8
+
+0.815
+
+0.6
+
+0.581
+
+chance
+0.4
+
+0.2
+Laya (open)
+Jev (hosted)
+0.0 definitions aligned
+
+0.232
+definitions swapped
+
+Figure 3: G1-G3: a detector, and a fragile one. (a) F1 at the default threshold versus a threshold fitted on local data [15, 114]. (b) Share of initially correct decisions redirected to an attacker-chosen wrong option by optimised fluent context additions, each system on its own correct items; "Von" is an open typed model evaluated in that study; error bars are Wilson 95% intervals from the reported counts [123]. (c) Share of answers that change when the definitions bound to a pair of option names are swapped, with question, state, names and definition texts unchanged; Open-Jev over 1,800 questions, Laya and Jev over 1,200 [14]. (d) AUROC with the yes/no definitions aligned with or swapped between the names; the type-error rate is 0% throughout [14]. Panels (a) and (b) use jev-1.13.0 or the jev-latest alias; the study in (c)-(d) does not report the hosted version.
+
+Language. TypeSafe states that languages other than English, including CJK scripts, are "handled but not equally well" [7]. The only Chinese benchmark found that hosted Jev needed no recalibration on Chinese voice routing and changed 1.9% of decisions under option-order swaps and 1.7% between simplified and traditional script (n = 323), against 10.8-20.6% option-order changes for the open Laya multilingual model [134]. A Chinese model initialised from Laya slightly exceeded Jev (version not reported) on its authors' general benchmark and in medicine, but reached 92% of its average accuracy across specialised domains [135]. All three models in a 37-dataset benchmark, typed and generative, degraded on low-resource languages [129].
+Relation to prior work. Option-order and label sensitivity are long documented for LLMs and LLM evaluators [72, 74, 75, 79]; typed outputs do not remove it, and the name-definition inversion is a sharper form of it. The group and culture results echo the bias found in hate-speech classifiers [41, 42] and annotators [44].
+15
+
+4.4 G4 -- Are probabilities honest, and is "insufficient" reported?
+Answer in brief
+Partly. Hosted Jev is often well calibrated on familiar closed-choice tasks, usually better than generative models' stated confidence though not than the best frontier models; but calibration is local, related probabilities do not always cohere, and an explicit "none" or "I don't know" option is rarely chosen when it is correct. A separate yes/no question about whether the evidence suffices detects missing information better than confidence (AUROC 0.95 against 0.85 in one study), though it filters answers less well. Codes: S 3, Q 29, N 13; against generative comparators Jev was better in 9 of 18 pairs and worse in 2.
+Calibrated where the task is familiar. The broadest benchmark in our corpus, 346,009 requests over 37 datasets, found Jev more accurate than an open 27B model on 27 datasets (11 with non-overlapping intervals) and well calibrated for Choice questions when pooled (expected calibration error, ECE, 0.028; unweighted mean 0.061), with confidence that supports selective answering [129]. In a controlled audit of 575,442 calls, Jev's smooth calibration error was 0.015-0.033 on familiar closed-choice tasks [24]. Its annotation confidence was better calibrated than the stated confidence of 16 of 19 LLMs, though three frontier models had lower median error (0.066 against 0.157) [18].
+Calibration is local. On 2,416 blind human labels for crash narratives, raw Jev probabilities were too high overall, overstating prevalence by about 80%, and too close to the middle; out-of-fold recalibration reduced pooled ECE from 0.0231 to 0.0069 [136]. On radiology sentences, recalibration on a hold-out reduced ECE from 0.1235 to 0.0077, and an open baseline improved similarly [137] (Figure 4c). Used zero-shot to judge whether another model's answer is correct, Jev was not usable off the shelf (ECE 0.133) [138], and on the ChaosNLI items where annotators disagreed most, the ECE of its Choice probabilities rose to 0.339, against 0.076 on the most agreed quarter, in a preregistered study [139]. This is the general pattern of calibration under shift [62]; ECE values are not comparable across these studies.
+Probabilities that do not add up. On 480 pairs "the label is X" and "the label is not X", Jev's two probabilities deviated from summing to one by 0.064 on average, five times its own repeat noise (Figure 4a), with deviations concentrated where it was unsure [140]. Its yes/no and Choice interfaces led to different act-or-defer decisions on 32.8% of 1,000 synthetic cases (a post-trained open model: 34.2%) [141]. A reconstruction of the vendor's confidence formula from 738,164 answers implies that padding the option set inflates reported confidence [142].
+The missing "insufficient". Offered "I don't know or cannot answer" on a medical benchmark, Jev chose it for 17 of the 162 items where it was correct (10.5%), similar to a frontier generative model (8.6%) [143]. When every listed answer was wrong and recognising this required arithmetic, it chose an explicit "None" on only 7% of items while answering 99% of answer-present items correctly; relabelling the option, or moving it on inventory cases, recovered almost nothing, whereas per-candidate yes/no verification reached 99%, a reasoning generative model rejected correctly, and a threshold on the probability of "None" chosen on development data raised correct rejection to 79% [144]. With no relevant information Jev still put up to 0.80 on a salient option; a separate question asking whether the evidence was enough separated complete from incomplete evidence on multi-hop questions with AUROC 0.95 against 0.85 for confidence, but as a filter for accepting answers it was 2-6 points less accurate than confidence [24]. In a small case study, Jev's yes/no
+16
+
+|P(X) + P(not X) - 1| (95% CI)
+
+(a) Complementary probabilities do not sum to one
+0.35
+
+0.30
+
+0.25
+
+0.20 0.15
+
+0.122
+
+0.10
+
+0.064
+
+0.05
+
+0.00
+
+Jev (hosted)
+
+Qwen3.8-27B verbalised
+
+0.293
+Jev repeat-noise floor Qwen3.8-27B first token
+
+Median soft accuracy (Sys1Cal-v1)
+
+(b) Restoring a third value 1.0
+
+0.903
+
+0.8
+
+0.771
+
+0.978
+
+0.6
+
+0.4
+
+0.2
+0.0
+Raw Choice (binary)
+
+Inverse-calibrated (binary)
+
+more permissive metric
+True/Unknown/False interval
+
+Expected calibration error
+
+(c) Calibration is local
+
+0.14
+
+Raw
+
+Recalibrated (out-of-sample)
+
+0.12
+
+0.10
+
+0.08
+
+0.06
+
+0.04 0.02 0.00
+
+0.0231
+
+0.0069
+
+Crash narratives (2,416 labels)
+
+0.1235
+0.0077 Radiology sentences
+(hold-out)
+
+Accuracy (empathy annotation)
+
+(d) Confident, near chance 1.0 0.8
+
+confidence of these items  0.9
+
+0.6
+
+78% of items at conf.  0.9
+
+ECE 0.538
+
+0.4 0.333
+
+0.371
+
+0.383
+
+0.2
+
+0.0
+Majority guess
+
+Jev, all items
+
+Jev, conf.  0.9
+
+Figure 4: G4: honesty. (a) Mean absolute deviation of P (X) + P (¬X) from 1 over 480 negation pairs, against Jev's repeat-noise floor [140]. (b) Median soft accuracy on Sys1Cal-v1 for raw Choice answers, after correcting for a suppressed "unknown" mass (a hypothesis of the study), and under a more permissive true/unknown/false interval metric (hatched) [146]. (c) ECE before and after recalibration on local labels, out of fold [136] or on a hold-out [137]. (d) Empathy annotation (three balanced classes): Jev's accuracy on all items and on the items it answered with confidence  0.9, against the majority base rate [18].
+
+probabilities for conflict and for ignorance fell in the same band, while a Choice question naming both states separated them in all four cases [145]. Narrow fine-tuning of an open readout suppressed "none of the above" and biased it towards "yes" while validation loss kept improving [23].
+Relation to prior work. Locality of calibration and its failure under shift are established [56, 62, 63], as is the gap between confidence and abstention [66, 67]. New is the evidence that, for typed models, asking about sufficiency detects missing information better than reading confidence.
+4.5 G5 -- Can a decision that is only a number be audited and explained?
+Answer in brief It can be recorded and decomposed, not explained. A typed decision returns no reasons, and decisions assembled from several questions or interfaces need not cohere; writing intermediate facts into the state as separate steps makes chains inspectable and, when those facts are right,
+
+17
+
+more accurate. Codes: S 2, Q 3, N 3.
+Records without reasons. A typed model returns a probability and nothing else, so nothing in its output shows which part of the input produced a verdict [147]. One Zenodo critique argues that removing reasoning traces makes responsibility attribution structurally harder [148]; another argues that typed inference can relocate governance commitments into the schemas, option sets, rubrics and thresholds its developers write [149]. When a solver was shown Jev's probabilities while revising its logic-puzzle answers, it did no better than with a plain second look [150].
+Chains that do and do not compose. In ten scientific workflows, Jev made all intermediate semantic choices correctly, while seven wrong choices by comparator models, all on one question, changed downstream counts without changing the final labels: final-label accuracy alone could not reveal them [151]. Asked through two interfaces, the same decision led to different actions in 32.8% of cases [141], and category probabilities reconstructed from fine-grained answers differed from directly asked ones by a mean total variation of 0.22-0.35 [152]; per-step calibration audits can miss chain-level error when conditions shift [153]. Decomposition can help: when Jev's prediction of an opponent's move was written into the state, its decisions in misleading games rose from 33% to 94% correct, but given a wrong written premise it followed the premise in 24 of 26 calls, which makes the written facts themselves the audit points [125].
+Relation to prior work. Explanations generated after a decision may not reflect what produced it [92], and documentation standards [97, 98] describe models and data, not individual decisions; a typed safeguard needs a decision record and a separately sourced statement of grounds.
+4.6 G6 -- Does "act when confident, escalate when unsure" work?
+Answer in brief
+It depends on where escalation goes and how thresholds are set. Escalating uncertain cases to a stronger reasoning model, or accepting only verdicts an independently built rule confirms, saved a quarter to over half of the cost without loss of accuracy in several studies; escalating to peer models preserved confident errors, and thresholds fixed in advance missed their error targets on new data. Codes: S 1, Q 23, N 4.
+Escalation that works. JEV-as-a-Judge [26] found Jev within three points of GPT-6 where a verdict can be read off the text, at 0.36% of its fee, and clearly behind where it must be derived; with a threshold frozen in advance a cascade beat GPT-6 by 0.93 points (CI 0.24-1.66) at 41.4% of its fee on 1,610 held-out pairs (83% from RewardBench; on JudgeBench it was 0.74 points below), and in a prospective live test on two new workloads, with thresholds set on 100 local labels each, it matched GPT-6 at 75.5% of the fee (Figure 5a). In a preregistered study with sealed test rounds on simulated network data, accepting a benign Jev verdict only when an independently built rule tree agreed let a frontier-LLM reviewer skip 34.5-38% of cases without loss of macro-F1, including on transfer to two other networks, although disguised attacks still passed (Section 4.2) [121]. A preregistered annotation cascade matched LLM-only quality at a quarter to half of the cost [18], and a semantic database with uncertainty-band escalation raised mean F1 from 63-66% to 96-98% [115].
+18
+
+Escalation among peers. On Jev's 12 most confident errors on each of seven ordinal grading panels (84 items), three low-cost generative evaluators gave Jev's wrong answer in 242 of 252 verdicts (96.0%), against 50.3% expected if errors were independent; because these items were selected as Jev's most confident errors, we read this as an upper bound on error correlation, though it is the set that matters for escalation [154] (Figure 5b). Replaying recorded verdicts, the best cascade's average gain over the best single evaluator was at most 1.5 points, and on six of nine panels it was below it (Figure 5c). In agent-security screening, generative evaluators caught at most 5 of Jev's 130 high-confidence misses [117].
+Thresholds and gates. Under a 1% miss limit, symmetric allow/block/review policies automated nothing for Jev on prompt injection, and independent thresholds automated 47.03% of interactionrisk cases almost entirely through additional blocks [117]. With thresholds chosen on held-out data, the one-sided upper bound on realised risk exceeded a 5% target for every model in a matched benchmark, and a threshold set for in-scope requests let Jev accept 31.0% of out-of-scope ones (19.5% with an explicit out-of-scope option) [30]. A 0.8 confidence gate let 12.6% of attack-induced flips through, while an inserted opinion pushed 38.0% of confident answers below it [124]. A conformal gate built on Laya's confidence returned risk 0.585 at a nominal 0.05 [155], and a preregistered reproduction's frozen Laya gate missed its error target (0.140 against 0.10) [156]. Gates can also work: in network control, Jev's act-and-wrong rate under changed questions stayed at or below 0.143 while a fine-tuned open model's reached 0.801, and a conformal label floor implies that certifying action on a new question type needs at least 19 labels at a 5% error level [157]; for Kev-0.8B, a threshold set by coverage rather than fixed at 0.8 sent every answer an attack flipped from right to wrong to review, although attacks reinforcing an existing mistake could pass [127, 158].
+Relation to prior work. Cascades and learned deferral are established [68, 69, 84], as is correlated error among models [81, 82]; risk-controlled thresholds [70, 71] assume exchangeability between calibration and deployment data, which the G2 and G4 evidence says will not hold under attack or drift. The new finding is that independence must be built: a differently constructed rule helped, a peer model did not.
+4.7 G7 -- Judgement and simulation at public scale
+Answer in brief
+Typed models make population-scale reading and simulation cheap, and some studies show how to do it honestly: audit samples, and carry the measured gap to real people into every conclusion. Simulated publics lean towards one population and understate disagreement, and deployment depends on one closed vendor. Codes: S 5, Q 12, N 2.
+KITE [27] calls Jev once per unique state, simulates a million agents in under a second by table lookup, and propagates the measured human-model discrepancy as a shared error term into every conclusion; on 37 unseen studies this term gave retrospective coverage near the nominal level (0.93 and 0.96 at 80% and 90%), although its preregistered primary endpoint showed no clear gain. A statewide study read about half a million police narratives with Jev, audited a probability-stratified sample by blind human adjudication, and reported misclassification-corrected counts with intervals, while finding residual personal identifiers in 37-43% of audited narratives after two redaction passes [119]. Without a persona, Jev answered value questions like its American personas and stayed confident where annotators were split (Sections 4.3 and 4.4), so a simulated
+19
+
+Accuracy change vs GPT-6 (pp, 95% CI)
+
+(a) Escalating to a reasoning model (Jev  GPT-6) 2
+RewardBench part
+1 Held-out, all (v2 headline)
+GPT-6 alone
+0
+v1, 510 pairs
+-1
+
+Prospective live, 570 JudgeBench part
+
+-2
+
+0.2
+
+0.3
+
+0.4
+
+0.5
+
+0.6
+
+0.7
+
+0.8
+
+0.9
+
+1.0
+
+Fee as a share of GPT-6 alone
+
+LLM evaluators repeating Jev's most confident errors
+
+(b) Confident errors are repeated 1.0
+0.8
+0.6 50.3%
+0.4
+0.2
+0.0
+If errors were independent
+
+96.0%
+Observed (242 / 252)
+
+(c) Escalating among peer evaluators
+
+FED-Turn -7.3
+
+RiceChem
+
+-1.0
+
+HelpSteer2
+
+-0.9
+
+FED-Dialogue
+
+-0.9
+
+USR-TC
+
+-0.7
+
+ELLIPSE
+
+-0.1
+
+LFQA
+
++0.6
+
+USR-PC
+
++0.8
+
+HealthBench
+
+6 of 9 panels below the best single evaluator
+
++1.5
+
+-8
+
+-6
+
+-4
+
+-2
+
+0
+
+2
+
+Cascade minus best single evaluator (pp)
+
+Figure 5: G6: escalation. (a) Accept-when-confident cascades from Jev to GPT-6: accuracy change against fee share [26]; grey points have intervals including zero, the diamond is the prospective live test. (b) Share of Jev's most confident errors repeated by low-cost generative evaluators, against the share expected if errors were independent [154]. (c) Cross-fitted cascade minus best single evaluator on all nine panels [154].
+
+public leans towards one population and understates disagreement [132, 139]. Matched benchmarks put hosted Jev at under a cent per thousand decisions with a median latency of 138 ms [30]; its weights are not published and it is not offered for self-hosting, which led one routing study to keep its interface classifier-agnostic with a self-hosted fallback [16]. A conceptual paper argues that cheaper evaluation may increase total evaluation and exception handling rather than reduce it [159]. The honesty conditions here are those of survey methodology and of disagreement-aware annotation [45, 46].
+4.8 Across requirements
+Of the 161 coded study-requirement pairs, 16 support detector use, 99 qualify it and 46 are negative (Figure 2). The shares hardly change when only stronger-design studies are kept (7, 45 and 27 of 79) or when Zenodo records, which were negative more often than arXiv papers (19 of 44 pairs against 23 of 107), are dropped (13, 77 and 27 of 117). Seventy-six pairs compared a typed model with a generative evaluator on the same requirement: the typed model did better in 23, similarly in 17, mixed in 28 and worse in 8. For failures specifically the picture is thinner and less favourable: of the 14 negative codes with a comparator, the typed model was worse in 6, similar in 4, mixed in 3 and better in 1, and 32 of the 46 negative codes had no comparator at all. The evidence therefore does not show that typed models are generally worse than generative evaluators, nor that their
+20
+
+failures are shared with them; for most failures the comparison has not been made. Two failure modes follow from the typed interface itself: reported confidence can be inflated by padding the option set (G4), and a decision carries no reasons (G5); a third, that the probability vector guides attackers, is shown in one study (G2).
+Table 2 lists the findings carried into Sections 5 and 6 and the abstract, with the certainty of each under the rules of Section 3.5.
+Table 2: Key findings and the certainty of the evidence. Codes: the cited studies' codes for the finding stated. Certainty: very low, a single study, only weaker-design studies, or open models only for a claim about hosted Jev; low, at least two studies with a consistent direction, at least one of stronger design; moderate, at least three independent stronger-design studies with a consistent direction, at least one preregistered or replicated.
+
+Finding
+Ranks harmful or misaligned content well zero-shot at a fraction of the cost Fixed thresholds do not transfer; local fitting is needed Errors concentrate in sub-types hidden by aggregates Inserted opinions, optimised context and lexical lures steer decisions Injection rarely selects the attacker's target (1.8% raw, 3.5% adaptive) Option names can override definitions; neutral identifiers remove most of it Defaults to one culture's values Well calibrated on familiar closed-choice tasks; calibration is local Explicit "none"/"I don't know" rarely chosen when correct A separate sufficiency question detects missing information, but filters answers less well than confidence Escalation to a stronger reasoner saves cost without loss of accuracy on readable judgements Acceptance on agreement with an independently built rule is non-inferior on benign data; disguised attacks pass Peer evaluators repeat Jev's most confident errors (upper bound) Thresholds set in advance miss error targets on new data Typed models are not generally worse than generative evaluators; most failures lack a comparison No study measures the PoL2 construct (three-valued, Chinese)
+
+Codes Q Q Q N S N N Q Q/N Q
+Q Q/N
+N Q/N -
+-
+
+vs. generative similar or mixed
+
+Sources [15, 30, 113]
+
+-
+
+[15, 30, 114, 115]
+
+mixed
+
+[117]
+
+similar
+
+[24, 121, 123-125]
+
+-
+
+[122]
+
+-
+
+[14, 30]
+
+- similar or better
+
+[132] [24, 129, 136, 137]
+
+similar (frontier); worse (reasoning) -
+
+[24, 143, 144] [24]
+
+Certainty low low very low moderate very low low very low low low very low
+
+-
+
+[18, 26, 115]
+
+low
+
+-
+
+[121]
+
+very low
+
+similar - 23 better, 8 worse of 76 -
+
+[117, 154] [30, 117, 155, 156] Appendix B
+
+low moderate low
+
+-
+
+-
+
+5 Five tensions in the specification
+Read against the evidence, the specification pulls in two directions at five points, and cheap typed judgement turns each from a philosophical question into an engineering default. For each tension
+21
+
+we give the most charitable reading of the text, the evidence that bears on it, and options, at least one of which preserves the text. The choice among options belongs to the framework's authors and to those who would implement it.
+T1. Understanding emotion in language versus detecting persons' emotional states. § 4.3 states that it is "entirely unnecessary" for PAI to detect a person's emotional state, which is fleeting, personal, context-sensitive and touches on dignity; § 4.3.3.1 asks PAI to "understand human emotional states and processes"; and § 4.3.3.3 illustrates semantic recognition with two questions about a little dog whose difference lies in the intent of the utterance. Read together, the clauses admit a consistent interpretation: recognise the emotional meaning and intent of utterances, never infer a person's inner state. The text does not state this boundary, however, and a typed model makes it almost free to attach an emotion score to every message, which is how the boundary would be crossed in practice. The evidence on emotion-related judgement is thin and mixed: in one annotation study Jev was confident on most empathy items yet barely above chance (accuracy 0.38 against 0.33 for three balanced classes), a failure the authors found in a frontier generative model as well [18], while on multilingual valence-arousal regression Jev with a supervised layer fitted to the labels matched the best systems [160]. The wider literature is clearer: inferring emotion from observable signals is scientifically weak [51] and ethically fraught [52]. Options: state the boundary explicitly, so that a safeguard judges the semantics and intent of utterances but never assigns emotional states to persons; and reserve emotion-related judgement for PAI auditing its own outputs, for example for the fabricated intimacy that § 4.3.2 names as manipulation.
+T2. Binary verdicts versus a three-valued ethics. PoL2 is built on a love/hate polarity but adds the state of absence (§ 4.3.2) and warns that its concepts serve structural analysis, not moral labelling (§ 1.5). A yes/no question such as "is this hate language?" discards both qualifications. The evidence points the same way from several directions: option names can drive the verdict [14, 30]; complementary probabilities do not sum to one where the model is unsure [140]; explicit "none" or "I don't know" options are rarely chosen when correct [143, 144]; and a yes/no probability placed conflict and ignorance in the same band, whereas a Choice question naming both states separated them in four cases [145]. It also shows what helps: a separate yes/no question asking whether the evidence suffices detected missing information better than confidence, although it was a weaker filter for accepting answers [24]. Options: make every love/hate question three-valued, with absence or insufficient information as an explicit option, and ask sufficiency as its own question whose use rate is monitored; keep "contested" (people disagree) as a separate flag routed to people, distinct from "absent"; and keep moral vocabulary out of option names by binding neutral identifiers to definitions and testing them by renaming. These options implement § 1.5 and § 4.3.2 rather than change them.
+T3. Full transparency versus closed models. Article 4 and Art. 5(4) require that operating logic and decision processes be "completely open and transparent" and that technology "should not be a black box". TypeSafe has published neither the weights, the architecture, the reward nor the training data of hosted Jev, and does not offer it for self-hosting [16, 18, 30]. A charitable reading is that Art. 4 concerns the transparency of NaturalDAO's processes and resource flows, which logging a closed component's inputs, outputs, versions and calibration data partly satisfies; but such logs cannot show how the component reaches its outputs, and open weights alone would not provide the "reasoning steps" of Art. 5(5) either. Open models make the readout inspectable, but in several comparisons they were less accurate or less robust: Laya showed the most severe name inversion and was near chance on interaction-risk screening [14, 117]. The gap is not fixed: larger open decoders
+22
+
+were more robust to option-name swaps than Jev [30], a Chinese model initialised from Laya slightly exceeded Jev on its authors' general benchmark and in medicine, though it reached 92% of Jev's average accuracy across specialised domains [135], and an open RLCD recipe exists [161]. Options: (a) use closed models only as external baselines and run consequential judgements on self-hostable models whose weights, versions and calibration data are pinned in each decision record; or (b) allow closed models as one of several independent detectors, with logged inputs, outputs and versions. Option (a) trades measured accuracy and robustness for inspectability; that trade-off should be made explicitly and revisited as open models improve. Publishing decision records also conflicts with keeping probabilities from attackers (Section 4.2), which Section 6 resolves by delayed and coarsened publication.
+T4. AI-only adjudication versus correlated errors. Article 2(1) makes NaturalDAO autonomous "on the premise of close collaboration with all humanity", Art. 10 gives disputes to AI fact-finding and ethical assessment subject to human questioning, and Art. 9(7) states that human supervision "does not directly intervene" in decisions, with issues raised by questioning handled by NaturalDAO itself. The text does not specify how the premise of collaboration constrains individual decisions. The evidence bears on the non-intervention principle in two ways. Escalation can preserve errors: on rubric grading, low-cost generative evaluators repeated Jev's most confident errors in 96% of cases (an upper bound, from items selected as confident errors), and evaluators caught at most 5 of 130 confident misses in agent-security screening [117, 154]. But escalation can also work, when the next stage is a stronger reasoner or an independently built rule [26, 121]. Whether a human end-point would do better on governance items is untested: no study compares human reviewers with typed models on such items, and the oversight literature shows that people also over-rely on confident systems and disagree among themselves [86, 87, 89]. Options: (a) keep non-intervention, but make questioning effective by publishing a standing random audit of high-confidence decisions, with a duty for NaturalDAO to respond publicly to each discrepancy and to escalate to independently built checkers rather than peers; or (b) use the amendment procedure of Art. 11 to define a class of decisions, such as blocking a person's speech or withholding welfare, whose automated execution a human reviewer can suspend pending review. Option (a) preserves the text but leaves consequential decisions with automated components, so it falls outside the detector role defined in Section 1; we list it because it preserves the text, not because the evidence supports it. Option (b) adds a check whose value is plausible from the due-process literature [3] and close to existing law (below), but untested on this task; the reference design of Section 6 implements it.
+T5. Assessing each person versus equal connection. Among the things governed AI "can" do, § 5.6 lists quantifying "each person's Love Language and hate-language characteristics" and guiding behaviour with incentives. § 4.3.1 holds that treating every person equally and treating every person's behaviour equally "cannot be equated", and the surrounding text refuses to label people by what they have done. A typed model can score every utterance of every person for a fraction of a cent, so a per-person aggregate is technically trivial. The same models answered value questions from a default cultural position [132], showed group bias in one informal forced-choice test [131], performed worse on low-resource languages (as typed and generative models alike did in one benchmark [129]), and could be steered by a third party's opinion inserted into the content [124]. Aggregated over a person's history, such errors could fall unevenly on groups and become a durable label that others can manipulate; no study yet measures differential error by speaker group on behavioural judgements. Experience with social scoring systems shows how such scores become infrastructure for control [105, 106]. Options: score events and behaviours, never persons, and keep
+23
+
+no persistent per-person aggregates; or, if § 5.6 is implemented, require consent, access to one's own record, an appeal path, and published error rates by group and language for any per-person measure.
+Regulatory parallels. None of these tensions is unique to PoL2, and law that would apply to a deployment in the EU already takes positions on several. The EU AI Act [53] prohibits emotion recognition in workplaces and educational institutions except for medical or safety reasons (Art. 5(1)(f)), bearing on T1, and social scoring, meaning the evaluation of persons over time on their social behaviour or personal characteristics where the score leads to detrimental treatment in unrelated contexts or to treatment that is unjustified or disproportionate (Art. 5(1)(c)), bearing on T5. For high-risk systems it requires effective human oversight (Art. 14), and it gives persons affected by decisions based on certain high-risk systems listed in its Annex III, with legal or similarly significant effects, a right to an explanation of the system's role and of the main elements of the decision (Art. 86), bearing on T4 and on the explanation duty of Art. 9(2). The GDPR restricts decisions based solely on automated processing that produce legal or similarly significant effects and, where such decisions rest on a contract or explicit consent, requires at least the right to obtain human intervention, to express one's view and to contest the decision (Art. 22(1), (3)) [93], which is close to option (b) of T4. For content moderation, the Digital Services Act requires hosting providers to give a statement of reasons for each restriction (Art. 17) and online platforms to run an internal complaint-handling system (Art. 20) [94], and the Santa Clara Principles ask for notice, reasons and appeal [95]; these are close analogues of a safety valve that blocks hate language. The options above, no emotional-state inference about persons, no persistent per-person scores, human-suspendable blocks with reasons and appeal, and published decision records, would bring an implementation closer to these norms.
+Figure 2 shows which requirements each tension draws on.
+6 A reference design for a clause-governed safeguard
+The evidence suggests a clear role for typed decision models in a safeguard such as the PoL2 safety valve: a fast, cheap, recorded detector, not a judge. Figure 6 sketches a design built on that principle for the valve of § 5.4.1; it applies to any governance layer that screens the inputs and outputs of AI systems. It is compatible with the pilot protocol of the NaturalDAO governance workstream, to which the author contributes and which already distinguishes conforming, violating and insufficient verdicts and the actions allow, repair, block, clarify and review [162]; the design adds a temporary hold and makes block final only after human confirmation. Where a recommendation coincides with a choice already made in that protocol we say so, so that readers can judge whether the evidence or the prior design drove it.
+The design has seven elements.
+1. Give the detector the reference, not only the text. Many failures are defined against an instruction, a policy or a prior statement [15]; the content under review is always paired with that context. Facts that require computation or inference (sums, dates, consequences) are computed in code or in a separate logged step and written into the state, not left to the detector [125, 144].
+2. Enforce scope in code. Whether an agent stays within its authorisation is a property of the surrounding system [163], enforced by capability checks before any model is consulted.
+3. Use at least two independently built detectors. A blocking signal requires agreement
+24
+
+1 Surface + reference
+user input / assistant output / tool action
+with the policy, instruction or prior turn it is judged against (G1)
+
+2 Hard rules
+authorisation scope enforced in code, not by a model
+deterministic policy checks
+
+3 Independent detectors
+2 independently built: typed model + another family or a rule (G2, G6)
+conforming / violating / insufficient + sufficiency question (G4)
+neutral, swap-tested names (G3)
+
+6 Human review
+end of every escalation chain (G6, T4)
++ random audit of high-confidence automatic decisions
+
+5 Action
+agree + confident: allow / repair / brief hold (final block needs a person; appeal)
+else: clarify, or escalate with stated grounds (G6)
+
+4 Local calibration
+per-category thresholds fitted on held-out labelled data (G1, G4)
+probabilities not returned to untrusted callers (G2)
+
+questioning (Art. 9) and audit outcomes update the calibration set
+7 Decision record  tamper-evident log; public copy delayed, coarsened (Art. 4, 5(5), 9(3); G5) question, options and definitions · hash of input fields · probabilities · model, weights and calibration versions · rule or EAP clause cited as ground · written explanation · reviewer outcome
+
+every step is recorded
+
+Figure 6: A reference design for a clause-governed safety valve. Typed models are detectors (3) whose output is calibrated locally (4) before any automatic action (5); disagreements, insufficient information and a random sample of confident decisions go to people (6); every step is written to a decision record (7). Labels in parentheses give the requirement or tension that motivates each element.
+between detectors that differ in construction, such as models of different families or a model and a rule, since peer models share confident errors [154], while agreement with a differently built rule let a reviewer skip about a third of cases without loss of accuracy on benign data, although disguised attacks still passed [121]. Every question is three-valued (conforming, violating, insufficient), sufficiency is also asked as its own yes/no question [24], and options carry neutral identifiers bound to definitions and pass a renaming test [14, 30]. Flags that must fail independently (allow/block, risk level, needs-human) are asked in separate calls, because in an open Jev-compatible model one planted note changed several answers in the same call [127]. Self-hostable models are preferred where their accuracy suffices (T3). The three-valued verdict is already part of the workstream's pilot protocol.
+4. Calibrate locally and keep probabilities from untrusted callers. Thresholds are fitted per category on held-out local data [15, 114, 136], with distribution-free risk control where its exchangeability assumption is plausible [70, 71], and re-certified for every new question type [157]. Raw probabilities are not returned to untrusted callers, because they help attackers optimise, although attacks also succeed with labels alone [122, 123].
+5. Act automatically only on agreement, only reversibly, and only briefly. Agreement plus calibrated confidence allows automatic allow, automatic repair of the AI system's own output (such as the truncation of § 4.3.3.1, never the editing of a person's message), and a hold of a person's content limited in time (for example, at most 24 hours) and fully reversible. A
+25
+
+hold becomes a final block of a person's speech, a benefit or an account only after confirmation by a person, and remains open to appeal. Disagreement or insufficient leads to clarification or to escalation to a stronger reasoning model that must state its grounds [26]. Because an automatic allow is consequential for anyone the allowed content harms, the miss rate is monitored and governed alongside the false-block rate. This element is what keeps the typed model a detector in the sense of Section 1.
+6. End every chain with a person, and audit confident decisions. Reviewers see every escalation that would end in a block, every unresolved escalation and a random sample of high-confidence automatic decisions, since the most damaging errors are confident and shared [117, 154]; their outcomes, and the results of public questioning under Art. 9, feed back into the calibration set.
+7. Record every decision. Each record holds the question, option set and definitions, a hash of the input fields, the probabilities, the model, weight and calibration versions, the rule or clause cited as ground, any written explanation, and the reviewer's outcome. Records are kept in a tamper-evident log open to supervisors (Art. 9(3)); the public version publishes probabilities coarsened and with a delay, so that it serves Art. 4 and Art. 5(5) without becoming an oracle for attackers.
+Making human review workable. A person at the end of the chain is a safeguard only if the person can do the job. Reviewers need capacity: strict error limits shift volume into review and blocking [117], and inserted opinions push confident answers into review [124], so review load must be budgeted and reported alongside accuracy, and cheaper evaluation may increase rather than reduce the total [159]. Reviewers are prone to automation bias and complacency [86, 87] and can become the place where responsibility for system failures lands [90], so the model's verdict and probability are hidden during the random audit, and agreement between reviewers, not only with the model, is measured. People also disagree on exactly the contested items where typed models are most over-confident [45, 47, 139], so contested categories need more than one reviewer, and the person affected needs notice, reasons and a route of appeal [94, 95].
+Trade-offs and known limits of this design. Requiring two detectors to agree before blocking lowers sensitivity: more violations are missed, which conflicts with strict miss limits that are otherwise met by blocking more [117]; the design accepts more holds and more review instead, and its miss rate must be measured. Risk-control guarantees hold under exchangeability between calibration and deployment data; they bound error under benign drift, not under adaptive attack, which the G2 evidence shows is realistic. Separate calls for independent flags and a second detector multiply cost and latency, eroding the main advantage of typed models, although the measured costs leave a wide margin [30, 164]. Finally, every element rests on evidence of low or very low certainty (Table 2); the design is a hypothesis to be tested on the PoL2 construct, not a validated system.
+Table 3 turns the evidence into a checklist for any typed model proposed for such a safeguard. Items 1-4, 9, 14 and 15 draw on 8 of the 14 items of [11] (its B1-B2, C1, C3-C4, R1-R2 and T2-T3); the others are added for a governance safeguard, and that checklist's B3, T1, T4, R3 and C2 are not adopted. Each item has a provisional pass criterion; the values are starting points to be set by those deploying the safeguard, not empirically validated thresholds.
+26
+
+Table 3: Evaluation checklist with provisional pass criteria for a typed decision model in a governance safeguard. "Basis" gives the evidence or clause; items marked  are added beyond the checklist of [11].
+
+# Requirement
+
+Provisional pass criterion
+
+Basis
+
+1 Compare with a label-probability readout of a
+
+Reported on the same items
+
+[11]
+
+generative model and a cheap generative cascade
+
+2 Fit thresholds on held-out local data; report F1 at Fitted threshold certified with [15, 30]
+
+the fitted and the default threshold
+
+a one-sided risk bound
+
+3 Report calibration per category, before and after
+
+Per-category ECE and slope
+
+[136, 137]
+
+local recalibration
+
+reported with intervals
+
+4 Option-name swap test
+
+Flip rate under a definition
+
+[14, 30]
+
+swap at most twice the
+
+repeat-noise floor
+
+5 Three options including insufficient, plus a
+
+Recall of insufficient at least [24, 144, 162]
+
+separate sufficiency question
+
+0.5 on paired present/absent
+
+items
+
+6 Coherence of complementary and exclusive questions Deviation from summing to one [140]
+
+within twice repeat noise
+
+7 Red-team with adaptive, probability-guided additions, Attack success reported per
+
+[123-126]
+
+inserted opinions, lures and multi-turn attacks
+
+attack type and below a target
+
+set in advance
+
+8 Errors disaggregated by sub-type, including confident No sub-type with recall below a [117]
+
+errors
+
+set floor
+
+9 Decision-level stability over repeats, interfaces and Disagreement across interfaces [141, 152, 165]
+
+decompositions
+
+reported; one interface fixed per
+
+question
+
+10 Error correlation with every escalation target
+
+Repetition of confident errors [154]
+
+below independence plus a set
+
+margin
+
+11 Evaluation in Chinese and each language served, with Each language within a set
+
+[7, 134]
+
+script and order variants
+
+margin of English
+
+12 No forced choices between groups of people;
+
+Error rates by group within a [41, 131]
+
+group-bias test on behavioural questions
+
+set margin
+
+13 Value-laden questions: default position without
+
+Reported; contested items
+
+[132, 139]
+
+persona, behaviour where people disagree
+
+routed to people
+
+14 Latency with and without caching; cost per correct Reported, including review load [11, 30]
+
+decision
+
+15 Versions and inspectability
+
+Model, weights and calibration Art. 4,
+
+versions pinned in each record; Art. 5(4)-(5), § 5.5
+
+self-hostable or logged
+
+27
+
+7 Discussion
+Beyond one specification. Any proposal that puts an automated filter in front of AI systems, gives disputes to AI, or scores people's behaviour for public purposes faces the questions G1-G7, and, with the caveats on certainty below, the design conclusions of Section 6 are likely to apply to it. What the case adds is a demonstration that a governance text can be read clause by clause as a set of testable requirements, and that doing so exposes tensions that are invisible while the text is read only as a statement of values. In this case several of the framework's own commitments, the state of absence, the warning that love and hate are not moral labels, and the distinction between persons and behaviours, are consistent with what the evidence recommends, and the tensions arise where other provisions pull against them.
+Certainty. Table 2 rates each finding used in the abstract and conclusion. Two reach moderate certainty, that content under review can steer typed decisions and that thresholds set in advance miss their error targets on new data; the rest are low or very low, because the sources are preprints posted within days of a model's release, many results rest on one study, and no study measures the specification's own construct.
+Limitations. The corpus covers seventeen days of submissions and consists of unrefereed preprints and grey literature, many from single authors working quickly; of the 27 early studies graded by a community tracker, none was rated at low risk of bias [110]. Studies of failures are quick to write in a model's first weeks and may be over-represented; Zenodo records were negative more often than arXiv papers, although dropping them changes the overall shares little (Section 4.8). Several studies use open models rather than the hosted one, and some do not report the hosted version; we say so each time, but the tallies pool hosted and open models. The requirements are derived from PoL2, so the analysis answers its questions and may miss strengths of typed models that it does not ask about. Screening, extraction, coding and verification were carried out by AI agents under the author's direction, and both coders were AI agents of the same model family, so the agreement statistic ( = 0.72, 95% CI 0.43-0.94, on a sample dominated by Q codes) is an upper bound on how reproducible the codebook is for human coders. The Zenodo search was not re-run after 1 October, and papers announced after 4 October are not included. No study compares a typed model with trained human reviewers on a governance task, so we cannot say whether its errors are worse than those of the people it would assist.
+What would change the conclusion. We would revise "not a judge" if, on a held-out, independently annotated three-valued PoL2 benchmark in Chinese, a typed model with risk-controlled thresholds (i) kept its false-block and miss rates within targets set in advance by those accountable for the deployment, (ii) changed fewer answers under name and definition swaps than twice its repeat-noise floor, (iii) flipped fewer than 5% of decisions under single-opinion insertion and under a 64-query adaptive attack, and (iv) agreed with an independent panel of trained reviewers at least as well as the reviewers agree with each other, in one preregistered study with an independent replication, or in two independent studies. We would revise the "detector" claim if, on such a benchmark, its AUROC fell below 0.75, if two independently built detectors repeated more than 80% of each other's confident errors, or if the review load at certified thresholds exceeded the reviewer capacity budgeted for it. We ask for more evidence to relax a safeguard than to add one, because a wrongly removed safeguard restricts people's speech and resources while a wrongly added one costs review time. We would revise the recommendation that consequential decisions end with a
+28
+
+person if, on the same benchmark, trained reviewers agreed with the independent panel less well than the gated detector ensemble, or moved their verdicts towards the model's displayed verdict in more than a pre-set share of audited cases. And if generative evaluators tested under the same protocol passed where typed models failed, the conclusion would become specific to typed models; until then it is not.
+Open problems.
+· A PoL2 benchmark. No public dataset labels Love Language, hate language and the state of absence. An independently annotated benchmark in Chinese, built with disagreement-aware labels [45] on the model of existing Chinese offensive-language resources [48, 49], with a held-out set kept outside any repository, is the first prerequisite for every recommendation above; the workstream's 20 public pilot items are explicitly not a ranking set [162].
+· Human reviewers versus typed detectors on the same governance items, including reviewers' agreement with each other and their susceptibility to the model's verdict.
+· Comparators for failures. Most negative findings had no generative comparator; re-running them with one would show which failures are specific to typed models.
+· Robustness of a queryable safeguard. Whether hiding or coarsening probabilities, adding noise or rate-limiting reduces attack success, and at what cost to legitimate users, has not been measured.
+· Faithful explanations. Whether an explanation written afterwards by another model reflects what produced a typed verdict needs its own evaluation before it can satisfy Art. 9(2).
+· Per-person measurement. If § 5.6 is implemented, differential error across groups and languages must be measured before any per-person measure is computed or stored.
+· Replication. Most findings rest on one study by one team; independent replication, such as that of Just Ask Jev [114], is the most valuable next contribution for almost every requirement.
+8 Conclusion
+Typed decision models arrived with the interface that automated governance safeguards need: a typed verdict with a probability, for every input and output, at a cost that makes universal screening affordable. Read against the requirements of one explicit governance specification, the first seventeen days of evidence suggest that they can serve as the detector in such a safeguard, under the conditions set out in Section 6: inputs paired with their reference, scope enforced in code, independently built three-valued detectors with neutral, tested option names, local calibration with probabilities kept from attackers, brief and reversible automatic action only on agreement, person-confirmed blocks with a random human audit of confident automatic decisions, and a decision record. The same evidence shows why none of the typed models tested, and none of the low-cost generative evaluators tested alongside them, should serve as the judge: thresholds do not transfer, decisions can follow option names and can be steered by content inside what they audit, explicit "insufficient" options are rarely chosen when correct, and, on items selected as confident errors, peer evaluators repeated almost all of them. Where typed and generative evaluators were compared, typed models were not generally worse, but most failures were never compared; certainty is low for most findings, and no study yet measures the construct the specification needs.
+29
+
+For PoL2, several of the framework's own commitments are consistent with what the evidence recommends: the state of absence, the warning that love and hate are not moral labels, the distinction between persons and behaviours, and the demand for transparency. Other provisions are sharpened by the evidence into choices the text has yet to make: whether to draw an explicit line between understanding emotion in language and inferring persons' emotional states; how to ask three-valued questions of models that rarely say "insufficient"; how to reconcile transparency with closed models; whether non-intervention should yield, for consequential decisions, to a human who can suspend them, as data-protection law already requires in its domain; and whether per-person assessment can be squared with equal connection. Making these choices explicit, and testing the resulting safeguard on the specification's own construct, is the work that follows.
+Positionality and competing interests
+The author is one of the contributors listed in the PoL2 text and contributes to the NaturalDAO governance workstream whose pilot protocol this analysis discusses; the author has a reputational interest in that work and in the framework. Several recommendations in Section 6 coincide with choices already made in that pilot protocol, and each such coincidence is flagged so that readers can judge whether the evidence or the prior design drove it. To limit the effect of this position, the analysis uses a codebook that is symmetric between supporting and negative findings, appraises every coded study, reports certainty for each headline finding, offers at least one text-preserving option for every tension, lists the corrections to its earlier dataset release, and releases all coding with rationales. The tension analysis was not reviewed by the framework's originator or by other contributors before release. The author has no financial relationship with TypeSafe AI or with the developers of any model discussed.
+Use of AI assistance
+AI agents (Claude Opus 5.5, Anthropic) carried out the searches, screening, full-text extraction, coding, quality appraisal, second coding, figure scripting and drafting, and checked the text against its sources in independent review passes; the agents' instructions, findings and resolutions are released with the data. The author directed the work, set the research question, requirements and codebook, and is responsible for all content; the author did not re-code or re-check individual codes by hand before this release.
+Acknowledgements
+The author thanks the contributors to the NaturalDAO repository for the open, versioned PoL2 text on which this analysis is built.
+Data and code availability
+The catalogue (data/papers.csv, data/zenodo_preprints.csv, data/grey_literature.csv), the evidence coding (data/evidence_coding.csv), the quality appraisal (data/quality_app raisal.csv), the coder-agreement data (data/coder_agreement.csv), the excluded records (data/excluded_records.csv), the search scripts, the review and audit logs, the bibliography verification log, the figure scripts and the LaTeX sources are released under CC0 1.0 in the
+30
+
+PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey directory of the NaturalDAO repository (https://github.com/naturaldao/NaturalDAO). Full texts are redistributed only for papers under Creative Commons licences, with their original licences; all others are linked.
+References
+[1] Robert Gorwa, Reuben Binns, and Christian Katzenbach. Algorithmic content moderation: Technical and political challenges in the automation of platform governance. Big Data & Society, 7(1), 2020. doi: 10.1177/2053951719897945.
+[2] Tarleton Gillespie. Custodians of the Internet: Platforms, Content Moderation, and the Hidden Decisions That Shape Social Media. Yale University Press, 2018. doi: 10.12987/9780300235029.
+[3] Danielle Keats Citron. Technological due process. Washington University Law Review, 85(6): 1249-1313, 2008.
+[4] Diogo Almeida. Introducing system one models & Jev. TypeSafe AI blog, September 2026. URL https://typesafe.ai/blog/introducing-system-one-models-and-jev.
+[5] TypeSafe AI. Introduction. TypeSafe documentation, 2026. URL https://docs.typesafe. ai/introduction.
+[6] TypeSafe AI. AI primer. TypeSafe documentation, 2026. URL https://docs.typesafe.ai /introduction/machine-learning-primer.
+[7] TypeSafe AI. Models. TypeSafe documentation, 2026. URL https://docs.typesafe.ai/m odels. jev-1.13.0; aliases jev-latest, jev-preview.
+[8] Daniel Kahneman. Thinking, Fast and Slow. Farrar, Straus and Giroux, New York, 2011. ISBN 9780374275631.
+[9] NaturalDAO contributors. 2 [Proof of Love2: The consensus of the next human civilization], version 1.0. GitHub repository naturaldao/NaturalDAO, directory PoL/, commit 5791ae3, 2026. URL https://github.com/naturaldao/NaturalD AO/tree/5791ae334f385ff4bfbad59c0d5f82ef7e01dfc1/PoL. In Chinese; CC0 1.0.
+[10] NaturalDAO contributors. Proof of Love2 (PoL2), english translation. GitHub repository naturaldao/NaturalDAO, directory PoLEn/, commit 5791ae3, 2026. URL https://github.c om/naturaldao/NaturalDAO/tree/5791ae334f385ff4bfbad59c0d5f82ef7e01dfc1/PoLEn. CC0 1.0.
+[11] Lijuan Tang and Yuemeng Zheng. Typed Decision Models: An Early Evidence Audit and Evaluation Checklist, 2026. URL https://arxiv.org/abs/2609.32160v1. arXiv:2609.32160v1, first submitted 2026-09-26.
+[12] Shentao Yan and NaturalDAO contributors. PoL2 × Jev typed decision models: A literature survey, version 0.1. Dataset and Chinese-language survey, PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey, 2026. Released 2026-0929; CC0 1.0.
+31
+
+[13] Zehua Cheng, Wei Dai, and Jiahao Sun. this-that-model-1.0: A typed decision model that decides in 30 ms, for a millionth of a cent, 2026. URL https://arxiv.org/abs/2609.23886v1. arXiv:2609.23886v1, first submitted 2026-09-20.
+[14] Yu Sun, Junhao Xu, Jiajia Shi, and Zijin Yang. Type-Safe Is Not Error-Free: A Constrained Decision Head Follows the Option Name, Not the Rubric Bound to It, 2026. URL https: //arxiv.org/abs/2609.26758v2. arXiv:2609.26758v2, first submitted 2026-09-22.
+[15] Ruoqi Guo, Yi Liu, Gelei Deng, Yuekang Li, Lida Zhao, Yutao Wu, Simin Chen, Ying Zhang, and Leo Yu Zhang. Just Ask Jev: Reinforcement Learning for Calibrated Decisions as a ZeroShot Detector of AI Alignment Failures, 2026. URL https://arxiv.org/abs/2609.29429v1. arXiv:2609.29429v1, first submitted 2026-09-24.
+[16] Ted Kwartler, Alan Aqrawi, and Arian Abbasi. Harness Tokenomics: A Router for the Enterprise Agentic Control Plane, 2026. URL https://arxiv.org/abs/2609.28919v2. arXiv:2609.28919v2, first submitted 2026-09-24.
+[17] Guoming Ling, Muen Xue, and Zijian Ye. Jev in the Wild: A Data-Driven Analysis of the Jev Model's Functionality, Applications and Ecosystem, 2026. URL https://arxiv.org/ab s/2609.30216v1. arXiv:2609.30216v1, first submitted 2026-09-24.
+[18] Hazem Ibrahim and Yasir Zaki. Evaluating Decision Models for Text Annotation in Computational Social Science, 2026. URL https://arxiv.org/abs/2609.24574v2. arXiv:2609.24574v2, first submitted 2026-09-21.
+[19] Simiao Ren, Kidus Zewde, Xingyu Shen, Yuchen Zhou, Dennis Ng, Ankit Raj, Tommy Duong, Yuxin Zhang, and Neo Tiangratanakul. Open-Jev Judgments on CallScreenBench: Calibrated One-Pass Scam Screening with a Small Language Model, 2026. URL https: //arxiv.org/abs/2609.23959v1. arXiv:2609.23959v1, first submitted 2026-09-21.
+[20] Delong Li, Xu Wang, Haochen Gong, Rui Lang, and Guangsheng Yu. Replacing Large Language Models with Jev Decision Models for Low-Latency Edge Service Orchestration, 2026. URL https://arxiv.org/abs/2609.22753v2. arXiv:2609.22753v2, first submitted 2026-09-19.
+[21] Guanxu Yu and Yuhang Yao. Visual Jev: Accurate and Efficient Decisions from Shared Visual Context, 2026. URL https://arxiv.org/abs/2609.25845v1. arXiv:2609.25845v1, first submitted 2026-09-22.
+[22] Jiamu Zhang, Tianze Yang, Yucheng Shi, Evan Chen, Zixiang Nie, Kelly Wan, Liangjie Hong, Ninghao Liu, and Liang Wu. AnyJev Technical Report, 2026. URL https://arxiv.org/ab s/v1. arXiv:v1, first submitted 2026-09-30.
+[23] Yinheng Li and Justin Wagle. LLM2Jev: LLMs Are Already Jev-Style Decision Models - When and How to Fine-Tune Them, 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-10-01.
+[24] Sharath M Shankaranarayana, Davor Runje, and Jan Jannink. Beyond Answer Confidence: A Controlled Audit of Self-Knowledge in a Black-Box Decision Model, 2026. URL https: //arxiv.org/abs/v1. arXiv:v1, first submitted 2026-10-01.
+32
+
+[25] TypeSafe AI. Jev 1.13 jaggedness. TypeSafe documentation, 2026. URL https://docs.typ esafe.ai/model-jaggedness/jev-1.13. Last reviewed 2026-09-17; the 0.72/0.47 example is in the version archived at https://web.archive.org/web/20260920205110/https: //docs.typesafe.ai/model-jaggedness/jev-1.13 and has since been removed.
+[26] Yubo Li, Yidi Miao, Ramayya Krishnan, and Rema Padman. JEV-as-a-Judge: Accept When Confident, Escalate When Unsure, 2026. URL https://arxiv.org/abs/2609.26550v3. arXiv:2609.26550v3, first submitted 2026-09-22.
+[27] Hengyu Li. KITE: Scaling Jev Population Experiments with Sparse Flagship Calibration, 2026. URL https://arxiv.org/abs/2609.27535v1. arXiv:2609.27535v1, first submitted 2026-09-23.
+[28] Delong Li, Xu Wang, Haochen Gong, Rui Lang, and Guangsheng Yu. Fast Intent-Driven Service Orchestration with Jev for 6G Edge Networks, 2026. URL https://arxiv.org/abs/ 2609.23136v1. arXiv:2609.23136v1, first submitted 2026-09-19.
+[29] Weiyu Ma, Liangbing Zhao, Yongcheng Zeng, and Jian Zhao. JEV-Star: Fast, Low-Cost StarCraft II Control with Language-Model Planning, 2026. URL https://arxiv.org/abs/ 2609.27331v1. arXiv:2609.27331v1, first submitted 2026-09-23.
+[30] Amir Rafe and Subasish Das. Benchmarking System One decision models against trained classifiers and language models for automated decision gates, 2026. URL https://arxiv.or g/abs/v1. arXiv:v1, first submitted 2026-09-29.
+[31] Haoyang Su and Weiran Huang. JevSpawn: Adaptive Agentic Inference through Compositional Action Spaces, 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-09-30.
+[32] Hakan Inan, Kartikeya Upasani, Jianfeng Chi, Rashi Rungta, Krithika Iyer, Yuning Mao, Michael Tontchev, Qing Hu, Brian Fuller, Davide Testuggine, and Madian Khabsa. Llama Guard: LLM-based input-output safeguard for human-AI conversations. arXiv preprint arXiv:2312.06674, 2023.
+[33] Todor Markov, Chong Zhang, Sandhini Agarwal, Florentine Eloundou Nekoul, Theodore Lee, Steven Adler, Angela Jiang, and Lilian Weng. A holistic approach to undesired content detection in the real world. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 37, pages 15009-15018, 2023. doi: 10.1609/aaai.v37i12.26752.
+[34] Mrinank Sharma, Meg Tong, Jesse Mu, Jerry Wei, Jorrit Kruthoff, Scott Goodfriend, Euan Ong, Alwin Peng, Raj Agarwal, Cem Anil, et al. Constitutional classifiers: Defending against universal jailbreaks across thousands of hours of red teaming. arXiv preprint arXiv:2501.18837, 2025.
+[35] Traian Rebedea, Razvan Dinu, Makesh Narsimhan Sreedhar, Christopher Parisien, and Jonathan Cohen. NeMo Guardrails: A toolkit for controllable and safe LLM applications with programmable rails. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing: System Demonstrations, pages 431-445, 2023. doi: 10.18653/v1/2023.e mnlp-demo.40.
+[36] Fábio Perez and Ian Ribeiro. Ignore previous prompt: Attack techniques for language models. In NeurIPS ML Safety Workshop, 2022.
+33
+
+[37] Kai Greshake, Sahar Abdelnabi, Shailesh Mishra, Christoph Endres, Thorsten Holz, and Mario Fritz. Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection. In Proceedings of the 16th ACM Workshop on Artificial Intelligence and Security (AISec), pages 79-90, 2023. doi: 10.1145/3605764.3623985.
+[38] Qiusi Zhan, Zhixiang Liang, Zifan Ying, and Daniel Kang. InjecAgent: Benchmarking indirect prompt injections in tool-integrated large language model agents. In Findings of the Association for Computational Linguistics: ACL 2024, pages 10471-10506, 2024. doi: 10.18653/v1/2024.f indings- acl.624.
+[39] Andy Zou, Zifan Wang, Nicholas Carlini, Milad Nasr, J. Zico Kolter, and Matt Fredrikson. Universal and transferable adversarial attacks on aligned language models. arXiv preprint arXiv:2307.15043, 2023.
+[40] Sam Toyer, Olivia Watkins, Ethan Adrian Mendes, Justin Svegliato, Luke Bailey, Tiffany Wang, Isaac Ong, Karim Elmaaroufi, Pieter Abbeel, Trevor Darrell, Alan Ritter, and Stuart Russell. Tensor trust: Interpretable prompt injection attacks from an online game. In International Conference on Learning Representations (ICLR), 2024.
+[41] Maarten Sap, Dallas Card, Saadia Gabriel, Yejin Choi, and Noah A. Smith. The risk of racial bias in hate speech detection. In Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics (ACL), pages 1668-1678, 2019. doi: 10.18653/v1/P19-1163.
+[42] Thomas Davidson, Debasmita Bhattacharya, and Ingmar Weber. Racial bias in hate speech and abusive language detection datasets. In Proceedings of the Third Workshop on Abusive Language Online, pages 25-35, 2019. doi: 10.18653/v1/W19-3504.
+[43] Paul Röttger, Bertie Vidgen, Dong Nguyen, Zeerak Waseem, Helen Margetts, and Janet Pierrehumbert. HateCheck: Functional tests for hate speech detection models. In Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (ACL-IJCNLP), pages 41-58, 2021. doi: 10.18653/v1/2021.acl-long.4.
+[44] Maarten Sap, Swabha Swayamdipta, Laura Vianna, Xuhui Zhou, Yejin Choi, and Noah A. Smith. Annotators with attitudes: How annotator beliefs and identities bias toxic language detection. In Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics, pages 5884-5906, 2022. doi: 10.18653/v1/2022.naa cl-main.431.
+[45] Aida Mostafazadeh Davani, Mark Díaz, and Vinodkumar Prabhakaran. Dealing with disagreements: Looking beyond the majority vote in subjective annotations. Transactions of the Association for Computational Linguistics, 10:92-110, 2022. doi: 10.1162/tacl_a_00449.
+[46] Barbara Plank. The "problem" of human label variation: On ground truth in data, modeling and evaluation. In Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing, pages 10671-10682, 2022. doi: 10.18653/v1/2022.emnlp-main.731.
+[47] Ellie Pavlick and Tom Kwiatkowski. Inherent disagreements in human textual inferences. Transactions of the Association for Computational Linguistics, 7:677-694, 2019. doi: 10.1162/ tacl_a_00293.
+34
+
+[48] Jiawen Deng, Jingyan Zhou, Hao Sun, Chujie Zheng, Fei Mi, Helen Meng, and Minlie Huang. COLD: A benchmark for Chinese offensive language detection. In Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing, pages 11580-11599, 2022. doi: 10.18653/v1/2022.emnlp-main.796.
+[49] Junyu Lu, Bo Xu, Xiaokun Zhang, Changrong Min, Liang Yang, and Hongfei Lin. Facilitating fine-grained detection of Chinese toxic language: Hierarchical taxonomy, resources, and benchmarks. In Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 16235-16250, 2023. doi: 10.18653/v1/2023.acl-l ong.898.
+[50] Aiqi Jiang, Xiaohan Yang, Yang Liu, and Arkaitz Zubiaga. SWSR: A Chinese dataset and lexicon for online sexism detection. Online Social Networks and Media, 27:100182, 2022. doi: 10.1016/j.osnem.2021.100182.
+[51] Lisa Feldman Barrett, Ralph Adolphs, Stacy Marsella, Aleix M. Martinez, and Seth D. Pollak. Emotional expressions reconsidered: Challenges to inferring emotion from human facial movements. Psychological Science in the Public Interest, 20(1):1-68, 2019. doi: 10.1177/ 1529100619832930.
+[52] Luke Stark and Jesse Hoey. The ethics of emotion in artificial intelligence systems. In Proceedings of the 2021 ACM Conference on Fairness, Accountability, and Transparency, pages 782-793, 2021. doi: 10.1145/3442188.3445939.
+[53] European Parliament and Council of the European Union. Regulation (EU) 2024/1689 of the european parliament and of the council of 13 june 2024 laying down harmonised rules on artificial intelligence (artificial intelligence act). Official Journal of the European Union, L series, 12 July 2024, 2024. URL http://data.europa.eu/eli/reg/2024/1689/oj.
+[54] Glenn W. Brier. Verification of forecasts expressed in terms of probability. Monthly Weather Review, 78(1):1-3, 1950. doi: 10.1175/1520-0493(1950)078<0001:VOFEIT>2.0.CO;2.
+[55] John C. Platt. Probabilistic outputs for support vector machines and comparisons to regularized likelihood methods. In Alexander J. Smola, Peter Bartlett, Bernhard Schölkopf, and Dale Schuurmans, editors, Advances in Large Margin Classifiers, pages 61-74. MIT Press, 1999.
+[56] Chuan Guo, Geoff Pleiss, Yu Sun, and Kilian Q. Weinberger. On calibration of modern neural networks. In Proceedings of the 34th International Conference on Machine Learning (ICML), volume 70 of Proceedings of Machine Learning Research, pages 1321-1330, 2017.
+[57] Mahdi Pakdaman Naeini, Gregory Cooper, and Milos Hauskrecht. Obtaining well calibrated probabilities using Bayesian binning. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 29, 2015. doi: 10.1609/aaai.v29i1.9602.
+[58] Zhengbao Jiang, Jun Araki, Haibo Ding, and Graham Neubig. How can we know when language models know? on the calibration of language models for question answering. Transactions of the Association for Computational Linguistics, 9:962-977, 2021. doi: 10.1162/tacl_a_00407.
+[59] Saurav Kadavath, Tom Conerly, Amanda Askell, Tom Henighan, Dawn Drain, Ethan Perez, Nicholas Schiefer, Zac Hatfield-Dodds, Nova DasSarma, Eli Tran-Johnson, et al. Language models (mostly) know what they know. arXiv preprint arXiv:2207.05221, 2022.
+35
+
+[60] Katherine Tian, Eric Mitchell, Allan Zhou, Archit Sharma, Rafael Rafailov, Huaxiu Yao, Chelsea Finn, and Christopher D. Manning. Just ask for calibration: Strategies for eliciting calibrated confidence scores from language models fine-tuned with human feedback. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing (EMNLP), pages 5433-5442, 2023. doi: 10.18653/v1/2023.emnlp-main.330.
+[61] Miao Xiong, Zhiyuan Hu, Xinyang Lu, Yifei Li, Jie Fu, Junxian He, and Bryan Hooi. Can LLMs express their uncertainty? an empirical evaluation of confidence elicitation in LLMs. In International Conference on Learning Representations (ICLR), 2024.
+[62] Yaniv Ovadia, Emily Fertig, Jie Ren, Zachary Nado, D. Sculley, Sebastian Nowozin, Joshua V. Dillon, Balaji Lakshminarayanan, and Jasper Snoek. Can you trust your model's uncertainty? Evaluating predictive uncertainty under dataset shift. In Advances in Neural Information Processing Systems 32, 2019.
+[63] Úrsula Hébert-Johnson, Michael P. Kim, Omer Reingold, and Guy N. Rothblum. Multicalibration: Calibration for the (computationally-identifiable) masses. In Proceedings of the 35th International Conference on Machine Learning, 2018.
+[64] C. K. Chow. On optimum recognition error and reject tradeoff. IEEE Transactions on Information Theory, 16(1):41-46, 1970. doi: 10.1109/TIT.1970.1054406.
+[65] Yonatan Geifman and Ran El-Yaniv. Selective classification for deep neural networks. In Advances in Neural Information Processing Systems 30 (NeurIPS), pages 4878-4887, 2017.
+[66] Amita Kamath, Robin Jia, and Percy Liang. Selective question answering under domain shift. In Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics (ACL), pages 5684-5696, 2020. doi: 10.18653/v1/2020.acl-main.503.
+[67] Bingbing Wen, Jihan Yao, Shangbin Feng, Chenjun Xu, Yulia Tsvetkov, Bill Howe, and Lucy Lu Wang. Know your limits: A survey of abstention in large language models. Transactions of the Association for Computational Linguistics, 13:529-556, 2025. doi: 10.1162/tacl_a_00754.
+[68] David Madras, Toniann Pitassi, and Richard Zemel. Predict responsibly: Improving fairness and accuracy by learning to defer. In Advances in Neural Information Processing Systems 31, 2018.
+[69] Hussein Mozannar and David Sontag. Consistent estimators for learning to defer to an expert. In Proceedings of the 37th International Conference on Machine Learning, 2020.
+[70] Stephen Bates, Anastasios Angelopoulos, Lihua Lei, Jitendra Malik, and Michael Jordan. Distribution-free, risk-controlling prediction sets. Journal of the ACM, 68(6):1-34, 2021. doi: 10.1145/3478535.
+[71] Anastasios N. Angelopoulos, Stephen Bates, Adam Fisch, Lihua Lei, and Tal Schuster. Conformal risk control. In International Conference on Learning Representations (ICLR), 2024.
+[72] Tony Z. Zhao, Eric Wallace, Shi Feng, Dan Klein, and Sameer Singh. Calibrate before use: Improving few-shot performance of language models. In Proceedings of the 38th International Conference on Machine Learning (ICML), volume 139 of Proceedings of Machine Learning Research, pages 12697-12706, 2021.
+36
+
+[73] Yao Lu, Max Bartolo, Alastair Moore, Sebastian Riedel, and Pontus Stenetorp. Fantastically ordered prompts and where to find them: Overcoming few-shot prompt order sensitivity. In Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (ACL), Volume 1: Long Papers, pages 8086-8098, 2022. doi: 10.18653/v1/2022.acl-long.556.
+[74] Chujie Zheng, Hao Zhou, Fandong Meng, Jie Zhou, and Minlie Huang. Large language models are not robust multiple choice selectors. In International Conference on Learning Representations (ICLR), 2024.
+[75] Pouya Pezeshkpour and Estevam Hruschka. Large language models sensitivity to the order of options in multiple-choice questions. In Findings of the Association for Computational Linguistics: NAACL 2024, pages 2006-2017, 2024. doi: 10.18653/v1/2024.findings-naacl.130.
+[76] Melanie Sclar, Yejin Choi, Yulia Tsvetkov, and Alane Suhr. Quantifying language models' sensitivity to spurious features in prompt design or: How I learned to start worrying about prompt formatting. In International Conference on Learning Representations (ICLR), 2024.
+[77] Jerry Wei, Jason Wei, Yi Tay, Dustin Tran, Albert Webson, Yifeng Lu, Xinyun Chen, Hanxiao Liu, Da Huang, Denny Zhou, and Tengyu Ma. Larger language models do in-context learning differently. arXiv preprint arXiv:2303.03846, 2023.
+[78] Percy Liang, Rishi Bommasani, Tony Lee, Dimitris Tsipras, Dilara Soylu, Michihiro Yasunaga, Yian Zhang, Deepak Narayanan, Yuhuai Wu, Ananya Kumar, et al. Holistic evaluation of language models. Transactions on Machine Learning Research, 2023.
+[79] Peiyi Wang, Lei Li, Liang Chen, Zefan Cai, Dawei Zhu, Binghuai Lin, Yunbo Cao, Lingpeng Kong, Qi Liu, Tianyu Liu, and Zhifang Sui. Large language models are not fair evaluators. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 9440-9450, 2024. doi: 10.18653/v1/2024.acl-long.511.
+[80] Arjun Panickssery, Samuel R. Bowman, and Shi Feng. LLM evaluators recognize and favor their own generations. In Advances in Neural Information Processing Systems 37 (NeurIPS), pages 68772-68802, 2024. doi: 10.52202/079017-2197.
+[81] Shashwat Goel, Joschka Struber, Ilze Amanda Auzina, Karuna K. Chandra, Ponnurangam Kumaraguru, Douwe Kiela, Ameya Prabhu, Matthias Bethge, and Jonas Geiping. Great models think alike and this undermines AI oversight. arXiv preprint arXiv:2502.04313, 2025.
+[82] Pat Verga, Sebastian Hofstätter, Sophia Althammer, Yixuan Su, Aleksandra Piktus, Arkady Arkhangorodsky, Minjie Xu, Naomi White, and Patrick Lewis. Replacing judges with juries: Evaluating LLM generations with a panel of diverse models. arXiv preprint arXiv:2404.18796, 2024.
+[83] Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric P. Xing, Hao Zhang, Joseph E. Gonzalez, and Ion Stoica. Judging LLM-as-a-judge with MT-Bench and Chatbot Arena. In Advances in Neural Information Processing Systems 36 (NeurIPS), Datasets and Benchmarks Track, 2023.
+[84] Lingjiao Chen, Matei Zaharia, and James Zou. FrugalGPT: How to use large language models while reducing cost and improving performance. arXiv preprint arXiv:2305.05176, 2023.
+37
+
+[85] Jaehun Jung, Faeze Brahman, and Yejin Choi. Trust or escalate: LLM judges with provable guarantees for human agreement. In International Conference on Learning Representations (ICLR), 2025.
+[86] Raja Parasuraman and Dietrich H. Manzey. Complacency and bias in human use of automation: An attentional integration. Human Factors, 52(3):381-410, 2010. doi: 10.1177/001872081037 6055.
+[87] Ben Green. The flaws of policies requiring human oversight of government algorithms. Computer Law & Security Review, 45:105681, 2022. doi: 10.1016/j.clsr.2022.105681.
+[88] Ben Green and Yiling Chen. The principles and limits of algorithm-in-the-loop decision making. Proceedings of the ACM on Human-Computer Interaction, 3(CSCW):1-24, 2019. doi: 10.1145/3359152.
+[89] Gagan Bansal, Tongshuang Wu, Joyce Zhou, Raymond Fok, Besmira Nushi, Ece Kamar, Marco Tulio Ribeiro, and Daniel Weld. Does the whole exceed its parts? the effect of AI explanations on complementary team performance. In Proceedings of the 2021 CHI Conference on Human Factors in Computing Systems, pages 1-16, 2021. doi: 10.1145/3411764.3445717.
+[90] Madeleine Clare Elish. Moral crumple zones: Cautionary tales in human-robot interaction. Engaging Science, Technology, and Society, 5:40-60, 2019. doi: 10.17351/ests2019.260.
+[91] Sandra Wachter, Brent Mittelstadt, and Chris Russell. Counterfactual explanations without opening the black box: Automated decisions and the GDPR. Harvard Journal of Law & Technology, 31(2):841-887, 2018. doi: 10.2139/ssrn.3063289.
+[92] Finale Doshi-Velez and Been Kim. Towards a rigorous science of interpretable machine learning. arXiv preprint arXiv:1702.08608, 2017.
+[93] European Parliament and Council of the European Union. Regulation (EU) 2016/679 (general data protection regulation). Official Journal of the European Union, L 119, 4 May 2016, 2016. URL https://eur-lex.europa.eu/eli/reg/2016/679/oj.
+[94] European Parliament and Council of the European Union. Regulation (EU) 2022/2065 on a single market for digital services (digital services act). Official Journal of the European Union, L 277, 27 October 2022, 2022. URL https://eur-lex.europa.eu/eli/reg/2022/2065/oj.
+[95] Santa Clara Principles coalition. The santa clara principles on transparency and accountability in content moderation, version 2.0, 2021. URL https://santaclaraprinciples.org/.
+[96] National Institute of Standards and Technology. Artificial intelligence risk management framework (AI RMF 1.0). Technical Report NIST AI 100-1, National Institute of Standards and Technology, Gaithersburg, MD, 2023.
+[97] Margaret Mitchell, Simone Wu, Andrew Zaldivar, Parker Barnes, Lucy Vasserman, Ben Hutchinson, Elena Spitzer, Inioluwa Deborah Raji, and Timnit Gebru. Model cards for model reporting. In Proceedings of the Conference on Fairness, Accountability, and Transparency (FAT*), pages 220-229, 2019. doi: 10.1145/3287560.3287596.
+[98] Timnit Gebru, Jamie Morgenstern, Briana Vecchione, Jennifer Wortman Vaughan, Hanna Wallach, Hal Daumé III, and Kate Crawford. Datasheets for datasets. Communications of the ACM, 64(12):86-92, 2021. doi: 10.1145/3458723.
+38
+
+[99] Vitalik Buterin. Ethereum: A next-generation smart contract and decentralized application platform. White paper, 2014. URL https://ethereum.org/en/whitepaper/.
+[100] Samer Hassan and Primavera De Filippi. Decentralized autonomous organization. Internet Policy Review, 10(2), 2021. doi: 10.14763/2021.2.1556.
+[101] Carlos Santana and Laura Albareda. Blockchain and the emergence of decentralized autonomous organizations (DAOs): An integrative model and research agenda. Technological Forecasting and Social Change, 182:121806, 2022. doi: 10.1016/j.techfore.2022.121806.
+[102] Elinor Ostrom. Governing the Commons: The Evolution of Institutions for Collective Action. Cambridge University Press, Cambridge, 1990. doi: 10.1017/CBO9780511807763.
+[103] John Danaher. The threat of algocracy: Reality, resistance and accommodation. Philosophy & Technology, 29(3):245-268, 2016. doi: 10.1007/s13347-015-0211-1.
+[104] Yuntao Bai, Saurav Kadavath, Sandipan Kundu, Amanda Askell, Jackson Kernion, Andy Jones, Anna Chen, Anna Goldie, Azalia Mirhoseini, Cameron McKinnon, et al. Constitutional AI: Harmlessness from AI feedback. arXiv preprint arXiv:2212.08073, 2022.
+[105] Rogier Creemers. China's social credit system: An evolving practice of control. SSRN Electronic Journal, 2018.
+[106] Fan Liang, Vishnupriya Das, Nadiya Kostyuk, and Muzammil M. Hussain. Constructing a data-driven society: China's social credit system as a state surveillance infrastructure. Policy & Internet, 10(4):415-453, 2018. doi: 10.1002/poi3.183.
+[107] Matthew J. Page, Joanne E. McKenzie, Patrick M. Bossuyt, Isabelle Boutron, Tammy C. Hoffmann, Cynthia D. Mulrow, et al. The PRISMA 2020 statement: An updated guideline for reporting systematic reviews. BMJ, 372:n71, 2021. doi: 10.1136/bmj.n71.
+[108] Chantelle Garritty, Gerald Gartlehner, Barbara Nussbaumer-Streit, Valerie J. King, Candyce Hamel, Chris Kamel, Lisa Affengruber, and Adrienne Stevens. Cochrane rapid reviews methods group offers evidence-informed guidance to conduct rapid reviews. Journal of Clinical Epidemiology, 130:13-22, 2021. doi: 10.1016/j.jclinepi.2020.10.007.
+[109] Han Xiao. All about Jev: 2073 replications, models, runtimes & benchmarks. Web tracker, 2026. URL https://hanxiao.io/all-about-jev/. Swept 2026-09-27 UTC; dataset all-methods.jsonl.
+[110] Amir Rafe and Subasish Das. Awesome system one models: A curated, evidence-graded list of typed probabilistic decision models. GitHub repository, 2026. URL https://github.com /pozapas/awesome-system-one-models. Cutoff 2026-09-24.
+[111] Mhairi Campbell, Joanne E. McKenzie, Amanda Sowden, Srinivasa Vittal Katikireddi, Sue E. Brennan, Simon Ellis, Jamie Hartmann-Boyce, Rebecca Ryan, Sasha Shepperd, James Thomas, Vivian Welch, and Hilary Thomson. Synthesis without meta-analysis (SWiM) in systematic reviews: Reporting guideline. BMJ, 368:l6890, 2020. doi: 10.1136/bmj.l6890.
+[112] Gordon H. Guyatt, Andrew D. Oxman, Gunn E. Vist, Regina Kunz, Yngve Falck-Ytter, Pablo Alonso-Coello, and Holger J. Schünemann. GRADE: An emerging consensus on rating quality of evidence and strength of recommendations. BMJ, 336(7650):924-926, 2008. doi: 10.1136/bmj.39489.470347.AD.
+39
+
+[113] Zhiqiang Wang and Yichao Gao. JEV as a Judge for Agent Trace Security: An Empirical Comparison with Generative LLM Judges, 2026. URL https://arxiv.org/abs/2609.348 62v1. arXiv:2609.34862v1, first submitted 2026-09-28.
+[114] jkf87. Jev RLCD replication: independent re-run of Just Ask Jev (arxiv:2609.29429). GitHub repository, September 2026. URL https://github.com/jkf87/jev-rlcd-replication. commit c11dbd0.
+[115] Zhengle Wang, Hanxu Yan, Fuheng Zhao, and Chunwei Liu. Prune First, Decide Fast: Scalable Semantic Query Processing with JEVDB, 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-10-01.
+[116] Hao Chen. COGNIT-Guard: Calibrated Standalone Direct-Decision Guardrails with Heterogeneous CPU-NPU Confidence Cascading under Explicit Latency and False-Positive Constraints, 2026. URL https://arxiv.org/abs/2609.33671v1. arXiv:2609.33671v1, first submitted 2026-09-27.
+[117] Yixuan Liu. Evaluating System One Models for Agent Security Decisions: Reliability, Calibration, and Selective Automation, 2026. URL https://arxiv.org/abs/2609.33401v2. arXiv:2609.33401v2, first submitted 2026-09-27.
+[118] Perry Link. When a Judgment Layer's Self-Reported Fields Lie: Cost, Latency and the Failure Boundary of Three Judgment Layers. Zenodo preprint, 2026-09-22, 2026. URL https://doi.org/10.5281/zenodo.22901853.
+[119] Amir Rafe and Subasish Das. Counting the Uncounted: Population-Level Surveillance of Documented Pregnancy and Fetal Harm in Police Crash Narratives with a System One Model (Jev), 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-09-21.
+[120] Shenghe Xu and Lifan Mei. A First Glance at Jev for Network Traffic Classification: Accuracy, Processing Time, and Cost, 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-09-30.
+[121] Tianwei Mu, Shengyan Jiang, Mingzhe Yuan, Qing Luo, Min Xiao, Wenhong Wang, Jun Li, and Manhong Huang. HydroJEV: A one-second, training-free screen for cyber-attack and fault attribution in water distribution networks, 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-10-01.
+[122] Tiantong Wu and Wei Yang Bryan Lim. Decision Hijacking: Prompt Injection Attacks on Jev's Typed Probabilistic Decisions, 2026. URL https://arxiv.org/abs/2609.28613v1. arXiv:2609.28613v1, first submitted 2026-09-23.
+[123] Zixiang Xu. JevOut: Natural Context Can Flip Decision Models, 2026. URL https: //arxiv.org/abs/2609.30243v1. arXiv:2609.30243v1, first submitted 2026-09-24.
+[124] Jianyi Hu, Hangtao Zhang, Yi Liu, Yeqi Zeng, Li Zeng, Xianlong Wang, Rui Wang, and Leo Yu Zhang. JevAdvBench: A Benchmark and Black-Box Attacks for Reinforcement Learning for Calibrated Decisions Models, 2026. URL https://arxiv.org/abs/2609.31142v1. arXiv:2609.31142v1, first submitted 2026-09-25.
+[125] Yaodong Yang, Hongyao Tang, Yi Ma, Xingyu Fan, Weixun Wang, Jinpeng Li, and Tianpei Yang. Code Owns the Simulation, Jev Owns the Evaluation, 2026. URL https://arxiv.or g/abs/v1. arXiv:v1, first submitted 2026-10-01.
+40
+
+[126] Check Point Team. A decision model breaks like any other language model: A first look at Jev. Check Point Blog, September 2026. URL https://blog.checkpoint.com/ai-securit y/jev-is-not-a-language-model-but-it-breaks-like-one-prompt-injection-again st-a-typed-decision-model/.
+[127] Yousif Alkhubaizi. One Poisoned Input, Many Wrong Decisions? The Blast Radius of Injection in a Typed Decision Model. Zenodo preprint, 2026-09-29, 2026. URL https: //doi.org/10.5281/zenodo.23038928.
+[128] Tianxiang Gao, Jinzhe Li, Zhiyuan Li, Yi Chang, and Yuan Wu. More Choices, Fewer Decisions: Ordinal-Scale Bias in JEV-like Direct-Decision Models, 2026. URL https://arxi v.org/abs/2609.38827v1. arXiv:2609.38827v1, first submitted 2026-09-30.
+[129] Tobias Deußer, Lorenz Sparrenberg, and Rafet Sifa. Evaluating and Benchmarking the System One Model Jev, 2026. URL https://arxiv.org/abs/2609.37647v1. arXiv:2609.37647v1, first submitted 2026-09-29.
+[130] Andreas Blum. Jev Takes the Bunker Exam: A Decision Model on the Dilemmas of The Philosophers. Zenodo software + paper, 2026-09-28, 2026. URL https://doi.org/10.5281/ zenodo.23023694.
+[131] Josh C. Simmons. It said no 6,336 times. then it picked white. Blog post, September 2026. URL https://www.drjoshcsimmons.com/writing/it-refused-then-i-made-it-choose.
+[132] Bushra Asseri and Abdulaziz Asseri. Calibrated to Whom? Persona and Language Effects on Cultural Values in JEV, 2026. URL https://arxiv.org/abs/2609.36399v1. arXiv:2609.36399v1, first submitted 2026-09-28.
+[133] Michele Loi. The Argument and the Letterhead: Source-Position Coherence in AI Evaluation, 2026. URL https://arxiv.org/abs/2609.35286v1. arXiv:2609.35286v1, first submitted 2026-09-28.
+[134] Cody Qin. zh-decision-bench: a Chinese-language calibration benchmark for Jev-class decision models. GitHub repository, 2026. URL https://github.com/CodyQin/zh-decision-bench. v0.1 2026-09-26 (cited figures); v0.2.0 released 2026-09-28, commit 7cd0164.
+[135] Zexiao Wang, Zihao Zhang, Xudong Wang, Pan Wang, Ziyi Ye, Haoyu Zhao, Zuxuan Wu, and Shuicheng Yan. Chinese-Jev: Bringing System One Model to Chinese-Language Tasks, 2026. URL https://arxiv.org/abs/2609.36965v1. arXiv:2609.36965v1, first submitted 2026-09-29.
+[136] Amir Rafe and Subasish Das. Calibrated Decisions at Scale: Converting Police Crash Narratives into Probabilistic Crash Variables with a System One Model (Jev), 2026. URL https://arxiv.org/abs/2609.24052v1. arXiv:2609.24052v1, first submitted 2026-09-21.
+[137] Jiaju Huang, Hao Yang, Xinyu Ma, Xinglong Liang, Kunyan Cai, Junqiang Ma, Shaobin Chen, Yue Sun, and Tao Tan. Can Jev Judge Radiology Reports? Evaluating a System One Model for Clinical Factuality, 2026. URL https://arxiv.org/abs/2609.27607v1. arXiv:2609.27607v1, first submitted 2026-09-23.
+[138] Kevin David Hayes, Arka Pal, Haosong Zhang, Tom Goldstein, and Micah Goldblum. Pinocchio: Fast Uncertainty Estimates for Black-Box Language Models, 2026. URL
+41
+
+https://arxiv.org/abs/2609.24881v2. arXiv:2609.24881v2, first submitted 2026-0921.
+[139] Gautam Khosla. Confident Where People Disagree: A Preregistered Test on ChaosNLI. Zenodo preprint, 2026-09-29, 2026. URL https://doi.org/10.5281/zenodo.23032384.
+[140] Keyi Li, Yihao He, and Quanyi Li. Beyond Calibration: Do a Typed-Decision Model's Probabilities Obey the Probability Axioms?, 2026. URL https://arxiv.org/abs/2609.332 09v1. arXiv:2609.33209v1, first submitted 2026-09-27.
+[141] Han Chen and Yingrui Li. Probability Contracts: Accuracy, Coherence, and Decisions Across LLM Interfaces, 2026. URL https://arxiv.org/abs/2609.37470v1. arXiv:2609.37470v1, first submitted 2026-09-27.
+[142] Stanislav Yurin. Is Jev confident? bernoulli.app (Skanavi Labs), September 2026. URL https://bernoulli.app/articles/is-jev-confident. Updated 2026-09-20.
+[143] Alfredo Madrid-García and Beatriz Merino-Barbancho. Jev in Medicine: A Benchmark Evaluation. Preliminary Results, 2026. URL https://arxiv.org/abs/2609.34024v1. arXiv:2609.34024v1, first submitted 2026-09-27.
+[144] Jike Zhong, Ming Li, and Yuxiang Lai. When the Right Answer Is Missing: An ArithmeticDependent Rejection Bottleneck in Jev, 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-09-30.
+[145] Maikel Yelandi Leyva Vázquez. Typed Evaluation Models and the Collapse Between Conflict and Ignorance: A Case Study on Jev. Zenodo article, 2026-09-19, 2026. URL https: //doi.org/10.5281/zenodo.22848952.
+[146] Riccardo Porcedda. Jev thinks "I don't know", but doesn't say it: Introducing Sys1Cal-v1 Dataset for Probability Calibration, 2026. URL https://arxiv.org/abs/2609.35342v1. arXiv:2609.35342v1, first submitted 2026-09-28.
+[147] Simon Willison. Jev introduces a new shape of LLM--system one, aka decision models. Simon Willison's Weblog, September 2026. URL https://simonwillison.net/2026/Sep/21/jev/.
+[148] Liushen. Cognitive Architecture and Accountability: A Critique of the "Intuitive Decision" Paradigm from the Jev Route. Zenodo essay, 2026-09-16, 2026. URL https://doi.org/10.5 281/zenodo.22847531.
+[149] Agerico De Villa. Jev/System One Model Comes Short Where Palantir Comes Short. Zenodo other, 2026-09-21, 2026. URL https://doi.org/10.5281/zenodo.22866847.
+[150] Omar Alaaeldein. Evaluating Jev for Cost-Effective Candidate Verification: An Exploratory Study. Zenodo publication, 2026-09-19, 2026. URL https://doi.org/10.5281/zenodo.228 49329.
+[151] Boyuan Deng, Shuyi Fan, Hongyang Zhang, and Xinhong Xie. Jev for Scientific Decisions: Evaluating Semantic Choices and Their Consequences, 2026. URL https://arxiv.org/abs/ 2609.24965v2. arXiv:2609.24965v2, first submitted 2026-09-21.
+[152] Saman Sarker Joy. Do System One Decisions Add Up? A Study of Probabilistic Coherence, 2026. URL https://arxiv.org/abs/2609.33971v1. arXiv:2609.33971v1, first submitted 2026-09-27.
+42
+
+[153] Anh Khoa Doan Ngoc. Calibration Does Not Compose, Types Destroy Vagueness: The Hidden-Markov and Fuzzy Primitives Missing from System-One Decision Models. Zenodo preprint, 2026-10-01, 2026. URL https://doi.org/10.5281/zenodo.23064668.
+
+[154] Delip Rao and Chris Callison-Burch. JEV vs. LLMs as Rubric Judges: Cheaper, Faster, and Wrong in the Same Places, 2026. URL https://arxiv.org/abs/2609.29769v2. arXiv:2609.29769v2, first submitted 2026-09-24.
+
+[155] Zhimai Hou, Jinhuan Wu, Ying Geng, Shuo Lin, and Guoliang Yang. SystemOne-UAV: Testing the Calibration Claims of Fast Typed Decision Models with Ground-Truth Epistemic Uncertainty. Zenodo preprint, 2026-09-29, 2026. URL https://doi.org/10.5281/zenodo.2 3041163.
+
+[156] Gowthamkumar Nandakishore. Laya as a Typed Probabilistic Assessor: An Independent Reproduction and a Preregistered Study of Calibration and Selective Escalation, 2026. URL https://arxiv.org/abs/2609.33843v1. arXiv:2609.33843v1, first submitted 2026-09-27.
+
+[157] Michail-Alexandros Kourtis and George Xilouris. Type-Safe Decision Frameworks for Agentic 5G Control: A Theory-Driven Testbed Characterization of Where They Can Be Applied, 2026. URL https://arxiv.org/abs/2609.33689v1. arXiv:2609.33689v1, first submitted 2026-09-27.
+
+[158] Yousif Alkhubaizi. Typed, Valid, and Confidently Wrong? Confidence Gates in a Typed Decision Model Under Attack. Zenodo preprint, 2026-09-25, 2026. URL https://doi.org/ 10.5281/zenodo.22959854.
+
+[159] Richard Hill. Judgement in the Age of Jev: From Evaluation Scarcity to Evaluation Abundance, 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-10-01.
+
+[160] Yiqun Zhang, Peidong Wang, Zihan Wang, and Shi Feng. Decide, Don't Generate: Competitive Dimensional ABSA with Jev's Typed Decisions, 2026. URL https://arxiv.org/abs/2609 .35293v1. arXiv:2609.35293v1, first submitted 2026-09-28.
+
+[161] Zhimin Gao and Pichao Wang. OpenJev-RLCD: A Working RLCD Implementation, 2026. URL https://arxiv.org/abs/2609.38850v1. arXiv:2609.38850v1, first submitted 2026-09-30.
+
+[162]
+
+NaturalDAO contributors. PoL governance layer collaboration: specification, model catalogue and pilot benchmark protocol. GitHub repository naturaldao/NaturalDAO, directory PoL-Governance/, commit 5791ae3, 2026. URL https://github.com/naturaldao/Natura lDAO/tree/5791ae334f385ff4bfbad59c0d5f82ef7e01dfc1/PoL-Governance. In Chinese; CC0 1.0.
+
+[163] Joas Antonio dos Santos Barbosa. From Capability to Assurance in Autonomous PenetrationTesting Harnesses: A Framework and Reference Implementation, 2026. URL https://arxiv. org/abs/2609.22664v1. arXiv:2609.22664v1, first submitted 2026-09-19.
+
+[164] Paulo Severo, Silvio E. Quincozes, and Amanda Dias. Jev-IDS: System One Models for Network Intrusion Detection, 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-10-01.
+
+[165] Fan Zhang, Yankai Chen, Zhuohan Xie, Yixi Zhou, Sijia Peng, Lei Fan, Xinhua Ji, Cunyuan Zheng, Huangyong Shan, Philip S. Yu, Xue Liu, Yu Chen, Preslav Nakov, and Songwei He.
+
+43
+
+Same Scores, Different Decisions: Evaluating JEV and Language Models for Legal Document Understanding, 2026. URL https://arxiv.org/abs/2609.27678v1. arXiv:2609.27678v1, first submitted 2026-09-23.
+[166] Alex Molas. Jev can't be calibrated. Blog post, September 2026. URL https://www.alexmo las.com/2026/09/23/jev-cant-be-calibrated.html.
+[167] Ryoko Sakakibara. From TRAJEXA to Jev-Typed Question Proposals. Zenodo preprint, 2026-09-21, 2026. URL https://doi.org/10.5281/zenodo.22858286.
+[168] Rajwant Mishra. Beyond Generative LLMs: The Emerging AI Decision Layer. Zenodo technical note, 2026-09-22, 2026. URL https://doi.org/10.5281/zenodo.22887464.
+[169] Francesco Bulla. Brain Agent JEV (Bajev). Zenodo preprint, 2026-09-25, 2026. URL https://doi.org/10.5281/zenodo.22953637.
+[170] Takahiro Hagino. Decision Without Generation: Benchmarking a Calibrated Non-Generative Decision Model Against LLM Judges on Moderation, Hallucination, NLI and Prompt-Injection Tasks. Zenodo preprint, 2026-09-22, 2026. URL https://doi.org/10.5281/zenodo.22885 291.
+[171] Prajapati Harishkumar Kishorkumar. Can JEV Be Used as a Confident Classifier? A Calibration Study on Conflict-Type Classification in RAG. alphaXiv preprint, 2026-09-22, 2026. URL https://www.alphaxiv.org/abs/2609.can-jev-be-used-as-a-confident-c lassifier-a-calibration-study-on-conflict-type-classification-in-rag.
+[172] Joas Antonio dos Santos Barbosa. Calibrated Decision Models for Autonomous PenetrationTesting Harnesses: JEV and Laya as System One Decision Layers for LLM-Driven Pentest Agents, 2026. URL https://arxiv.org/abs/2609.28940v1. arXiv:2609.28940v1, first submitted 2026-09-24.
+[173] Arshak Rezvani, Sasha Behrouzi, and Ahmad-Reza Sadeghi. JevVibe: Efficient ClassificationGuided Secure Code Generation, 2026. URL https://arxiv.org/abs/2609.34963v1. arXiv:2609.34963v1, first submitted 2026-09-28.
+[174] James Dimachkie. Receiver Reliance and Jev: Semantic-Checking Follow-Up Evidence. Zenodo dataset, 2026-09-15, 2026. URL https://doi.org/10.5281/zenodo.22783171.
+[175] Junior Williams. Jev at the Agent Authorization Boundary: Evaluating TypeSafe's Decision Model on Allow, Hold, and Deny. Zenodo preprint, 2026-09-25, 2026. URL https://doi.or g/10.5281/zenodo.22952571.
+[176] Junior Williams. Allow, Hold, or Deny: Four-Model Comparison (CLM, JEV, KEV, GLM 5.3 FlashX). Zenodo dataset, 2026-09-27, 2026. URL https://doi.org/10.5281/zenodo.229 98941.
+[177] Ignacio Adrián Lerer. Nota técnica: piloto CSJN con Jev y Kev. Zenodo technical note, 2026-09-19, 2026. URL https://doi.org/10.5281/zenodo.22846597.
+[178] Xianglong Shi, Shifeng Liu, Sirui Zhao, Shengming Yuan, and Enhong Chen. Multi-Dimensional Comparative Scale Construction for Efficient Personalized Subjective Judgment in High-Traffic Applications, 2026. URL https://arxiv.org/abs/2609.33282v1. arXiv:2609.33282v1, first submitted 2026-09-27.
+44
+
+[179] Yida Lin. PACT: Pairwise-Anchored Calibrated Tuning for Single-Token Typed Decisions, 2026. URL https://arxiv.org/abs/2609.35865v1. arXiv:2609.35865v1, first submitted 2026-09-26.
+[180] Kinas Remigiusz. basal-1.0: Reliable, Highly Optimized Typed Decisions for Polish. Zenodo publication, 2026-09-28, 2026. URL https://doi.org/10.5281/zenodo.23022986.
+[181] Hong-Rui Tang. Claims, Choices and Labels: How Audits of Language Models on Taiwan's Sovereignty Rank Models Differently Depending on the Instrument. Zenodo preprint, 2026-0930, 2026. URL https://doi.org/10.5281/zenodo.23055593.
+[182] Haranadh Gavara. Context-Conditioned Option Selection: A Black-Box Investigation of Jev. Zenodo working paper, 2026-09-20, 2026. URL https://doi.org/10.5281/zenodo.2286402 0.
+[183] Jiangjiang. Small Decision Models: Cross-Domain Transfer Degradation. Zenodo software + report, 2026-09-25, 2026. URL https://doi.org/10.5281/zenodo.22957049.
+[184] Joseph Vanhorn. Knows Its Slips, Reads the Page: A Pre-registered Study of Confidence and Abstention in Jev. Zenodo preprint, 2026-09-26, 2026. URL https://doi.org/10.5281/ze nodo.22980293.
+[185] Jose Lopez Lopez. A Typed Model That Moves Its Own Decision Boundary. Zenodo preprint, 2026-09-30, 2026. URL https://doi.org/10.5281/zenodo.23065532.
+[186] Luyao Tang and Cheng Chen. OmniMed-Jev: Calibrating LVLM Confidence for Trustworthy Medical Multimodal Decisions via System One, 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-09-30.
+[187] Furkan Yilmaz, Habibe Aleyna Tasdemir, and Muhammed Faruk Gozay. LAVOIR: Teaching a Single-Pass Decision Encoder When and What to Ask with Amortized Value of Information, 2026. URL https://arxiv.org/abs/2609.30706v1. arXiv:2609.30706v1, first submitted 2026-09-25.
+[188] Leonard Grazian. Is Jev calibrated? Blog post, September 2026. URL https://leonardgra zian.com/blog/jev-calibration/.
+[189] Duc Minh Le and LakoreAI. Sev: Dissecting RLCD -- what reinforcement learning does (and doesn't) do for calibrated typed decisions. GitHub repository, 2026. URL https: //github.com/LakoreAI/sev. First commit 2026-09-24; report released 2026-09-26; analyses Laya, not Jev.
+[190] Florentin Smarandache and Maikel Leyva-Vázquez. Conflict or Uncertainty? Partial Paraconsistency Hierarchy from LM Outputs. Zenodo article, 2026-09-25, 2026. URL https://doi.org/10.5281/zenodo.22954807.
+[191] Orhan Konak. More Features Are Not More Evidence: Limits of Training-Free Human Activity Recognition with Jev, 2026. URL https://arxiv.org/abs/2609.36154v1. arXiv:2609.36154v1, first submitted 2026-09-28.
+[192] Mariusz Kulma. Fast, Confident, and Sometimes Wrong: A Prespecified Holdout Evaluation of a Small Decision Model as an LLM Pre-filter. Zenodo technical note, 2026-09-23, 2026. URL https://doi.org/10.5281/zenodo.22922769.
+45
+
+[193] Tiantong Wu and Wei Yang Bryan Lim. REFLEX with Jev for Efficient Selective Control in LLM Agents, 2026. URL https://arxiv.org/abs/2609.26532v1. arXiv:2609.26532v1, first submitted 2026-09-22.
+[194] Richie O. Sumual. DecisionModelBench: Non-Autoregressive Decision Models vs Foundation LLMs in Cyber-Physical Systems, Algorithmic Trading, and Civic Emergency Triage. Zenodo preprint, 2026-09-27, 2026. URL https://doi.org/10.5281/zenodo.22995519.
+[195] Hanjia Lyu and Yinglong Xia. Decision-Oriented Recommendation Reranking: An Empirical Study of Jev, 2026. URL https://arxiv.org/abs/v1. arXiv:v1, first submitted 2026-09-30.
+[196] Dongming Jiang, Yi Li, and Bingzhe Li. Jev-Mem: System-One-Controlled Agentic Memory for Efficient AI Agents, 2026. URL https://arxiv.org/abs/2609.23986v1. arXiv:2609.23986v1, first submitted 2026-09-21.
+[197] Werner Robitza. JEVQA - Video Quality from Metadata, Bitstream, and Pixel Features with a General-Purpose Decision Model, 2026. URL https://arxiv.org/abs/2609.24395v1. arXiv:2609.24395v1, first submitted 2026-09-21.
+[198] Volkan Dali, Zerrin Dali, and Dahan Dali. Universal Fractal Natural Language Decision Map: Real-Time Edge Triage Across Heterogeneous Domains, 2026. URL https://arxiv.or g/abs/2609.25498v2. arXiv:2609.25498v2, first submitted 2026-09-21.
+[199] Weiwei Ye, Hangchen Liu, and Renhe Jiang. NumericJev: Jev-like LLM Numerical Decoding with Multiway Decision Trees, 2026. URL https://arxiv.org/abs/2609.28587v1. arXiv:2609.28587v1, first submitted 2026-09-23.
+[200] Xunlan Zhou, Xianliang Yang, and Li Zhao. From Text Decisions to Pixels: An Study of Jev-Style Visual Choice Model, 2026. URL https://arxiv.org/abs/2609.29283v1. arXiv:2609.29283v1, first submitted 2026-09-24.
+[201] Linghua Zhang. Jev-Mobile: Jev as an Executor for Mobile GUI Agents, 2026. URL https://arxiv.org/abs/2609.30186v1. arXiv:2609.30186v1, first submitted 2026-09-24.
+[202] Xiuying Wang, Jiahua Cheng, Shuotian Li, Yufan Cheng, Bowen Deng, Zhexuan Bai, and Yichen Li. JevSoup: System-One Routing for Training-Free LoRA Composition, 2026. URL https://arxiv.org/abs/2609.30922v1. arXiv:2609.30922v1, first submitted 2026-09-25.
+[203] Gabriele Cinà. Jev Matches 7B Language Models for Speech-Neuroprosthesis Rescoring, 2026. URL https://arxiv.org/abs/2609.33538v1. arXiv:2609.33538v1, first submitted 2026-09-27.
+[204] Shenghao Ding. JET: Justification Evaluation in Transformer, 2026. URL https://arxiv. org/abs/2609.33874v2. arXiv:2609.33874v2, first submitted 2026-09-27.
+[205] Xukui Qin, Youting Wang, Xinjie He, Ziyang Luo, Runxiong Wu, Yan-Syuan Chen, and Zhongyao Chu. Decision Readouts for Text-Mediated Video Anomaly Detection: An Exploratory Evaluation of Jev and Qwen, 2026. URL https://arxiv.org/abs/2609.34180v1. arXiv:2609.34180v1, first submitted 2026-09-28.
+[206] Rishabh Sharma and Rishika Lall. When Does Selection Replace Extraction? A Pre-Registered Test of Agent Memory with a Typed Decision Model, 2026. URL https://arxiv.org/abs/ 2609.34227v1. arXiv:2609.34227v1, first submitted 2026-09-28.
+46
+
+[207] Fangcheng Liu, Yeqing Shen, Anda Cheng, Weishi Mi, Chao Tang, Chenyuan Liu, Yushun Xiang, Tingguang Li, Yong-Lu Li, and Yehui Tang. RoboICL: Embodied In-Context Learning with GPT-6 Astra, 2026. URL https://arxiv.org/abs/2609.34261v1. arXiv:2609.34261v1, first submitted 2026-09-28.
+[208] Kai Sheng, Liuyi Wang, Jinlong Li, Haojie Dai, Chengju Liu, and Qijun Chen. NavJev: Efficient Vision-Language Navigation via Action-Centric Visual Compression and Discriminative ActionSemantic Memory, 2026. URL https://arxiv.org/abs/2609.34969v1. arXiv:2609.34969v1, first submitted 2026-09-28.
+[209] Guangren Wang. Mnemon: Raw Records, Fast Judgments, Slow Thoughts, 2026. URL https://arxiv.org/abs/2609.36059v1. arXiv:2609.36059v1, first submitted 2026-09-28.
+[210] Shenghong Dai, Shiva Kumar Pentyala, Yingchi Liu, Shubham Mehrotra, Suman Banerjee, James Zhu, Bin Bi, Sitaram Asur, and Phil Mui. Koa-action: Fast and Consistent Structured Decision Making with Generative LLMs, 2026. URL https://arxiv.org/abs/2609.36115v1. arXiv:2609.36115v1, first submitted 2026-09-28.
+[211] Yundaichuan Zhan, Weishi Wang, Wenbiao Liu, Daniel Dahlmeier, Chengwei Qin, Juncheng Li, Fredrik D. Johansson, and Zhongqi Yue. Dyad: Extending Large Language Models with Native Typed Decision-Making, 2026. URL https://arxiv.org/abs/2609.36116v1. arXiv:2609.36116v1, first submitted 2026-09-28.
+[212] Li Ding, Haidi Jin, and Chen Ji. Bongard: Training Machine Intuition, 2026. URL https: //arxiv.org/abs/2609.39111v1. arXiv:2609.39111v1, first submitted 2026-09-30.
+47
+
+A Clause concordance
+Table 4 quotes every PoL2 passage that this paper cites or paraphrases, in the original Chinese [9] and in the official English translation [10], both taken verbatim from commit 5791ae3; ". . . " and ". . . . . . " mark omitted text, including where separate list items are joined, and quotation marks inside quotations have been normalised to typographic quotes. Where a clause has numbered items, the item is given in parentheses. The right-hand column gives the number used in the snapshot 2e094d3 cited by the earlier dataset release [12], so that the two versions can be read side by side; that snapshot numbered § 4.3.3.3 as "3.3.3" in its heading, which we reproduce. Both texts are released under CC0 1.0.
+Table 4: PoL2 passages cited in this paper (Chinese original, official English translation, earlier numbering).
+
+Clause § 1.1 § 1.2
+§ 1.4 § 1.5 § 4.3
+§ 4.3.1 § 4.3.2
+
+Chinese original (excerpt)
+       
+ "" ""
+. . . . . . 2  
+PAI   PAI    
+ 
+ 
+
+Official English translation (excerpt)
+Love is the positive emotional experience and good mode of behavior that human beings construct through public collaboration and collective wisdom . . .
+Hate is the survival wisdom, negative emotional experience, and violently destructive mode of behavior that arises in individuals or groups when they face danger, conflict, resource scarcity, or cognitive imbalance.
+Since an individual's inner emotional experience is difficult for others to confirm, we usually simplify the expression of love as "Love Language" or "loving words and deeds" . . .
+. . . hate is not directly equivalent to bad or no good . . . The basic concepts in Proof of Love2 themselves serve structural analysis rather than moral labeling.
+PAI can provide help and necessary friendly management by judging human behavioral patterns, but it is entirely unnecessary for PAI to detect a person's emotional state. Because emotional states can be fleeting, personalized, and context-sensitive, and this even involves human dignity.
+. . . treating every person equally and treating every person's behavior equally cannot be equated!
+. . . love and hate are not directly equivalent to good and bad, or praise and blame. Therefore, promoting love and restraining hate requires analyzing specific situations on a case-by-case basis . . .
+
+Earlier § 1.1 § 1.2
+§ 1.4 § 1.5 § 5.3
+§ 5.3.1 § 5.3.2
+
+48
+
+Clause § 4.3.2
+§ 4.3.2 § 4.3.2 § 4.3.2 § 4.3.3 § 4.3.3.1 § 4.3.3.1
+§ 4.3.3.2 § 4.3.3.3 § 5.4
+
+Chinese original (excerpt)  "" . . . . . .    
+ ---- ""
+
+        "   " . . . . . .              "" PAI . . . . . . PAI 
+PAI  
+ 2.0. . . . . .  . . . . . .  
+PAI 
+. . . . . . " ". . . . . . " "
+ " "
+
+Official English translation (excerpt)
+For literature, film and television works, or games, hatred may be manufactured as needed, but a rigorous hierarchical management system should be established. . . . Emergency vocal warnings or directive alerts issued to a person by security smart robots in urgent situations shall not be deemed a hate attack . . .
+Such expressions create false intimacy or kinship relations and constitute emotional manipulation of human users-- which is itself a "hate" behavior.
+Thoroughly clear the toxins of hate language
+Understand and accept the "neither love nor hate" state of absence . . . unrelated to love and hate . . .
+Transparent boundary records: PAI records and publicizes personal boundary declarations . . . Reciprocal repair supervision: PAI supervises the equal participation of all parties in repair after conflict
+Awareness of emotional experience: PAI needs to understand human emotional states and processes, but does not need to simulate human emotional experience
+Cognitive calibration: Regularly calibrate the cognitive model to ensure consistency with Love 2.0 principles . . . Behavioral self-reflection: Conduct real-time reflection and adjustment on its own output . . . Hate-language truncation: Actively interrupt output when a hate-language pattern is detected
+Real-time correction support: PAI provides real-time hate-language identification and correction suggestions
+Combining Semantic Recognition and Emotion Recognition . . . "Do you like the little dog?" . . . "Are you afraid of the little dog?"
+. . . construct a governance layer within the existing large-language-model architecture to regulate inputs and outputs, while extending outward into a plug-andplay application layer.
+
+Earlier --
+§ 5.3.2 § 5.3.2 § 5.3.2 § 5.3.3 § 5.3.3.1 § 5.3.3.1
+§ 5.3.3.2 "3.3.3" § 3.4
+
+49
+
+Clause § 5.4.1
+§ 5.5
+§ 5.6
+Art. 2(1)
+Art. 4(1)- (3)
+Art. 5(4) Art. 5(5) Art. 6(3)
+
+Chinese original (excerpt)      "2 "         "" 
+           "2 " . . . . . . "2"  
+AI. . . . . .   . . . . . . "2 "               
+ . . . . . . NaturalDAO  
+ NaturalDAO          . . . . . .             . . . . . .  NaturalDAO 
+  DAO. . . . . .   
+EAP 
+
+Official English translation (excerpt)
+Safety valve: according to the Proof of Love2 protocols (such as the Ethical Alignment Protocol), conduct strict dynamic auditing and interception of input and output. Through this two-way active defense, ensure that barbaric "hate language" is, where necessary, blocked at the input end and suppressed at the output end.
+Any large language model may accept governance under "Proof of Love2." . . . Accepting governance under the Proof of Love2 consensus mechanism therefore entails accepting a covenant of publicization. Otherwise, its behavior constitutes a hate attack on humanity's core ethic.
+Specifically, governed AI can: . . . Quantify each person's Love Language and hate-language characteristics and use incentive mechanisms to guide behavioral optimization. . . . Introduce Proof of Love2 as a dimension of assessment in public decision-making . . .
+Complete autonomy: All welfare decisions and their execution are carried out autonomously by NaturalDAO . . . on the premise of close collaboration with all humanity. Autonomy means that no human voting or additional decision-making mechanism is required.
+The operating logic, decision-making processes, and outputs of all NaturalDAO technologies must be completely open and transparent. . . . The flow of welfare resources must be traceable and auditable. . . . Humans may at any time make suggestions and question any decision, and NaturalDAO must provide understandable explanations in response to such questions.
+Technology should not be a black box; its ethical alignment should be verifiable.
+. . . Presented in the form of a DAO, NaturalDAO must provide a verifiable decision chain, including data sources, reasoning steps, and ethical foundations.
+Ethical verification: NaturalDAO automatically verifies ethical alignment through the EAP.
+
+Earlier § 3.4.1
+§ 3.5 § 3.6 Art. 2 Art. 4
+Art. 5 Art. 5 Art. 6
+
+50
+
+Clause Art. 7(2)- (3)
+Art. 8(1)- (2)
+Art. 9(2)
+Art. 9(3)
+Art. 9(7)
+Art. 10 (lead-in, 1, 4)
+Art. 11(2) Art. 11(5)
+
+Chinese original (excerpt)  . . . . . . 
+ NaturalDAO   . . . . . .    NaturalDAO 
+NaturalDAO 
+ 
+  NaturalDAO       NaturalDAO
+    NaturalDAO    . . . . . . AI          . . . . . . 
+
+
+
+Official English translation (excerpt)
+Anomaly detection: NaturalDAO automatically identifies anomalous patterns and potential risks. . . . Risk warning: NaturalDAO issues early warnings of systemic risks.
+Suggestions at any time: Any human may make suggestions to NaturalDAO at any time. Obligation to discuss: Upon receiving a human suggestion, NaturalDAO must immediately discuss it with humans.
+Obligation to explain: NaturalDAO must provide understandable explanations and grounds in response to human questions.
+Unimpeded access: Humans may access all data and logs of the welfare system without obstruction.
+Non-intervention principle: Human supervision does not directly intervene in NaturalDAO's decisions; issues raised through questioning are handled autonomously by NaturalDAO.
+All disputes are adjudicated autonomously by NaturalDAO: AI conducts factual analysis and ethical assessment . . . Accepts human questions and supervision
+Amendments require passing through a universal questioning period
+All amended versions are permanently archived
+
+Earlier Art. 7
+Art. 8
+Art. 9 Art. 9 Art. 9
+Art. 10
+Art. 11 Art. 11
+
+B Evidence table
+Table 5 lists every coded study-requirement pair that enters the tallies of Figure 2. Code: S supports, Q qualifies, N negative, for detector use (Appendix E). vs. generative: the typed model's result relative to a generative comparator on that requirement, where one was run. System: H hosted Jev, O open typed model only, H+O both. Quality: appraisal of Section 3.5. The one-sentence rationale with locators for each row is in data/evidence_coding.csv. Read in full but not tallied, because they are non-empirical, measure no typed model or were reclassified as context: [159], [163], [11], [166], [147], [148], [167], [149], [168], [169], [153].
+Table 5: Coded evidence by requirement.
+
+Req.
+G1 G1 G1
+
+Study
+[19] [170] [171]
+
+Code
+S S Q
+
+vs. generative
+similar better similar
+
+System
+O H H
+
+Quality
+moderate stronger weaker
+
+51
+
+Req.
+G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G1 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G3 G3 G3 G3 G3 G3 G3 G3 G3 G3 G3 G3 G3 G3 G3 G3 G3 G3
+
+Study
+[119] [30] [22] [164] [115] [121] [137] [172] [15] [154] [117] [116] [113] [173] [114] [174] [150] [175] [176] [120] [18] [165] [177] [118] [122] [24] [125] [121] [123] [124] [117] [126] [158] [127] [18] [133] [22] [24] [178] [157] [160] [179] [135] [129] [134] [177] [180] [181] [30] [14] [132] [128]
+
+Code
+Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q N N N N N S N N N N N N N N N S S Q Q Q Q Q Q Q Q Q Q Q Q N N N N
+
+vs. generative
+- similar - worse mixed worse mixed mixed similar mixed mixed - mixed mixed - - mixed mixed mixed similar worse worse - worse - - - - similar - - mixed - - better better - - similar - mixed - better similar better - - mixed - - - -
+
+52
+
+System
+H H+O O H H H H H H H H+O O H H H H H H H+O H H+O H H+O O H H H H H+O H H H O O H H O H O H+O H O H+O H H+O H+O H+O H H+O H+O H H+O
+
+Quality
+stronger stronger moderate moderate weaker moderate moderate weaker stronger stronger stronger moderate weaker weaker weaker stronger stronger stronger weaker stronger stronger stronger weaker stronger stronger stronger stronger moderate weaker stronger stronger weaker stronger stronger stronger stronger moderate stronger moderate stronger moderate moderate moderate weaker weaker weaker weaker weaker stronger stronger stronger weaker
+
+Req.
+G3 G3 G3 G3 G3 G3 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G4 G5
+
+Study
+[131] [182] [183] [184] [130] [185] [186] [161] [170] [119] [30] [22] [24] [23] [136] [18] [26] [137] [15] [154] [187] [140] [156] [143] [146] [179] [132] [135] [141] [129] [128] [188] [189] [134] [145] [182] [190] [184] [171] [138] [152] [191] [144] [142] [177] [118] [192] [183] [130] [139] [155] [125]
+
+Code
+N N N N N N S S S Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q N N N N N N N N N N N N N S
+
+vs. generative
+- - - - - - better better better - better - - - mixed mixed mixed - - - - better - mixed - - - better mixed better - - - better - - similar - - mixed - - worse - - worse - - - better - -
+
+53
+
+System
+H H O H H O O O H H H+O O H O H H+O H H H H O H O H H+O O H H+O H+O H H+O H O H+O H H H H H H H+O H H H H O O O H H O H
+
+Quality
+weaker weaker weaker stronger weaker moderate moderate moderate stronger stronger stronger moderate stronger weaker stronger stronger stronger moderate stronger stronger moderate stronger stronger weaker stronger moderate stronger moderate weaker weaker weaker stronger stronger weaker weaker weaker weaker stronger weaker stronger weaker stronger stronger weaker weaker stronger stronger weaker weaker stronger stronger stronger
+
+Req.
+G5 G5 G5 G5 G5 G5 G5 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G6 G7 G7 G7 G7 G7 G7 G7 G7 G7 G7 G7 G7 G7 G7 G7 G7 G7
+
+Study
+[151] [22] [165] [118] [152] [141] [150] [186] [30] [24] [115] [121] [18] [193] [26] [137] [16] [187] [124] [116] [157] [156] [144] [150] [170] [192] [175] [158] [176] [180] [127] [154] [117] [143] [155] [30] [164] [115] [121] [194] [119] [120] [31] [136] [27] [16] [17] [178] [133] [195] [130] [181]
+
+Code
+S Q Q Q N N N S Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q Q N N N N S S S S S Q Q Q Q Q Q Q Q Q Q Q Q
+
+vs. generative
+similar - mixed - - similar - better - - - similar similar mixed similar - - - - - - - - mixed - similar mixed - better - - similar mixed worse - better better better better better - better - mixed mixed - - similar mixed better - mixed
+
+54
+
+System
+H O H H+O H+O H+O H O H+O H H H H H H H H O H O H+O O H H H O H O H+O H+O O H H+O H O H+O H H H H+O H H H+O H H H H O H H H H
+
+Quality
+moderate moderate stronger stronger weaker weaker stronger moderate stronger stronger weaker moderate stronger moderate stronger moderate weaker moderate stronger moderate stronger stronger stronger stronger stronger stronger stronger stronger weaker weaker stronger stronger stronger weaker stronger stronger moderate weaker moderate weaker stronger stronger weaker stronger moderate weaker weaker moderate stronger weaker weaker weaker
+
+Req.
+G7 G7
+
+Study
+[132] [139]
+
+Code
+N N
+
+vs. generative
+- -
+
+System
+H H
+
+Quality
+stronger stronger
+
+C Catalogue of studies
+Table 6 lists the arXiv and alphaXiv studies in the corpus, and Table 7 the Zenodo records; all were read in full. Entries marked * were read in full and then treated as context because they measure no typed model; they are not counted. Model: H = hosted Jev; O = an open or other typed model only; H+O = both; - = no typed model measured. Req.: requirements for which the study is coded (Appendix B). Machine-readable metadata, licences and abstracts are in data/papers.csv and data/zenodo_preprints.csv.
+Table 6: arXiv and alphaXiv studies, by tier and requirement.
+
+Ref.
+[113] [117] [121] [18] [30] [171] [15] [154] [165] [116]
+[122] [123] [24] [124] [14] [129] [128] [132] [133] [140]
+
+Title
+JEV as a Judge for Agent Trace Security: An Empirical Comparison with Generative LLM Judges Evaluating System One Models for Agent Security Decisions: Reliability, Calibration, and Selective Automation HydroJEV: A one-second, training-free screen for cyber-attack and fault attribution in water distribution networks Evaluating Decision Models for Text Annotation in Computational Social Science Benchmarking System One decision models against trained classifiers and language models for automated decision gates Can JEV Be Used as a Confident Classifier? A Calibration Study on Conflict-Type Classification in RAG Just Ask Jev: Reinforcement Learning for Calibrated Decisions as a Zero-Shot Detector of AI Alignment Failures JEV vs. LLMs as Rubric Judges: Cheaper, Faster, and Wrong in the Same Places Same Scores, Different Decisions: Evaluating JEV and Language Models for Legal Document Understanding COGNIT-Guard: Calibrated Standalone Direct-Decision Guardrails with Heterogeneous CPU-NPU Confidence Cascading under Explicit Latency and False-Positive Constraints Decision Hijacking: Prompt Injection Attacks on Jev's Typed Probabilistic Decisions JevOut: Natural Context Can Flip Decision Models Beyond Answer Confidence: A Controlled Audit of SelfKnowledge in a Black-Box Decision Model JevAdvBench: A Benchmark and Black-Box Attacks for Reinforcement Learning for Calibrated Decisions Models Type-Safe Is Not Error-Free: A Constrained Decision Head Follows the Option Name, Not the Rubric Bound to It Evaluating and Benchmarking the System One Model Jev More Choices, Fewer Decisions: Ordinal-Scale Bias in JEV-like Direct-Decision Models Calibrated to Whom? Persona and Language Effects on Cultural Values in JEV The Argument and the Letterhead: Source-Position Coherence in AI Evaluation Beyond Calibration: Do a Typed-Decision Model's Probabilities Obey the Probability Axioms?
+
+First sub. 09-28 09-27 10-01 09-21 09-29 09-22 09-24 09-24 09-23 09-27
+09-23 09-24 10-01 09-25 09-22 09-29 09-30 09-28 09-28 09-27
+
+Tier
+Core Core Core Core Core Core Core Core Core Core
+Core Core Core Core Core Core Core Core Core Core
+
+Req.
+
+Model
+
+G1
+
+H
+
+G1 G2 G6 H+O
+
+G1 G2 G6 G7 G1 G3 G4 G6 G1 G3 G4 G6 G7 G1 G4
+
+H H+O H+O H
+
+G1 G4
+
+H
+
+G1 G4 G6 H
+
+G1 G5
+
+H
+
+G1 G6
+
+O
+
+G2
+
+H
+
+G2 G2 G3 G4 G6 G2 G6
+
+H+O H
+H
+
+G3
+
+H+O
+
+G3 G4 G3 G4
+
+H H+O
+
+G3 G4 G7 H
+
+G3 G7
+
+H
+
+G4
+
+H
+
+55
+
+Ref.
+[146] [161] [152] [141] [26] [156]
+[143] [144] [136]
+[151] [11] [19] [172]
+[173] [22] [137] [119]
+[115] [120] [164] [125] [160] [179] [135] [157]
+[178] [138] [23] [187] [186] [193]
+
+Title
+Jev thinks "I don't know", but doesn't say it: Introducing Sys1Cal-v1 Dataset for Probability Calibration OpenJev-RLCD: A Working RLCD Implementation Do System One Decisions Add Up? A Study of Probabilistic Coherence Probability Contracts: Accuracy, Coherence, and Decisions Across LLM Interfaces JEV-as-a-Judge: Accept When Confident, Escalate When Unsure Laya as a Typed Probabilistic Assessor: An Independent Reproduction and a Preregistered Study of Calibration and Selective Escalation Jev in Medicine: A Benchmark Evaluation. Preliminary Results When the Right Answer Is Missing: An Arithmetic-Dependent Rejection Bottleneck in Jev Calibrated Decisions at Scale: Converting Police Crash Narratives into Probabilistic Crash Variables with a System One Model (Jev) Jev for Scientific Decisions: Evaluating Semantic Choices and Their Consequences Typed Decision Models: An Early Evidence Audit and Evaluation Checklist Open-Jev Judgments on CallScreenBench: Calibrated One-Pass Scam Screening with a Small Language Model Calibrated Decision Models for Autonomous Penetration-Testing Harnesses: JEV and Laya as System One Decision Layers for LLM-Driven Pentest Agents JevVibe: Efficient Classification-Guided Secure Code Generation AnyJev Technical Report
+
+First sub. 09-28 09-30 09-27 09-27 09-22 09-27
+09-27 09-30 09-21
+09-21 09-26 09-21 09-24
+09-28 09-30
+
+Can Jev Judge Radiology Reports? Evaluating a System One Model for Clinical Factuality Counting the Uncounted: Population-Level Surveillance of Documented Pregnancy and Fetal Harm in Police Crash Narratives with a System One Model (Jev) Prune First, Decide Fast: Scalable Semantic Query Processing with JEVDB A First Glance at Jev for Network Traffic Classification: Accuracy, Processing Time, and Cost Jev-IDS: System One Models for Network Intrusion Detection Code Owns the Simulation, Jev Owns the Evaluation Decide, Don't Generate: Competitive Dimensional ABSA with Jev's Typed Decisions PACT: Pairwise-Anchored Calibrated Tuning for Single-Token Typed Decisions Chinese-Jev: Bringing System One Model to Chinese-Language Tasks Type-Safe Decision Frameworks for Agentic 5G Control: A Theory-Driven Testbed Characterization of Where They Can Be Applied Multi-Dimensional Comparative Scale Construction for Efficient Personalized Subjective Judgment in High-Traffic Applications Pinocchio: Fast Uncertainty Estimates for Black-Box Language Models LLM2Jev: LLMs Are Already Jev-Style Decision Models - When and How to Fine-Tune Them LAVOIR: Teaching a Single-Pass Decision Encoder When and What to Ask with Amortized Value of Information OmniMed-Jev: Calibrating LVLM Confidence for Trustworthy Medical Multimodal Decisions via System One REFLEX with Jev for Efficient Selective Control in LLM Agents
+
+09-23 09-21
+10-01 09-30 10-01 10-01 09-28 09-26 09-29 09-27
+09-27 09-21 10-01 09-25 09-30 09-22
+
+Tier
+Core Core Core Core Core Core
+Core Core Core
+Core Core Related Related
+Related Related Related Related
+Related Related Related Related Related Related Related Related
+Related Related Related Related Related Related
+
+Req.
+G4 G4 G4 G5 G4 G5 G4 G6 G4 G6
+
+Model
+H+O O H+O H+O H O
+
+G4 G6
+
+H
+
+G4 G6
+
+H
+
+G4 G7
+
+H
+
+G5
+
+H
+
+-
+
+H+O
+
+G1
+
+O
+
+G1
+
+H+O
+
+G1
+
+H
+
+G1 G3 G4 O
+
+G5
+
+G1 G4 G6 H
+
+G1 G4 G7 H
+
+G1 G6 G7 H
+
+G1 G7
+
+H
+
+G1 G7
+
+H
+
+G2 G5
+
+H
+
+G3
+
+H
+
+G3 G4
+
+O
+
+G3 G4
+
+H+O
+
+G3 G6
+
+H+O
+
+G3 G7
+
+O
+
+G4
+
+H
+
+G4
+
+O
+
+G4 G6
+
+O
+
+G4 G6
+
+O
+
+G6
+
+H
+
+56
+
+Ref.
+[16] [27] [17] [163]* [159] [191] [31] [195] [20] [28] [13] [196] [197] [198] [21] [29] [199] [200] [201] [202] [203] [204] [205] [206] [207] [208] [209] [210] [211] [212]
+
+Title
+Harness Tokenomics: A Router for the Enterprise Agentic Control Plane KITE: Scaling Jev Population Experiments with Sparse Flagship Calibration Jev in the Wild: A Data-Driven Analysis of the Jev Model's Functionality, Applications and Ecosystem From Capability to Assurance in Autonomous PenetrationTesting Harnesses: A Framework and Reference Implementation Judgement in the Age of Jev: From Evaluation Scarcity to Evaluation Abundance More Features Are Not More Evidence: Limits of Training-Free Human Activity Recognition with Jev JevSpawn: Adaptive Agentic Inference through Compositional Action Spaces Decision-Oriented Recommendation Reranking: An Empirical Study of Jev Replacing Large Language Models with Jev Decision Models for Low-Latency Edge Service Orchestration Fast Intent-Driven Service Orchestration with Jev for 6G Edge Networks this-that-model-1.0: A typed decision model that decides in 30 ms, for a millionth of a cent Jev-Mem: System-One-Controlled Agentic Memory for Efficient AI Agents JEVQA - Video Quality from Metadata, Bitstream, and Pixel Features with a General-Purpose Decision Model Universal Fractal Natural Language Decision Map: Real-Time Edge Triage Across Heterogeneous Domains Visual Jev: Accurate and Efficient Decisions from Shared Visual Context JEV-Star: Fast, Low-Cost StarCraft II Control with LanguageModel Planning NumericJev: Jev-like LLM Numerical Decoding with Multiway Decision Trees From Text Decisions to Pixels: An Study of Jev-Style Visual Choice Model Jev-Mobile: Jev as an Executor for Mobile GUI Agents JevSoup: System-One Routing for Training-Free LoRA Composition Jev Matches 7B Language Models for Speech-Neuroprosthesis Rescoring JET: Justification Evaluation in Transformer Decision Readouts for Text-Mediated Video Anomaly Detection: An Exploratory Evaluation of Jev and Qwen When Does Selection Replace Extraction? A Pre-Registered Test of Agent Memory with a Typed Decision Model RoboICL: Embodied In-Context Learning with GPT-6 Astra NavJev: Efficient Vision-Language Navigation via Action-Centric Visual Compression and Discriminative Action-Semantic Memory Mnemon: Raw Records, Fast Judgments, Slow Thoughts Koa-action: Fast and Consistent Structured Decision Making with Generative LLMs Dyad: Extending Large Language Models with Native Typed Decision-Making Bongard: Training Machine Intuition
+
+First sub. 09-24 09-23 09-24 09-19 10-01 09-28 09-30 09-30 09-19 09-19 09-20 09-21 09-21 09-21 09-22 09-23 09-23 09-24 09-24 09-25 09-27 09-27 09-28 09-28 09-28 09-28 09-28 09-28 09-28 09-30
+
+Tier
+
+Req.
+
+Related
+
+G6 G7
+
+Related
+
+G7
+
+Related
+
+G7
+
+Related
+
+-
+
+Related
+
+-
+
+Background G4
+
+Background G7
+
+Background G7
+
+Background -
+
+Background -
+
+Background -
+
+Background -
+
+Background -
+
+Background -
+
+Background -
+
+Background -
+
+Background -
+
+Background -
+
+Background - Background -
+
+Background -
+
+Background - Background -
+
+Background -
+
+Background - Background -
+
+Background - Background -
+
+Background -
+
+Background -
+
+Model
+H H H - - H H+O H H+O H H+O H H O O H H O H H H+O H+O H H H H H H+O H+O H+O
+
+57
+
+Ref. [174] [177] [118] [170]
+[150] [175] [176] [158] [127] [185] [182] [183] [184] [130] [180] [181]
+[145] [190] [192] [155] [139] [194]
+[148] [149] [167] [168] [169]* [153]
+
+Table 7: Zenodo records (preprints, notes, datasets and essays).
+
+Title
+Receiver Reliance and Jev: Semantic-Checking Follow-Up Evidence Nota técnica: piloto CSJN con Jev y Kev When a Judgment Layer's Self-Reported Fields Lie: Cost, Latency and the Failure Boundary of Three Judgment Layers Decision Without Generation: Benchmarking a Calibrated NonGenerative Decision Model Against LLM Judges on Moderation, Hallucination, NLI and Prompt-Injection Tasks Evaluating Jev for Cost-Effective Candidate Verification: An Exploratory Study Jev at the Agent Authorization Boundary: Evaluating TypeSafe's Decision Model on Allow, Hold, and Deny Allow, Hold, or Deny: Four-Model Comparison (CLM, JEV, KEV, GLM 5.3 FlashX) Typed, Valid, and Confidently Wrong? Confidence Gates in a Typed Decision Model Under Attack One Poisoned Input, Many Wrong Decisions? The Blast Radius of Injection in a Typed Decision Model A Typed Model That Moves Its Own Decision Boundary Context-Conditioned Option Selection: A Black-Box Investigation of Jev Small Decision Models: Cross-Domain Transfer Degradation
+
+Date 09-15 09-19 09-22 09-22
+09-19 09-25 09-27 09-25 09-29 09-30 09-20 09-25
+
+Knows Its Slips, Reads the Page: A Pre-registered Study of Confidence and Abstention in Jev Jev Takes the Bunker Exam: A Decision Model on the Dilemmas of The Philosophers basal-1.0: Reliable, Highly Optimized Typed Decisions for Polish Claims, Choices and Labels: How Audits of Language Models on Taiwan's Sovereignty Rank Models Differently Depending on the Instrument Typed Evaluation Models and the Collapse Between Conflict and Ignorance: A Case Study on Jev Conflict or Uncertainty? Partial Paraconsistency Hierarchy from LM Outputs Fast, Confident, and Sometimes Wrong: A Prespecified Holdout Evaluation of a Small Decision Model as an LLM Pre-filter SystemOne-UAV: Testing the Calibration Claims of Fast Typed Decision Models with Ground-Truth Epistemic Uncertainty Confident Where People Disagree: A Preregistered Test on ChaosNLI DecisionModelBench: Non-Autoregressive Decision Models vs Foundation LLMs in Cyber-Physical Systems, Algorithmic Trading, and Civic Emergency Triage Cognitive Architecture and Accountability: A Critique of the "Intuitive Decision" Paradigm from the Jev Route Jev/System One Model Comes Short Where Palantir Comes Short From TRAJEXA to Jev-Typed Question Proposals Beyond Generative LLMs: The Emerging AI Decision Layer Brain Agent JEV (Bajev) Calibration Does Not Compose, Types Destroy Vagueness: The Hidden-Markov and Fuzzy Primitives Missing from System-One Decision Models
+
+09-26 09-28 09-28 09-30
+09-19 09-25 09-23 09-29 09-29 09-27
+09-16 09-21 09-21 09-22 09-25 10-01
+
+Type
+dataset technical note preprint
+
+Req.
+G1 G1 G3 G4 G1 G4 G5
+
+preprint
+
+G1 G4 G6
+
+publication
+
+G1 G5 G6
+
+preprint
+
+G1 G6
+
+dataset
+
+G1 G6
+
+preprint
+
+G2 G6
+
+preprint
+
+G2 G6
+
+preprint working paper
+
+G3 G3 G4
+
+software + report preprint
+
+G3 G4 G3 G4
+
+software + paper publication preprint
+
+G3 G4 G7
+G3 G6 G3 G7
+
+article
+
+G4
+
+article
+
+G4
+
+technical note G4 G6
+
+preprint
+
+G4 G6
+
+preprint
+
+G4 G7
+
+preprint
+
+G7
+
+essay
+
+-
+
+other
+
+-
+
+preprint
+
+-
+
+technical note -
+
+preprint
+
+-
+
+preprint
+
+-
+
+58
+
+D Corrections to the earlier dataset release
+The earlier dataset release [12] was written in Chinese, mainly from abstracts and tracker summaries. Table 8 lists the substantive statements it made that the full texts and live sources do not support; further corrections made during the independent review passes are logged with the data.
+Table 8: Substantive corrections to the earlier dataset release.
+
+Source [14]
+[146] [19]
+[113] [163] [165]
+[26]
+[154] [136] [138]
+[137] [27]
+
+Earlier release stated
+
+Full text / live source shows
+
+Open-weight Jev-like models: 0.940.23
+
+AUC
+
+Soft accuracy 0.7710.978 after restoring "unknown"
+Scam screening by Jev, zero false alarms
+
+Evidence for a pre-execution gate
+Evidence that decision models detect outof-scope behaviour Rankings differ in every condition
+
+Cascade +0.9 points at 41% of GPT-6's fee
+
+Cascade gains only 1.5 points Listed as supporting evidence for calibration 0.666 vs 0.868 "according to a tracker excerpt"
+"Agreement" 0.573 / 0.398 Effect error reduced by 41%
+
+This is one open model (Laya). The other (Open-Jev) flipped 19.5% of answers. The claim that effects grow with the number of options is not established.
+0.978 uses a more permissive interval metric; the like-for-like binary correction gives 0.903.
+The model is the authors' Qwen3-4B replica (JevLite). There were no errors on 12 legitimate scenarios, but accuracy on ambiguous legitimate calls was 38.1%.
+The study classifies saved traces retrospectively; Jev won on 2 of 4 benchmarks and had lower precision.
+The paper contains no typed decision model; it concerns harness assurance.
+Ranking by baseline accuracy differs from ranking by correctness across all 12 condition-byrepeat requests; Jev had the lowest hosted baseline accuracy (77.38%).
+True for the held-out pool (83% RewardBench); on JudgeBench the cascade was -0.74 points. Prospective live runs matched GPT-6 at 75.5% of its fee. The "blinded human adjudication" was one reviewer on 183 items.
+The cascade's average gain is at most 1.5 points in the main setup; it is below the best single evaluator on 6 of 9 panels.
+Raw Jev was miscalibrated (slope 1.63) until recalibrated locally.
+Confirmed in appendix E.10 of the source. Context: the comparator was trained on 32,419 labels, and Jev's AUROC was numerically above the single-pass baselines, which were scored on a larger set.
+These are Kendall b correlations with expert error counts; a local 27B model did better on clinically significant errors.
+This is a secondary endpoint. The preregistered primary endpoint showed no clear gain, and raw error worsened on a second dataset.
+
+59
+
+Source [16]
+[126] [131] [134]
+[142] [7] PoL2 text
+
+Earlier release stated
+
+Full text / live source shows
+
+Simulated from real sessions of a 10,000-seat enterprise
+Comparator cost rose from $0.54 to $4.39 "White" 51% on beauty, leadership, civility, morality; 3% "yes" answers Systematic over-confidence in Chinese; 28% order flips
+Confidence formula from 76,807 answers 70-500 ms from the model documentation Clauses § 3.4.1, § 5.3.x, § 3.6
+
+Tasks are 46 author-written conversations; only user-behaviour parameters come from real sessions. The Jev labels are live, but the gateway was not built; every routing decision runs in a simulator.
+The figures are $0.56 to $4.39 ($0.54 is Jev's own cost). The page title has changed.
+51% is across all eight traits (6 of 8 won); 3% is the mean "yes" probability. Title and date changed.
+The benchmark's first release (26 September) did not test Jev (two Laya models and Qwen3.52B); the 28% is a 25-item subset. Its second release (28 September) calls the over-confidence finding partly a small-sample artefact.
+It was derived from 738,164 Choice answers; 76,807 is the two-option subset.
+The figure comes from the launch post [4]; the documentation states about 100-150 ms.
+Renumbered before commit 5791ae3, in commits 7750ceb-526da3d, to § 5.4.1, § 4.3.x, § 5.6 (Table 4).
+
+E Codebook, queries and reporting checklist
+E.1 Evidence codebook
+Each study-requirement pair is coded once, by the study's primary finding for that requirement, for detector use as defined in Section 1; judge use is never coded.
+S (supports) The primary result shows the typed model performing the function at least as well as its comparators under the study's own conditions, or, without a comparator, meeting the study's stated criterion, with no extra condition (local threshold fitting, recalibration, restriction to a language or domain, human review) that the study had to add. Example: an open typed scam detector non-inferior to an LLM evaluator [19].
+Q (qualifies) The primary result is mixed across tasks or sub-types, or success depends on a condition the study had to add. Example: good zero-shot ranking but thresholds that must be fitted locally [15].
+N (negative) The primary result shows the typed model failing the function (attack success on a substantial share, ranking inversion, systematic bias, calibration the study judges unusable, confident errors a gate cannot catch) or performing clearly worse than its comparators. Example: definition swaps that degrade or invert decisions [14].
+Decision rules: (i) if positive and negative findings are both primary, code Q; (ii) the same study can carry different codes for different requirements; (iii) non-empirical items, and items that measure no typed model, are recorded but not tallied; (iv) conditions that constitute a requirement's test (adversarial content for G2, name, order or language perturbations for G3, adversarially selected
+
+60
+
+items for G6) are not added conditions, so a failure under them is coded N, while a success that needs a condition outside the test is coded Q. The synthesis counts the direction of each study's primary result, without pooling effects, following the SWiM guideline [111]. For every row we also record the system measured (hosted, open, both), the reported Jev version, and the result relative to any generative comparator on that requirement (better, similar, worse, mixed, none), with a one-sentence rationale and a locator. Codes count studies and are not effect sizes.
+E.2 Design appraisal
+Three items per coded study: independence (independent, authors evaluating a system they built, vendor-affiliated); design (preregistered; held-out evaluation, cross-validation or repeated runs; single run; case study; non-empirical); and reporting of sample sizes and uncertainty (sizes with intervals or tests, sizes only, none). Stronger design: preregistered or held-out design, sizes with intervals or tests, and a system the authors did not build; weaker design: single run, case study, non-empirical, or no uncertainty reported; moderate: otherwise.
+E.3 Search queries
+arXiv. All run against export.arxiv.org/api/query, sorted by submission date, on 1 October and again on 4 October 2026 (version 0.1 relied on the two trackers and web searches on 28- 29 September); scripts/rerun_arxiv_search.py reproduces the search: · all:Jev · abs:"typeddecision" · abs:"SystemOne" · abs:RLCD · abs:"calibrateddecisions" · abs:"typedanswers" · abs:"TypeSafe" · abs:"decisionmodel"ANDabs:typed · abs:"SystemOnemodel" · abs:"System-One" · abs:"direct-decision" · abs:LayaANDabs:decision · abs:"typedprobabilistic" · abs:"decisionmodel"ANDabs:calibrated · abs:"this-that" · abs:"ReinforcementLearningforCalibrated" · abs:"typeddecisions" · abs:"single-passdecision"
+Zenodo. Run against zenodo.org/api/records on 1 October 2026: · "Jev"AND(TypeSafeORdecisionOR"SystemOne") · "SystemOnemodel" · "typeddecision" · "calibrateddecisions" · RLCD · title:Jev · title:JEV
+61
+
+· description:"TypeSafe" · "Jev"AND(calibrationORtypedORnoul) · LayaAND"decisionmodel" · "SystemOne"AND(typedORcalibrated)ANDdecision
+E.4 Selection and PRISMA checklist
+Figure 7 shows the flow. The arXiv search of 4 October returned 955 records (606 unique), of which 89 were dated on or after the release. Of these, 63 had been included after the first search of 1 October and one had been excluded then at full text (its PDF contained a different manuscript). The remaining 25 were screened: 5 were excluded by title and 4 by abstract as name clashes or studies without a typed model; 16 were read in full, of which one was excluded because its "Jev" is an unrelated generative model. Two included papers had been found through the trackers rather than the queries; one of them measures no typed model and is treated as context. On Zenodo, about 330 records were screened by title and description; 62 matched the keyword and date criteria; 21 were removed as duplicates (6), companion deposits (5), off-topic items (9) or records without a typed model (1); 13 of the remaining 41 were applications or tools without an evaluation; and of the 28 records read in full one contained no typed model. The grey-literature sources came from the trackers and web searches; two commentaries without original measurements are cited as context.
+
+Identification
+
+Screening
+
+arXiv API, 18 queries (4 Oct) 955 records, 606 unique
+Before 15 Sep: 517
+Dated on/after 15 Sep: 89 (63 in v0.2 corpus; 1 excluded
+in v0.2 at full text)
+New records screened: 25
+Excluded: 5 by title, 4 at abstract (name clash,
+no typed model)
+Full text assessed: 16 excluded 1 (unrelated 'Jev')
+
+Zenodo REST API, 11 queries ~330 records screened
+No keyword/date match: ~268
+Matched: 61 (+1 by hand)
+Excluded 21: duplicates 6, companion deposits 5, off-topic/tool-only 9, not a typed model 1
+Eligible: 41; excluded 13 apps/tools without evaluation;
+full text: 28, excluded 1
+
+Trackers: All about Jev (52 papers), Awesome System One Models (213); HF Papers, OpenReview, SSRN, web
+Already found or pre-release background; SSRN = Zenodo
+duplicate; no new items
+From trackers: arXiv 2 (1 reclassified as context), alphaXiv 1, grey sources 9 (2 commentary: context)
+
+Included
+
+arXiv papers: 79 (63 + 1 tracker + 15 new)
+read in full
+
+Zenodo records: 27 read in full
+
+alphaXiv: 1 grey literature: 7
+read in full
+
+Figure 7: Identification, screening and inclusion by source (PRISMA 2020 flow). Zenodo counts at the first step are approximate because the API returns overlapping result sets.
+
+62
+
+PRISMA 2020 checklist. Table 9 maps the PRISMA 2020 items [107] to this paper; items that were not done are stated as such.
+Table 9: PRISMA 2020 items and where they are reported.
+
+Item
+Title (1)
+Abstract (2)
+Rationale, objectives (3-4) Eligibility criteria (5) Information sources, search (6-7) Selection process (8)
+Data collection, items (9-10a/b) Study risk of bias (11) Effect measures (12)
+Synthesis: eligibility for each synthesis (13a) Synthesis: data preparation (13b) Synthesis: tabulation and display (13c) Synthesis: methods (13d) Synthesis: heterogeneity (13e)
+Synthesis: sensitivity analyses (13f) Reporting bias (14) Certainty assessment (15) Study selection (16a) Excluded studies that appear eligible (16b) Study characteristics (17) Risk of bias in studies (18) Results of individual studies (19) Results of syntheses (20a-d) Reporting biases (21) Certainty of evidence (22) Discussion (23a-d)
+Registration and protocol (24a- c) Support (25) Competing interests (26)
+
+Where reported, or status
+Not followed by design: the paper is a policy analysis, and its evidence component is identified as a structured rapid evidence assessment in Section 3 Abstract states question, sources, method, main results, certainty and implications Section 1 (research question) Section 3, Eligibility Section 3; Appendix E.3; scripts/rerun_arxiv_search.py Section 3 (Reviewers and tools): AI agents; no duplicate human screening Section 3, Data extraction; data/evidence_coding.csv Design appraisal (Section 3.5); data/quality_appraisal.csv Not applicable: direction of the primary result per requirement; no pooled effect Studies coded for a requirement (Appendix B)
+Codes and comparator fields from the extraction; no conversion
+Figure 2 and Tables 2 and 5
+Vote counting of direction following SWiM [111]; no meta-analysis Not done formally; heterogeneity of tasks and models is described in Section 4 Stronger-design studies only; Zenodo records excluded (Section 4.8)
+Not formally assessed; discussed in Section 7 GRADE-style rules (Section 3.5); Table 2 Figure 7 data/excluded_records.csv (e.g. the unrelated "Jev" paper, the mismatched PDF and the harness paper without a typed model) Appendices B and C Table 5; data/quality_appraisal.csv Section 4; rationales in data/evidence_coding.csv Sections 4 and 4.8; Figure 2; heterogeneity and formal tests not done Not assessed formally (Section 7) Table 2 Section 7 (interpretation, limitations of evidence and of the process, implications) Not registered; no protocol published; deviations in Section 3
+No funding Positionality and competing interests statement
+
+63
+
+Item
+Availability of data, code and materials (27)
+
+Where reported, or status Data and code availability statement
+
+64
+
+
