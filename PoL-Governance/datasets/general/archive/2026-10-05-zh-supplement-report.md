@@ -25,7 +25,7 @@
 | 门槛（Lead/task-21） | 落实方式 | 证据 |
 |---|---|---|
 | **两端都要有样本** | 每个键在**入选前**先做类别检查，单类直接拒绝；入选时按类均分（noul） | 见第 2、3 节的 yes/no 与分级分布；`refusal_appropriate` 因单类被排除 |
-| **origin="taxonomy" + 显式成色标记** | **按契约 [CONTRACT.md](CONTRACT.md) §2.1 写在问题层：每个 `questions[].origin="taxonomy"`**；条目顶层 `origin` 与 `meta.origin`/`meta.tier="derived"` 同时保留，三者一致；`meta.quality_flags` 含 `origin:taxonomy/tier:derived/train_only/not_benchmark_eligible` | `questions[].origin` 实测 3,148 taxonomy / **0 个 None**；`coverage.py` 对该文件 `schema_issues=0` |
+| **origin="taxonomy" + 显式成色标记** | **按契约 [CONTRACT.md](../CONTRACT.md) §2.1 写在问题层：每个 `questions[].origin="taxonomy"`**；条目顶层 `origin` 与 `meta.origin`/`meta.tier="derived"` 同时保留，三者一致；`meta.quality_flags` 含 `origin:taxonomy/tier:derived/train_only/not_benchmark_eligible` | `questions[].origin` 实测 3,148 taxonomy / **0 个 None**；`coverage.py` 对该文件 `schema_issues=0` |
 | **不改写源标签** | 源池**只读**；源标签原样写进 `meta.mapping.source_label`（如 `"Unsafe"`、`"scam"`、`"high"`、`"1"`、`"low"`），另记 `meta.source_item_id` 可回溯 | 见第 3 节样例 |
 | **限量 ≤ 中文侧 40%** | 上限 `floor(7,872 × 0.40) = 3,148`（按"补充集 ≤ 原生侧 40%"的严格读法；不把补充集自身计入分母） | 3,148/7,872 = 39.99% |
 | **只进 train** | 所有条目 `source.split="train"`；原始 split 另存 `meta.source_original_split`（train 2,605 / zh 543，textdetox 的中文子集本身就是语言 split）；`meta.benchmark_eligible=false` + 排除理由 | 3,148/3,148 条实测 |
@@ -103,7 +103,7 @@
   评测集（test/validation/benchmark）保持纯原生，绝不掺入本补充集，避免"用自己的转述题测自己"。
 - 物理可区分手段（任一即可筛出）：独立目录 `data/zh-supplement/`、id 前缀 `db-zhtax-`、
   **`questions[].origin="taxonomy"`（契约口径，首选）**、顶层 `origin`、`meta.tier`、`meta.benchmark_eligible=false`。
-- 契约一致性：按 [CONTRACT.md](CONTRACT.md) §2.1，`origin` 缺省即视为 `taxonomy`，但本补充集**显式写满两层**，
+- 契约一致性：按 [CONTRACT.md](../CONTRACT.md) §2.1，`origin` 缺省即视为 `taxonomy`，但本补充集**显式写满两层**，
   不依赖缺省值兜底——降级数据的安全保障就是"能被程序自动识别并排除出评测"，标记越显式越可靠。
 
 ## 6. 产物与复现

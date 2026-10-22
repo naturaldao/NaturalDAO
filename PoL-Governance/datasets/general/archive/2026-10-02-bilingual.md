@@ -2,8 +2,8 @@
 
 - 生成日期：2026-10-02（UTC+8）
 - 执行：pol2-replay（DSH Agent Team），共享任务 task-14
-- 契约：[README.md](CONTRACT.md)；问题键：[taxonomy.py](taxonomy.py)；中文来源：[sources.zh.json](sources.zh.json) + [zh-survey.md](zh-survey.md)
-- 英文来源：[sources.json](sources.json) + [data/convert-report.json](data/convert-report.json)；抓取/转换：[convert_zh.py](convert_zh.py)
+- 契约：[README.md](../CONTRACT.md)；问题键：[taxonomy.py](../taxonomy.py)；中文来源：[sources.zh.json](../sources.zh.json) + [zh-survey.md](2026-10-02-zh-survey.md)
+- 英文来源：[sources.json](../sources.json) + [data/convert-report.json](../data/convert-report.json)；抓取/转换：[convert_zh.py](../convert_zh.py)
 - 产物：**`data/items.bilingual.jsonl`**（明文，已 gitignore）与 **`data/items.bilingual.jsonl.gz`**（**已移出版本控制，仓外留存 D:\pol2-raw\general-private\**）；
   机器可读报告 `data/items.bilingual.report.json`
 
@@ -150,7 +150,7 @@ uv run --no-project --offline python datasets/general/coverage.py \
 
 ## 5. coverage.py 覆盖校验
 
-`coverage.py --items data/items.bilingual.jsonl`（配额取自 [sources.json](sources.json)，`pol2_axis=0` 是 Lead 既有裁决）：
+`coverage.py --items data/items.bilingual.jsonl`（配额取自 [sources.json](../sources.json)，`pol2_axis=0` 是 Lead 既有裁决）：
 
 - **结论：通过**（`ok: true`，0 个 violation）
 - 六域：human_judgment 15,511 / social_moral 13,180 / decision_mechanics 11,557 / risk_harm 9,988 /
@@ -158,7 +158,7 @@ uv run --no-project --offline python datasets/general/coverage.py \
 - 总量 54,594 ≥ 10,000；`max_source_share` 实测 0.1421 ≤ 0.40
 - **schema 警告：0 条**
 - 1 条提示性 warning：15 个 PoL2 判定轴（`issue_*`）没有任何条目提问 —— 这是**设计如此**
-  （`pol2_axis` 下限为 0，专项语料在 [datasets/pol2](../pol2/README.md)，不在此处凑数）
+  （`pol2_axis` 下限为 0，专项语料在 [datasets/pol2](../README.md)，不在此处凑数）
 
 ## 6. 已知不对称（训练决策必须知道的一条）
 
@@ -190,7 +190,7 @@ uv run --no-project --offline python datasets/general/coverage.py \
 - **机翻来源**：`Nemotron-Safety-Guard-v3`（45 万）、`PolyGuardMix`（191 万）、
   `DirectLLM/Chinese_Preference` 等 9 个数据集**量足够大、卡面也就缺口这一块**，
   但它们是英文数据集的翻译/文化适配产物，用户已明确"机器翻译出来的英文数据集不算中文数据集"，因此整批剔除
-  （逐条证据见 [zh-survey.md](zh-survey.md) 第 3 节）。
+  （逐条证据见 [zh-survey.md](2026-10-02-zh-survey.md) 第 3 节）。
 - **`BAAI/COIG`**（97,739 条中文原生指令）：许可清楚、中文原生，但形态是通用指令/多轮问答，
   不是"待判断的情境"。把它当 decision 样本只能靠硬套 CORE 键，属于**凑数**，因此不进池。
 - 结论：**缺口是真的，不是没找够。** 不降门槛是这个项目更重要的资产。

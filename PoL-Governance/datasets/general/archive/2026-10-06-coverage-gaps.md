@@ -1,8 +1,8 @@
 # general 覆盖缺口分析：六域 × 四分区，以及对 social_moral / human_judgment 的补源建议
 
 - 日期：2026-10-06（UTC+8）｜执行：db-coverage（DSH Agent Team）｜共享任务：task-2
-- 上游依据：[taxonomy.py](taxonomy.py)（6 个覆盖域，第 48 行）、[coverage.py](coverage.py)（硬阈值）、
-  [README.md](README.md) §1.5/§3（成色分层与四分区）、[CONTRACT.md](CONTRACT.md)、[sources.json](sources.json)（配额与已排除来源）
+- 上游依据：[taxonomy.py](../taxonomy.py)（6 个覆盖域，第 48 行）、[coverage.py](../coverage.py)（硬阈值）、
+  [README.md](../README.md) §1.5/§3（成色分层与四分区）、[CONTRACT.md](../CONTRACT.md)、[sources.json](../sources.json)（配额与已排除来源）
 - 边界：**本报告只做测算与调研**，不动数据、不动划分、不改 sources.json；所有条数均可用仓内工具复算。
 
 ## 0. 结论摘要
@@ -20,8 +20,8 @@
 
 **冻结语料**：`D:\pol2-raw\general-private\data\items.final.jsonl.gz`（仓外，23,855 条），
 解压后 sha256 = `21f11fe3dc39edd9d82680b7461b45883bb73d15a1d9611f3b2e80f4bd7e9f9f`，
-与本仓 [data/items.final.jsonl](data/items.final.jsonl) **逐字节相同**（同 sha256，同为 82,605,456 B）。
-四分区来自 [data/splits/](data/splits/split-manifest.json)（train 17,984 / test 4,946 / validation 2,473 / benchmark 1,600）。
+与本仓 `data/items.final.jsonl` 的哈希**逐字节相同**（同 sha256，同为 82,605,456 B；该文件属大文件、不入库，哈希见 [data/MANIFEST.json](../data/MANIFEST.json)）。
+四分区来自 [data/splits/](../data/splits/split-manifest.json)（train 17,984 / test 4,946 / validation 2,473 / benchmark 1,600）。
 
 ```powershell
 # 0) 校验冻结语料与仓内明文一致
@@ -64,7 +64,7 @@ validation en 1,598 / zh 875；benchmark **全 en**（1600）。
 
 ## 3. 缺口表
 
-下限口径：总量 ≥10,000、每域 ≥1,200（[coverage.py](coverage.py) 常量），pol2_axis 例外 ≥400。
+下限口径：总量 ≥10,000、每域 ≥1,200（[coverage.py](../coverage.py) 常量），pol2_axis 例外 ≥400。
 
 | 覆盖域 | 下限 | 全语料实测 | 缺口 | 缺口来源 |
 |---|---:|---:|---:|---|
@@ -90,7 +90,7 @@ validation en 1,598 / zh 875；benchmark **全 en**（1600）。
 ### 4.1 train 与评测区的域分布不可比（已知，此处给出可复算证据）
 
 risk_harm 2,605 与 human_judgment 543 **100% 落在 train**，来源是中文补充集
-（[zh-supplement-report.md](zh-supplement-report.md)：BEncoderRT 2,061 / textdetox 543 / chenhaodev 472 / vanila434 72，
+（[zh-supplement-report.md](2026-10-05-zh-supplement-report.md)：BEncoderRT 2,061 / textdetox 543 / chenhaodev 472 / vanila434 72，
 全部 `meta.benchmark_eligible=false`、只进 train）。
 所以 test / validation / benchmark 里 **只有 decision_mechanics 与 knowledge_reasoning 两域**。
 任何"某域在训练里如何、在测试里如何"的对比都会被这个结构差异污染；
@@ -104,7 +104,7 @@ benchmark 1,600 条里 SargeDev/jev-distill-corpus-v3 占 **47.1%**（753 条；
 
 ### 4.3 pol2_axis 的两套口径
 
-[sources.json](sources.json) 的 `quotas.domain_min.pol2_axis = 0`（2026-09-30 Lead 裁决：通用底座不背 PoL2 专项配额），
+[sources.json](../sources.json) 的 `quotas.domain_min.pol2_axis = 0`（2026-09-30 Lead 裁决：通用底座不背 PoL2 专项配额），
 而 README 默认是 **400**。同一份语料因此有两种结论：
 `--no-sources` 报 3 项不通过（含 pol2_axis 缺 400），默认读 sources.json 只报 2 项。
 任务书用的是 400 口径，本报告两处都写明。
@@ -123,7 +123,7 @@ benchmark 1,600 条里 SargeDev/jev-distill-corpus-v3 占 **47.1%**（753 条；
 
 ### 5.1 先说一件影响选型的事：A 层 / B 层
 
-按 [README.md](README.md) §1.5：**只有 A 层（来源原生四元组）能进 validation / test / benchmark**，B 层（我们出题、来源标签当答案）只进 train。
+按 [README.md](../README.md) §1.5：**只有 A 层（来源原生四元组）能进 validation / test / benchmark**，B 层（我们出题、来源标签当答案）只进 train。
 
 - social_moral：**有 A 层来源**（Social IQa，原生 context/question/answerA-C/label）→ 可以让评测区也长出一个域。
 - human_judgment：**本轮没找到许可干净、且原生 (question, options, target) 的来源**。
@@ -166,7 +166,7 @@ benchmark 1,600 条里 SargeDev/jev-distill-corpus-v3 占 **47.1%**（753 条；
   ④本轮未核到基础故事语料的原始条数（只核到 30 个配置各 24,000 行）。
 - **S6 MoralChoice**：①规模小（1,367 场景），单独补不满 1,200 缺口；②作者自述局限：场景与模板多样性有限、仅英文；
   ③是成对比较而非四元组；④规则违反标签由 SurgeAI 采集，语义需按论文核对。
-- **S7 Social Chemistry 101**：①**许可未证实**是硬伤——上游 GitHub 仓库已 404，唯一有卡面的镜像声明 cc-by-sa-4.0（SA，与 [SOURCES.md](SOURCES.md) §4"没有 NC 或 SA 条目"冲突）；
+- **S7 Social Chemistry 101**：①**许可未证实**是硬伤——上游 GitHub 仓库已 404，唯一有卡面的镜像声明 cc-by-sa-4.0（SA，与 [SOURCES.md](../SOURCES.md) §4"没有 NC 或 SA 条目"冲突）；
   ②行是 RoT 级（355,922 条 RoT 覆盖约 10.4 万个 situation），不是情境级；③`rot-judgment` 等字段的取值需要先做取值普查。**不建议在许可澄清前采用。**
 
 ### 5.3 human_judgment 候选（按推荐度排序）
@@ -212,7 +212,7 @@ benchmark 1,600 条里 SargeDev/jev-distill-corpus-v3 占 **47.1%**（753 条；
 
 > 注：`allenai/social-chem-101`、`allenai/scruples`、`facebook/prosocial-dialog`、`google/go_emotions` 这些 id 在 HF 上**不存在**
 > （API 返回 401 "Invalid username or password"）。规范 id 分别是 `tasksource/social-chemestry-101`、`tasksource/scruples`、
-> `allenai/prosocial-dialog`、`google-research-datasets/go_emotions`。[sources.json](sources.json) `excluded` 里
+> `allenai/prosocial-dialog`、`google-research-datasets/go_emotions`。[sources.json](../sources.json) `excluded` 里
 > 把 `allenai/social_chem_101` 与 `google/goemotions` 记为"401 不可达"，按本轮复核，那是**旧 id 不存在**，不是受限。
 
 ## 6. 候选来源的合并成本速览
@@ -263,6 +263,6 @@ dair-ai/emotion（研究用途限制）、tweet_eval（许可不明）放进本�
 ## 9. 边界与验收
 
 - 本报告只新增本文件，**未改任何数据、划分、脚本或 sources.json**，未做任何 git 写操作。
-- 报告内所有语料条数均由 [coverage.py](coverage.py) 复算（§1 命令），与四分区文件逐格一致；
+- 报告内所有语料条数均由 [coverage.py](../coverage.py) 复算（§1 命令），与四分区文件逐格一致；
   外部来源数字来自 HF API / datasets-server 快照 / 卡面 / 实际下载，逐条标注证据等级（§5 的"证据"列）。
 - 验收：`uv run --no-project --offline python tools/check.py` **已在本文件加入后重跑并通过**，输出 `{"status": "pass", "local_links": 322, "models_run": false}`（本文件新增 40 个仓内链接，全部可解析）。

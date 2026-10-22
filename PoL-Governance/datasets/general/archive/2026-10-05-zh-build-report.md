@@ -3,7 +3,7 @@
 - 日期：2026-10-05（UTC+8）｜执行：pol2-replay（DSH Agent Team）
 - 口径：**按唯一请求计**；允许用变体增强；中文 30–40% 均可，**质量优先**（Lead task-18 与后续硬要求）
 - 来源：`Deepexi/openai-formate-function-calling-small`（主）与 `Deepexi/function-calling-small`（对照）
-- 产物：`data/zh/zh-group-index.jsonl`（分组索引）与 `data/zh/zh-items.sample.jsonl`（200 条样例）——两者**均已移出版本控制**（原因见 [split-report.md](split-report.md) §10.4：前者是 5,454 行答案索引，后者含 9 行与 benchmark 逐字相同），仓外留存 `D:\pol2-raw\general-private\`；
+- 产物：`data/zh/zh-group-index.jsonl`（分组索引）与 `data/zh/zh-items.sample.jsonl`（200 条样例）——两者**均已移出版本控制**（原因见 [split-report.md](../split-report.md) §10.4：前者是 5,454 行答案索引，后者含 9 行与 benchmark 逐字相同），仓外留存 `D:\pol2-raw\general-private\`；
   全量条目在仓库外 `D:\pol2-raw\zh-final\items.zh.jsonl`（**最终合并不由本任务做**）
 
 ## 0. 结论摘要
@@ -173,7 +173,7 @@ p=0.345 → 位置分布与均匀分布无显著差异，伪影消除。原始�
 - `state` = **用户请求文本本身**（不含候选集，不写结论）；实测 **5,454/5,454 组的 state 逐字相同**
 - `questions[0]` = `next_step_candidate`（choice，`options_from_state=True`），
   `options` = 该行的候选函数（`{key: 函数名, label: "函数名：中文描述(≤120字)"}`），2–6 个，已打散
-- **`questions[0].origin = "source"`**（契约 [CONTRACT.md](CONTRACT.md) §2.1 的位置，**必须显式写**：
+- **`questions[0].origin = "source"`**（契约 [CONTRACT.md](../CONTRACT.md) §2.1 的位置，**必须显式写**：
   缺省即视为 `taxonomy`，会把这批原生四元组误读成我们出题的降级数据）+ `questions[0].source_key = "function"`
   （来源自身的答案字段名）；条目顶层 `origin="source"` 与 `meta.origin/question_origin/source_question_key` 同时保留。
   实测 `questions[].origin` = **source 22,372 / taxonomy 0 / None 0**
@@ -214,7 +214,7 @@ p=0.345 → 位置分布与均匀分布无显著差异，伪影消除。原始�
 中文 Deepexi 只有"候选集 + 答案"这个结构，提问句式由我们补齐。做"只用 100% 原生四元组"的分析时，
 应按 `questions[].source_key` 是否存在、或按数据卡声明来区分，而不是只看 `origin`。
 
-（对应的契约补充由 Lead 在 [CONTRACT.md](CONTRACT.md) 落地：`origin=source` 时 `key` 可用规范名，
+（对应的契约补充由 Lead 在 [CONTRACT.md](../CONTRACT.md) 落地：`origin=source` 时 `key` 可用规范名，
 但 `source_key` 必须记录来源原生字段名，且问题措辞由谁写要在数据卡里声明。）
 
 ## 9. 产物清单与复现

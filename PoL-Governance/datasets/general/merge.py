@@ -26,7 +26,7 @@ r"""合并最终语料：英文原生四元组 + 中文侧（按变体规则抽�
         --zh D:\pol2-raw\zh-final\items.zh.jsonl \
         --out datasets/general/data/items.final.jsonl \
         --report datasets/general/data/items.final.report.json \
-        --report-md datasets/general/merge-report.md --share 0.33 --gzip
+        --report-md datasets/general/archive/2026-10-05-merge-report.md --share 0.33 --gzip
 """
 
 from __future__ import annotations

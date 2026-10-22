@@ -50,8 +50,9 @@
 早期按模板命题的语料因此不必回填该字段，也能被正确解读。`coverage.py` 按 `origin` 分别统计：
 `source` 的原生键不在 taxonomy 词表内属正常，不应报 schema 警告。
 
-**当前主产物是 data/items.native.jsonl.gz（已移出版本控制）**（15,983 条，全部 `origin=source`，100% 带原生真值；
-明文同名去 `.gz`，体积大故不入库）。
+**切分用的冻结语料是 `data/items.final.jsonl`（74,912 条 / 82,843 target）；其中原生四元组基座是
+`data/items.native.jsonl`（15,983 条，全部 `origin=source`，100% 带原生真值）。两者都是大文件，
+不入库、本机保留，sha256 与行数见 [data/MANIFEST.json](data/MANIFEST.json)。**
 `items.jsonl` 与 `items.bilingual.jsonl` 是按模板命题的早期版本，留作对照，不再是训练首选。
 
 `questions[].kind` 取值：`noul`（是/否）、`choice`（多选一）、`score`（分级）。

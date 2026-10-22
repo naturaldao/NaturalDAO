@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def files(root):
-    skip = {'__pycache__', '.git', '.venv', '.cache'}
+    skip = {'__pycache__', '.git', '.venv', '.cache', '.agent'}
     return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in root.rglob('*') if p.is_file() and not (set(p.relative_to(root).parts) & skip)
             and p.suffix not in ('.pyc', '.pyo')}
@@ -32,7 +32,8 @@ def main():
     links = 0
     try:
         for path in ROOT.rglob('*.md'):
-            if set(path.relative_to(ROOT).parts) & {'__pycache__', '.git', '.venv', '.cache'}:
+            # .agent/ 是本机内部工作区（gitignore），不参与公开文档链接检查
+            if set(path.relative_to(ROOT).parts) & {'__pycache__', '.git', '.venv', '.cache', '.agent'}:
                 continue
             for link in re.findall(r'\]\(([^)]+)\)', path.read_text(encoding='utf-8')):
                 if '://' in link or link.startswith('#'):

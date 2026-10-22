@@ -2,8 +2,8 @@
 
 - 日期：2026-10-15（UTC+8）｜执行：db-capability（DSH Agent Team）｜共享任务：task-4
 - 上游依据：评审对当前构成的判断（decision_mechanics 19,465 / 27,003 = 72%，`origin=source` 线几乎只有工具与决策类）、
-  [CONTRACT.md](CONTRACT.md)（三条原语：choice / noul / score）、[SOURCES.md](SOURCES.md)（来源与许可登记）、
-  [coverage-gaps.md](coverage-gaps.md)（六域缺口）、[TRAINING.md](TRAINING.md)（训练口径）
+  [CONTRACT.md](../CONTRACT.md)（三条原语：choice / noul / score）、[SOURCES.md](../SOURCES.md)（来源与许可登记）、
+  [coverage-gaps.md](2026-10-06-coverage-gaps.md)（六域缺口）、[TRAINING.md](../TRAINING.md)（训练口径）
 - 边界：**本文件只做调研与取证**，不动数据、不动划分、不改其它文档、不写 git。
 - 本轮准入口径（2026-10-15 Lead 转述用户放宽后）：**有问题 + 有答案（简练、可判定）即可**，
   不再要求原生带选项；答案可作为其中一个选项，**其余选项可由模型/规则生成**。
