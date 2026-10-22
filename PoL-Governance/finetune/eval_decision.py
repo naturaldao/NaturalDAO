@@ -204,9 +204,22 @@ def run_evaluation(args: argparse.Namespace) -> Dict[str, Any]:
 
         with torch.no_grad():
             with torch.amp.autocast(device_type=device.type, dtype=torch.float16, enabled=(device.type == "cuda")):
-                outputs = model(**encoded_inputs)
-                # 获取每个序列最后一个 token 处的 logits: [batch_size, vocab_size]
-                last_logits = outputs.logits[:, -1, :]
+                # 只计算最后一个 token 的 logits（左填充，index -1 即真实末位），
+                # 避免生成 [B, L, vocab] 全量 logits（ROCm/CUDA 上都可大幅提速与省显存）。
+                inner = model
+                if (hasattr(inner, "base_model") and hasattr(inner.base_model, "model")
+                        and hasattr(inner.base_model.model, "lm_head")):
+                    inner = inner.base_model.model
+                if hasattr(inner, "lm_head") and hasattr(inner, "model"):
+                    hidden = inner.model(
+                        input_ids=encoded_inputs["input_ids"],
+                        attention_mask=encoded_inputs.get("attention_mask"),
+                        use_cache=False,
+                    ).last_hidden_state
+                    last_logits = inner.lm_head(hidden[:, -1, :])
+                else:
+                    outputs = model(**encoded_inputs)
+                    last_logits = outputs.logits[:, -1, :]
 
         for i, item in enumerate(batch):
             cand_token_ids = item["candidate_token_ids"]
@@ -237,8 +250,7 @@ def run_evaluation(args: argparse.Namespace) -> Dict[str, Any]:
             })
 
     start_time = time.time()
-    total_evaluated = 0
-
+    all_items: List[Dict[str, Any]] = []
     with open(eval_view_path, "r", encoding="utf-8") as f:
         for line in f:
             if not line.strip():
@@ -261,8 +273,8 @@ def run_evaluation(args: argparse.Namespace) -> Dict[str, Any]:
                 skipped_stats["token_map_mismatch"] += 1
                 continue
 
-            batch_items.append({
-                "rid": row.get("rid", f"row_{total_evaluated}"),
+            all_items.append({
+                "rid": row.get("rid", f"row_{len(all_items)}"),
                 "kind": row.get("kind", "choice"),
                 "lang": row.get("lang", "zh"),
                 "route": row.get("route", "classification"),
@@ -274,19 +286,16 @@ def run_evaluation(args: argparse.Namespace) -> Dict[str, Any]:
                 "candidate_token_ids": cand_ids,
             })
 
-            total_evaluated += 1
-
-            if len(batch_items) >= args.batch_size:
-                process_batch(batch_items)
-                batch_items = []
-                if not args.json and total_evaluated % 100 == 0:
-                    print(f"已评测: {total_evaluated} 条样本...")
-
-            if args.limit > 0 and total_evaluated >= args.limit:
+            if args.limit > 0 and len(all_items) >= args.limit:
                 break
 
-        if batch_items:
-            process_batch(batch_items)
+    # 按 prompt 长度排序后再组 batch，显著减少 padding 浪费（只影响评测顺序，不影响指标）。
+    all_items.sort(key=lambda item: len(item["prompt_prefix"]))
+    total_evaluated = len(all_items)
+    for offset in range(0, len(all_items), args.batch_size):
+        process_batch(all_items[offset:offset + args.batch_size])
+        if not args.json and offset % (args.batch_size * 20) == 0:
+            print(f"已评测: {min(offset + args.batch_size, total_evaluated)}/{total_evaluated} 条样本...")
 
     duration = time.time() - start_time
     metrics = compute_stratified_metrics(records)
