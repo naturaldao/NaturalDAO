@@ -25,7 +25,7 @@
 - [x] P7 上线：v5 经 PR #43 并入 main；公开三区 71,519 条 / 78,001 问题，私有保留集 6,541 条库外
 - [x] P7b-1 数据集 Hugging Face 导出就绪：公开三区与私有保留集物理分离，清单（MANIFEST）、数据卡、上传手册与下载校验齐备；大文件已从 git 离仓（见 [datasets/general/HF.md](datasets/general/HF.md)）；离线 `verify` 复检通过（公开 7 文件 / 私有包 6 文件 / 包自校验 exit 0）
 - [ ] P7b-2 实际执行 HF 上传：公开仓库 + 私有保留集仓库（需要维护者 token；上传后回填 revision）
-- [x] P7c 专用数据落位：POL2-accepted-8705-v1 解压、校验（pack/族级切分/回答一致）、四区物化、数据卡与可复算脚本（见 [datasets/pol2/FREEZE-8705-V1.md](datasets/pol2/FREEZE-8705-V1.md)）；**未批准训练前只做整理与评测准备**
+- [x] P7c 专用数据落位：POL2-accepted-8705-v1 解压、校验（pack/族级切分/回答一致）、四区物化、数据卡与可复算脚本（见 [datasets/pol2/FREEZE-8705-V1.md](datasets/pol2/FREEZE-8705-V1.md)）；**未批准训练前只做整理与评测准备**；训练前置清单见 [APPROVAL-CHECKLIST](datasets/pol2/APPROVAL-CHECKLIST.md)
 - [x] P7d 文档与仓库整理：过时文档归档、内部 Agent 工作区分隔（`.agent/` 不进公开仓库）、大文件离仓、公开文档精简
 - [ ] P8 下一轮补源：世界知识 + 因果·反事实（见下）
 - [ ] P9 模板命题线退役（见 [目录索引 §7](datasets/general/INDEX.md)）

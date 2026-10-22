@@ -153,6 +153,9 @@ uv run --no-project --offline python datasets/pol2/splits.py verify --assign <�
 - 实测（只读 train split，preview）：`rows=5,900`（choice 5,361 / score 539）、`skipped=0`、
   view sha256 `4414bc17…`（would-be，13,104,579 bytes）。
 
+训练授权前必须完成 [APPROVAL-CHECKLIST.md](APPROVAL-CHECKLIST.md) 的 A 项 owner 书面确认；
+当前所有解禁步骤（training_approved 置真、生成 pv-1 视图、混合训练）均未执行。
+
 ## 6. 目录与文件归属
 
 | 路径 | 内容 | 归属 |
@@ -165,6 +168,7 @@ uv run --no-project --offline python datasets/pol2/splits.py verify --assign <�
 | `datasets/pol2/build_pol2_training_view.py` | 冻结集 → 决策视图适配（pv-1；schema-preview 门禁） | DATA-02 数据集 |
 | `datasets/pol2/test_build_pol2_training_view.py` | pv-1 适配器不变量测试（合成 fixture） | DATA-02 数据集 |
 | `datasets/pol2/POL2-VIEW.md` | pv-1 视图 schema / 安全门 / 实测统计 | DATA-02 数据集 |
+| `datasets/pol2/APPROVAL-CHECKLIST.md` | 训练授权前置清单（owner 确认项 / 解禁步骤 / 验收 / 回滚） | DATA-02 数据集 |
 | `datasets/pol2/freeze-8705-v1/SPLIT-MANIFEST.json` | 冻结集 tracked 清单（计数 + sha256） | DATA-02 数据集 |
 | `datasets/pol2/data/` | 冻结集数据实体（gitignore：解压、切分、HF 导出） | DATA-02 数据集 |
 | `datasets/pol2/ontology/` | 标签本体、判据、测试项矩阵 | DATA-02 本体 |
