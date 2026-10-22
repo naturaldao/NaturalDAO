@@ -42,12 +42,13 @@ python datasets/general/build_training_view.py --split test --out D:/pol2-train/
 
 ## 3. 运行环境与硬件约束
 
-- **硬件配置**：
-  - 单张 **NVIDIA Tesla T10 16GB**（Turing 架构，Compute Capability 7.5）
-  - 特性约束：支持 **fp16**，**不支持 bf16**，不支持 FlashAttention-2。本脚本默认采用 PyTorch 原生 **SDPA** (`attn_implementation="sdpa"`)。
-  - 宿主机配置：Windows 11 x64, AMD Ryzen 7 5700X, 80GB RAM。
-- **虚拟环境**：
-  - 训练依赖环境由 Lead 统一安装在 `D:/pol2-train/.venv`（包含 torch cu124、transformers、peft）。
+- **首选硬件：Radeon RX 7900 XT 20GB（gfx1100）**，Windows 11 + WSL2 Ubuntu 24.04 + ROCm 7.2.1 + PyTorch 2.9.1+rocm7.2.1。
+  - 项目环境：WSL 内 `~/src/polgov/.venv`（uv）；数据/模型建议放 WSL ext4（`~/src/polgov/{data,models}`），代码可直接从 `/mnt/c` 仓库运行。
+  - 平台资料与验证：`C:/Projects/ROCM`（README / INSTALLED_STATE / TROUBLESHOOTING）。
+  - ROCm 上 `torch.cuda` API 为 HIP 别名，本脚本的 fp16 AMP、SDPA、grad checkpointing 均可直接工作。
+- **备用硬件：NVIDIA Tesla T10 16GB**（Turing CC 7.5；fp16，无 bf16，不支持 FA2；SDPA）。
+- **GPU 静默时段（owner 要求）**：00:30–09:30 与 12:30–15:30 不启动 GPU（已经开始且即将跑完的允许跑完）。
+- **训练数据视图生成**：Windows 侧 `D:/pol2-train/.venv`（torch cu124）或任意 Python 3.12 均可（生成器只用标准库）。
 - **安全护栏 (Guard)**：
   - `train_decision_sft.py` 与 `eval_decision.py` 均内建路径检测护栏。
   - 若 `--output-dir` 或 `--predictions` 指向本 git 仓库内部路径，程序将直接中止并退出（退出码 **2**），杜绝训练副产物意外污染仓库。
@@ -119,6 +120,13 @@ python finetune/train_decision_sft.py `
 ---
 
 ## 5. 显存与耗时预期（标为估算）
+
+> 2026-10-23 实测（RX 7900 XT 20GB，WSL2 ROCm 7.2.1 + torch 2.9.1）：
+> batch 8 / grad-accum 4 / seq 1024 / grad ckpt + **末位 token 轻量损失**（只对答案位置过 lm_head，
+> 不再生成 [B,L,vocab] 全量 logits）：**约 5.8 s/优化步**（有效 batch 32，约 5.5 samples/s），
+> 峰值显存约 **6.3 GB**；51k 行 1 epoch（1,563 步）预计 **2.4–2.6 h**。
+> T10 对照：batch 4 / grad-accum 2 / seq 1024（有效 batch 8）约 2.1 s/步、峰值 7.9 GB。
+
 
 > 注：以下指标均为基于理论参数与 Turing 架构特性的工程估算值，供资源排期参考。
 

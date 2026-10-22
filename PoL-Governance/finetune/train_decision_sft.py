@@ -57,6 +57,7 @@ except ImportError:
 try:
     import torch
     import torch.nn as nn
+    import torch.nn.functional as F
     from torch.optim import AdamW
     from torch.utils.data import DataLoader, Dataset
     from transformers import (
@@ -69,6 +70,17 @@ try:
 except ImportError:
     torch = None
     TORCH_AVAILABLE = False
+
+
+def unwrap_causal_lm(model: Any) -> Optional[Any]:
+    """取 LoRA 包装内部的因果 LM（供只计算末位 token 的轻量损失使用）。"""
+    if hasattr(model, "base_model") and hasattr(model.base_model, "model"):
+        inner = model.base_model.model
+        if hasattr(inner, "lm_head") and hasattr(inner, "model"):
+            return inner
+    if hasattr(model, "lm_head") and hasattr(model, "model"):
+        return model
+    return None
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -154,6 +166,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         "--resume",
         action="store_true",
         help="从 output-dir 已有检查点恢复训练",
+    )
+    parser.add_argument(
+        "--no-grad-ckpt",
+        action="store_true",
+        help="关闭 gradient checkpointing（显存足够时可提速）",
     )
 
     return parser.parse_args(argv)
@@ -537,12 +554,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     model.to(device)
 
-    # 开启梯度检查点节省显存
-    try:
-        model.gradient_checkpointing_enable()
-        print("已成功开启 gradient_checkpointing")
-    except Exception as e:
-        print(f"未能开启 gradient_checkpointing: {e}")
+    # 开启梯度检查点节省显存（--no-grad-ckpt 可关闭以提速）
+    if getattr(args, "no_grad_ckpt", False):
+        print("已按 --no-grad-ckpt 关闭 gradient_checkpointing")
+    else:
+        try:
+            model.gradient_checkpointing_enable()
+            print("已成功开启 gradient_checkpointing")
+        except Exception as e:
+            print(f"未能开启 gradient_checkpointing: {e}")
 
     # 配置 LoRA
     if args.resume and adapter_dir.exists():
@@ -615,12 +635,34 @@ def main(argv: Optional[List[str]] = None) -> int:
             attention_mask = batch["attention_mask"].to(device)
 
             with torch.amp.autocast(device_type=device.type, dtype=torch.float16, enabled=(device.type == "cuda")):
-                outputs = model(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    labels=labels,
+                # 轻量损失：本任务每个样本只在最后一个 token 有监督标签；直接对该位置过 lm_head，
+                # 避免计算 [B, L, vocab] 全量 logits（ROCm/CUDA 上可省 10-100x 显存与大量算力）。
+                base_lm = unwrap_causal_lm(model)
+                seq_lens = attention_mask.sum(dim=1) - 1
+                row_idx = torch.arange(labels.size(0), device=labels.device)
+                targets = labels[row_idx, seq_lens]
+                supervised = (labels != -100).sum(dim=1)
+                lean_ok = bool(
+                    base_lm is not None
+                    and torch.all(targets != -100)
+                    and torch.all(supervised == 1)
                 )
-                loss = outputs.loss / args.grad_accum
+                if lean_ok:
+                    hidden = base_lm.model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        use_cache=False,
+                    ).last_hidden_state
+                    last_hidden = hidden[row_idx, seq_lens]
+                    vocab_logits = base_lm.lm_head(last_hidden)
+                    loss = F.cross_entropy(vocab_logits.float(), targets) / args.grad_accum
+                else:
+                    outputs = model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        labels=labels,
+                    )
+                    loss = outputs.loss / args.grad_accum
 
             scaler.scale(loss).backward()
             accum_loss += loss.item() * args.grad_accum
