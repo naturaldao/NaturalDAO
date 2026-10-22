@@ -178,4 +178,3 @@ PoL2-EG 最有研究价值的切口不是笼统宣称“AI 能治理具身智能
 - [NASA UAS Runtime Assurance verification framework](https://ntrs.nasa.gov/citations/20240007986)
 - [EAI, NeurIPS 2024](https://proceedings.neurips.cc/paper_files/paper/2024/hash/b631da756d1573c24c9ba9c702fde5a9-Abstract-Datasets_and_Benchmarks_Track.html) and [GUARD, CoRL 2023](https://proceedings.mlr.press/v229/tu23a.html)
 - [NIST AI RMF 1.0](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/) and [EU AI Act Article 14](https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng)
-
