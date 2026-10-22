@@ -319,3 +319,19 @@ python finetune/calibrate.py apply --predictions <evals>/val-preds.jsonl --tempe
 ~~~
 
 校准切分是确定性的：`sha256(rid)` 奇偶分到 calibration / selection 两半，测试覆盖；不使用软标签（jev-probs）作为校准参照。
+
+## 17. 暂停期新增工具（CPU-only）
+
+- [EVAL-PROTOCOL.md](EVAL-PROTOCOL.md)：阶段二预注册评测协议（划分/指标/阈值/统计/报告规则）。
+- [TRACK-B-PLAN.md](TRACK-B-PLAN.md)：Track B 候选评分头的预注册配置与成功判据。
+- `calibrate.py`：温度缩放（半 B 拟合 / 半 A 复算，NLL/Brier/ECE/MCE）。
+- `collect_results.py`：把决策评测 JSON + lm-eval JSON + 逐行预测汇总成结果卡表格（含配对 bootstrap 95% CI）。
+- `run_plan.py`：为 GPU 恢复生成分阶段 bash 脚本（env-check / base-test / lm-eval / calibrate / track-b-smoke / track-b-full / seeds）。
+
+~~~bash
+# GPU 恢复后：生成整套脚本并执行
+python finetune/run_plan.py --stages all --out /tmp/resume.sh
+# 汇总结果卡表格
+python finetune/collect_results.py --eval-json base=... --eval-json tuned=... \
+  --lm-eval-json base=... --lm-eval-json tuned=... --preds base=... --preds tuned=... --out summary.md
+~~~
