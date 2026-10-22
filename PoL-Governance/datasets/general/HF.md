@@ -141,6 +141,30 @@ python -c "from huggingface_hub import HfApi; api=HfApi(); print('public', api.r
 3. 引用数据时用 commit sha（HF 页面或 `--revision`），不要只写 `main`。
 
 ## 5. 上传后校验（下载回来逐文件比对 sha256）
+### 5.1 远程校验（无需全量下载，上传后先跑）
+
+上传完成后先用远程清单对照本地 MANIFEST，确认远端文件树与 sha256/bytes 一致：
+
+~~~bash
+# 公开仓库（匿名 GET；--revision 建议固定到 commit sha）
+python datasets/general/verify_hf_remote.py \
+  --repo-id <org>/pol-decision-general-v5 \
+  --manifest datasets/general/data/hf-export/public/MANIFEST.json \
+  --revision <public-sha> --json
+
+# 私有保留集需要 token；token 从仓库外文件读取，禁止写进仓库/日志
+python datasets/general/verify_hf_remote.py \
+  --repo-id <org>/pol-decision-general-v5-holdout \
+  --manifest datasets/general/data/hf-export/private-holdout/HF-MANIFEST.json \
+  --revision <holdout-sha> --token-file ~/.hf_token
+~~~
+
+- 退出码 0 = 全部匹配（或已在报告里标注的不可复算项）；2 = 有 sha/bytes 不匹配、缺失文件、或仓库不可访问；
+- LFS 文件直接比对 tree API 的 sha256；非 LFS 小文件（<=10 MiB）下载原始字节复算，可用 `--skip-raw` 跳过；
+- 远端多余文件计 `extra_on_remote`，不会静默通过；`--help` 看全部参数；
+- 该脚本只读 GET、不写远端；token 仅用于 Authorization 头，不打印、不允许放在仓库内。
+- 旧路径 `export_hf.py verify` 仍用于**本地导出**校验（上传前）；远程校验通过后再按 §5 下载回来做最终确认。
+
 
 ```
 # 公开仓库：固定 revision 下载到临时目录
