@@ -66,3 +66,11 @@ GPU 实验按 owner 要求暂停，等待设备调整后继续。
 - **GPU 实验已暂停**（用户要求设备调整后再继续）；代码、数据视图、结果卡与文档已提交到 `pol/MODEL-02/wenbo` 分支，等阶段一 PR 合并后开第二阶段 PR。
 - 恢复后顺序：test 0-shot 对照 → 通用能力代理（lm-eval）→ Track B 候选评分头（主路线）→ 校准 → 多 seed。
 - 需要拍板：阶段一 PR 合并、HF 上传、PoL2 训练授权、底座档位（1.7B→4B）、评测阈值预注册。
+
+## 6. 暂停期补充（2026-10-23，CPU-only）
+
+GPU 实验按 owner 要求暂停（设备调整，等待手动开启）。暂停期完成 CPU 工作：
+
+- **预注册评测协议** [EVAL-PROTOCOL.md](../../finetune/EVAL-PROTOCOL.md)：决策/校准/通用能力代理/统计口径与阈值先声明（test 只回归、validation 固定切半、≥2–3 seed、报告 CI）。
+- **温度校准工具** `finetune/calibrate.py` + 7 个纯 CPU 测试：在 validation 的 calibration 半区拟合温度、selection 半区复算，输出 NLL/Brier/ECE/MCE。
+- **GPU 恢复清单**（内部）：恢复后先跑 test 的 base 0-shot 对照 → lm-eval → Track B → 校准 → 多 seed。

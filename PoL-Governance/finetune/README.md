@@ -302,3 +302,20 @@ python -m py_compile finetune/decision_common.py finetune/train_decision_sft.py 
     python -m py_compile finetune/decision_scorer.py finetune/train_decision_scorer.py finetune/test_decision_scorer.py
 
 覆盖：marker 定位/option_count、左截断与确定性、padding mask、masked softmax/CE/KL 手算对照（含温度）、DecisionScorer 前向形状与梯度回传、LoRA 挂载、head 保存/加载、仓库内 output-dir 与保留集文件名护栏、--dry-run 合成数据全路径。
+
+## 16. 校准与预注册评测协议
+
+- 评测口径、阈值与统计规则见 [EVAL-PROTOCOL.md](EVAL-PROTOCOL.md)（阶段二预注册 v1）。
+- 温度缩放工具：`finetune/calibrate.py`（纯标准库）
+
+~~~bash
+# 1) 导出逐行预测（含 candidate_probs）
+python finetune/eval_decision.py --eval-view <validation-view.jsonl> --adapter <adapter> \
+  --batch-size 32 --predictions <evals>/val-preds.jsonl
+# 2) 在 validation 的 calibration 半区拟合温度
+python finetune/calibrate.py fit --predictions <evals>/val-preds.jsonl --out <evals>/temperature.json
+# 3) 在 selection 半区复算指标，并在 test 预测上复核（不重拟合）
+python finetune/calibrate.py apply --predictions <evals>/val-preds.jsonl --temperature <T> --half selection --json
+~~~
+
+校准切分是确定性的：`sha256(rid)` 奇偶分到 calibration / selection 两半，测试覆盖；不使用软标签（jev-probs）作为校准参照。
