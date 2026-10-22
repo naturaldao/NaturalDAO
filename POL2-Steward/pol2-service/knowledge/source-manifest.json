@@ -1,0 +1,105 @@
+{
+  "repository": "https://github.com/naturaldao/NaturalDAO",
+  "source_commit": "c70227fbc13b64f189c54efe2d45f2d77bc3babf",
+  "normalization": "UTF-8 BOM removed and CRLF converted to LF; originals unchanged",
+  "files": [
+    {
+      "path": "PoL/0. 前言.md",
+      "bytes": 4746,
+      "sha256": "b400699d0e65af1304f2dea8d91fd7bd3e2aba2e0ee25bdee72dd809a89d62ef",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/0.%20%E5%89%8D%E8%A8%80.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/1. 爱2、恨2、爱2证明、恨2证明、富爱文明.md",
+      "bytes": 20556,
+      "sha256": "1e32ca8000997cf951c6a516e6f4215f89f10b97bac4156c4e3ff1443773acf5",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/1.%20%E7%88%B12%E3%80%81%E6%81%A82%E3%80%81%E7%88%B12%E8%AF%81%E6%98%8E%E3%80%81%E6%81%A82%E8%AF%81%E6%98%8E%E3%80%81%E5%AF%8C%E7%88%B1%E6%96%87%E6%98%8E.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/2. 爱语.md",
+      "bytes": 22202,
+      "sha256": "2ddd9335569113a92312fada7b8a434d1ae98f131127b94349531165a24386b8",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/2.%20%E7%88%B1%E8%AF%AD.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/3. PoL2之冥想智慧公理.md",
+      "bytes": 3934,
+      "sha256": "46ddc30f3e784e6b08e7724d549124dc1e3c906a504c3945b7eb4edb167fa7b7",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/3.%20PoL2%E4%B9%8B%E5%86%A5%E6%83%B3%E6%99%BA%E6%85%A7%E5%85%AC%E7%90%86.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/4. PoL2之伦理对齐协议.md",
+      "bytes": 12926,
+      "sha256": "b6978d982aa2fdeb519d6a5ada570782c5b2f20da8cc665a286a7531690edbf8",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/4.%20PoL2%E4%B9%8B%E4%BC%A6%E7%90%86%E5%AF%B9%E9%BD%90%E5%8D%8F%E8%AE%AE.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/5. AI和人类文明的治理：从恨2证明到爱2证明.md",
+      "bytes": 16873,
+      "sha256": "0217310270879e44551bf043f61bb4c275baeffa7457154ace0aef89fb64956e",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/5.%20AI%E5%92%8C%E4%BA%BA%E7%B1%BB%E6%96%87%E6%98%8E%E7%9A%84%E6%B2%BB%E7%90%86%EF%BC%9A%E4%BB%8E%E6%81%A82%E8%AF%81%E6%98%8E%E5%88%B0%E7%88%B12%E8%AF%81%E6%98%8E.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/6. 富爱文明生产公共化协议.md",
+      "bytes": 6165,
+      "sha256": "194eb3469516a2e3b3d1b506a0ae8ed9b2ef795267ce00245199399b5c2aa9d6",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/6.%20%E5%AF%8C%E7%88%B1%E6%96%87%E6%98%8E%E7%94%9F%E4%BA%A7%E5%85%AC%E5%85%B1%E5%8C%96%E5%8D%8F%E8%AE%AE.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/7. 人类公共福利的治理协议.md",
+      "bytes": 6647,
+      "sha256": "29bd79f8528f6452d66577085bee85ec0399cb851b077c255dc5b98ce0a37c67",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/7.%20%E4%BA%BA%E7%B1%BB%E5%85%AC%E5%85%B1%E7%A6%8F%E5%88%A9%E7%9A%84%E6%B2%BB%E7%90%86%E5%8D%8F%E8%AE%AE.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/8. 总结.md",
+      "bytes": 8497,
+      "sha256": "dafa6b701698969d8c090dc328c28df627eef6663c8988745a118e1ba021715e",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/8.%20%E6%80%BB%E7%BB%93.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/PoL共识的工程策略.md",
+      "bytes": 4404,
+      "sha256": "9157ad7b10a75b93cf697a2e337a400cf1f296ca5472a3046751dad2a7cde630",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/PoL%E5%85%B1%E8%AF%86%E7%9A%84%E5%B7%A5%E7%A8%8B%E7%AD%96%E7%95%A5.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/Readme.md",
+      "bytes": 2311,
+      "sha256": "0f6b74d934d3e07eba0b0c1dfd90b4d7290fc94ef2e8b355985029149d366dd5",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/Readme.md",
+      "role": "theory"
+    },
+    {
+      "path": "PoL/svg/pol2_zh.svg",
+      "bytes": 5072,
+      "sha256": "b76ca21358f5603b753f64566c11ed91ba18edc9f6b82da951e26d328bd10f88",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/svg/pol2_zh.svg",
+      "role": "attachment"
+    },
+    {
+      "path": "PoL/svg/pol_en.svg",
+      "bytes": 5083,
+      "sha256": "a17e18a8f6d9afa9e298ad9244100094d1995194477b0755888c87ac06e48027",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/svg/pol_en.svg",
+      "role": "attachment"
+    },
+    {
+      "path": "PoL/svg/pol_zh.svg",
+      "bytes": 5074,
+      "sha256": "4033f372b103aa513fa67c55b1d86110812e0c1be765f4bdb1d9342f6f075ca6",
+      "source_url": "https://github.com/naturaldao/NaturalDAO/blob/c70227fbc13b64f189c54efe2d45f2d77bc3babf/PoL/svg/pol_zh.svg",
+      "role": "attachment"
+    }
+  ]
+}

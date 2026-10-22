@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pol2
+      POSTGRES_USER: pol2
+      POSTGRES_PASSWORD: ${POL2_POSTGRES_PASSWORD:?POL2_POSTGRES_PASSWORD is required}
+    ports:
+      - "127.0.0.1:${POL2_POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - pol2_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pol2 -d pol2"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pol2_postgres_data:

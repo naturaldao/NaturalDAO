@@ -1,0 +1,30 @@
+{
+  "package_id": "pol2-runtime-2026.10.21.1",
+  "source_commit": "c70227fbc13b64f189c54efe2d45f2d77bc3babf",
+  "created_at": "2026-10-21",
+  "status": "behavior_verified_candidate",
+  "runtime_package": true,
+  "documents": 448,
+  "rules": 28,
+  "interpretations": 18,
+  "answers": 19,
+  "love_languages": 16,
+  "propositions": 9,
+  "checksums": {
+    "compatibility.json": "c32c7476105560ff4875fd3fe46b596dfb2a7be0a1f0e799085d7f191f0d4235",
+    "documents.jsonl": "70824d1f37593d4ac251f4aff5aa597d3570aaccd335b5dcbe84de8526d198ff",
+    "knowledge/answers.jsonl": "2251078d9f7f637d3edb4b39c9fa788849318cea2a6666e823b8b27f978624de",
+    "knowledge/boundary-decisions-approved.md": "91e65e57bf3f92b3a392de837bec22af5632c36644ef2eb7180a38d76a3f67de",
+    "knowledge/concepts.jsonl": "bc65c359542b9948bd661f11a44ce871cd436cf59802b41e6952b64d40bdc185",
+    "knowledge/love-languages.jsonl": "41f1a22b60c465e54193ca1a502e391c6a0c2e69a6bbd79796bb1f62496be61b",
+    "knowledge/propositions.jsonl": "905389443c0ef5e0dd3b54498461aa56ef3b371498addc5204c59f9fcd9a7f15",
+    "knowledge/relations.jsonl": "1480eb93b1cbfbb30d29bc7ed2c6b4f5a37b69b67e4864a2a142dd2b2169b613",
+    "knowledge/retrieval-aliases.json": "e7afa2bd66d6c9a13c21643dbfd9b8f8bfaf9c0c7d493f07f97e1fe5fce20b8d",
+    "knowledge/retrieval-config.json": "d403450a8917e16eaaa942557961f4ad43920fa6e5b96c6d05ddd5a593aed58a",
+    "knowledge/rule-mapping.jsonl": "03a3d14f49f7a86d6f0fc298d00a78b7a90c231aa7d16b70ba9b5b1679cb97e9",
+    "knowledge/theory-overview.md": "3ca9bc6ef528881c110f0f0d081b53a6a6f280d6029b31392d210a4171afd9ed",
+    "retrieval-index.json": "b9514fb6ed229894d77364751c11b0b0dfc2873a889026a0ba009a5876de5e6a",
+    "search-records.jsonl": "e5e136734165f0518a6ab46cc7e95986442e8e97694d68261185768af735cae1"
+  },
+  "note": "Runtime bundle only. Raw theory sources and evaluation reports are distributed through the pinned upstream source workflow."
+}
