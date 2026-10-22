@@ -64,3 +64,17 @@ python finetune/train_decision_scorer.py --train-view "$HOME/src/polgov/data/gen
 # 或用规划器生成整套脚本（含 restore 后顺序）
 python finetune/run_plan.py --stages track-b-smoke,track-b-full --out /tmp/trackb.sh
 ~~~
+
+## 7. 结果卡必填项（Track B 训练完成后）
+
+结果卡路径：results/MODEL-02-<底座>-track-b/CARD.md，参考 [results/CARD.template.md](../results/CARD.template.md) 与 [EVAL-PROTOCOL](EVAL-PROTOCOL.md) §7。必须包含：
+
+1. 数据：train 视图/混合视图 sha256、行数、实际混合比例（manifest 路径）、skip 计数；
+2. 模型与训练：底座 revision、LoRA 配置（r/alpha/dropout/all-linear）、pointer head 维度、λ_soft / T、
+   batch × grad-accum、seq len、lr、epoch、seed、训练时长、峰值显存；
+3. 指标：validation 全量（overall + kind/lang/选项数桶/route）、test 回归、与同配置 Track A、0-shot 的对照；
+4. 校准：raw 与 calibrated 的 NLL/Brier/ECE/MCE（半 B 拟合、半 A 复算，及 test 复核）；
+5. 通用能力：lm-eval 四任务与均值，base vs adapter；不可用时按 EVAL-PROTOCOL §3.3 注明；
+6. 成本：p50/p95 单题延迟（batch=1/16）、tokens/s、峰值显存；
+7. 限制：>26 选项未覆盖、位置/顺序偏置未消融、软标签一致子集偏差、单 seed（若未多 seed）；
+8. 未测项与失败记录（不省略、不填 0）。
