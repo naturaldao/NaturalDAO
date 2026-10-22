@@ -2,7 +2,7 @@
 
 | 领取人 / Agent | 状态 / 最近进展（Agent 更新） |
 |---|---|
-| Wenbo / DSH Agent Team | 进行中；微调方案调研完成（内部报告），训练视图与首个基线（Qwen3-1.7B + LoRA，仅 general train）准备中；PoL2 未批准训练前零梯度 |
+| Wenbo / DSH Agent Team | 进行中；训练视图已生成、环境已就绪；Qwen3-1.7B + LoRA 冒烟管线通过（40 step），完整 1 epoch 基线运行中；PoL2 未批准训练前零梯度 |
 
 - 更新时间：2026-10-23 UTC+8
 - 分支：pol/MODEL-02/wenbo（阶段一数据收尾 PR 后另开）
@@ -21,6 +21,10 @@
 2026-10-22｜Wenbo / DSH Agent Team｜第一阶段数据收尾启动（DATA-02/DATA-03），同时规划第二阶段模型适配。完成微调方案调研（内部报告）：推荐 decoder LM（Qwen3 系列）+ LoRA + 候选评分头 masked CE；文本单 token SFT 作最简基线；PoL2 未批准训练前零梯度；通用:PoL 按行 9:1 恰为各一遍 epoch；评测含通用智力代理 + 决策三区 + 校准（ECE/Brier/温度缩放）+ 外部安全基准；阈值预注册（通用代理降 ≥2pt 警戒、≥5pt 明显下降；blind_test 687 只足以判 ≥5pt 差异）
 2026-10-23｜Wenbo / DSH Agent Team｜方案定稿并写入内部报告：主路线 Qwen3-4B（或 4B-Instruct-2507）+ LoRA r16 + 候选评分头 masked CE（选项 2–69 可变，固定分类头不可行）；1.7B 先跑通；Laya 322M 作超廉价层；T10 16GB 下 4B LoRA fp16 约 10.5–11.5GB、8B 仅 QLoRA。数据实测：general train 52,999 问题行（drop 后 51,947），choice 选项中位 4 / p90 11 / max 69。下一步：写训练视图 → Track A 冒烟 → Track B → 评测链路
 2026-10-23｜Wenbo / DSH Agent Team｜论文与理论对齐（内部两份报告）：论文（163 研究 / 7 灰文，κ=.59）结论只支持「有记录、三值、本地校准的检测器 + 人终结后果性决定」，不支持单独作 judge；中文 PoL2 构念尚无研究测量。阶段二主张必须限定在指定数据/模型/分布上的判定、误拦漏判、校准、覆盖、通用代理非劣与成本；现实伤害/帮助效果留到阶段四
+
+2026-10-23｜Wenbo / DSH Agent Team｜**训练视图（M2-2）完成**：`datasets/general/build_training_view.py`（离线/确定性/仅标准库）+ 6 个离线测试 + [TRAINING-VIEW.md](../datasets/general/TRAINING-VIEW.md)。真实数据：train 50,033 / validation 7,887 / test 15,650 行（= 问题行 52,999 − drop 1,052 − 选项>26 1,914；其中中文补充 3,148 行走 no_route 兜底 classification）；模板 tv-1，视图 sha256 记录在各自 manifest。
+2026-10-23｜Wenbo / DSH Agent Team｜**Track A 管线打通**：环境 `D:/pol2-train/.venv`（torch 2.6.0+cu124、transformers 5.20.2、peft 0.21.2，T10 fp16/SDPA）；训练脚本 `finetune/train_decision_sft.py` + 评测 `finetune/eval_decision.py` + 6 个 CPU 单测。冒烟：4,000 行 / 40 step / 峰值显存 7,965MB / 163s，validation 前 300 行 0-shot 0.3833 → adapter 0.4933（+11.0pt，单 seed，仅管线验证）。结果卡见 [results/MODEL-02-qwen3-1.7b-track-a-smoke](../results/MODEL-02-qwen3-1.7b-track-a-smoke/CARD.md)。
+2026-10-23｜Wenbo / DSH Agent Team｜**完整 1 epoch 基线启动**（50,033 行、batch 4×grad-accum 8、seq 1024、lr 1e-4、eval-every 400、eval-limit 500）：训练日志与 adapter 在仓库外 `D:/pol2-train/runs/track-a-e1-1.7b`；完成后补结果卡并做 0-shot 同子集对照。
 
 ## 交付或交接
 
