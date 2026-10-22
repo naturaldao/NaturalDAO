@@ -142,6 +142,17 @@ uv run --no-project --offline python datasets/pol2/splits.py verify --assign <�
 - `blind_test` 的 unit_id / family_id / 内容不进 tracked 文件；写盘前有硬断言。
 - 该冻结集**不使用**上面 `splits.py` 的私盐流程；`splits.py` 继续管通用族清单，两套体系互不引用。
 
+#### 5.1.1 训练/评测视图适配（pv-1，schema 层，未批准训练）
+
+冻结集到「一行 = 一个决策问题」的适配器 [build_pol2_training_view.py](build_pol2_training_view.py) 已就绪，
+口径冻结为 `template_version="pv-1"`（[POL2-VIEW.md](POL2-VIEW.md)）：
+
+- 当前 `training_approved=false`，**唯一允许运行方式是 `--schema-preview`**（只打印 schema/stats，不写文件）；
+- 写仓库外视图的 build 模式在 owner 书面确认 `training_approved=true` 之前一律 exit 2；
+- `blind_test`/`private_holdout` 一律拒绝；输出按 `unit_id` 排序、逐字节确定性；
+- 实测（只读 train split，preview）：`rows=5,900`（choice 5,361 / score 539）、`skipped=0`、
+  view sha256 `4414bc17…`（would-be，13,104,579 bytes）。
+
 ## 6. 目录与文件归属
 
 | 路径 | 内容 | 归属 |
@@ -151,6 +162,9 @@ uv run --no-project --offline python datasets/pol2/splits.py verify --assign <�
 | `datasets/pol2/prepare_freeze.py` | 冻结集 verify / build（解压、切分、HF 导出、清单） | DATA-02 数据集 |
 | `datasets/pol2/test_prepare_freeze.py` | 冻结集不变量测试（合成 fixture，不依赖大文件） | DATA-02 数据集 |
 | `datasets/pol2/FREEZE-8705-V1.md` | 冻结集数据卡（来源 / schema / 四区 / 限制 / 门禁） | DATA-02 数据集 |
+| `datasets/pol2/build_pol2_training_view.py` | 冻结集 → 决策视图适配（pv-1；schema-preview 门禁） | DATA-02 数据集 |
+| `datasets/pol2/test_build_pol2_training_view.py` | pv-1 适配器不变量测试（合成 fixture） | DATA-02 数据集 |
+| `datasets/pol2/POL2-VIEW.md` | pv-1 视图 schema / 安全门 / 实测统计 | DATA-02 数据集 |
 | `datasets/pol2/freeze-8705-v1/SPLIT-MANIFEST.json` | 冻结集 tracked 清单（计数 + sha256） | DATA-02 数据集 |
 | `datasets/pol2/data/` | 冻结集数据实体（gitignore：解压、切分、HF 导出） | DATA-02 数据集 |
 | `datasets/pol2/ontology/` | 标签本体、判据、测试项矩阵 | DATA-02 本体 |
