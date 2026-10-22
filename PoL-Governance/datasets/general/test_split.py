@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -22,6 +23,7 @@ if str(SPLIT_DIR) not in sys.path:
     sys.path.insert(0, str(SPLIT_DIR))
 
 import split as sp  # noqa: E402
+import build_corpus as bc  # noqa: E402  （同目录：合并语料脚本）
 
 
 def question(kind: str) -> dict:
@@ -73,8 +75,10 @@ def corpus(*, groups=40, variants=4, langs=("en", "zh"),
 
 
 def records_for(items) -> list:
+    """与 split.load_records 同形的 records（含 source：来源均衡按它统计）。"""
     return [{"index": i, "id": it["id"], "input": "syn", "line": i + 1,
              "domain": it["domain"], "lang": it["lang"],
+             "source": str((it.get("source") or {}).get("dataset") or "(unknown)"),
              "state_norm": sp.normalize_state(it.get("state")),
              "declared": sp.declared_group(it),
              "kinds": tuple(sorted({q["kind"] for q in it["questions"]}))}
@@ -350,30 +354,61 @@ class SecrecyTest(unittest.TestCase):
         self.assertNotEqual(public, delivered,
                             "只用仓库公开信息就能复现交付 benchmark——保密失效")
 
-    def test_tracked_files_contain_no_benchmark_records(self):
-        """护栏：所有被 git 跟踪的文件都不得出现 benchmark 的 id 或正文。"""
+    def delivered_rows(self):
         delivered_path = Path("datasets/general/data/splits/benchmark.jsonl")
         if not delivered_path.is_file():
             self.skipTest("交付件不在本机（已移出版本控制）")
-        rows = [json.loads(line) for line in
+        return [json.loads(line) for line in
                 delivered_path.read_text(encoding="utf-8").split("\n") if line.strip()]
-        ids = [str(row["id"]).encode("utf-8") for row in rows]
+
+    def test_tracked_files_contain_no_benchmark_records(self):
+        """护栏（内容级）：**所有被 git 跟踪的文件**对 benchmark 的 id 与正文零命中。
+
+        两种口径都查，且 .gz 先解压——文件级检查（有没有被 git 跟踪）挡不住内容级泄漏：
+        曾经有派生索引把 benchmark 的全部 id 列在 .gz 里（本身不含答案，但能精确指认成员）。
+        """
+        rows = self.delivered_rows()
         repo_root = sp.git_repo_root(Path.cwd())
         if repo_root is None:
             self.skipTest("不在 git 仓库内")
-        tracked = subprocess.run(["git", "-C", str(repo_root), "ls-files"], capture_output=True,
-                                 text=True, encoding="utf-8", errors="replace").stdout.split()
-        hits = []
-        for relative in tracked:
-            path = repo_root / relative
-            if not path.is_file() or path.suffix not in (".jsonl", ".gz", ".json"):
-                continue
-            data = path.read_bytes()
-            for item_id in ids:
-                if item_id in data:
-                    hits.append(f"{relative}: 命中 benchmark id {item_id.decode()}")
-                    break
-        self.assertEqual(hits, [], "被跟踪文件里出现了 benchmark 记录：" + "; ".join(hits[:5]))
+        audit = sp.audit_public_surface(rows, root=repo_root)
+        self.assertGreater(audit["files"], 0, "git ls-files 没返回任何文件，等于没扫")
+        self.assertGreater(audit["ids"], 0)
+        self.assertEqual(audit["hits"], [],
+                         "公开面出现了 benchmark 成员：" +
+                         "; ".join(f"{hit['file']}({hit['kind']})" for hit in audit["hits"][:5]))
+
+    def test_audit_detects_injected_id_in_plain_and_gz(self):
+        """注入验证：id 写进普通文件与 .gz，同一个扫描函数都必须报命中（护栏真的会响）。"""
+        injected = "db-injected-secret-0001"
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            plain = root / "leak.jsonl"
+            plain.write_text(json.dumps({"id": injected}) + "\n", encoding="utf-8")
+            packed = root / "leak.jsonl.gz"
+            with gzip.open(packed, "wb") as handle:
+                handle.write((json.dumps({"id": injected}) + "\n").encode("utf-8"))
+            plain_hit = sp.scan_public_surface([plain], ids=[injected], root=root)
+            self.assertEqual(len(plain_hit), 1)
+            self.assertEqual(plain_hit[0]["file"], "leak.jsonl")
+            gz_hit = sp.scan_public_surface([packed], ids=[injected], root=root)
+            self.assertEqual(len(gz_hit), 1, ".gz 里的泄漏必须解压后才查得到")
+            self.assertEqual(gz_hit[0]["kind"], "id")
+            self.assertEqual(sp.scan_public_surface([plain, packed],
+                                                    ids=["db-something-else"], root=root), [],
+                             "没注入时不得误报")
+
+    def test_audit_detects_injected_state_text(self):
+        """正文口径同样要响：state 原文进了公开文件就必须报出来。"""
+        needle = "A secret benchmark state that must never appear in the public surface"
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            doc = root / "notes.md"
+            doc.write_text(f"引用：{needle}\n", encoding="utf-8")
+            hits = sp.scan_public_surface([doc], texts=[needle], root=root)
+            self.assertEqual(len(hits), 1)
+            self.assertEqual(hits[0]["kind"], "text")
+            self.assertEqual(sp.scan_public_surface([doc], texts=["another state"], root=root), [])
 
 
 class BenchmarkFloorTest(unittest.TestCase):
@@ -688,6 +723,468 @@ class OutputShapeTest(unittest.TestCase):
 
 def load_lines(path: Path) -> list:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def corpus_by_source(sizes, *, variants=2, lang="en", kind_for=None) -> list:
+    """按 {dataset: 请求组数} 造语料；每组 variants 条变体共享 group_id 与 state。"""
+    items = []
+    index = 0
+    for source, groups in sizes.items():
+        for group_index in range(groups):
+            for variant in range(variants):
+                record = item(index, lang=lang, state=f"{source}-state-{group_index}",
+                              group=f"{source}-req-{group_index}",
+                              kind=kind_for(source, group_index, variant) if kind_for else "choice",
+                              dataset=source)
+                items.append(record)
+                index += 1
+    return items
+
+
+def supplement_item(index: int, *, lang="zh", kind="noul", origin="taxonomy",
+                    item_id=None, group=None) -> dict:
+    """train-only 降级补充条目：origin 默认 taxonomy（非原生）。"""
+    record = item(index, lang=lang, state=f"supplement state {index}",
+                  group=group or f"supp-req-{index}", kind=kind, dataset="supp")
+    record["id"] = item_id or f"db-supp-{index:08x}"
+    record["questions"][0]["origin"] = origin
+    return record
+
+
+class SourceBalanceTest(unittest.TestCase):
+    """benchmark 来源均衡：硬上限、来源下限、水位法、以及交付件自检。"""
+
+    def sizes(self):
+        # 仿真实语料：一个来源占近一半，另有大小不一的 5 个来源
+        return {"big": 400, "second": 200, "third": 80, "fourth": 80, "fifth": 60, "sixth": 40}
+
+    def assign(self, items, **kwargs):
+        records = records_for(items)
+        options = dict(ratios=sp.DEFAULT_RATIOS, seed=13, min_per_domain=0,
+                       min_per_lang=0, min_per_kind=0)
+        options.update(kwargs)
+        return items, sp.assign_all(records, **options)
+
+    def test_source_cap_is_enforced(self):
+        items, (splits, _labels, stats, _floors) = self.assign(corpus_by_source(self.sizes()))
+        bench = [it for it, split in zip(items, splits) if split == "benchmark"]
+        counts = Counter(it["source"]["dataset"] for it in bench)
+        report = stats["benchmark_source_policy"]
+        policy = report["policy"]
+        self.assertEqual(policy["cap_policy"], "policy", "6 个来源时应当由政策上限决定")
+        self.assertTrue(policy["cap_enforced"])
+        self.assertTrue(report["cap_ok"])
+        self.assertLessEqual(max(counts.values()) / len(bench), policy["max_source_share"])
+        self.assertGreaterEqual(len(counts), 4, "上限 25% 时至少要 4 个来源才撑得起来")
+        self.assertTrue(all(row["items"] <= policy["cap_items"] for row in report["rows"]))
+
+    def test_every_source_gets_a_floor(self):
+        items, (splits, _labels, stats, _floors) = self.assign(corpus_by_source(self.sizes()))
+        bench = [it for it, split in zip(items, splits) if split == "benchmark"]
+        counts = Counter(it["source"]["dataset"] for it in bench)
+        report = stats["benchmark_source_policy"]
+        self.assertEqual(set(counts), set(self.sizes()), "每个来源都要被收集一点")
+        self.assertTrue(all(count >= report["policy"]["floor_items"] for count in counts.values()))
+
+    def test_single_source_relaxes_cap_to_feasible_bound(self):
+        """只有一个来源时无从谈均衡：放宽到可行界并如实标注，而不是把 benchmark 压小。"""
+        items, (splits, _labels, stats, _floors) = self.assign(corpus_by_source({"only": 60}))
+        self.assertGreaterEqual(splits.count("benchmark") / len(items), 0.08)
+        policy = stats["benchmark_source_policy"]["policy"]
+        self.assertEqual(policy["cap_policy"], "feasible_bound")
+        self.assertFalse(policy["cap_enforced"])
+
+    def test_source_quota_water_filling_is_deterministic(self):
+        pool = {"a": 10000, "b": 5000, "c": 1000, "d": 800, "e": 300, "f": 200}
+        plan = sp.benchmark_source_quota(pool, 1600, max_share=0.25, min_share=0.05)
+        quota = plan["quota"]
+        self.assertEqual(sum(quota.values()), 1600)
+        self.assertEqual(plan["cap_policy"], "policy")
+        self.assertEqual(plan["cap"], 400)
+        self.assertLessEqual(max(quota.values()), 400, "大来源必须被上限削顶")
+        self.assertTrue(all(value >= plan["floor"] for value in quota.values()), "小来源必须被下限托底")
+        self.assertEqual(quota["a"], 400)
+        self.assertGreater(quota["b"], quota["c"], "上限之下仍按规模分配，而不是平均分")
+        self.assertEqual(plan, sp.benchmark_source_quota(pool, 1600, max_share=0.25, min_share=0.05))
+
+    def test_delivered_manifest_satisfies_its_own_cap(self):
+        """交付件自检：split-manifest.json 记的实际占比不得超过它自己记的上限。"""
+        path = sp.DEFAULT_OUT / "split-manifest.json"
+        if not path.is_file():
+            self.skipTest("交付件不在本机（未跑过切分）")
+        policy = (json.loads(path.read_text(encoding="utf-8")).get("benchmark_source_policy") or {})
+        if not policy.get("policy"):
+            self.skipTest("manifest 里没有来源均衡记录（旧版产物）")
+        self.assertTrue(policy["cap_ok"])
+        self.assertLessEqual(policy["max_share"], policy["policy"]["max_source_share"] + 1e-9)
+        self.assertTrue(all(row["items"] <= policy["policy"]["cap_items"] for row in policy["rows"]))
+        self.assertGreaterEqual(len(policy["rows"]), 4)
+
+
+class LangPolicyTest(unittest.TestCase):
+    """语料里每种语言都必须显式决定进不进 benchmark——漏一种就拒绝切分。"""
+
+    def run_with(self, root, extra):
+        source = write_input(root, corpus(groups=12, variants=2, langs=("en", "zh")))
+        out_dir = root / "out"
+        code = run_quiet(["--input", str(source), "--out", str(out_dir),
+                          "--report", str(root / "r.md")] + extra)
+        return code, out_dir
+
+    def test_missing_declaration_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            code, out_dir = self.run_with(Path(workspace), ["--benchmark-lang", "en"])
+            self.assertEqual(code, 3, "zh 既没进白名单也没被显式排除时必须拒绝")
+            self.assertFalse((out_dir / "benchmark.jsonl").exists())
+
+    def test_conflicting_declaration_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            code, _ = self.run_with(Path(workspace),
+                                    ["--benchmark-lang", "en", "--benchmark-exclude-lang", "en=理由"])
+            self.assertEqual(code, 3)
+
+    def test_empty_reason_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            code, _ = self.run_with(Path(workspace),
+                                    ["--benchmark-lang", "en", "--benchmark-exclude-lang", "zh="])
+            self.assertEqual(code, 2)
+
+    def test_explicit_exclusion_passes_and_is_recorded(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            code, out_dir = self.run_with(root, ["--benchmark-lang", "en",
+                                                 "--benchmark-exclude-lang", "zh=公开历史里有答案索引"])
+            self.assertEqual(code, 0)
+            bench = load_lines(out_dir / "benchmark.jsonl")
+            self.assertTrue(bench)
+            self.assertEqual({row["lang"] for row in bench}, {"en"})
+            manifest = json.loads((out_dir / "split-manifest.json").read_text(encoding="utf-8"))
+            policy = manifest["benchmark_lang_policy"]
+            self.assertEqual(policy["benchmark_langs"], ["en"])
+            self.assertEqual(policy["exclusions"], {"zh": "公开历史里有答案索引"})
+            self.assertEqual(policy["missing"], [])
+            report = (root / "r.md").read_text(encoding="utf-8")
+            self.assertIn("公开历史里有答案索引", report, "排除理由必须写进报告")
+            self.assertIn("显式排除", report)
+
+
+class TrainSupplementTest(unittest.TestCase):
+    """train-only 降级补充：只动 train，其它三区逐字节不变。"""
+
+    def run_pair(self, root, supplement_path=None):
+        source = write_input(root, corpus(groups=20, variants=2))
+        outputs = {}
+        for name, extra in (("plain", []), ("with_supplement", ["--train-supplement", str(supplement_path)])):
+            if supplement_path is None and name == "with_supplement":
+                continue
+            out_dir = root / name
+            self.assertEqual(run_quiet(["--input", str(source), "--out", str(out_dir),
+                                        "--report", str(root / f"{name}.md")] + extra), 0)
+            outputs[name] = out_dir
+        return outputs
+
+    def test_supplement_only_appends_to_train(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            supplement = root / "supp.jsonl"
+            supplement.write_text("".join(
+                json.dumps(supplement_item(i), ensure_ascii=False) + "\n" for i in range(6)),
+                encoding="utf-8")
+            outputs = self.run_pair(root, supplement)
+            plain, with_supplement = outputs["plain"], outputs["with_supplement"]
+            for name in ("test.jsonl", "test.jsonl.gz", "validation.jsonl", "validation.jsonl.gz",
+                         "benchmark.jsonl", "benchmark.jsonl.gz"):
+                self.assertEqual(digest(plain / name), digest(with_supplement / name),
+                                 f"{name} 不该受补充集影响")
+            plain_ids = {row["id"] for row in load_lines(plain / "train.jsonl")}
+            supplement_ids = {row["id"] for row in load_lines(with_supplement / "train.jsonl")}
+            added = supplement_ids - plain_ids
+            self.assertEqual(len(added), 6, "补充集必须整批进 train")
+            manifest = json.loads((with_supplement / "split-manifest.json").read_text(encoding="utf-8"))
+            corpus_train = len(load_lines(plain / "train.jsonl"))
+            self.assertEqual(manifest["corpus_counts"]["train"], corpus_train)
+            self.assertEqual(manifest["counts"]["train"], corpus_train + 6)
+            self.assertEqual(manifest["items"],
+                             sum(len(load_lines(with_supplement / f"{split}.jsonl"))
+                                 for split in sp.SPLITS))
+            self.assertEqual(manifest["supplement"][0]["items"], 6)
+            self.assertEqual(manifest["supplement"][0]["scope"].startswith("train only"), True)
+            report = (root / "with_supplement.md").read_text(encoding="utf-8")
+            self.assertIn("## 11. origin 构成", report)
+            self.assertIn("taxonomy", report)
+            for name in ("test.jsonl", "validation.jsonl", "benchmark.jsonl"):
+                for row in load_lines(with_supplement / name):
+                    self.assertNotIn(row["id"], added, "补充集不得进 train 以外的分区")
+
+    def test_native_supplement_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            supplement = root / "native.jsonl"
+            supplement.write_text(json.dumps(supplement_item(0, origin="source"),
+                                             ensure_ascii=False) + "\n", encoding="utf-8")
+            source = write_input(root, corpus(groups=8, variants=2))
+            code = run_quiet(["--input", str(source), "--out", str(root / "out"),
+                              "--report", str(root / "r.md"),
+                              "--train-supplement", str(supplement)])
+            self.assertEqual(code, 2, "原生条目必须走正常切分，不能从补充集塞进 train")
+
+    def test_supplement_id_overlap_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            items = corpus(groups=8, variants=2)
+            source = write_input(root, items)
+            supplement = root / "dup.jsonl"
+            supplement.write_text(json.dumps(supplement_item(0, item_id=items[0]["id"]),
+                                             ensure_ascii=False) + "\n", encoding="utf-8")
+            code = run_quiet(["--input", str(source), "--out", str(root / "out"),
+                              "--report", str(root / "r.md"),
+                              "--train-supplement", str(supplement)])
+            self.assertEqual(code, 2)
+
+
+class DefaultOutputGuardTest(unittest.TestCase):
+    """默认 --out/--report 不得误伤已存在的交付件。"""
+
+    def run_bare(self, root, extra=()):
+        saved = (sp.DEFAULT_OUT, sp.DEFAULT_REPORT)
+        sp.DEFAULT_OUT, sp.DEFAULT_REPORT = root / "splits", root / "report.md"
+        try:
+            source = write_input(root, corpus(groups=6, variants=2))
+            return run_quiet(["--input", str(source)] + list(extra))
+        finally:
+            sp.DEFAULT_OUT, sp.DEFAULT_REPORT = saved
+
+    def test_bare_run_refuses_to_overwrite_delivery(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            (root / "splits").mkdir()
+            (root / "splits" / "split-manifest.json").write_text("{}", encoding="utf-8")
+            (root / "report.md").write_text("旧报告", encoding="utf-8")
+            self.assertEqual(self.run_bare(root), 3)
+            self.assertEqual((root / "splits" / "split-manifest.json").read_text(encoding="utf-8"), "{}")
+            self.assertEqual((root / "report.md").read_text(encoding="utf-8"), "旧报告")
+
+    def test_force_allows_overwrite(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            (root / "splits").mkdir()
+            (root / "splits" / "split-manifest.json").write_text("{}", encoding="utf-8")
+            (root / "report.md").write_text("旧报告", encoding="utf-8")
+            self.assertEqual(self.run_bare(root, ["--force"]), 0)
+            self.assertNotEqual((root / "report.md").read_text(encoding="utf-8"), "旧报告")
+
+    def test_fresh_default_location_is_allowed(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            self.assertEqual(self.run_bare(root), 0)
+            self.assertTrue((root / "splits" / "split-manifest.json").is_file())
+
+
+class SourceFloorTest(unittest.TestCase):
+    """绝对来源下限（--benchmark-min-source-items）：语料变大后固定 5% 会抽干小来源。"""
+
+    def test_absolute_floor_overrides_share_floor(self):
+        # 一个只有 100 条的小来源：自然占比 0.28%（约 11 条），必须被绝对下限托到 100 条。
+        # 注意不能设 min_share=0.05：那会算出 200 条的下限、按设计取 max(200, 100)=200，
+        # 就测不到"绝对下限"本身了。
+        pool = {"a": 9000, "b": 9000, "c": 9000, "d": 9000, "e": 100}
+        plan = sp.benchmark_source_quota(pool, 4000, max_share=0.25, min_share=0.01, min_items=100)
+        self.assertEqual(plan["floor"], 100)
+        self.assertEqual(plan["quota"]["e"], 100, "小来源必须拿到绝对下限，而不是按占比只分到 11 条")
+        self.assertTrue(all(value >= 100 for value in plan["quota"].values()))
+        self.assertEqual(sum(plan["quota"].values()), 4000)
+        # 占比下限更大时（5% → 200 条）按 max() 取占比下限，证明"两者取大"的方向
+        share_floor = sp.benchmark_source_quota(pool, 4000, max_share=0.25,
+                                                min_share=0.05, min_items=100)
+        self.assertEqual(share_floor["floor"], 200)
+
+    def test_zero_floor_keeps_pure_proportional(self):
+        # 5 个来源 → 25% 上限可行（policy 生效），此时不设下限就是"按池子比例 + 上限削顶"。
+        plan = sp.benchmark_source_quota({"a": 4000, "b": 3000, "c": 2000, "d": 800, "e": 200},
+                                         1000, max_share=0.25, min_share=0.0, min_items=0)
+        self.assertEqual(plan["floor"], 0)
+        self.assertEqual(sum(plan["quota"].values()), 1000)
+        self.assertEqual(plan["quota"]["e"], 50, "没有下限时小来源按比例分，不会被托底")
+        self.assertLess(plan["quota"]["e"], 100)
+
+
+class PublicReferenceExclusionTest(unittest.TestCase):
+    """被公开文件引用过的条目永不进 benchmark（--exclude-public-items 的核心）。"""
+
+    def test_excluded_items_never_enter_benchmark(self):
+        items = corpus(groups=30, variants=2, langs=("en",))
+        records = records_for(items)
+        excluded = frozenset({it["id"] for it in items[:10]})
+        splits, _labels, stats, _floors = sp.assign_all(
+            records, ratios=sp.DEFAULT_RATIOS, seed=21, salt="s",
+            min_per_domain=0, min_per_lang=0, min_per_kind=0, exclude_ids=excluded)
+        bench_ids = {it["id"] for it, split in zip(items, splits) if split == "benchmark"}
+        self.assertEqual(bench_ids & set(excluded), set(), "被公开引用的条目不得进 benchmark")
+        self.assertGreater(stats["benchmark_source_policy"]["excluded_public_items"], 0)
+
+    def test_scan_referenced_ids_finds_ids_in_plain_and_gz(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            plain = root / "doc.md"
+            plain.write_text("示例：db-procedural-typed-decisions-7fbb2123 与 db-bigbench-00aa11bb\n",
+                             encoding="utf-8")
+            packed = root / "notes.jsonl.gz"
+            with gzip.open(packed, "wb") as handle:
+                handle.write(b'{"id": "db-cosmos-qa-1234abcd"}\n')
+            found = sp.scan_referenced_ids(None, extra_paths=[plain, packed])
+            self.assertEqual(found["referenced_ids"],
+                             {"db-procedural-typed-decisions-7fbb2123", "db-bigbench-00aa11bb",
+                              "db-cosmos-qa-1234abcd"})
+            skipped = sp.scan_referenced_ids(None, extra_paths=[plain], skip_paths=[plain])
+            self.assertEqual(skipped["referenced_ids"], set(), "被跳过的派生件不得产生引用")
+
+
+class BuildCorpusTest(unittest.TestCase):
+    """合并脚本：基座字节保留、id 前缀防冲突、确定性、可预期的拒绝。"""
+
+    def write_items(self, path, items):
+        path.write_text("".join(json.dumps(it, ensure_ascii=False) + "\n" for it in items),
+                        encoding="utf-8")
+        return path
+
+    def base_items(self):
+        return [item(i, dataset="base") for i in range(5)]
+
+    def add_items(self):
+        rows = []
+        for i in range(3):
+            row = item(100 + i, dataset="add")
+            row["id"] = f"db-bigbench-{i:08x}"
+            rows.append(row)
+        return rows
+
+    def test_merge_preserves_base_bytes_and_is_deterministic(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            base = self.write_items(root / "base.jsonl", self.base_items())
+            add = self.write_items(root / "add.jsonl", self.add_items())
+            out1, out2 = root / "merged1.jsonl", root / "merged2.jsonl"
+            for out in (out1, out2):
+                ledger = bc.merge(base, [add], out, expect_total=8)
+                self.assertEqual(ledger["total_items"], 8)
+            self.assertEqual(out1.read_bytes(), out2.read_bytes(), "同输入两次合并必须逐字节一致")
+            base_lines = base.read_text(encoding="utf-8").split("\n")[:5]
+            self.assertTrue(out1.read_text(encoding="utf-8").startswith("\n".join(base_lines) + "\n"),
+                            "基座条目必须按原始字节保留在文件开头")
+
+    def test_prefix_or_id_collision_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            base = self.write_items(root / "base.jsonl", self.base_items())
+            clash = item(200, dataset="clash")
+            clash["id"] = self.base_items()[0]["id"]
+            add = self.write_items(root / "add.jsonl", [clash])
+            with self.assertRaises(bc.MergeError):
+                bc.merge(base, [add], root / "out.jsonl")
+
+    def test_unexpected_total_is_refused(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            base = self.write_items(root / "base.jsonl", self.base_items())
+            add = self.write_items(root / "add.jsonl", self.add_items())
+            with self.assertRaises(bc.MergeError):
+                bc.merge(base, [add], root / "out.jsonl", expect_total=999)
+
+    def test_gz_output_is_deterministic(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            base = self.write_items(root / "base.jsonl", self.base_items())
+            add = self.write_items(root / "add.jsonl", self.add_items())
+            bc.merge(base, [add], root / "m1.jsonl", gz_out=root / "m1.jsonl.gz")
+            bc.merge(base, [add], root / "m2.jsonl", gz_out=root / "m2.jsonl.gz")
+            self.assertEqual((root / "m1.jsonl.gz").read_bytes(),
+                             (root / "m2.jsonl.gz").read_bytes(), "gzip mtime=0 → 逐字节一致")
+
+
+class RotationExclusionTest(unittest.TestCase):
+    """事故轮换：--benchmark-exclude-ids 读仓外永久名单，名单里的 id 永不进 benchmark。"""
+
+    def write_ids(self, path, lines):
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+        return path
+
+    def test_load_excluded_ids_parses_comments_and_dedupes(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            path = self.write_ids(root / "exclude.txt", [
+                "# benchmark 轮换排除名单（注释行忽略）",
+                "",
+                "db-jev-distill-v3-0000aaaa",
+                "  db-bigbench-1111bbbb  ",
+                "db-jev-distill-v3-0000aaaa",
+            ])
+            loaded = sp.load_excluded_ids(path, repo_root=sp.git_repo_root(Path.cwd()))
+            self.assertEqual(loaded["ids"],
+                             {"db-jev-distill-v3-0000aaaa", "db-bigbench-1111bbbb"})
+            self.assertEqual(loaded["lines"], 3)
+            self.assertEqual(loaded["unique"], 2)
+            self.assertEqual(len(loaded["file_sha256"]), 64)
+
+    def test_load_excluded_ids_rejects_path_inside_repo(self):
+        repo_root = sp.git_repo_root(Path.cwd())
+        if repo_root is None:
+            self.skipTest("不在 git 仓库内")
+        inside = Path(sp.__file__).resolve()   # 仓库内的文件即可触发"必须在仓库外"
+        with self.assertRaises(sp.SplitError):
+            sp.load_excluded_ids(inside, repo_root=repo_root)
+
+    def test_load_excluded_ids_rejects_non_id_lines(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            path = self.write_ids(Path(workspace) / "bad.txt", ["db-ok-0000aaaa", "not-an-id"])
+            with self.assertRaises(sp.SplitError):
+                sp.load_excluded_ids(path, repo_root=sp.git_repo_root(Path.cwd()))
+
+    def test_rotation_ids_never_enter_benchmark(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            items = corpus(groups=30, variants=2, langs=("en",))
+            source = write_input(root, items)
+            leaked = sorted(it["id"] for it in items)[:5]
+            exclude_path = self.write_ids(root / "exclude.txt",
+                                          ["# 泄漏名单"] + leaked)
+            out_dir = root / "out"
+            code = run_quiet(["--input", str(source), "--out", str(out_dir),
+                              "--report", str(root / "r.md"),
+                              "--benchmark-exclude-ids", str(exclude_path),
+                              "--benchmark-min-per-kind", "0"])
+            self.assertEqual(code, 0)
+            bench = load_lines(out_dir / "benchmark.jsonl")
+            bench_ids = {row["id"] for row in bench}
+            self.assertEqual(bench_ids & set(leaked), set(),
+                             "轮换排除名单里的 id 不得出现在 benchmark")
+            manifest = json.loads((out_dir / "split-manifest.json").read_text(encoding="utf-8"))
+            excl = manifest["benchmark_exclusions"]
+            self.assertTrue(excl["rotation_enabled"])
+            self.assertEqual(excl["rotation_exclude_ids"], 5)
+            self.assertEqual(excl["rotation_ids_in_corpus"], 5)
+            self.assertIsNotNone(excl["rotation_exclude_file_sha256"])
+            report = (root / "r.md").read_text(encoding="utf-8")
+            self.assertIn("永久排除名单", report)
+            self.assertIn("§10.5", report)
+
+
+class TrackedFilesTest(unittest.TestCase):
+    """护栏的扫描底座：非 ASCII 路径必须能读到（quotePath 转义会让审计"假装扫过"）。"""
+
+    def test_tracked_files_reads_non_ascii_names(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            (root / "中文 文件.md").write_text("x", encoding="utf-8")
+            (root / "plain.md").write_text("y", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(root)], check=True,
+                           capture_output=True)
+            subprocess.run(["git", "-C", str(root), "add", "."], check=True,
+                           capture_output=True)
+            files = sp.tracked_files(root)
+            names = sorted(path.name for path in files)
+            self.assertEqual(names, ["plain.md", "中文 文件.md"])
+            self.assertTrue(all(Path(path).is_file() for path in files),
+                            "被 git 跟踪的路径都必须能在磁盘上解析（含非 ASCII 名）")
 
 
 if __name__ == "__main__":

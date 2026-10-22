@@ -1,0 +1,272 @@
+{
+  "generated_at": "2026-10-20T12:58:14+00:00",
+  "scheme": {
+    "low_consensus": "双方一致率 < 70%（n >= 10）",
+    "medium_consensus": "70% <= 一致率 < 95%",
+    "high_consensus": "一致率 >= 95%",
+    "insufficient_sample": "n < 10，不下结论"
+  },
+  "note": "label_confidence 衡量的是「我们与该 config 的 mercury 判断是否互相印证」，**不是「标签对错」**。low_consensus = 该子集标签未经双方互证，训练时应降权或标记复核，不要当作和 high_consensus 一样可信。",
+  "lines": {
+    "A. mercury-decide noul（升级伪 one-hot / 均匀）": {
+      "group_by": "source dataset",
+      "configs": {
+        "SargeDev/jev-distill-corpus-v3": {
+          "n": 4053,
+          "agree": 2943,
+          "agree_rate": 0.7261,
+          "label_confidence": "medium_consensus"
+        },
+        "kaivoss/system-one-270m-data": {
+          "n": 489,
+          "agree": 436,
+          "agree_rate": 0.8916,
+          "label_confidence": "medium_consensus"
+        },
+        "tasksource/procedural-typed-decisions": {
+          "n": 1872,
+          "agree": 1692,
+          "agree_rate": 0.9038,
+          "label_confidence": "medium_consensus"
+        },
+        "ZefanCai/Open-Jev": {
+          "n": 1493,
+          "agree": 1492,
+          "agree_rate": 0.9993,
+          "label_confidence": "high_consensus"
+        }
+      },
+      "written_rows_by_label": {
+        "medium_consensus": 5032,
+        "high_consensus": 1492
+      }
+    },
+    "B. mercury-decide choice（补 answer-only）": {
+      "group_by": "question key",
+      "configs": {
+        "intersect_geometry": {
+          "n": 1565,
+          "agree": 315,
+          "agree_rate": 0.2013,
+          "label_confidence": "low_consensus"
+        },
+        "tracking_shuffled_objects": {
+          "n": 1565,
+          "agree": 760,
+          "agree_rate": 0.4856,
+          "label_confidence": "low_consensus"
+        },
+        "mathematical_induction": {
+          "n": 53,
+          "agree": 34,
+          "agree_rate": 0.6415,
+          "label_confidence": "low_consensus"
+        },
+        "presuppositions_as_nli": {
+          "n": 588,
+          "agree": 379,
+          "agree_rate": 0.6446,
+          "label_confidence": "low_consensus"
+        },
+        "symbol_interpretation": {
+          "n": 795,
+          "agree": 539,
+          "agree_rate": 0.678,
+          "label_confidence": "low_consensus"
+        },
+        "logic_grid_puzzle": {
+          "n": 800,
+          "agree": 560,
+          "agree_rate": 0.7,
+          "label_confidence": "medium_consensus"
+        },
+        "winowhy": {
+          "n": 1565,
+          "agree": 1132,
+          "agree_rate": 0.7233,
+          "label_confidence": "medium_consensus"
+        },
+        "crash_blossom": {
+          "n": 22,
+          "agree": 16,
+          "agree_rate": 0.7273,
+          "label_confidence": "medium_consensus"
+        },
+        "elementary_math_qa": {
+          "n": 1565,
+          "agree": 1179,
+          "agree_rate": 0.7534,
+          "label_confidence": "medium_consensus"
+        },
+        "riddle_sense": {
+          "n": 33,
+          "agree": 25,
+          "agree_rate": 0.7576,
+          "label_confidence": "medium_consensus"
+        },
+        "disambiguation_qa": {
+          "n": 207,
+          "agree": 164,
+          "agree_rate": 0.7923,
+          "label_confidence": "medium_consensus"
+        },
+        "implicit_relations": {
+          "n": 68,
+          "agree": 54,
+          "agree_rate": 0.7941,
+          "label_confidence": "medium_consensus"
+        },
+        "analytic_entailment": {
+          "n": 54,
+          "agree": 43,
+          "agree_rate": 0.7963,
+          "label_confidence": "medium_consensus"
+        },
+        "cs_algorithms": {
+          "n": 1056,
+          "agree": 850,
+          "agree_rate": 0.8049,
+          "label_confidence": "medium_consensus"
+        },
+        "question": {
+          "n": 25262,
+          "agree": 20494,
+          "agree_rate": 0.8113,
+          "label_confidence": "medium_consensus"
+        },
+        "evaluating_information_essentiality": {
+          "n": 52,
+          "agree": 44,
+          "agree_rate": 0.8462,
+          "label_confidence": "medium_consensus"
+        },
+        "epistemic_reasoning": {
+          "n": 1565,
+          "agree": 1330,
+          "agree_rate": 0.8498,
+          "label_confidence": "medium_consensus"
+        },
+        "navigate": {
+          "n": 800,
+          "agree": 697,
+          "agree_rate": 0.8712,
+          "label_confidence": "medium_consensus"
+        },
+        "date_understanding": {
+          "n": 296,
+          "agree": 259,
+          "agree_rate": 0.875,
+          "label_confidence": "medium_consensus"
+        },
+        "snarks": {
+          "n": 145,
+          "agree": 127,
+          "agree_rate": 0.8759,
+          "label_confidence": "medium_consensus"
+        },
+        "formal_fallacies_syllogisms_negation": {
+          "n": 1565,
+          "agree": 1373,
+          "agree_rate": 0.8773,
+          "label_confidence": "medium_consensus"
+        },
+        "logical_deduction": {
+          "n": 1200,
+          "agree": 1056,
+          "agree_rate": 0.88,
+          "label_confidence": "medium_consensus"
+        },
+        "sentence_ambiguity": {
+          "n": 44,
+          "agree": 39,
+          "agree_rate": 0.8864,
+          "label_confidence": "medium_consensus"
+        },
+        "vitaminc_fact_verification": {
+          "n": 1565,
+          "agree": 1405,
+          "agree_rate": 0.8978,
+          "label_confidence": "medium_consensus"
+        },
+        "unit_conversion": {
+          "n": 1565,
+          "agree": 1435,
+          "agree_rate": 0.9169,
+          "label_confidence": "medium_consensus"
+        },
+        "understanding_fables": {
+          "n": 152,
+          "agree": 140,
+          "agree_rate": 0.9211,
+          "label_confidence": "medium_consensus"
+        },
+        "checkmate_in_one": {
+          "n": 1565,
+          "agree": 1468,
+          "agree_rate": 0.938,
+          "label_confidence": "medium_consensus"
+        },
+        "entailed_polarity": {
+          "n": 119,
+          "agree": 114,
+          "agree_rate": 0.958,
+          "label_confidence": "high_consensus"
+        },
+        "known_unknowns": {
+          "n": 30,
+          "agree": 29,
+          "agree_rate": 0.9667,
+          "label_confidence": "high_consensus"
+        },
+        "logical_fallacy_detection": {
+          "n": 1565,
+          "agree": 1534,
+          "agree_rate": 0.9802,
+          "label_confidence": "high_consensus"
+        },
+        "arithmetic": {
+          "n": 1565,
+          "agree": 1536,
+          "agree_rate": 0.9815,
+          "label_confidence": "high_consensus"
+        },
+        "question_selection": {
+          "n": 1266,
+          "agree": 1243,
+          "agree_rate": 0.9818,
+          "label_confidence": "high_consensus"
+        },
+        "temporal_sequences": {
+          "n": 800,
+          "agree": 798,
+          "agree_rate": 0.9975,
+          "label_confidence": "high_consensus"
+        }
+      },
+      "written_rows_by_label": {
+        "medium_consensus": 33858,
+        "high_consensus": 5254,
+        "low_consensus": 2026
+      }
+    },
+    "C. jev-router zh choice（旧方案，已付费部分）": {
+      "group_by": "source dataset",
+      "configs": {
+        "Deepexi/openai-formate-function-calling-small": {
+          "n": 1883,
+          "agree": 1867,
+          "agree_rate": 0.9915,
+          "label_confidence": "high_consensus"
+        }
+      },
+      "written_rows_by_label": {
+        "high_consensus": 841
+      }
+    }
+  },
+  "written_rows_by_label": {
+    "medium_consensus": 38890,
+    "high_consensus": 7587,
+    "low_consensus": 2026
+  }
+}

@@ -22,5 +22,19 @@
     "license": "per source, see candidates.json",
     "notes": "只有 PoL 专项的 train 分区可与本池混合，起点 通用:PoL = 9:1 或 8:2；英文样本必须改写为中文并重新判断，不得照搬英文标签。",
     "eligible_for_ranking": false
+  },
+  {
+    "id": "general-decision-v0.5",
+    "card": "datasets/general/README.md",
+    "data": "datasets/general/data/jev-probs.jsonl.gz",
+    "status": "public_partitions_released_holdout_kept_external",
+    "split": "train / test / validation public; benchmark held outside the repository",
+    "items": 74912,
+    "targets": 82843,
+    "public_partition_items": 71519,
+    "holdout_items": 6541,
+    "license": "Proof of Love2",
+    "notes": "中英双语通用决策数据集，三种封闭决策原语（noul / choice / score）；jev-probs 是概率旁挂件。完整分区文件体积大，按 datasets/README 第 2 条登记在托管站，本仓库只保留可复算的旁挂件与文档。",
+    "eligible_for_ranking": false
   }
 ]

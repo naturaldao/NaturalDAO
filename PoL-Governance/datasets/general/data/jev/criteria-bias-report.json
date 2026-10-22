@@ -1,0 +1,57 @@
+{
+  "measured_at": "2026-10-20T10:41:00+00:00",
+  "script": "datasets/general/data/jev/_probe_criteria_bias.py",
+  "sample_n": 30,
+  "sample_source": "从 mercury-choice-fill.jsonl 的 9,762 条成功响应中随机抽 30 条（seed=20261020），四条模板跑同一批 qid",
+  "total_cost_usd": 0.000829,
+  "variants": {
+    "T1_current": {
+      "template": "the correct answer is %s",
+      "note": "当前写库用的模板",
+      "parsed": 30,
+      "agree": 24,
+      "rate": 0.8,
+      "mean_max": 0.91
+    },
+    "N1_neutral": {
+      "template": "the state supports %s",
+      "parsed": 30,
+      "agree": 25,
+      "rate": 0.8333,
+      "mean_max": 0.897
+    },
+    "N2_neutral": {
+      "template": "%s follows from the provided information",
+      "parsed": 30,
+      "agree": 24,
+      "rate": 0.8,
+      "mean_max": 0.893
+    },
+    "N3_neutral": {
+      "template": "%s is consistent with the state",
+      "parsed": 30,
+      "agree": 25,
+      "rate": 0.8333,
+      "mean_max": 0.909
+    }
+  },
+  "argmax_consistency_vs_T1": {
+    "N1_neutral": {
+      "same": 28,
+      "total": 30,
+      "rate": 0.9333
+    },
+    "N2_neutral": {
+      "same": 30,
+      "total": 30,
+      "rate": 1
+    },
+    "N3_neutral": {
+      "same": 29,
+      "total": 30,
+      "rate": 0.9667
+    }
+  },
+  "conclusion": "no_leak",
+  "conclusion_text": "中性判据没有降低一致率（反而略升），argmax 跨模板一致性 93–100%，平均最大概率基本不变 —— 模型的判断由 state/instructions 驱动，不是被 criteria 里的措辞带偏。模板不构成答案泄漏。"
+}

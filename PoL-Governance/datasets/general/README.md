@@ -1,300 +1,474 @@
-# 通用决策数据集 general（v0.1）
+# 通用决策数据集 general（v5）
 
-给**只做"选一个"的小决策模型**用的中英双语语料，按请求分组切成 train / test / validation / benchmark 四个分区。
+给**只做"选一个"的小决策模型**用的中英双语数据集：**71,519 条**，每条都是
+「情境 → 一个或多个类型化问题 → 候选项或量程 → 答案」的完整四元组，答案可以带概率分布。
 
-| 规模 | 数值 |
-|---|---:|
-| 切分输入语料（items.final） | **23,855 条**（英文 15,983 + 中文 7,872） |
-| 中文补充（只追加进 train） | **3,148 条** |
-| **四个分区合计** | **27,003 条**（英文 15,983 + 中文 11,020） |
-| 带真值 | **100%**（每条都有来源自带的答案） |
+它不是某个垂直领域的语料。本页用一次**能力维度审计**说明它训练的是什么能力、各占多少（§2），
+再用**领域覆盖**说明它涉及哪些知识（§3），最后给出语言、来源、问题形态、真值四方面的覆盖数字（§4）。
+页内每一个数字都能用一条命令复算（§6）。
 
-新人从这一页开始看就够；字段与格式细节在 **[CONTRACT.md](CONTRACT.md)**。
+> **定位与适用边界**：本数据集由公开可获取的选择式任务构成，以工具使用、行动选择、权限与风险判断
+> 为主，并包含部分知识推理及人类判断任务。设计用途是在专项微调中提供辅助回放信号。
+> 本数据集不代表通用大模型的预训练分布，也不保证覆盖全部通用能力；其防遗忘效果须通过具体模型、
+> 训练配置及独立评测验证。
 
-| 我想知道 | 看这里 |
+| 速览 | |
 |---|---|
-| 字段怎么定义、三种原语什么形状 | [CONTRACT.md](CONTRACT.md) |
-| 英文侧每个来源是什么、为什么选它 | [SOURCES.md](SOURCES.md) |
-| 最终语料怎么合出来的、中文占比怎么定的 | [merge-report.md](merge-report.md) |
-| 四个分区各有多少条、怎么切的、泄漏检查 | [split-report.md](split-report.md) |
-| 每条记录省了多少字段（manifest + 紧凑引用） | [slim-report.md](slim-report.md) |
-| 目录里每个脚本干什么、哪些已过时 | [ARCHIVE.md](ARCHIVE.md) |
+| 条目 / 问题 | **71,519 条 / 78,001 道问题（target）**（100% 自带答案） |
+| 分区 | train 48,728 · test 15,194 · validation 7,597 |
+| 语言 | 英文 60,499（84.59%）· 中文 11,020（15.41%） |
+| 能力维度 | 6 维，最大一维 42.94%，最小一维 0.83%（§2） |
+| 内容领域 | 11 类，每类 513–27,976 条，0 条未归类（§3） |
+| 问题形态 | choice 82.31% · noul 10.37% · score 7.32%（§4.3） |
+| 规模 | 选项 2–69 个/题；量程 2–11 档；一条最多 6 道题 |
+| 真值 | 100% 带答案；**采用旁挂 probs 后可用软分布 62.74%**（§4.4） |
+| 来源 | 13 个独立来源，最大一家 33.78% |
+| 格式 | JSONL（UTF-8，一条一行） |
 
-> **对外发布面待定**：本仓库正在做 benchmark 保密整改（私盐重切 + 完整语料与分区发布面的调整），
-> 因此本文里的路径都是**本机工作区路径**，不代表最终对外公开的内容。见 §3.1。
+---
 
-## 1. 我们用了什么思路
+## 1. 这是什么
 
-### 1.1 目标模型只做"选一个"，不生成文字
+### 1.1 目标模型只做"选一个"
 
-它要能快速在**封闭候选集**里选一项，而不是像 LLM 那样逐字生成。这决定了数据必须尽量是原生的
-**(state, question, options, target) 四元组**：情境、问题、候选、答案都现成。
+它要能在一份**封闭候选集**里快速选出一项，而不是像大模型那样逐字生成。所以数据尽量保持
+原生的 **（情境, 问题, 候选/量程, 答案）** 四元组：情境、问题、可选动作、答案都现成，
+训练时不需要再"编题"。
 
-### 1.2 为什么优先用来源原生的问题
+形态统一**不等于**能力覆盖足够——同一句"选一个"，背后可能是多步计算、可能是检索整合、
+也可能只是识别。上一轮补源（并入两批通用能力来源）把条目数量推高了一个量级，
+但也把偏斜从"工具类"换成了"数学 + 阅读"（§2.5）。本版（v5）做了两件事：
+**分区轮换**（公开三区 71,519 条，benchmark 换血），以及**为公开三区补上模型判定的概率分布**
+（旁挂 probs，可用软分布 7.62% → 62.74%，代价与选择偏差见 §4.4）。
 
-把别人的分类数据套上我们自己的中文问题模板，会把"选择"变成"**按我们的口径重新解释别人的数据**"：
-模型学到的将是我们的解释，而不是数据本身。所以：
+### 1.2 一条记录长什么样
 
-- 来源自带候选与答案的（System-1 系）：**直接用它的 state / options / target**，键名就用来源的原生问题名，
-  不改写、不翻译、不压档位（例如来源是 0–5 六档就保留六档）。
-- 来源确实没有候选集的：才由本地 taxonomy 出题与补选项（次选，origin=taxonomy，见 [CONTRACT.md](CONTRACT.md) §2.1）。
+下面四条取自公开分区，id 可直接在分区文件里查到：
 
-### 1.3 三种原语
+    # 中文 · 从接口菜单里选正确的下一步        db-deepexi-fcs-v3-491bd8c2
+    state: "查一下20210101的短信发送状态。"
+    questions[0]: key="next_step_candidate"  kind="choice"
+      prompt:  "以下候选中，哪一个是正确的下一步？"
+      options: [{"key":"GetDataSourceMeta"}, {"key":"ListFileType"}, {"key":"ListMessages"}]
+    targets["next_step_candidate"]: {"answer": "ListMessages"}
+
+    # 英文 · 同一个情境上挂多个问题            db-procedural-typed-decisions-7fbb2123
+    state: "Starting at 12:00: backup check (25 min), then planning (15 min),
+            then client call (45 min). Tasks run back to back in this order."
+    starts_before_noon kind="score"  "How many tasks start before 12:00?"
+                       scale {"min":0,"max":9}                         → "0"
+    done_by_deadline   kind="noul"   "Does the last task end at or before 13:20?"
+                       options [yes, no]                               → "no"
+    longest_task       kind="choice" "Which task takes the longest?"
+                       options [backup_check, planning, client_call]   → client_call
+
+    # 英文 · 约束满足（形式逻辑类）            db-bigbench-004d178d
+    state: "In an antique car show, there are five vehicles: a tractor, a station wagon,
+            a minivan, a sedan, and a hatchback. The minivan is older than the sedan. …"
+    questions[0]: key="logical_deduction"  kind="choice"
+      options: [the_hatchback_is_the_old, the_minivan_is_the_oldes,
+                the_sedan_is_the_oldest, the_tractor_is_the_oldes,
+                the_station_wagon_is_the]                              → the_tractor_is_the_oldes
+
+    # 英文 · 语境常识阅读理解                  db-cosmos-qa-00075cf0
+    state: "Was I incorrect for trying a re-raise in this case? … Obviously Player2
+            thought so. I was already in the mind set of needing to make a move."
+    questions[0]: key="question"  kind="choice"  "What type of game is the narrator playing?"
+      options: [they_are_playing_with_ch, they_are_playing_a_form_,
+                they_are_playing_slots, none_of_the_above_choice]      → they_are_playing_a_form_
+
+### 1.3 三种问题原语，只有三种
 
 | 原语 | 含义 | 答案形态 | 例 |
 |---|---|---|---|
-| **choice** | 多选一，选项 2 个以上（实测最多 57 个） | 概率分布或硬标签 | 选哪个工具 / 哪个类别 |
-| **noul** | 是 / 否（选项键可能是 false/true 或 no/yes） | 概率分布或硬标签 | 这条记录是否相关 |
-| **score** | 整数分级，**各来源档位不同**（实测 3 档 / 6 档 / 10 档 / **11 档**都有） | 概率分布 | 严重程度打分 |
+| **choice** | 多选一，选项 2–69 个 | 选项键，可带概率分布 | 选哪个接口 / 哪一类工单 / 哪条推理成立 |
+| **noul** | 是 / 否（选项键可能是 yes/no 或 true/false） | 选项键，可带概率分布 | 这条告警要不要升级 |
+| **score** | 整数分级，各题量程不同（实测 2–11 档） | 档位下标，可带概率分布 | 严重度打分 |
 
-只用这三种，是因为它们正好覆盖"选一个"的全部形态；**不发明第四种**。
+三种之外不发明第四种。概率分布有两种来源：**来源原生**（少数）与**旁挂补全**（v5 新增，
+由决策模型判定给出、且只保留与语料答案一致的目标）——后者有选择偏差，用法与风险见 §4.4。
 
-⚠️ **score 的取值口径有个坑**：score 题的 scale.labels 是**给人看的档位文字**，而 target 的键是
-**数字下标**（"0".."max"）。照 labels 去建输出词表会静默对不上。实测 6,752 道 score 题里，
-**4,661 道**的 labels 是描述文字（如 "Cosmetic; no impact to functionality"），只有 2,091 道是 "0".."max"。
+---
 
-### 1.4 构成：33% 是合并目标，补充集把中文推到 40.8%
+## 2. 能力维度审计（主口径）
 
-| 阶段 | 英文 | 中文 | 中文占比 | 说明 |
-|---|---:|---:|---:|---|
-| 合并（items.final） | 15,983 | 7,872 | **33.00%** | 中文按 33% 抽（先取每请求 1 套，再按 sha256(seed+group_id) 补第 2 套） |
-| + 中文补充（只进 train） | — | +3,148 | — | 单标签转换，成色降级（见 §1.5） |
-| **合计** | **15,983** | **11,020** | **40.8%** | 但**单一来源** Deepexi 只占 29.2%，未触 40% 上限 |
+### 2.1 口径
 
-**为什么合并时取 33% 而不是上限 40%**：Deepexi 是唯一中文来源，中文占比就等于该来源占比。
-取到 40% 会正好顶满契约"单一来源 ≤ 40%"、没有余量；而多取的是**同一批请求的变体**，边际信息量递减。
-33% 落在 30–40% 区间内，又给第二个中文来源留出头寸。（详见 [merge-report.md](merge-report.md)。）
+**问的问题不是"这条数据来自哪个任务"，而是"答对它必须会什么"。**
 
-### 1.5 成色分层（做训练决策必读）
+单位是条目，每条按固定优先级的规则链归入**恰好一个**能力维度，因此六类互斥、占比合计 100%。
+一道题常常同时需要多种能力，本审计取**瓶颈能力**——缺了它就一定答不对的那一种。约定：
 
-| 层级 | 是什么 | 条数 | 真值形态 | 进 benchmark？ |
-|---|---|---:|---|---|
-| **A. 原生四元组** | 来源自带 state/候选/答案，我们只搬运 | **23,855** | 来源的概率分布，或来源自己的硬标签 | **是（只有这一层）** |
-| B. 单标签转换的补充 | 数据只有"这条属于 X 类"，把 X 当正确选项、再从**同一标签集**取其余选项凑成 choice | **3,148**（中文 noul 1,631 / score 1,517） | 硬标签 + documented 映射，origin=taxonomy | **否** |
+1. 有候选动作/接口菜单、要选"下一步做什么" → **工具与行动选择**；
+2. 需要对数值、表格、时序、规则做形式化推演 → **数学与形式逻辑**；
+3. 需要从多段材料里定位、比对、整合出证据 → **阅读理解与证据整合**；
+4. 需要领域知识（医学/生化/工程/人文）才能判断 → **世界知识及其应用**；
+5. 判定对象是"证据够不够、会不会发生、有无歧义" → **因果、反事实与不确定性判断**；
+6. 判定对象是人的意图、情感、规范与多视角 → **社会与人类判断**。
 
-**怎么用**：A 层可以直接进训练与 benchmark；B 层是**成色降级**的补充，**只进 train**，
-不进 validation / test / benchmark，训练时也要与 A 层分开报告。**benchmark 只含 A 层**（实测 2,389 条全部 origin=source）。
+判定依据是**来源自带的细分标签**（原生领域标签 / 任务键 / 文档类型 / 覆盖域 / 新并入来源的 config）
+经固定映射表归并，映射表逐条写死在 [readme_stats.py](readme_stats.py) 里，不存在隐式规则；
+规则命中数全部打印：
 
-### 1.6 真值形态：别把"伪概率"当真分布（会改变训练结果）
+| 规则 | 依据 | 命中条目 |
+|---|---|---:|
+| C1 | 整份来源的形态就是"从候选菜单选动作" | 11,005 |
+| C2 | 来源自带的细分领域标签（65 个取值） | 6,185 |
+| C3 | 来源自带的任务键（task:arithmetic、task:table_lookup …） | 1,235 |
+| C4 | 来源自带的任务键前缀（alloc. / debate. / ticket.） | 1,155 |
+| C5 | 来源自带的原生域标签（客服控制流 / 游戏环境） | 655 |
+| C6 | 来源自带的文档类型标签（28 种） | 347 |
+| C7 | 中文补充集的覆盖域（risk_harm / human_judgment） | 3,148 |
+| C9 | 数学/逻辑类新来源的 **config 级判读**（32 个 config 逐项映射，不是一律归数学） | 24,161 |
+| C10 | 阅读类新来源的语境常识阅读理解 | 23,628 |
+| — | 未命中任何规则 | **0** |
 
-每条问题下 target 可能是三类之一，字段层面**长得一样**，必须先判形态再用：
+C9 有 **2 个 config 是刻意偏离接入时标签的**：`known_unknowns`（不可判定）与
+`evaluating_information_essentiality`（数据充分性/概率比较）判为**因果、反事实与不确定性判断**
+——题目本身就是"证据够不够、能不能判定"，不是数值推演。脚本会把这两处差异打印出来
+（与数据里 `meta.capability` 的一致率 47,713 / 47,789 ＝ 99.84%，差异恰为这 76 条）。
 
-| 形态 | 怎么识别 | 全语料问题数 | 其中 benchmark |
+抽样复核（每维 3 条、共 18 条真实条目，人眼过一遍）：
+
+    uv run --no-project --offline python datasets/general/readme_stats.py --samples 3
+
+复核结果：16 条归属无争议；2 条属边界情形——`temporal_reasoning` 的"期限压力打分"既是时间推算
+也是不确定性评估，`research_data_mgmt` 的"数据集能否共享"既是合规规范也是研究判断。
+"瓶颈能力"这一约定在**打分类**题上存在主观空间，这一点先说清楚。
+
+### 2.2 分布
+
+统计口径为公开的三个分区（train + test + validation，合计 71,519 条）：
+
+| 能力维度 | 条目 | 占比 | 英文 | 中文 | 覆盖来源数 |
+|---|---:|---:|---:|---:|---:|
+| 阅读理解与证据整合 | 30,709 | 42.94% | 30,709 | 0 | 3 |
+| 数学与形式逻辑 | 20,309 | 28.40% | 20,309 | 0 | 4 |
+| 工具与行动选择 | 14,433 | 20.18% | 6,561 | 7,872 | 7 |
+| 社会与人类判断 | 4,231 | 5.92% | 1,083 | 3,148 | 7 |
+| 世界知识及其应用 | 1,245 | 1.74% | 1,245 | 0 | 2 |
+| 因果、反事实与不确定性判断 | 592 | 0.83% | 592 | 0 | 4 |
+| **合计** | **71,519** | **100.00%** | **60,499** | **11,020** | **13** |
+
+最大两维「阅读理解」与「数学与形式逻辑」合计 **71.33%**（51,018 条），是补源的直接结果（§2.5）。
+
+工具与行动选择一类的内部构成：
+
+| 子类 | 条目 | 占全部 |
+|---|---:|---:|
+| 中文云服务接口选择（706 个不同接口名） | 7,872 | 11.01% |
+| 英文智能体工具选择 | 3,133 | 4.38% |
+| 其余（流程路由、处置与判定） | 3,428 | 4.79% |
+
+### 2.3 每一维里装的是什么
+
+**阅读理解与证据整合 · 30,709（42.94%）**——主体是**语境常识阅读理解**（23,628 条：给一段日常
+叙事，判断叙述者的处境/意图/事件因果），加上新并入来源的语言与证据类任务（5,418 条：指代消解、
+预设与蕴含、歧义消解、极性、隐性关系、寓言寓意、讽刺识别、事实核验），以及旧来源的
+检索相关性/摘要/字段抽取（1,663 条）。
+
+**数学与形式逻辑 · 20,309（28.40%）**——新并入来源的 18,667 条为主：多步算术与应用题、单位换算、
+几何求交、最长公共子序列等算法题、日期推算、数学归纳、形式论证有效性、逻辑谬误识别、
+约束满足（排序/网格）、棋类搜索（一步杀）、状态跟踪（洗牌后的持有物）、空间导航、时序推理；
+另有旧来源的形式规则推演与结构化计算（956 + 607 条）。
+
+**工具与行动选择 · 14,433（20.18%）**——中文侧是自然语言诉求 → 从一份候选接口菜单
+（2–57 个，中位 4）里选正确的一个；英文侧是服务场景 + 候选动作菜单 → 选出下一步动作
+（授权、转人工、退款、排期…）；其余 3,428 条是流程路由与处置判定：工单路由与优先级、
+发布 go / no-go、值班故障定级、权限审批、该升级还是该拒绝、发票与库存处置。
+
+**社会与人类判断 · 4,231（5.92%）**——中文侧的诈骗话术、有害内容与毒性识别（3,148 条）；
+论辩裁决（谁赢、证据是否充分）与稀缺资源的公共分配；情感与意图、法律条款合规、科研数据伦理。
+
+**世界知识及其应用 · 1,245（1.74%）**——医学生命（分诊、诊断推理、用药安全、临床文书、
+遗传检测与变异解读）、生物信息与序列判读、化学与材料、仪器与仿真、生态与物种分类、
+人文文本断代与教义归类。**这一维只有 2 个来源，且 1,199 条来自同一来源族**。
+
+**因果、反事实与不确定性判断 · 592（0.83%）**——假设可否证性与证据强度、实验设计与统计功效、
+同行评审、政策后果推演、安全告警归因，以及新并入来源里"不可判定/信息充分性"两个任务（76 条）。
+
+### 2.4 能力维度 × 内容领域
+
+两张表来自同一批数据，交叉看能回答"某一维到底装了什么"（行合计 = 该维度条目数）：
+
+| 能力维度 \ 内容领域 | 工具与 API | 安全与风险 | 业务运营 | 世界知识与人文 | 社会规范与法律 | 自然科学与工程 | 逻辑与博弈 | 软件与系统 | 医疗与健康 | 数学与结构化 | 语言与文本 | 合计 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 阅读理解与证据整合 | 0 | 0 | 0 | 2,985 | 0 | 0 | 0 | 0 | 0 | 0 | 27,724 | 30,709 |
+| 数学与形式逻辑 | 0 | 94 | 186 | 0 | 0 | 0 | 12,397 | 0 | 0 | 7,632 | 0 | 20,309 |
+| 工具与行动选择 | 11,096 | 336 | 1,994 | 0 | 0 | 0 | 0 | 838 | 0 | 0 | 169 | 14,433 |
+| 社会与人类判断 | 0 | 3,161 | 0 | 0 | 914 | 73 | 0 | 0 | 0 | 0 | 83 | 4,231 |
+| 世界知识及其应用 | 0 | 0 | 0 | 187 | 0 | 545 | 0 | 0 | 513 | 0 | 0 | 1,245 |
+| 因果、反事实与不确定性 | 0 | 187 | 0 | 25 | 87 | 242 | 0 | 0 | 0 | 51 | 0 | 592 |
+
+### 2.5 换了一种偏斜，不是消除偏斜
+
+把公开三区按**语料代际**拆开（行内占比 = 该代际内部的构成）：
+
+| 语料代际 | 条目 | 占全部 | 工具 | 数学 | 阅读 | 世界 | 因果 | 社会 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 旧 11 个来源（补源前就存在） | 23,730 | 33.18% | 60.82% | 6.92% | 7.01% | 5.25% | 2.17% | 17.83% |
+| 新并入 2 个来源 | 47,789 | 66.82% | 0.00% | 39.06% | 60.78% | 0.00% | 0.16% | 0.00% |
+| **合并后（公开三区）** | **71,519** | **100%** | **20.18%** | **28.40%** | **42.94%** | **1.74%** | **0.83%** | **5.92%** |
+
+读法：
+
+1. **工具类垄断确实被打破了**：从旧子集内部的 60.82% 降到合并后的 20.18%。
+2. **但偏斜被换成了另一侧**：新并入的 47,789 条里，除 0.16% 的因果外**全部是数学 + 阅读**
+   （39.06% + 60.78%）；合并后这两维合计 **71.33%**。这不是"均衡"，是"从一个集中换成另一个集中"。
+3. **世界知识与因果/不确定性被稀释得更薄**：旧子集内部还有 5.25% 与 2.17%，
+   合并后降到 **1.74% 与 0.83%**——因为分母涨了近 3 倍，而这两维几乎没有新增供给。
+4. 社会与人类判断同样从 17.83% 稀释到 5.92%。
+5. **中文占比只有 15.41%**：两批新来源都是英文，分母变大后中文被稀释（§4.1）。
+
+**下一轮的补强方向因此是明确的**：补**世界知识**与**因果/反事实/不确定性**类来源，
+不再在两个新来源之间挪量——那只会把 71.33% 这个数字在数学与阅读之间来回搬。
+
+### 2.6 审计结论与薄弱项
+
+- **覆盖到 6 个能力维度**，但**仍然高度不均衡**：阅读 + 数学 = 71.33%，
+  因果/反事实/不确定性只有 592 条（0.83%），世界知识只有 1,245 条（1.74%）。
+- **世界知识一维只有 2 个来源，1,245 条里 1,199 条来自同一来源族**；阅读理解一维
+  30,709 条里 23,628 条来自单一来源。这两维的域外泛化需要额外验证。
+- **中文侧的领域跨度没有改善**：中文 11,020 条仍集中在工具（7,872）与安全（3,148）两处。
+- **本审计是"用已有元数据做的审计"**：能力归属由来源自带标签经固定映射得到，
+  不是独立人工标注，与来源自己的切分口径绑定；抽样复核只覆盖每维 3 条。
+- **没有训模实验**：以上数字只能说明"数据集里有哪些能力的监督信号、各占多少"，
+  **不能**说明"训练后模型的能力不会退化"。防遗忘效果须通过具体模型、训练配置及独立评测验证。
+
+---
+
+## 3. 领域覆盖（辅口径）
+
+能力维度回答"会什么"，内容领域回答"讲的是哪个领域的事"。同一套规则链、同一批数据，
+换一套映射表（11 类，每条恰好一类，占比合计 100%）：
+
+| 内容领域 | 条目 | 占比 | 里面是什么 |
+|---|---:|---:|---|
+| 语言、情感与文本处理 | 27,976 | 39.12% | 日常叙事的语境阅读理解、指代/预设/歧义/极性/隐性关系、讽刺与寓言、摘要保真、表单抽取、文档归类 |
+| 逻辑、空间与博弈推理 | 12,397 | 17.33% | 形式论证有效性、逻辑谬误、约束满足（排序/网格）、棋类一步杀、状态跟踪、空间导航、时序推理、贪吃蛇/井字棋/射击环境走子 |
+| 工具调用与 API 操作 | 11,096 | 15.51% | 中文云服务接口选择（706 个不同接口名）与英文智能体工具选择 |
+| 数学、表格与结构化计算 | 7,683 | 10.74% | 多步算术与应用题、单位换算、几何求交、算法计数（LCS）、日期推算、数学归纳、计数/比较/聚合/查表/贝叶斯后验 |
+| 安全、风险与有害内容 | 3,778 | 5.28% | 权限与最小特权、越权与拒绝、安全告警与工作流安全事件、实验室生物安全、诈骗/有害/毒性内容（中文 3,148） |
+| 世界知识、人文与信息检索 | 3,197 | 4.47% | 百科式世界知识、事实核验、检索相关性、信息源选择、文本断代与教义归类 |
+| 业务运营与客户服务 | 2,180 | 3.05% | 工单分类路由与优先级、客服严重度与流失、排期与时限、设施维护、招聘、库存、发票、推荐、配送路径 |
+| 社会规范、法律与公共决策 | 1,001 | 1.40% | 论辩裁决与证据充分性、稀缺资源分配、政策后果推演、合同条款合规、牧养关怀 |
+| 自然科学与工程 | 860 | 1.20% | 假设评估与同行评审、科研数据合规、实验设计、仪器校准、数值仿真、化学反应、材料、生态、物种分类、生物信息与序列 |
+| 软件、系统与数据工程 | 838 | 1.17% | 数据质量与回填、故障定级、可观测性与异常归因、发布 go / no-go、计划质量、多智能体交接、容量与放置 |
+| 医疗与生命健康 | 513 | 0.72% | 急诊分诊、诊断推理、用药安全、临床文书与编码、医患沟通、遗传检测与变异解读 |
+| **合计** | **71,519** | **100.00%** | |
+
+来源自带的细分领域标签有 **93 个不同取值**（原生粒度，如 `incident_triage`、
+`clinical_triage`、`organism_taxonomy`、`reaction_prediction`、
+`doctrinal_reasoning`、`hr_recruiting`、`tic_tac_toe` …），
+上表是把它们归并后的结果；新并入来源的 32 个 config 也按同样方式归入内容领域（映射见脚本）。
+
+记录里还有一个更粗的 **`domain` 字段**（机制口径，定义见 [CONTRACT.md](CONTRACT.md) §3）：
+
+| domain | 条目 | 占比 |
+|---|---:|---:|
+| knowledge_reasoning | 51,292 | 71.72% |
+| decision_mechanics | 17,079 | 23.88% |
+| risk_harm | 2,605 | 3.64% |
+| human_judgment | 543 | 0.76% |
+
+这个口径**只回答"是不是决策机制类"**，不能说明"要会什么"——工具规划里可能含逻辑推理，
+知识判断可能只是事实识别。所以本页的真实分类口径是 §2 的能力维度，`domain` 仅作对账用。
+
+---
+
+## 4. 其他覆盖面数字
+
+### 4.1 语言
+
+中英各自是**母语原生**的条目（来源原文 + 来源自带答案），不是互相翻译出来的。
+并入的两批来源都是**英文**，所以中文占比为 15.41%：
+
+| 分区 | 英文 | 中文 | 合计 |
 |---|---:|---:|---:|
-| **真分布** | probs 有多个不同取值 | 7,520 | 757 |
-| **伪 one-hot** | probs 恰好一个 1.0、其余 0.0（由硬标签造出来） | **14,119** | **1,398** |
-| **均匀分布** | probs 各项相等（如 0.5/0.5）→ **无信息** | 1,730 | 180 |
-| 只有 answer | 没有 probs 字段 | 11,565 | 854 |
+| train | 40,332 | 8,396 | 48,728 |
+| test | 13,445 | 1,749 | 15,194 |
+| validation | 6,722 | 875 | 7,597 |
 
-- 伪 one-hot 与 [CONTRACT.md](CONTRACT.md) 的"不允许把单标签伪装成概率"是**已知冲突**：
-  判别方法与建议的 provenance 字段见 CONTRACT §2.3；训练时若要按真分布做 KL / 校准目标，**请先按上表过滤**。
-- 均匀分布 target 没有信息量（多出现在教师模型的低置信样本），用它做监督等于教模型"别确定"；
-  报告指标时建议同时给"排除均匀目标"的子集分数。
+中文集中在工具与安全两类，英文覆盖全部 11 个内容领域——中文侧的领域跨度是这份数据最明显的短板。
 
-### 1.7 一条数据里的语言分工
+### 4.2 来源
 
-| 内容 | 来自哪 | 语言 |
-|---|---|---|
-| state（情境） | 来源原文 | 英文条目英文，中文条目中文 |
-| questions 的 key / prompt | **候选集与答案来自来源**；题面措辞英文侧用来源原文，**中文侧由我们编写** | 随来源 / 中文侧中文 |
-| options | 来源原文（中文侧候选顺序已被确定性打散） | 随来源 |
-| targets | 来源自带答案；有分布存分布，只有硬标签就只写 answer（或单点分布） | 语言无关 |
+**13 个独立来源**，最大的一家占 **33.78%**，第二家 33.04%，第三家 11.01%：
+没有任何一家的表述习惯或标注口径能定义整个数据集；但前两家合计 66.82%，来源集中度偏高。
 
-## 2. 开源来源清单 + 真实例子
+### 4.3 问题形态与规模
 
-### 2.1 英文侧：6 个 HF 仓库 / 7 个抓取单元，15,983 条（100% 带真值）
-
-| 来源 | HF 链接 | 许可 | 固定 revision | 一句话 | 条数 |
-|---|---|---|---|---:|
-| jev-distill-corpus-v3 | [SargeDev/jev-distill-corpus-v3](https://huggingface.co/datasets/SargeDev/jev-distill-corpus-v3) | apache-2.0 | fc99c6357a9f | 教师蒸馏的三原语语料，**带完整概率分布**，规模主力 | 7,756 |
-| jev-decisions-v1 | [samatv256/jev-decisions-v1](https://huggingface.co/datasets/samatv256/jev-decisions-v1) | cc-by-4.0 | c12aadf1f01c | agent **工具选择**（通用精选配置），硬标签 | 3,802 |
-| procedural-typed-decisions | [tasksource/procedural-typed-decisions](https://huggingface.co/datasets/tasksource/procedural-typed-decisions) | apache-2.0 | 609513a3fadd | **一个情境挂多个类型化问题**，带概率 | 1,500 |
-| systemone-lite-general | [dwidlee/systemone-lite-general](https://huggingface.co/datasets/dwidlee/systemone-lite-general) | mit | c14eb7f7518f | 合成 gym（辩论裁决、工单紧急度），硬标签 | 1,479 |
-| Open-Jev | [ZefanCai/Open-Jev](https://huggingface.co/datasets/ZefanCai/Open-Jev) | cc0-1.0 | c67699e13d0a | 同一请求下**多个正交问题**，规范最好、可逐行溯源 | 792 |
-| system-one-270m-data | [kaivoss/system-one-270m-data](https://huggingface.co/datasets/kaivoss/system-one-270m-data) | apache-2.0 | f31d5a3f3da8 | 日志与告警分诊，带概率 | 447 |
-| jev-decisions-v1（default 配置） | 同上 | cc-by-4.0 | c12aadf1f01c | 1200 万行里做的浅窗口抽样，仅作分布对照 | 207 |
-
-逐来源的取材理由与陷阱见 [SOURCES.md](SOURCES.md)；机器可读清单见 [sources.json](sources.json)。
-
-### 2.2 中文侧：1 个原生来源 + 4 个补充来源
-
-| 来源 | 链接 | 许可 | 固定 revision | 说明 | 条数 |
-|---|---|---|---|---:|
-| Deepexi 函数调用（**A 层**） | [Deepexi/openai-formate-function-calling-small](https://huggingface.co/datasets/Deepexi/openai-formate-function-calling-small) | apache-2.0 | 6d1dc02a2549 | 中文用户请求 + 候选工具菜单 + 正确工具；从 5,454 个唯一请求按变体抽到 33% | 7,872 |
-| BEncoderRT/User_Intent_Risk_Triage（**B 层**） | [BEncoderRT/User_Intent_Risk_Triage](https://huggingface.co/datasets/BEncoderRT/User_Intent_Risk_Triage) | 见 sources.zh.json | 见 sources.zh.json | 中文意图/风险分类 → 补充 noul / score，**只进 train** | 2,061 |
-| textdetox/multilingual_toxicity_dataset（**B 层**） | [textdetox/multilingual_toxicity_dataset](https://huggingface.co/datasets/textdetox/multilingual_toxicity_dataset) | 同上 | 同上 | 同上 | 543 |
-| chenhaodev/med-guard-safety-synth（**B 层**） | [chenhaodev/med-guard-safety-synth](https://huggingface.co/datasets/chenhaodev/med-guard-safety-synth) | 同上 | 同上 | 同上 | 472 |
-| vanila434/multilingual-elder-safety-msgs（**B 层**） | [vanila434/multilingual-elder-safety-msgs](https://huggingface.co/datasets/vanila434/multilingual-elder-safety-msgs) | 同上 | 同上 | 同上 | 72 |
-
-中文侧的调研与准入见 [zh-survey.md](zh-survey.md)、构建见 [zh-build-report.md](zh-build-report.md)、
-清单（含逐条许可与 revision）见 [sources.zh.json](sources.zh.json)。
-
-### 2.3 真实例子（取自最终语料，长文本标 [截断]）
-
-**例 1 · 英文 choice：从候选菜单里选正确的一个（Open-Jev，同一请求下共 6 个问题）**
-
-    state: "Conversation with account holder Harbor-65673ba098.
-            Customer message: I need access restored after changing the email address [截断]"
-    questions[0]: key="category"  kind=choice   ← 键名就是来源自己的问题名
-      options: [{"key":"account_login_permission","label":"account: Login, permissions, profile, security"},
-                {"key":"bug_report_the_user_is_r","label":"bug_report: The user is reporting something broken"},
-                {"key":"billing_charges_invoices","label":"billing: Charges, invoices, refunds, subscriptions"},
-                {"key":"feature_request_the_user","label":"feature_request: The user is requesting new functionality"}]
-    targets["category"]: {"answer":"account_login_permission",
-                          "probs":{"account_login_permission":1.0,"bug_report_the_user_is_r":0.0, ...}}   ← 来源给的是分布
-
-**例 2 · 英文 choice（硬标签 → 单点分布，属 §1.6 的"伪 one-hot"）：systemone-lite-general**
-
-    state: "{\"ticket\": {\"subject\": \"Production outage: checkout broken\", \"tier\": \"enterprise\", ...}}"
-    questions[0]: key="ticket.urgency"  kind=choice
-      options: [{"key":"1_medium_same_day","label":"1: medium — same day"},
-                {"key":"0_low_can_wait","label":"0: low — can wait"},
-                {"key":"2_high_immediate","label":"2: high — immediate"}]
-    targets["ticket.urgency"]: {"answer":"2_high_immediate",
-                                "probs":{"1_medium_same_day":0.0,"0_low_can_wait":0.0,"2_high_immediate":1.0}}
-    ← 来源只有硬标签，这个 probs 是单点分布、不是真概率；任何分布类损失都要先过滤（见 §1.6）
-
-**例 3 · 英文 noul 与 score：保留来源自己的档位（jev-distill-corpus-v3）**
-
-    noul:  state "The log shipper shows a 22% drop in request rate with no deploys [截断]"
-           key "Is this scenario one where: this can wait until morning?"  kind=noul
-           options [{"key":"false","label":"false"},{"key":"true","label":"true"}]     ← 原样，不改成 yes/no
-           target  {"answer":"false","probs":{"false":0.87,"true":0.13}}
-
-    score: state "A statistic in the draft attributes to a study that says the opposite [截断]"
-           key "Rate claim reliability for this scenario on a 0-5 scale."  kind=score
-           scale {"min":0,"max":5,"labels":["0","1","2","3","4","5"]}                  ← 六档原样，不压成 0-4
-           target {"answer":"4","probs":{"0":0.01,"1":0.01,"2":0.05,"3":0.41,"4":0.51,"5":0.01}}
-
-    对比 · score 的 labels 是描述文字时（Open-Jev 的 bug_severity，3 档）：
-           scale {"min":0,"max":2,"labels":["Cosmetic; no impact to functionality",
-                                            "Broken or degraded feature; workaround exists",
-                                            "Blocking issue; no workaround exists"]}
-           target {"answer":"0","probs":{"0":1.0,"1":0.0,"2":0.0}}                     ← 键是数字下标，不是 labels 文字
-
-**例 4 · 英文：一条条目挂多个问题（procedural-typed-decisions，一次覆盖三种原语）**
-
-    state: "Order lines (prices in €):
-            item,unit_price,quantity
-            drill,2,1 / vase,20,2 / tent,15,2
-            Rule: Orders of €50 or more get €5 off; smaller orders pay €6 shipping."
-    questions: largest_line     kind=choice  "Which line costs the most in total?"          options [drill, vase, tent]
-               lines_above      kind=score   "Count the lines whose total exceeds €30."      scale 0..9
-               random_line_bulk kind=noul    "If one line is picked at random, P(quantity>=2)?" options [yes, no]
-               within_budget    kind=noul    "Does the order fit within a budget of €62?"
-    targets: largest_line {"answer":"vase","probs":{"drill":0.0,"vase":1.0,"tent":0.0}}
-             lines_above  {"answer":"1","probs":{"0":0.0,"1":1.0,"2":0.0, ...}}
-             random_line_bulk {"answer":"yes","probs":{"yes":0.666667,"no":0.333333}}      ← 真概率
-
-**例 5 · 中文 choice：候选集与答案来自来源，题面由我们编写（Deepexi，A 层）**
-
-    state: "20210101的短信发送状态如何？"
-    group_id: "zhgrp-104f0514ee19"        ← 同一请求的多个变体共用一个 group_id（切分按组，不拆开）
-    questions[0]: key="next_step_candidate"  kind=choice
-      prompt: "以下候选中，哪一个是正确的下一步？"     ← 中文侧题面是我们写的；候选与答案来自来源
-      options: [{"key":"ListMessages","label":"ListMessages：按指定过滤条件获取指定日期的短信发送状态。"},
-                {"key":"UpdateDISyncTask","label":"UpdateDISyncTask：更新数据集成同步任务。"},
-                {"key":"GenerateDISyncTaskConfigForCreating","label":"GenerateDISyncTaskConfigForCreating：异步生成同时任务的JSON。"}]
-    targets["next_step_candidate"]: {"answer":"ListMessages"}    ← 来源只给了硬标签，就不编概率
-
-**例 6 · 中文补充（B 层，只进 train）：单标签 + 同一标签集凑选项**
-
-    state（中文分类数据的原文）→ 由 taxonomy 命题成 noul / score，从该数据集**自己的标签集**取选项；
-    origin=taxonomy、tier=derived，**不进 validation / test / benchmark**（实测 benchmark 内 origin=taxonomy 为 0 条）。
-
-## 3. 划分信息
-
-四分区按**请求分组**切分，种子 **20261005**。
-
-> ⚠️ **补充集是切分完成后追加到 train 的**（不是重切）：所以 train 不是纯 60%，
-> 目标比例 6:2:1:1 只在**追加之前**成立；test / validation / benchmark 的 sha256 未变。
-
-| 分区 | 条目 | 占比 | 请求组 | 英文 | 中文 | 其中补充（B 层） |
-|---|---:|---:|---:|---:|---:|---:|
-| train | 17,458 | 64.7% | 6,348 | 9,588 | 7,870 | 3,148 |
-| test | 4,771 | 17.7% | 1,245 | 3,197 | 1,574 | 0 |
-| validation | 2,385 | 8.8% | 626 | 1,598 | 787 | 0 |
-| benchmark | 2,389 | 8.8% | 631 | 1,600 | 789 | 0 |
-| **合计** | **27,003** | 100% | 8,850 | 15,983 | 11,020 | 3,148 |
-
-**域分布（这一节必须看，否则会做出错误结论）**：
-
-| domain | train | test | validation | benchmark |
-|---|---:|---:|---:|---:|
-| decision_mechanics | 11,677 | 3,893 | 1,946 | 1,949 |
-| knowledge_reasoning | 2,633 | 878 | 439 | 440 |
-| risk_harm | 2,605 | **0** | **0** | **0** |
-| human_judgment | 543 | **0** | **0** | **0** |
-
-> 🔴 **risk_harm 与 human_judgment 只存在于 train**（它们全部来自中文补充集 B 层）。
-> 因此 **train 与 test / validation / benchmark 的域分布不可比**：
-> 任何"某域在训练里如何、在测试里如何"的对比都会被这个结构差异污染。
-> 需要域间对比时，请在 train 内部再切一个与评测区同构的子集（只用 A 层），或只比较两区共有的两个域。
-
-**原语分布（条目级：一条条目至少含一个该原语）**：
-
-| kind | train | test | validation | benchmark |
-|---|---:|---:|---:|---:|
-| choice | 10,706 | 3,545 | 1,780 | 1,784 |
-| noul | 5,608 | 1,342 | 668 | 680 |
-| score | 3,753 | 742 | 367 | 380 |
-
-（同一条目可挂多个问题，所以一行内多列不互斥、也不等于条目数。）
-
-**为什么必须整组切**：中文侧的多个变体来自**同一个请求**、state 逐字相同，只是候选顺序不同。
-按行随机切会把同一请求的变体分到 train 和 test 两侧，**静默泄漏**。切分器的做法是并查集合并：
-显式分组键（group_id / request_id）与**归一化 state** 各自连边，同一连通分量的条目整组进同一分区。
-
-**泄漏检查（我在四个分区文件上复算，全部为 0）**：
-
-| 组合 | id 重叠 | 组重叠 | 归一化 state 重叠 |
-|---|---:|---:|---:|
-| train ∩ test | 0 | 0 | 0 |
-| train ∩ validation | 0 | 0 | 0 |
-| train ∩ benchmark | 0 | 0 | 0 |
-| test ∩ validation、test ∩ benchmark、validation ∩ benchmark | 0 | 0 | 0 |
-
-复核范围：27,003 条 / 8,850 组 / 23,980 个不同归一化 state。
-切分产物树哈希 **618826416149312e**…，种子 20261005；详见 [split-report.md](split-report.md) 与
-[data/splits/split-manifest.json](data/splits/split-manifest.json)。
-
-**复现（注意两个坑）**：
-
-    # 1) 旗标是 --input（不是 --items），可重复给多个文件
-    # 2) 默认 --out/--report 指向交付目录：不加参数直接跑会【覆盖 train 并丢掉追加的 3,148 条补充】、
-    #    并【覆盖 split-report.md】。重跑务必先把 --out/--report 指到仓库外，或先备份。
-    uv run --no-project --offline python datasets/general/data/splits/split.py \
-        --input datasets/general/data/items.final.jsonl \
-        --out <仓库外目录> --report <仓库外目录>/split-report.md --seed 20261005
-
-实测：照抄 README 旧命令里的 --items 会直接报 unrecognized arguments、退出码 2（不会覆盖，但也没跑成）。
-
-### 3.1 内部 benchmark 的保密约定（正在整改，当前形态不达标）
-
-- **不得进公开仓库**：benchmark 分区与 data/splits/benchmark-dataset/ 已在 .gitignore；
-- **上传时设为 private**；不要放进公开分支、fork、PR、日志或截图；
-- **其他人不要引用其内容**：看过逐例答案就不能再自称在它上面是盲测；
-- 它**只含 A 层**（原生四元组，实测 origin=taxonomy 为 0 条）；
-- ⚠️ **当前保密性不达标，正在整改**：独立复核发现"仓库内公开文件 + 公开种子"可以逐字节重建
-  benchmark，且曾有一份 5,454 行的中文答案索引与 9 条 benchmark 记录进入版本库。
-  整改方向（db-schema 执行）：私盐重切 + 完整语料移出版本控制 + 不把完整语料与三区同时发布。
-  **整改完成前，请把现有 benchmark 视为已泄漏。**
-
-## 4. 文件在哪（对外发布面待定）
-
-| 文件 | 内容 |
+| 层面 | 分布 |
 |---|---|
-| data/items.final.jsonl(.gz) | 切分输入语料 23,855 条（英文 15,983 + 中文 7,872） |
-| data/zh-supplement/items.jsonl | 中文补充 3,148 条（只进 train） |
-| data/splits/train·test·validation·benchmark.jsonl(.gz) | 四个分区（benchmark 那份勿公开） |
-| data/items.native.jsonl.gz | 英文侧主产物 15,983 条 |
-| data/items.jsonl(.gz) / items.bilingual.jsonl(.gz) | 早期"模板命题"版（37,124 条），**留作对照，不再是训练首选** |
+| 问题级（78,001 道） | choice 64,200（82.31%）· noul 8,092（10.37%）· score 5,709（7.32%） |
+| 条目级（互不排斥） | 含 choice 63,547（88.85%）· 含 noul 7,077（9.90%）· 含 score 4,472（6.25%） |
+| 每题挂载 | 1 题 69,371 条 · 2 题 132 · 3 题 988 · 4 题 314 · 5 题 138 · 6 题 576 |
+| choice 选项数 | 最小 2、最大 69、中位 4 |
+| score 档位数 | 2–11 档（3 档 2,199 道、5 档 1,738、6 档 1,384、10 档 313） |
 
-> 保密整改会调整"哪些文件随仓库发布"，因此上表**只描述本机工作区**；以 Lead 最终确认的公开面为准。
+选项规模与量程**不统一**是刻意的：把来源的 6 档压成 5 档等于改写题目
+（口径见 [CONTRACT.md](CONTRACT.md)）。choice 占比 82.31% 是并源的结果：
+两批新来源都是原生多选形态。
 
-检查（注意：6 域配额是按**已退役**的混合语料定的，对当前语料会报 NG）：
+### 4.4 真值：两个口径必须分开看
 
-    uv run --no-project --offline python tools/check.py
-    # 实测：items.final 在 human_judgment / social_moral / risk_harm 三域为 0 → 3 项不通过；
-    # items.native 另有单一来源 jev-distill 占 48.5% > 40% → 4 项不通过。配额口径需随语料重定。
-    uv run --no-project --offline python datasets/general/coverage.py --items datasets/general/data/items.final.jsonl
+78,001 道题**全部**带真值，但"能用多少软目标"取决于是否采用 v5 的**旁挂 probs**。
+
+**口径 A · 只读分区文件（不采用旁挂）**——口径同 CONTRACT.md §2.3：
+
+| 真值形态 | 问题数 | 占比 | 旧 11 来源 | 新并入 2 来源 |
+|---|---:|---:|---:|---:|
+| 真概率分布（来源直接给出） | 5,945 | 7.62% | 5,945 | 0 |
+| 硬标签转成的单点分布 | 11,412 | 14.63% | 11,412 | 0 |
+| 均匀分布（无信息） | 1,386 | 1.78% | 1,386 | 0 |
+| 只有硬标签、没有分布 | 59,258 | 75.97% | 11,469 | 47,789 |
+
+**口径 B · v5 训练视图（采用旁挂 probs）**——口径恒等式：旁挂覆盖 **74,853** 条 +
+中文补充 **3,148** 条 = 公开三区 target 总数 **78,001** 条。
+
+| 版本 | 可用软分布（soft + tie_subset） | 占比 |
+|---|---:|---:|
+| 只读分区文件（口径 A） | 5,945 | 7.62% |
+| **采用旁挂 probs（v5）** | **48,941** | **62.74%** |
+
+旁挂文件 [data/jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) 共 **44,740** 行，其中 **42,996** 条
+把原本 answer-only / one-hot / uniform 的 target 变成可用软分布（其余落在本来就软的 target 上）。
+旁挂路由 [data/target-types.jsonl.gz](data/target-types.jsonl.gz) 把 74,853 条 target 分成三档：
+**drop 1,571**（无信息均匀等，建议剔除）、**classification 67,522**（硬标签）、
+**distillation 5,760**（软蒸馏目标，不用于校准）。
+
+**这是本轮最大的收益，也是必须写明的代价与偏差：**
+
+1. **旁挂 probs 是模型判定的，不是来源原生标注。** 它们来自一个专用决策模型对每个候选的
+   判定分布（型号、端点与调用记录见 [TRAINING.md](TRAINING.md)），语义是"模型认为各选项的概率"，
+   不是人工或来源给的标注分布。
+2. **它是有选择的子集，不是随机子集。** 只保留"模型判定与语料答案一致"的目标——与语料答案
+   不一致的目标被系统性排除。所以 62.74% 的软目标**不能当作无偏概率**用于校准；用于蒸馏时
+   按下面的置信分层加权。
+3. **置信分层不均。** 旁挂的 label_confidence：**high 6,991 / medium 35,869 / low 1,880**。
+   它是"该来源 config 里模型判定是否印证语料"的整组指标，**不是标签本身的可信度**；
+   low 表示该子集的语料标签没有被双方一致验证，训练时应降权。
+4. **剩下 3,148 条中文补充仍在口径 A 之外**（全为硬标签、无分布），只进 train、不污染评测区。
+
+**建议**：做 KL / 软交叉熵 / 校准这类分布类损失前，先按 [target-types](data/target-types.jsonl.gz)
+的 `training_route` 过滤（drop 掉 1,571 条无信息均匀目标），并对 distillation 目标
+按 label_confidence 加权；只用硬标签时一律取 `answer`。**"语料更通用了"和"软目标更多了"
+在本版同时成立，但后者带选择偏差——这个区别必须保留。**
+
+按**成色**分两层，训练时建议分开报告：
+
+| 层级 | 条目 | 说明 |
+|---|---:|---|
+| 原生四元组 | 68,371 | 情境、候选项与答案都来自来源原文 |
+| 单标签转换的补充 | 3,148 | 由"这条属于 X 类"的单标签转换而来（硬标签、无概率分布），按设计**只进 train** |
+
+第二层在 test / validation 中为 0 条——它只影响 train 的构成，不会污染评测区。
+
+---
+
+## 5. 怎么用
+
+### 5.1 文件与划分
+
+| 文件 | 内容 | 用途 |
+|---|---|---|
+| [data/splits/train.jsonl](data/splits/train.jsonl)（[.gz](data/splits/train.jsonl.gz)） | 48,728 条 | 训练（含 3,148 条只进 train 的中文安全补充） |
+| [data/splits/validation.jsonl](data/splits/validation.jsonl)（[.gz](data/splits/validation.jsonl.gz)） | 7,597 条 | 选模型、调超参 |
+| [data/splits/test.jsonl](data/splits/test.jsonl)（[.gz](data/splits/test.jsonl.gz)） | 15,194 条 | 回归测试 |
+| [data/jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) | 旁挂概率 44,740 行 | 软蒸馏目标（有选择偏差，见 §4.4） |
+| [data/target-types.jsonl.gz](data/target-types.jsonl.gz) | target 形态与训练路由 74,853 行 | 决定 drop / classification / distillation |
+| [data/splits/split-manifest.json](data/splits/split-manifest.json) | 哈希与聚合清单 | 校验下载完整性 |
+| [split-report.md](split-report.md) | 切分报告 | 分区构成、泄漏检查 |
+
+切分按**请求分组**进行：同一请求的多个变体（情境逐字相同、只是候选顺序不同）整组进同一分区。
+三个分区两两之间的 id 重叠、组键重叠、归一化情境重叠**均为 0**（口径与复算见脚本第 6 节：
+组键取 `meta.group_id` 或 `meta.request_id`，
+归一化情境为去掉首尾与连续空白后转小写）。
+
+语料总构成：公开三区 **71,519 条** + 内部保留集 **6,541 条**（不对外发布，用于上线前回归，
+构成见 [split-report.md](split-report.md)）= **78,060 条**。
+
+**三区的能力维度构成不均衡**，用 test / validation 做能力评估前请注意：
+
+| 能力维度 | train | test | validation |
+|---|---:|---:|---:|
+| 阅读理解与证据整合 | 20,359 | 6,841 | 3,509 |
+| 数学与形式逻辑 | 13,646 | 4,500 | 2,163 |
+| 工具与行动选择 | 9,628 | 3,199 | 1,606 |
+| 社会与人类判断 | 3,853 | 263 | 115 |
+| 世界知识及其应用 | 846 | 263 | 136 |
+| 因果、反事实与不确定性判断 | 396 | 128 | 68 |
+| **合计** | **48,728** | **15,194** | **7,597** |
+
+社会与人类判断一维在 test / validation 只有 263 / 115 条（中文补充集按设计只进 train），
+**不要用 test / validation 评这一维**；需要时请从 train 的英文部分另切同构子集。
+
+### 5.2 字段（详细契约见 [CONTRACT.md](CONTRACT.md)）
+
+| 字段 | 说明 |
+|---|---|
+| `id` | 全局唯一，由（来源, 版本, 行号）确定性派生 |
+| `lang` | `en` / `zh`，保留源语言 |
+| `state` | 待判断的情境文本 |
+| `questions[]` | 非空；每项 `{key, kind, prompt, options?, scale?}` |
+| `targets` | `{<问题 key>: {answer, probs?}}`；本数据集 **100% 有此字段** |
+| `source` | 溯源信息 |
+| `meta` | 转换器信息与质量标记 |
+
+旁挂文件的行格式：`item_id` + `question_key`（target 级）、`shape_class` /
+`training_route`（target-types）；`id` + `key` + `probs` +
+`label_confidence`（jev-probs）。
+
+### 5.3 读入
+
+    import json
+    for line in open("datasets/general/data/splits/train.jsonl", encoding="utf-8"):
+        item = json.loads(line)
+        for q in item["questions"]:
+            key, kind = q["key"], q["kind"]          # choice / noul / score
+            labels = [o["key"] for o in q.get("options", [])]   # score 题看 q["scale"]
+            target = item["targets"][key]            # {"answer": ..., "probs": {...}}
+        # 注意：score 题的 probs 键是数字下标 "0".."max"，不是 scale.labels 的文字
+
+旁挂 probs 需要按 `(id, key)` 与分区 join；target-types 按
+`(item_id, question_key)` 与分区 join。
+
+### 5.4 训练前的三件事
+
+1. **先决定用不用旁挂 probs**（§4.4）：不用则软目标只有 7.62%；用了是 62.74%，但带选择偏差，
+   须按 `training_route` 与 `label_confidence` 过滤/加权，不能当无偏概率做校准。
+2. **按需重加权**（§2.2）：阅读 + 数学占 71.33%，直接按原始比例训练会把七成监督信号
+   给到这两维。若要更均衡，按能力维度重加权或下采样即可，代价可控。
+3. **意识到薄弱项**（§2.6）：世界知识 1.74%、因果/不确定性 0.83%，且中文只覆盖两处。
+   指望这份数据单独补上这几块会失望——它们是下一轮补源的第一优先（§2.5）。
+
+---
+
+## 6. 复算
+
+本页除**内部保留集的条数**（6,541）及由此相加得到的总量（78,060）——两者见
+[split-report.md](split-report.md)——外，每个分布数字都由同一个脚本算出。输入是仓库内
+公开的三个分区文件 + 两个旁挂件（旁挂件缺失时脚本会打印"本节跳过"）：
+
+    uv run --no-project --offline python datasets/general/readme_stats.py
+
+    # 分类是否合理？按能力维度与内容领域各抽样打印真实条目，人工过一遍
+    uv run --no-project --offline python datasets/general/readme_stats.py --samples 3
+
+    # 写进文件（UTF-8）
+    uv run --no-project --offline python datasets/general/readme_stats.py --out stats.md
+
+脚本见 [readme_stats.py](readme_stats.py)：只用标准库、不联网、不用随机数，同一份输入两次运行
+结果完全一致（两次运行输出文件的 sha256 相同）。两套口径的判定规则、映射表
+（65 个原生领域标签、13 个任务键、28 种文档类型、新并入来源的 32 个 config）都在脚本里逐条列出，
+可逐条核对。§2.5 的"按语料代际拆分"与 §4.4 的"旁挂前后对比"都在脚本输出里。
+
+本页数字对应 `data/splits/` 与旁挂件的**当前版本（v5）**；若分区被重新切分，
+数字会随之变化，以重跑结果为准（[split-manifest.json](data/splits/split-manifest.json)
+记录了当次切分的哈希与清单）。
+
+---
+
+## 7. 来源
+
+来源清单、固定版本与许可见 **[SOURCES.md](SOURCES.md)**。

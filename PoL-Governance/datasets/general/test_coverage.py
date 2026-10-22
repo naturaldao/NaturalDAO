@@ -98,7 +98,7 @@ class QuotaPassTest(unittest.TestCase):
                                   min_per_domain=2, max_source_share=0.5)
         text = cov.format_report(report)
         for token in ("[domain]", "[出题方 origin]", "[原语 kind]", "[lang]", "[source.dataset]",
-                      "[问题键 question_key（taxonomy 出题）]", "[pol2_axis]", "[配额校验]", "[通过]"):
+                      "[问题键 question_key（taxonomy 出题）]", "[pol2_axis]", "[配额参考]", "[通过]"):
             self.assertIn(token, text)
 
 
@@ -158,6 +158,49 @@ class QuotaFailTest(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertIn("覆盖域 risk_harm 只有 3 条 < 下限 5", report["quotas"]["violations"][0])
         self.assertEqual(report["gaps"]["domains"], {"risk_harm": 2})
+
+
+class NoGateTest(unittest.TestCase):
+    """覆盖门槛移除后的默认行为：分布照常统计，配额不参与退出码。"""
+
+    def small_items(self):
+        """远低于历史阈值（总量 10,000 / 每域 1,200 / 单一来源 40%）的语料。"""
+        return [make_item(i, "risk_harm", dataset="src-big") for i in range(6)]
+
+    def test_default_build_report_reports_without_gating(self):
+        report = cov.build_report(self.small_items())
+        self.assertTrue(report["ok"], report["quotas"]["violations"])
+        self.assertEqual(report["quotas"]["violations"], [])
+        self.assertIsNone(report["quotas"]["min_total"])
+        self.assertIsNone(report["quotas"]["max_source_share"])
+        self.assertFalse(any(report["quotas"]["enforce"].values()))
+        for check in report["quotas"]["checks"]:
+            if check["id"].startswith("domain:"):
+                self.assertFalse(check["enforced"])
+        # 分布照常完整统计
+        self.assertEqual(report["items"], 6)
+        self.assertEqual(report["distributions"]["domain"]["risk_harm"]["count"], 6)
+        self.assertEqual(report["distributions"]["source.dataset"]["src-big"]["count"], 6)
+        self.assertEqual(report["distributions"]["lang"]["en"]["count"], 6)
+
+    def test_cli_default_run_prints_distributions_and_exits_zero(self):
+        path = fixture(self.small_items())
+        completed = subprocess.run(
+            [sys.executable, str(HERE / "coverage.py"), "--items", str(path)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(HERE))
+        self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+        self.assertIn("[domain]", completed.stdout)
+        self.assertIn("[source.dataset]", completed.stdout)
+        self.assertIn("[通过]", completed.stdout)
+        self.assertIn("[配额参考]", completed.stdout)
+
+    def test_explicit_thresholds_stay_opt_in(self):
+        report = cov.build_report(self.small_items(), min_total=10, min_per_domain=2,
+                                  max_source_share=0.4)
+        self.assertFalse(report["ok"])
+        self.assertTrue(report["quotas"]["enforce"]["total"])
+        self.assertTrue(report["quotas"]["enforce"]["domains"])
+        self.assertTrue(report["quotas"]["enforce"]["source_share"])
 
 
 class SchemaWarningTest(unittest.TestCase):
@@ -247,19 +290,24 @@ def write_sources(payload) -> Path:
 
 
 class QuotaSourceTest(unittest.TestCase):
-    """配额来源解析：命令行 > sources.json > README 默认，逐字段回退。"""
+    """阈值来源解析：命令行（启用判定）> sources.json（仅参考）> 未指定（不判定）。"""
 
-    def test_readme_default_policy_has_pol2_axis_400(self):
+    def test_no_builtin_default_thresholds(self):
+        """覆盖门槛已移除：没有任何内置默认值，一切都得命令行显式给出。"""
         resolved = cov.resolve_quotas(sources_path=Path(tempfile.mkdtemp()) / "none.json")
-        self.assertEqual(resolved["status"], "readme-defaults")
-        self.assertEqual(resolved["min_total"], 10000)
-        self.assertEqual(resolved["min_per_domain"], 1200)
-        self.assertEqual(resolved["domain_min"], {"pol2_axis": 400})
-        self.assertAlmostEqual(resolved["max_source_share"], 0.4)
+        self.assertEqual(resolved["status"], "unset")
+        self.assertIsNone(resolved["min_total"])
+        self.assertIsNone(resolved["min_per_domain"])
+        self.assertEqual(resolved["domain_min"], {})
+        self.assertIsNone(resolved["max_source_share"])
+        self.assertEqual(resolved["enforce"],
+                         {"total": False, "domains": False, "source_share": False,
+                          "require_origin": False})
         self.assertTrue(any("不存在" in note for note in resolved["notes"]))
-        self.assertTrue(any("pol2_axis" in note for note in resolved["notes"]))
+        self.assertTrue(any("没有任何覆盖门槛" in note for note in resolved["notes"]))
 
     def test_sources_file_binding_end_to_end(self):
+        """sources.json 的 quotas 只作参考：写进报告，但不判定。"""
         sources = write_sources({"quotas": {"min_total": 3, "min_per_domain": 1,
                                             "domain_min": {"risk_harm": 2},
                                             "max_source_share": 0.9}})
@@ -277,31 +325,50 @@ class QuotaSourceTest(unittest.TestCase):
         self.assertEqual(report["quotas"]["per_domain"]["pol2_axis"], 1)
         self.assertEqual(report["quotas"]["origin"]["min_total"], "sources.json")
         self.assertEqual(report["quotas"]["source_file"], str(sources))
-        # 同一份 items 用 README 默认配额必然不达标：证明通过确实来自文件配额
+        self.assertFalse(any(report["quotas"]["enforce"].values()))
+        self.assertTrue(report["ok"], report["quotas"]["violations"])
+        # 同一份 items 不读文件同样通过：参考值不参与判定
         self.assertEqual(cov.main(["--items", str(path), "--sources", str(sources),
-                                   "--no-sources", "--quiet"]), 1)
+                                   "--no-sources", "--quiet"]), 0)
 
-    def test_missing_sources_file_falls_back(self):
+    def test_ambient_quotas_never_gate(self):
+        """sources.json 写了很高的下限：仍然退出 0，只在报告里标"不判定"。"""
+        sources = write_sources({"quotas": {"min_total": 999999, "min_per_domain": 88888,
+                                            "max_source_share": 0.01}})
+        path = fixture([make_item(0, "risk_harm")])
+        out = Path(tempfile.mkdtemp(prefix="db-coverage-out-")) / "report.json"
+        self.assertEqual(cov.main(["--items", str(path), "--sources", str(sources),
+                                   "--json-out", str(out), "--quiet"]), 0)
+        report = json.loads(out.read_text(encoding="utf-8"))
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["quotas"]["violations"], [])
+        by_id = {check["id"]: check for check in report["quotas"]["checks"]}
+        self.assertFalse(by_id["total"]["enforced"])
+        self.assertIn("不判定", by_id["total"]["required"])
+        self.assertIn("参考 >= 999999", by_id["total"]["required"])
+
+    def test_missing_sources_file_has_no_reference(self):
         missing = Path(tempfile.mkdtemp(prefix="db-sources-missing-")) / "none.json"
         path = fixture([make_item(0, "risk_harm")])
         out = Path(tempfile.mkdtemp(prefix="db-coverage-out-")) / "report.json"
         self.assertEqual(cov.main(["--items", str(path), "--sources", str(missing),
-                                   "--json-out", str(out), "--quiet"]), 1)
+                                   "--json-out", str(out), "--quiet"]), 0)
         report = json.loads(out.read_text(encoding="utf-8"))
-        self.assertEqual(report["quotas"]["status"], "readme-defaults")
-        self.assertEqual(report["quotas"]["min_total"], 10000)
-        self.assertEqual(report["quotas"]["per_domain"]["pol2_axis"], 400)
+        self.assertEqual(report["quotas"]["status"], "unset")
+        self.assertIsNone(report["quotas"]["min_total"])
+        self.assertIsNone(report["quotas"]["per_domain"]["pol2_axis"])
         self.assertIsNone(report["quotas"]["source_file"])
 
-    def test_partial_fields_fall_back_to_mixed(self):
+    def test_partial_fields_are_reference_only(self):
         sources = write_sources({"quotas": {"min_total": 5}})
         resolved = cov.resolve_quotas(sources_path=sources)
-        self.assertEqual(resolved["status"], "mixed")
+        self.assertEqual(resolved["status"], "sources.json")
         self.assertEqual(resolved["min_total"], 5)
         self.assertEqual(resolved["origin"]["min_total"], "sources.json")
-        self.assertEqual(resolved["origin"]["min_per_domain"], "readme-default")
-        self.assertEqual(resolved["origin"]["max_source_share"], "readme-default")
-        self.assertEqual(resolved["domain_min"], {"pol2_axis": 400})
+        self.assertEqual(resolved["origin"]["min_per_domain"], "unset")
+        self.assertEqual(resolved["origin"]["max_source_share"], "unset")
+        self.assertEqual(resolved["domain_min"], {})
+        self.assertFalse(any(resolved["enforce"].values()))
 
     def test_cli_overrides_file_field_by_field(self):
         sources = write_sources({"quotas": {"min_total": 999, "max_source_share": 0.1}})
@@ -310,38 +377,41 @@ class QuotaSourceTest(unittest.TestCase):
         self.assertEqual(resolved["origin"]["min_total"], "cli")
         self.assertEqual(resolved["origin"]["max_source_share"], "sources.json")
         self.assertEqual(resolved["status"], "cli")
+        self.assertTrue(resolved["enforce"]["total"])       # 命令行显式 → 判定
+        self.assertFalse(resolved["enforce"]["source_share"])  # 文件参考 → 不判定
 
-    def test_cli_min_per_domain_drops_default_exception(self):
+    def test_cli_min_per_domain_has_no_default_exception(self):
         resolved = cov.resolve_quotas(use_sources=False, min_per_domain=0)
         self.assertEqual(resolved["domain_min"], {})
-        self.assertEqual(resolved["origin"]["domain_min"], "readme-default")
-        self.assertTrue(any("--domain-min" in note for note in resolved["notes"]))
+        self.assertEqual(resolved["origin"]["domain_min"], "unset")
+        self.assertTrue(resolved["enforce"]["domains"])
+        self.assertEqual(resolved["min_per_domain"], 0)
 
-    def test_file_domain_min_wins_over_default_exception(self):
+    def test_file_domain_policy_is_reference_only(self):
         sources = write_sources({"quotas": {"min_per_domain": 1, "domain_min": {"pol2_axis": 0}}})
         resolved = cov.resolve_quotas(sources_path=sources)
         self.assertEqual(resolved["domain_min"], {"pol2_axis": 0})
         self.assertEqual(resolved["min_per_domain"], 1)
-        # 文件只给了每域政策，总量与单来源上限仍回退 README → 整体是 mixed
-        self.assertEqual(resolved["status"], "mixed")
+        self.assertEqual(resolved["status"], "sources.json")
         self.assertEqual(resolved["origin"]["min_per_domain"], "sources.json")
         self.assertEqual(resolved["origin"]["domain_min"], "sources.json")
+        self.assertFalse(resolved["enforce"]["domains"])
 
-    def test_file_base_without_exceptions_keeps_pol2_axis_default(self):
+    def test_file_base_without_exceptions_adds_no_default(self):
         sources = write_sources({"quotas": {"min_per_domain": 2000}})
         resolved = cov.resolve_quotas(sources_path=sources)
         self.assertEqual(resolved["min_per_domain"], 2000)
-        self.assertEqual(resolved["domain_min"], {"pol2_axis": 400})
+        self.assertEqual(resolved["domain_min"], {})
         self.assertEqual(resolved["origin"]["min_per_domain"], "sources.json")
-        self.assertEqual(resolved["origin"]["domain_min"], "readme-default")
+        self.assertEqual(resolved["origin"]["domain_min"], "unset")
 
-    def test_invalid_values_fall_back_with_notes(self):
+    def test_invalid_values_are_ignored_with_notes(self):
         sources = write_sources({"quotas": {"min_total": -1, "max_source_share": "abc",
                                             "domain_min": {"nope": 5, "risk_harm": "x"}}})
         resolved = cov.resolve_quotas(sources_path=sources)
-        self.assertEqual(resolved["min_total"], 10000)
-        self.assertEqual(resolved["domain_min"], {"pol2_axis": 400})
-        self.assertEqual(resolved["status"], "readme-defaults")
+        self.assertIsNone(resolved["min_total"])
+        self.assertEqual(resolved["domain_min"], {})
+        self.assertEqual(resolved["status"], "unset")
         joined = " | ".join(resolved["notes"])
         self.assertIn("min_total", joined)
         self.assertIn("max_source_share", joined)
@@ -358,19 +428,20 @@ class QuotaSourceTest(unittest.TestCase):
         self.assertEqual(resolved["domain_min"], {"risk_harm": 3})
         self.assertAlmostEqual(resolved["max_source_share"], 0.4)
         self.assertEqual(resolved["status"], "sources.json")
+        self.assertFalse(any(resolved["enforce"].values()))
 
-    def test_broken_sources_json_falls_back(self):
+    def test_broken_sources_json_has_no_reference(self):
         directory = tempfile.mkdtemp(prefix="db-sources-bad-")
         path = Path(directory) / "sources.json"
         path.write_text("{not json", encoding="utf-8")
         resolved = cov.resolve_quotas(sources_path=path)
-        self.assertEqual(resolved["status"], "readme-defaults")
+        self.assertEqual(resolved["status"], "unset")
         self.assertTrue(any("无法解析" in note for note in resolved["notes"]))
 
-    def test_sources_json_without_quotas_section_falls_back(self):
+    def test_sources_json_without_quotas_section_has_no_reference(self):
         sources = write_sources({"version": "0.1", "sources": []})
         resolved = cov.resolve_quotas(sources_path=sources)
-        self.assertEqual(resolved["status"], "readme-defaults")
+        self.assertEqual(resolved["status"], "unset")
         self.assertTrue(any("没有 quotas 段" in note for note in resolved["notes"]))
 
     def test_text_report_states_quota_source(self):
@@ -381,10 +452,11 @@ class QuotaSourceTest(unittest.TestCase):
                                               "source_file": "x/sources.json",
                                               "notes": ["示例说明"]})
         text = cov.format_report(report)
-        self.assertIn("配额来源：sources.json", text)
+        self.assertIn("[配额参考]", text)
+        self.assertIn("阈值来源：sources.json（仅参考）", text)
         self.assertIn("file=x/sources.json", text)
         self.assertIn("示例说明", text)
-        self.assertIn("min_total=sources.json", text)
+        self.assertIn("min_total=sources.json（仅参考）", text)
 
 
 def source_question(key, kind, options=None, scale=None, prompt="native question"):
@@ -563,7 +635,7 @@ class ProfileTest(unittest.TestCase):
         return [make_source_item(i, domain="decision_mechanics" if i % 2 else "knowledge_reasoning")
                 for i in range(20)]
 
-    def test_subset_passes_what_full_rejects(self):
+    def test_subset_and_full_both_pass_by_default(self):
         path = fixture(self.subset_items())
         out = Path(tempfile.mkdtemp(prefix="db-coverage-out-")) / "report.json"
         code = cov.main(["--items", str(path), "--profile", "subset",
@@ -576,8 +648,8 @@ class ProfileTest(unittest.TestCase):
         self.assertFalse(report["quotas"]["enforce"]["domains"])
         self.assertFalse(report["quotas"]["enforce"]["source_share"])
         self.assertTrue(report["quotas"]["enforce"]["require_origin"])
-        # 同一份数据走全量档位必然不达标（20 条、单一来源 100%、只覆盖 2 个域）
-        self.assertEqual(cov.main(["--items", str(path), "--quiet"]), 1)
+        # 同一份数据（20 条、单一来源 100%、只覆盖 2 个域）走全量档位同样通过：档位不再带门槛
+        self.assertEqual(cov.main(["--items", str(path), "--quiet"]), 0)
 
     def test_subset_still_checks_non_empty_domain_and_id(self):
         empty = fixture([])

@@ -1,0 +1,34 @@
+{
+  "line": "A. mercury-decide noul（升级伪 one-hot / 均匀）",
+  "group_by": "source dataset",
+  "written_rows_by_label": {
+    "medium_consensus": 5032,
+    "high_consensus": 1492
+  },
+  "configs": {
+    "SargeDev/jev-distill-corpus-v3": {
+      "n": 4053,
+      "agree": 2943,
+      "agree_rate": 0.7261,
+      "label_confidence": "medium_consensus"
+    },
+    "kaivoss/system-one-270m-data": {
+      "n": 489,
+      "agree": 436,
+      "agree_rate": 0.8916,
+      "label_confidence": "medium_consensus"
+    },
+    "tasksource/procedural-typed-decisions": {
+      "n": 1872,
+      "agree": 1692,
+      "agree_rate": 0.9038,
+      "label_confidence": "medium_consensus"
+    },
+    "ZefanCai/Open-Jev": {
+      "n": 1493,
+      "agree": 1492,
+      "agree_rate": 0.9993,
+      "label_confidence": "high_consensus"
+    }
+  }
+}

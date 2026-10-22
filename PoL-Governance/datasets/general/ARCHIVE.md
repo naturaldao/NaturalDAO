@@ -86,11 +86,11 @@
 
 | 文件 | 内容 |
 |---|---|
-| data/items.final.jsonl(.gz) | **最终语料**：英文 15,983 + 中文 7,872 = 23,855 条，中文占 33.00%，100% 带真值；中文侧带显式 group_id（切分按组分配） |
-| data/items.native.jsonl(.gz) | 英文主产物：15,983 条原生四元组，100% 带真值 |
-| data/items.native.slim.jsonl(.gz) + items.native.manifest.json | 精简存储版（省 34.5% 字节，可无损还原） |
-| data/items.jsonl(.gz) | 模板版对照产物（37,124 条） |
-| data/items.bilingual.jsonl(.gz) | 中英双语版（基于模板版；中文侧裁决后处理） |
+| data/items.final.jsonl（明文留本机；.gz **已移出版本控制**） | **最终语料**：英文 15,983 + 中文 7,872 = 23,855 条，中文占 33.00%，100% 带真值；中文侧带显式 group_id（切分按组分配）。移出原因：.gz 含 v1 benchmark 全部正文 |
+| data/items.native.jsonl（明文留本机；.gz **已移出版本控制**） | 英文主产物：15,983 条原生四元组，100% 带真值 |
+| data/items.native.slim.jsonl（明文留本机；.gz **已移出版本控制**） + items.native.manifest.json | 精简存储版（省 34.5% 字节，可无损还原） |
+| data/items.jsonl（明文留本机；.gz **已移出版本控制**） | 模板版对照产物（37,124 条） |
+| data/items.bilingual.jsonl（明文留本机；.gz **已移出版本控制**） | 中英双语版（基于模板版；中文侧裁决后处理） |
 | data/*.report.json / convert-report.json | 各步骤的可复算报告 |
 | data/splits/ | 最终切分（db-schema，task-20）；benchmark* 已在 .gitignore 里，**不得进公开仓库** |
 
@@ -103,7 +103,7 @@
 | taxonomy.py | 它是模板命题线的题面来源，原生线不需要 | coverage.py、ask.py、luna_clean.py、luna_gen.py、convert_zh.py、convert.py（模板模式）与 6 个测试文件 import 它（共 10 个模块） | **暂不删** |
 | convert.py 的模板转换器（CONVERTERS 段） | 已被 NATIVE_CONVERTERS 取代 | data/items.jsonl 仍作为对照产物存在，需要能复现 | **暂不删**（已在代码里标注"对照/待归档"） |
 | test_convert.py | 只测模板模式 | 同上 | **暂不删** |
-| data/items.jsonl(.gz) | 已降对照 | 契约与文档引用它；删除属于"删数据产物" | **不删**（任务约束） |
+| data/items.jsonl（明文）/ 其 .gz | 已降对照 | .gz 已随 task-24 移出版本控制（含 benchmark 正文）；明文按要求不删 | **明文不删** |
 | baseline-old.json（仓库根） | 名字就叫 old，是模板版的覆盖基线 | 在仓库根、不在本目录；是记录不是脚本 | 移交 Lead 处置 |
 
 **可以整套退役的前置条件**（满足后可一次性删除：taxonomy.py、convert.py 的 CONVERTERS 段、

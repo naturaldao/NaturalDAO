@@ -1,23 +1,25 @@
-"""general 覆盖报告与配额校验。
+"""general 覆盖报告与分布统计。
 
 用法：
 
     uv run --no-project --offline python datasets/general/coverage.py --items datasets/general/data/items.jsonl
 
 输出：按 domain / source.dataset / 原语(kind) / lang / 问题键 的分布，PoL2 15 条判定轴的逐轴覆盖，
-以及配额校验（总量 / 每域 / 单一来源占比）。报告会写明本次配额用的是哪一套。
+以及来源/域的规模参考。**默认只报告，不判定**：分布照常全部打印，退出码不受规模影响。
 
-配额来源（优先级从高到低，逐字段解析，报告 quotas.origin 给出每个字段的来源）：
+配额政策（2026-10-15 起，门槛全部移除）：
 
-1. 命令行：--min-total / --min-per-domain / --domain-min / --max-source-share；
-2. datasets/general/sources.json 的 quotas 段（db-hf 维护，字段名兼容见 resolve_quotas 的别名表）；
-3. README 硬阈值（本文件常量）：总量 >= 10000、每域 >= 1200、单一来源 <= 40%。
+- **默认没有任何覆盖门槛。** 总量、每域下限、单一来源占比都不再是通过/不通过的条件，
+  退出码不受它们影响（原先写死在本文件里的 README 硬阈值——总量 10000、每域 1200、
+  pol2_axis 400、单一来源 40%——已随门槛一并删除）。
+- 需要强制时**显式**在命令行给出阈值：--min-total / --min-per-domain / --domain-min /
+  --max-source-share。只有命令行显式给出的维度才参与判定（逐字段；未给出的维度不判定）。
+- datasets/general/sources.json 的 quotas 段只作为**参考值**读入并打印（报告 quotas.origin 里标为
+  "sources.json（仅参考）"），既不再回退内置默认值，也不会让产物失败。历史配额数字只留在那里备查。
+- 报告 quotas.enforce 写明每个维度这次是否参与判定；未参与的检查仍打印实际值，标记为 "--"。
 
-per-domain 政策（基础下限 + 例外）整组取用：命令行给了任一每域参数就整组用命令行，
-否则整组取 sources.json，再否则用 README 默认。README 默认里 pol2_axis 下限是 **400**（其余五域 1200）：
-general 是通用底座，PoL2 专项语料本轮由协作者在别处生产（我方已搁置），
-把它卡在 1200 会逼通用底座去补一个不归它管的缺口、稀释通用覆盖；等 PoL2 语料落地后再提这一档。
-命令行显式给 --min-per-domain 而未给 --domain-min 时，该默认例外不自动生效。
+硬性违规（退出码 1）只有两类：格式问题（条目数为 0、未知 domain、重复 id）与命令行显式启用的配额；
+其余 README 2.1 的字段问题（缺 source/meta 字段、键名/选项/答案不合法等）先记警告，--strict 时才算失败。
 
 出题方（questions[].origin，见 README 2.1）：
 
@@ -31,18 +33,18 @@ general 是通用底座，PoL2 专项语料本轮由协作者在别处生产（�
 
 产物档位（--profile）：
 
-- full（默认）：全量产物，按 sources.json / README 阈值校验总量、每域下限、单一来源占比。
+- full（默认）：全量产物，统计并打印全部维度；配额只作参考，不判定。
 - subset：子集产物（如 System-1 原生题子集）只校验它自己该负责的维度——非空、domain 合法、
-  id 唯一、每道题显式声明 origin；全量阈值只在命令行显式给出时才生效（README / sources.json 的
-  环境值不套用）。否则"单一来源 48.5%、三个域为 0"的子集产物会永远红，配额检查再次失去信号。
+  id 唯一、每道题显式声明 origin；不读 sources.json 的参考配额。两个档位都不再有任何默认门槛，
+  区别只在"要不要 origin 显式声明"与"要不要打印 sources.json 的参考值"。
 
 退出码：
 
-- 0：通过（有问题但只是 schema 警告时仍为 0，除非加 --strict）
-- 1：配额或硬性违规（未知 domain、重复 id、配额不达标），缺口会逐条列出
+- 0：通过（有问题但只是 schema 警告时仍为 0，除非加 --strict）；配额不参与
+- 1：硬性违规（条目数为 0、未知 domain、重复 id，或命令行显式启用的配额不达标），逐条列出
 - 2：输入不可读（文件缺失、JSON 损坏、参数非法）
 
-硬性违规与 schema 警告的分界：domain 必须在 taxonomy 内、id 不得重复，因为它们直接破坏配额口径；
+硬性违规与 schema 警告的分界：domain 必须在 taxonomy 内、id 不得重复、产物不得为空；
 其余 README 2.1 的字段问题（缺 source/meta 字段、键名/选项/答案不合法等）先记警告，--strict 时才算失败。
 
 本阶段明确不做（不是漏了）：
@@ -70,11 +72,9 @@ import taxonomy  # noqa: E402
 SCHEMA = "general-coverage/0.1"
 DEFAULT_ITEMS = _HERE / "data" / "items.jsonl"
 SOURCES_PATH = _HERE / "sources.json"
-DEFAULT_MIN_TOTAL = 10_000
-DEFAULT_MIN_PER_DOMAIN = 1_200
-#: README 默认每域下限的例外：pol2_axis 400（理由见模块 docstring）
-DEFAULT_DOMAIN_MIN: dict[str, int] = {"pol2_axis": 400}
-DEFAULT_MAX_SOURCE_SHARE = 0.40
+#: 覆盖门槛已于 2026-10-15 全部移除：本文件不再有任何内置下限/上限常量（原先的总量 10000、
+#: 每域 1200、pol2_axis 400、单一来源 40% 已删除）。只有命令行显式给出的阈值才参与判定
+#: （显式给出即 opt-in）；sources.json 的 quotas 只作参考值打印，不影响退出码。
 MAX_DISTINCT_MESSAGES = 200
 
 #: sources.json 的 quotas 段字段名兼容表（第一个命中的为准；列出的都是同义写法，只取其一）
@@ -84,25 +84,29 @@ QUOTA_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "domain_min": ("domain_min", "domain_minimums", "per_domain_overrides"),
     "max_source_share": ("max_source_share", "source_share_cap", "single_source_max_share", "max_share"),
 }
-QUOTA_ORIGIN_LABELS = {"cli": "命令行", "sources.json": "sources.json", "readme-default": "README 默认"}
+QUOTA_ORIGIN_LABELS = {"cli": "命令行（启用判定）", "sources.json": "sources.json（仅参考）",
+                       "unset": "未指定（不判定）"}
+QUOTA_STATUS_LABELS = {"cli": "命令行（启用判定）", "sources.json": "sources.json（仅参考）",
+                       "mixed": "混合（仅参考）", "unset": "未指定（不判定）"}
 
 #: questions[].origin 取值（README 2.1）；缺省按 taxonomy，保证老数据行为不变
 ORIGIN_SOURCE = "source"
 ORIGIN_TAXONOMY = "taxonomy"
 ORIGINS = (ORIGIN_SOURCE, ORIGIN_TAXONOMY)
 
-#: 产物档位：full=全量配额，subset=子集只查自身该负责的维度（见模块 docstring）
+#: 产物档位：full=全量产物（打印全部维度与参考配额），subset=子集只查自身该负责的维度。
+#: 两个档位的 enforce_* 都是 False：档位本身不再带任何覆盖门槛，只有命令行显式阈值才判定。
 PROFILES: dict[str, dict] = {
     "full": {
-        "description": "全量产物：按 sources.json / README 阈值校验总量、每域下限、单一来源占比",
+        "description": "全量产物：打印全部维度与参考配额；默认不判定，阈值需命令行显式给出",
         "read_ambient": True,
         "require_origin": False,
-        "enforce_total": True,
-        "enforce_domains": True,
-        "enforce_source_share": True,
+        "enforce_total": False,
+        "enforce_domains": False,
+        "enforce_source_share": False,
     },
     "subset": {
-        "description": "子集产物：只校验非空/域合法/id 唯一/origin 显式；全量阈值需命令行显式给出",
+        "description": "子集产物：只校验非空/域合法/id 唯一/origin 显式；不读参考配额",
         "read_ambient": False,
         "require_origin": True,
         "enforce_total": False,
@@ -143,21 +147,21 @@ def read_sources_quotas(path: Path | str = SOURCES_PATH) -> tuple[dict, list[str
     """读 sources.json 的 quotas 段（兼容 QUOTA_FIELD_ALIASES 里的同义字段名）。
 
     返回 (原始字段字典, 说明列表, 是否真的用上了文件)。文件不存在 / 无法解析 / 没有 quotas 段时
-    返回 ({}, 说明, False)，由 resolve_quotas 逐字段回退 README 硬阈值；
+    返回 ({}, 说明, False)：这些值**只作参考**，不参与判定，也不会回退任何内置默认值；
     只有第三种元素为 True 时报告才写 source_file。
     """
     source = Path(path)
     if not source.is_file():
-        return {}, [f"sources.json 不存在（{source}），配额用 README 默认值"], False
+        return {}, [f"sources.json 不存在（{source}），没有参考配额"], False
     try:
         data = json.loads(source.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        return {}, [f"sources.json 无法解析（{exc}），配额用 README 默认值"], False
+        return {}, [f"sources.json 无法解析（{exc}），没有参考配额"], False
     if not isinstance(data, dict):
-        return {}, ["sources.json 顶层不是对象，配额用 README 默认值"], False
+        return {}, ["sources.json 顶层不是对象，没有参考配额"], False
     raw = data.get("quotas", data.get("quota"))
     if not isinstance(raw, dict):
-        return {}, ["sources.json 没有 quotas 段，配额用 README 默认值"], False
+        return {}, ["sources.json 没有 quotas 段，没有参考配额"], False
     return raw, [], True
 
 
@@ -207,11 +211,12 @@ def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool
                    min_total: int | None = None, min_per_domain: int | None = None,
                    max_source_share: float | None = None, domain_min: dict | None = None,
                    profile: str = DEFAULT_PROFILE) -> dict:
-    """按 命令行 > sources.json > README 默认 逐字段解析配额，并给出哪些维度要强制。
+    """逐字段解析阈值：命令行 > sources.json（仅参考）> 未指定；默认没有任何门槛。
 
-    参数传 None 表示"这一层没给"，交给下一层；传具体值表示覆盖。
-    domain_min 的 None 与 {} 含义不同：None=没给，{}=显式要求没有任何例外。
-    profile=subset 时不套用环境值（sources.json / README），只有命令行显式给出的维度才强制。
+    参数传 None 表示"这一层没给"，交给下一层；命令行传具体值 = 显式启用该维度的判定。
+    domain_min 的 None 与 {} 含义不同：None=没给，{}=显式要求没有任何每域例外。
+    profile=subset 时不读 sources.json 的参考值；两个档位都不带默认门槛，
+    enforce 只由"命令行是否显式给出"和档位决定——环境值（sources.json）永不判定。
     """
     if profile not in PROFILES:
         raise ValueError(f"未知档位 {profile!r}；合法值：{sorted(PROFILES)}")
@@ -223,11 +228,10 @@ def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool
         raw, file_notes, used_file = read_sources_quotas(sources_path)
         notes.extend(file_notes)
     elif use_sources:
-        notes.append(f"档位 {profile}：不套用 sources.json / README 的环境配额，"
-                     "只有命令行显式给出的阈值才生效")
+        notes.append(f"档位 {profile}：不读 sources.json 的参考配额")
     origin: dict[str, str] = {}
 
-    def pick(cli_value, field: str, default, cast):
+    def pick(cli_value, field: str, cast):
         if cli_value is not None:
             origin[field] = "cli"
             return cli_value
@@ -235,15 +239,15 @@ def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool
         if key is not None:
             parsed = cast(value)
             if parsed is None:
-                notes.append(f"sources.json quotas.{key}={value!r} 不合法，回退 README 默认 {default!r}")
+                notes.append(f"sources.json quotas.{key}={value!r} 不合法，忽略（仅参考，不影响判定）")
             else:
                 origin[field] = "sources.json"
                 return parsed
-        origin[field] = "readme-default"
-        return default
+        origin[field] = "unset"
+        return None
 
-    resolved_total = pick(min_total, "min_total", DEFAULT_MIN_TOTAL, _as_nonneg_int)
-    resolved_share = pick(max_source_share, "max_source_share", DEFAULT_MAX_SOURCE_SHARE, _as_share)
+    resolved_total = pick(min_total, "min_total", _as_nonneg_int)
+    resolved_share = pick(max_source_share, "max_source_share", _as_share)
 
     # per-domain 政策（基础下限 + 例外）整组解析，避免"某来源只给一半"造成半套配额
     file_base = None
@@ -251,7 +255,7 @@ def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool
         if key in raw:
             parsed = _as_nonneg_int(raw[key])
             if parsed is None:
-                notes.append(f"sources.json quotas.{key}={raw[key]!r} 不合法，改用 README 每域默认")
+                notes.append(f"sources.json quotas.{key}={raw[key]!r} 不合法，忽略（仅参考）")
             else:
                 file_base = parsed
             break
@@ -262,38 +266,30 @@ def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool
             break
 
     if min_per_domain is not None or domain_min is not None:
-        base = min_per_domain if min_per_domain is not None else DEFAULT_MIN_PER_DOMAIN
+        base = min_per_domain
         exceptions = dict(domain_min or {})
-        origin["min_per_domain"] = "cli" if min_per_domain is not None else "readme-default"
-        origin["domain_min"] = "cli" if domain_min is not None else "readme-default"
-        if min_per_domain is not None and domain_min is None:
-            notes.append("命令行给了 --min-per-domain 而未给 --domain-min：默认的 pol2_axis 例外不自动生效"
-                         f"（如需保留请加 --domain-min pol2_axis={DEFAULT_DOMAIN_MIN['pol2_axis']}）")
+        origin["min_per_domain"] = "cli" if min_per_domain is not None else "unset"
+        origin["domain_min"] = "cli" if domain_min is not None else "unset"
     elif file_base is not None or file_exceptions is not None:
-        base = file_base if file_base is not None else DEFAULT_MIN_PER_DOMAIN
-        exceptions = file_exceptions if file_exceptions is not None else dict(DEFAULT_DOMAIN_MIN)
-        origin["min_per_domain"] = "sources.json" if file_base is not None else "readme-default"
-        origin["domain_min"] = "sources.json" if file_exceptions is not None else "readme-default"
-        if file_exceptions is None:
-            notes.append("sources.json 只给了每域下限、没给 domain_min：沿用默认例外 pol2_axis="
-                         f"{DEFAULT_DOMAIN_MIN['pol2_axis']}（通用底座不背 PoL2 专项配额）")
+        base = file_base
+        exceptions = file_exceptions or {}
+        origin["min_per_domain"] = "sources.json" if file_base is not None else "unset"
+        origin["domain_min"] = "sources.json" if file_exceptions is not None else "unset"
+        notes.append("sources.json 的每域下限只作参考，不参与判定；"
+                     "需要强制时用 --min-per-domain / --domain-min")
     else:
-        base = DEFAULT_MIN_PER_DOMAIN
-        exceptions = dict(DEFAULT_DOMAIN_MIN)
-        origin["min_per_domain"] = "readme-default"
-        origin["domain_min"] = "readme-default"
-        if settings["enforce_domains"]:
-            notes.append(f"pol2_axis 下限默认 {DEFAULT_DOMAIN_MIN['pol2_axis']}（其余五域 {base}）："
-                         "general 是通用底座，PoL2 专项语料本轮由协作者在别处生产，"
-                         "等其落地后再提这一档")
+        base = None
+        exceptions = {}
+        origin["min_per_domain"] = "unset"
+        origin["domain_min"] = "unset"
 
-    values = set(origin.values())
-    if "cli" in values:
+    specified = set(origin.values()) - {"unset"}
+    if not specified:
+        status = "unset"
+    elif "cli" in specified:
         status = "cli"
-    elif values == {"sources.json"}:
+    elif specified == {"sources.json"}:
         status = "sources.json"
-    elif values == {"readme-default"}:
-        status = "readme-defaults"
     else:
         status = "mixed"
     enforce = {
@@ -303,6 +299,9 @@ def resolve_quotas(*, sources_path: Path | str = SOURCES_PATH, use_sources: bool
         "source_share": bool(settings["enforce_source_share"] or origin.get("max_source_share") == "cli"),
         "require_origin": bool(settings["require_origin"]),
     }
+    if not any((enforce["total"], enforce["domains"], enforce["source_share"])):
+        notes.append("本次没有任何覆盖门槛：分布照常统计，配额不参与通过/不通过；"
+                     "需要强制时显式给 --min-total / --min-per-domain / --domain-min / --max-source-share")
     return {
         "profile": profile,
         "profile_description": settings["description"],
@@ -599,25 +598,35 @@ def _share(counter: Counter, total: int) -> dict[str, float]:
     return {str(key): (round(count / total, 6) if total else 0.0) for key, count in counter.items()}
 
 
-def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
-                 min_per_domain: int = DEFAULT_MIN_PER_DOMAIN,
-                 max_source_share: float = DEFAULT_MAX_SOURCE_SHARE,
+def build_report(items, *, items_file=None, min_total: int | None = None,
+                 min_per_domain: int | None = None,
+                 max_source_share: float | None = None,
                  domain_min: dict | None = None, quota_meta: dict | None = None) -> dict:
-    """对已读入的条目做分布统计与配额校验，返回可 JSON 序列化的报告。
+    """对已读入的条目做分布统计，并按"显式启用"的阈值判定，返回可 JSON 序列化的报告。
 
-    domain_min 是"每域下限的例外"（如 {"pol2_axis": 400}）；quota_meta 来自 resolve_quotas，
-    用于写明本次配额是哪一套（origin/status/source_file/notes）以及哪些维度要强制（enforce）。
+    **默认没有任何覆盖门槛**：min_total / min_per_domain / max_source_share 为 None（默认）即不判定，
+    分布照常统计并打印；显式传值 = 该维度 opt-in 判定。quota_meta 来自 resolve_quotas，给出这次
+    哪些维度参与判定（enforce）与阈值来源（origin/status/source_file/notes）；传了 quota_meta
+    就以它的 enforce 为准。任何维度未启用时仍打印实际值与参考值，只是不参与通过/不通过。
     """
     meta = quota_meta or {}
-    enforce = dict(meta.get("enforce") or {})
-    enforce_total = bool(enforce.get("total", True))
-    enforce_domains = bool(enforce.get("domains", True))
-    enforce_share = bool(enforce.get("source_share", True))
-    require_origin = bool(enforce.get("require_origin", False))
+    enforce_meta = meta.get("enforce")
+    if enforce_meta is None:
+        # 直接调用：显式传阈值即 opt-in，没传就不判定
+        enforce_total = min_total is not None
+        enforce_domains = min_per_domain is not None or bool(domain_min)
+        enforce_share = max_source_share is not None
+        require_origin = False
+    else:
+        enforce_total = bool(enforce_meta.get("total", min_total is not None))
+        enforce_domains = bool(enforce_meta.get("domains", min_per_domain is not None or bool(domain_min)))
+        enforce_share = bool(enforce_meta.get("source_share", max_source_share is not None))
+        require_origin = bool(enforce_meta.get("require_origin", False))
     profile = meta.get("profile", DEFAULT_PROFILE)
 
     total = len(items)
-    per_domain_min = {domain: int((domain_min or {}).get(domain, min_per_domain))
+    #: 每域参考下限：显式例外优先，其次统一基础值；都没给就是 None（该域不判定）
+    per_domain_min = {domain: (domain_min or {}).get(domain, min_per_domain)
                       for domain in taxonomy.DOMAINS}
 
     domain_counts: Counter = Counter()
@@ -721,32 +730,39 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
     checks: list[dict] = []
     violations: list[str] = []
     gaps: dict = {"total_shortfall": 0, "domains": {}, "sources_over_share": {}}
-    skipped = f"未启用（profile={profile}；需命令行显式给出阈值）"
     skipped_origin = f"未启用（profile={profile} 不要求）"
+
+    def reference(value: str | None) -> str:
+        """未判定的检查：有参考值就写出来，没有就写明没有。"""
+        return f"参考 {value}，不判定" if value is not None else "无参考值，不判定"
 
     if total == 0:
         violations.append("条目数为 0：任何产物都必须非空")
     checks.append({"id": "non_empty", "enforced": True, "ok": total > 0,
                    "actual": total, "required": ">= 1", "detail": "非空"})
 
-    checks.append({"id": "total", "enforced": enforce_total,
-                   "ok": (not enforce_total) or total >= min_total,
+    judged_total = enforce_total and min_total is not None
+    checks.append({"id": "total", "enforced": judged_total,
+                   "ok": (not judged_total) or total >= min_total,
                    "actual": total,
-                   "required": f">= {min_total}" if enforce_total else skipped,
+                   "required": (f">= {min_total}" if judged_total
+                                else reference(f">= {min_total}" if min_total is not None else None)),
                    "detail": "总量"})
-    if enforce_total and total < min_total:
+    if judged_total and total < min_total:
         gaps["total_shortfall"] = min_total - total
         violations.append(f"总量 {total} < 下限 {min_total}（缺 {min_total - total}）")
 
     for domain in taxonomy.DOMAINS:
         count = domain_counts.get(domain, 0)
         required = per_domain_min[domain]
-        checks.append({"id": f"domain:{domain}", "enforced": enforce_domains,
-                       "ok": (not enforce_domains) or count >= required,
+        judged = enforce_domains and required is not None
+        checks.append({"id": f"domain:{domain}", "enforced": judged,
+                       "ok": (not judged) or count >= required,
                        "actual": count,
-                       "required": f">= {required}" if enforce_domains else skipped,
+                       "required": (f">= {required}" if judged
+                                    else reference(f">= {required}" if required is not None else None)),
                        "detail": f"覆盖域 {domain}"})
-        if enforce_domains and count < required:
+        if judged and count < required:
             gaps["domains"][domain] = required - count
             violations.append(f"覆盖域 {domain} 只有 {count} 条 < 下限 {required}（缺 {required - count}）")
 
@@ -774,14 +790,16 @@ def build_report(items, *, items_file=None, min_total: int = DEFAULT_MIN_TOTAL,
     else:
         top_source, top_count = "", 0
     top_share = (top_count / total) if total else 0.0
-    checks.append({"id": "max_source_share", "enforced": enforce_share,
-                   "ok": (not enforce_share) or top_share <= max_source_share + 1e-9,
+    judged_share = enforce_share and max_source_share is not None
+    checks.append({"id": "max_source_share", "enforced": judged_share,
+                   "ok": (not judged_share) or top_share <= max_source_share + 1e-9,
                    "actual": round(top_share, 6),
-                   "required": f"<= {max_source_share}" if enforce_share else skipped,
+                   "required": (f"<= {max_source_share}" if judged_share
+                                else reference(f"<= {max_source_share}" if max_source_share is not None else None)),
                    "detail": f"最大单一来源 {top_source or '(none)'}"})
     over = {name: round(count / total, 6) for name, count in source_counts.items()
-            if total and count / total > max_source_share + 1e-9}
-    if enforce_share and over:
+            if total and judged_share and count / total > max_source_share + 1e-9}
+    if judged_share and over:
         gaps["sources_over_share"] = over
         for name, share in sorted(over.items(), key=lambda kv: -kv[1]):
             violations.append(f"单一来源 {name} 占 {share:.1%}，超过上限 {max_source_share:.0%}"
@@ -903,12 +921,10 @@ def format_report(report: dict, *, top: int = 40) -> str:
 
     distributions = report["distributions"]
     enforce = report["quotas"].get("enforce") or {}
-    domain_note = (f"每域下限 {report['quotas']['min_per_domain']}"
-                   if enforce.get("domains", True) else
-                   f"每域下限未启用（profile={profile}）")
-    share_note = (f"单一来源上限 {report['quotas']['max_source_share']:.0%}"
-                  if enforce.get("source_share", True) else
-                  f"单一来源上限未启用（profile={profile}）")
+    domain_note = (f"每域下限 {report['quotas']['min_per_domain']}（命令行显式启用）"
+                   if enforce.get("domains") else "每域不设下限，仅统计分布")
+    share_note = (f"单一来源上限 {report['quotas']['max_source_share']:.0%}（命令行显式启用）"
+                  if enforce.get("source_share") else "单一来源不设上限，仅统计分布")
     section("domain", distributions["domain"], domain_note)
     origin_counts = origin_info.get("questions") or {}
     total_questions = report["questions"] or 1
@@ -936,7 +952,8 @@ def format_report(report: dict, *, top: int = 40) -> str:
     origin = quotas.get("origin") or {}
     origin_text = "，".join(f"{field}={QUOTA_ORIGIN_LABELS.get(source, source)}"
                             for field, source in origin.items())
-    lines.append(f"[配额校验] 配额来源：{quotas.get('status', 'explicit')}"
+    lines.append("[配额参考] 阈值来源："
+                 + QUOTA_STATUS_LABELS.get(quotas.get("status", "unset"), str(quotas.get("status")))
                  + (f"  file={quotas['source_file']}" if quotas.get("source_file") else ""))
     if origin_text:
         lines.append(f"  逐字段来源：{origin_text}")
@@ -947,10 +964,11 @@ def format_report(report: dict, *, top: int = 40) -> str:
             mark = "--"
         else:
             mark = "OK" if check["ok"] else "NG"
-        lines.append(f"  [{mark}] {check['detail']}: {check['actual']} （要求 {check['required']}）")
+        lines.append(f"  [{mark}] {check['detail']}: {check['actual']} （{check['required']}）")
     lines.append("")
     if report["quotas"]["violations"]:
-        lines.append("[不通过] " + str(len(report["quotas"]["violations"])) + " 项：")
+        lines.append("[不通过] " + str(len(report["quotas"]["violations"]))
+                     + " 项（格式类 + 命令行显式启用的配额）：")
         for violation in report["quotas"]["violations"]:
             lines.append(f"  - {violation}")
         gaps = report["gaps"]
@@ -958,12 +976,12 @@ def format_report(report: dict, *, top: int = 40) -> str:
             lines.append(f"  总量缺口：{gaps['total_shortfall']}")
         for domain, shortfall in gaps["domains"].items():
             lines.append(f"  {domain} 缺口：{shortfall}")
-    elif enforce.get("total", True) and enforce.get("domains", True) \
-            and enforce.get("source_share", True):
-        lines.append("[通过] 总量、每域下限、单一来源占比均达标")
     else:
-        lines.append(f"[通过] profile={profile}：只判定启用的检查"
-                     "（非空 / domain 合法 / id 唯一 / origin 显式），未启用的全量阈值不参与）")
+        judged = [name for name in ("total", "domains", "source_share") if enforce.get(name)]
+        lines.append("[通过] 无硬性违规（非空 / domain 合法 / id 唯一"
+                     + (" / origin 显式" if enforce.get("require_origin") else "") + "）"
+                     + ("；已判定的配额达标：" + "、".join(judged) if judged
+                        else "；覆盖配额未设门槛，只作参考"))
     lines.append("")
     issues = report["schema_issues"]
     if issues["total"]:
@@ -992,25 +1010,24 @@ def parse_domain_min(values) -> dict:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="general 覆盖报告与配额校验")
+    parser = argparse.ArgumentParser(description="general 覆盖报告与分布统计（默认不设门槛）")
     parser.add_argument("--items", type=Path, default=DEFAULT_ITEMS,
                         help=f"items.jsonl 路径（默认 {DEFAULT_ITEMS}）")
     parser.add_argument("--profile", choices=sorted(PROFILES), default=DEFAULT_PROFILE,
-                        help="产物档位：full=全量配额（默认）；subset=子集只校验自身一致性"
-                             "（非空/域合法/id 唯一/origin 显式），全量阈值需命令行显式给出")
+                        help="产物档位：full=全量产物并打印参考配额（默认）；"
+                             "subset=子集只校验自身一致性（非空/域合法/id 唯一/origin 显式）")
     parser.add_argument("--sources", type=Path, default=SOURCES_PATH,
-                        help=f"配额来源 sources.json（默认 {SOURCES_PATH}）")
+                        help=f"sources.json 路径，只取其中的参考配额（默认 {SOURCES_PATH}）")
     parser.add_argument("--no-sources", action="store_true",
-                        help="忽略 sources.json，只用 README 硬阈值")
+                        help="不读 sources.json 的参考配额（默认也不判定，只影响报告里的参考值）")
     parser.add_argument("--min-total", type=int, default=None,
-                        help=f"覆盖总量下限（默认 sources.json 或 README {DEFAULT_MIN_TOTAL}）")
+                        help="总量下限；默认不启用，显式给出才判定")
     parser.add_argument("--min-per-domain", type=int, default=None,
-                        help=f"覆盖每域下限（默认 sources.json 或 README {DEFAULT_MIN_PER_DOMAIN}；"
-                             f"显式给出时默认例外 pol2_axis={DEFAULT_DOMAIN_MIN['pol2_axis']} 不自动生效）")
+                        help="每域下限；默认不启用，显式给出才判定")
     parser.add_argument("--domain-min", action="append", default=[], metavar="DOMAIN=N",
-                        help="单个域的配额下限例外（可重复）")
+                        help="单个域的下限例外（可重复）；默认不启用，显式给出才判定")
     parser.add_argument("--max-source-share", type=float, default=None,
-                        help=f"覆盖单一来源占比上限（默认 sources.json 或 README {DEFAULT_MAX_SOURCE_SHARE}）")
+                        help="单一来源占比上限；默认不启用，显式给出才判定")
     parser.add_argument("--json-out", type=Path, help="把完整报告写成 JSON")
     parser.add_argument("--top", type=int, default=40, help="文本报告里问题键分布显示前 N 项")
     parser.add_argument("--strict", action="store_true", help="schema 警告也计为失败")
@@ -1054,6 +1071,7 @@ def main(argv=None) -> int:
     if not args.quiet:
         print(format_report(report, top=args.top))
 
+    # 退出码只看硬性违规（格式类 + 命令行显式启用的配额）；默认无门槛，配额不参与
     failed = bool(report["quotas"]["violations"])
     if args.strict and report["schema_issues"]["total"]:
         failed = True

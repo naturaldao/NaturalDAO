@@ -1,0 +1,15 @@
+{
+  "line": "C. jev-router zh choice（旧方案，已付费部分）",
+  "group_by": "source dataset",
+  "written_rows_by_label": {
+    "high_consensus": 841
+  },
+  "configs": {
+    "Deepexi/openai-formate-function-calling-small": {
+      "n": 1883,
+      "agree": 1867,
+      "agree_rate": 0.9915,
+      "label_confidence": "high_consensus"
+    }
+  }
+}

@@ -3,7 +3,7 @@
 - 日期：2026-10-05（UTC+8）｜执行：pol2-replay（DSH Agent Team）
 - 口径：**按唯一请求计**；允许用变体增强；中文 30–40% 均可，**质量优先**（Lead task-18 与后续硬要求）
 - 来源：`Deepexi/openai-formate-function-calling-small`（主）与 `Deepexi/function-calling-small`（对照）
-- 产物：仓库内 `data/zh/zh-group-index.jsonl`（分组索引）与 `data/zh/zh-items.sample.jsonl`（200 条样例）；
+- 产物：`data/zh/zh-group-index.jsonl`（分组索引）与 `data/zh/zh-items.sample.jsonl`（200 条样例）——两者**均已移出版本控制**（原因见 [split-report.md](split-report.md) §10.4：前者是 5,454 行答案索引，后者含 9 行与 benchmark 逐字相同），仓外留存 `D:\pol2-raw\general-private\`；
   全量条目在仓库外 `D:\pol2-raw\zh-final\items.zh.jsonl`（**最终合并不由本任务做**）
 
 ## 0. 结论摘要
@@ -224,8 +224,8 @@ p=0.345 → 位置分布与均匀分布无显著差异，伪影消除。原始�
 | 路径 | 内容 |
 |---|---|
 | `datasets/general/zh-build-report.md` | 本报告 |
-| `datasets/general/data/zh/zh-group-index.jsonl` | 5,454 行分组索引：group_id / request / n_variants / targets / rows（1.36 MB） |
-| `datasets/general/data/zh/zh-items.sample.jsonl` | 前 200 条条目样例，供切分方与 Lead 核对形状（1.24 MB） |
+| ~~`datasets/general/data/zh/zh-group-index.jsonl`~~ | 5,454 行分组索引：group_id / request / n_variants / targets / rows（1.36 MB）——**已移出版本控制**，仓外留存 |
+| ~~`datasets/general/data/zh/zh-items.sample.jsonl`~~ | 前 200 条条目样例（1.24 MB）——**已移出版本控制**，仓外留存 |
 
 仓库外（全量，未提交）：
 
