@@ -344,7 +344,7 @@ python finetune/collect_results.py --seed-eval track-a=seed20261023.json \
   --seed-eval track-a=seed20261024.json --seed-eval track-a=seed20261025.json --out seeds.md
 ~~~
 
-**lm-eval 环境注记（2026-10-23 实测）**：WSL 评测环境使用 lm-eval 0.4.13；cmmlu 数据集脚本要求 `datasets>=3.6,<4` 并传 `--trust_remote_code`（当前 pin 3.6.0，已验证 ceval/cmmlu/mmlu/agieval 任务加载 + 真实 Qwen3-1.7B + PEFT adapter 在 CPU 上 limit=2 跑通）。其余任务若因版本不可用，按 EVAL-PROTOCOL §3.3 规则在结果卡显式注明。
+**lm-eval 环境注记（2026-10-23 实测）**：WSL 评测环境使用 lm-eval 0.4.13；cmmlu 数据集脚本要求 `datasets>=3.6,<4` 并传 `--trust_remote_code`（当前 pin 3.6.0）。已验证：四任务家族（ceval-valid / cmmlu / mmlu / agieval）在 CPU 上以真实 Qwen3-1.7B 各 limit=1 端到端跑通；真实 adapter + PEFT 加载亦通过。**注意**：若曾用 datasets 5.x 预取过任务数据，HF datasets 缓存会写入新版 feature 编码（`List`），datasets 3.6 读取会报 `Feature type 'List' not found`；需清空 `~/.cache/huggingface/datasets` 下对应缓存（可重新下载）。其余任务若因版本不可用，按 EVAL-PROTOCOL §3.3 规则在结果卡显式注明。
 
 **Track B 评测（训练完成后）**：
 

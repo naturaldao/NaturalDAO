@@ -66,4 +66,7 @@ GPU 恢复时间；PR 集成方式（#44/#45 已关闭）；HF 上传；PoL2 训
   政策问题（学术基准 train 划分、SHPDRG 许可）待 owner 书面意见。
 - **文档**：阶段报告索引 `docs/reports/README.md`；Track B 结果卡必填项；内部目标评估（核心交付达成，HF 执行与下一阶段 GPU 工作待 owner）。
 - **周期性复检**：视图 sha256（train/val/test）、HF 导出离线 verify、POL2 freeze 17 项检查均通过。
+- **端到端 CPU 冒烟（Round 11，无 GPU）**：
+  - 校准链路：真实 adapter 在 validation 前 120 行（device=cpu）导出逐行候选概率 → calibration 半区拟合温度 → selection 半区复算（NLL/Brier/ECE/MCE），全链路跑通（仅管线验证，样本太小不作结论）；
+  - 通用能力链路：ceval-valid / cmmlu / mmlu / agieval 四任务家族在 CPU 上以真实 Qwen3-1.7B 各 limit=1 端到端跑通（含 cmmlu 的 datasets<4 + trust_remote_code 路径）；此前 datasets 5.x 预取缓存与 3.6 编码不兼容的问题已定位并清理缓存解决。
 - 本轮仍**无新增 GPU 结果**；GPU 暂停令继续生效。
