@@ -639,6 +639,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 # 避免计算 [B, L, vocab] 全量 logits（ROCm/CUDA 上可省 10-100x 显存与大量算力）。
                 base_lm = unwrap_causal_lm(model)
                 seq_lens = attention_mask.sum(dim=1) - 1
+                prev_positions = seq_lens - 1
                 row_idx = torch.arange(labels.size(0), device=labels.device)
                 targets = labels[row_idx, seq_lens]
                 supervised = (labels != -100).sum(dim=1)
@@ -646,6 +647,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     base_lm is not None
                     and torch.all(targets != -100)
                     and torch.all(supervised == 1)
+                    and torch.all(prev_positions >= 0)
                 )
                 if lean_ok:
                     hidden = base_lm.model(
@@ -653,8 +655,10 @@ def main(argv: Optional[List[str]] = None) -> int:
                         attention_mask=attention_mask,
                         use_cache=False,
                     ).last_hidden_state
-                    last_hidden = hidden[row_idx, seq_lens]
-                    vocab_logits = base_lm.lm_head(last_hidden)
+                    # 因果 LM：位置 t 的 logits 预测 token t+1；监督标签在末位 token 上，
+                    # 因此取倒数第二个位置的 hidden（绝不能取标签自身位置，否则是标签泄漏）。
+                    prev_hidden = hidden[row_idx, prev_positions]
+                    vocab_logits = base_lm.lm_head(prev_hidden)
                     loss = F.cross_entropy(vocab_logits.float(), targets) / args.grad_accum
                 else:
                     outputs = model(
