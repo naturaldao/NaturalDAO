@@ -26,6 +26,8 @@
 2026-10-23｜Wenbo / DSH Agent Team｜**Track A 管线打通**：环境 `D:/pol2-train/.venv`（torch 2.6.0+cu124、transformers 5.20.2、peft 0.21.2，T10 fp16/SDPA）；训练脚本 `finetune/train_decision_sft.py` + 评测 `finetune/eval_decision.py` + 6 个 CPU 单测。冒烟：4,000 行 / 40 step / 峰值显存 7,965MB / 163s，validation 前 300 行 0-shot 0.3833 → adapter 0.4933（+11.0pt，单 seed，仅管线验证）。结果卡见 [results/MODEL-02-qwen3-1.7b-track-a-smoke](../results/MODEL-02-qwen3-1.7b-track-a-smoke/CARD.md)。
 2026-10-23｜Wenbo / DSH Agent Team｜**完整 1 epoch 基线启动**（50,033 行、batch 4×grad-accum 8、seq 1024、lr 1e-4、eval-every 400、eval-limit 500）：训练日志与 adapter 在仓库外 `D:/pol2-train/runs/track-a-e1-1.7b`；完成后补结果卡并做 0-shot 同子集对照。
 
+2026-10-23｜Wenbo / DSH Agent Team｜**Track B（主路线）代码就绪**：`finetune/decision_scorer.py`（marker 定位 + pointer head + masked softmax/CE/KL）、`train_decision_scorer.py`（LoRA+head、fp16、软标签 λ 混合）、`test_decision_scorer.py`（19 个 CPU 单测全过，tiny 模型）+ dry-run 在真实 validation 视图跑通（marker 位置、padding mask、混合损失形状校验）。GPU 训练待 Track A 完整基线跑完后排期。
+
 ## 交付或交接
 
 - 待交付：训练视图生成脚本、Track A/B 训练入口与配置、结果卡（模型版本/数据 fingerprint/硬件/预算/指标区间）、失败与限制记录

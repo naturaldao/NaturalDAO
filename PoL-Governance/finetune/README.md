@@ -198,3 +198,99 @@ python -m unittest finetune.test_train_decision_sft -v
 ```powershell
 python -m py_compile finetune/decision_common.py finetune/train_decision_sft.py finetune/eval_decision.py finetune/test_train_decision_sft.py
 ```
+---
+
+# Track B：候选评分头（主路线，masked CE + 软蒸馏）
+
+## 9. 架构与设计
+
+- **输出形态**：候选评分读出（pointer/scorer head）。每个选项位置出一个 scalar，题内 masked softmax（padding 选项位填 -1e4）；原生支持变长候选（2..26 选项），不依赖字母 token，也不需要为每题换固定分类头。
+- **模块结构**（finetune/decision_scorer.py）：
+  - DecisionScorer(nn.Module) = AutoModel 底座（transformer 部分，无 lm_head，前向省掉 vocab 投影）+ pointer_head = Linear(hidden→1)（全参训练）；
+  - forward(input_ids, attention_mask, marker_positions) -> logits[B, max_opts]，批量 padding 选项位已填 -1e4；
+  - 纯函数 masked_softmax / masked_ce（硬标签题内 CE）/ masked_kl（软标签 KL，带温度）/ masked_mixed_loss（(1-λ)·CE + λ·KL，仅 soft 行启用 KL）；
+  - save_scorer_head / load_scorer_head 保存/恢复 head state_dict 与配置（scorer_head.pt）。
+- **训练器**（finetune/train_decision_scorer.py，CLI 与 Track A 对齐）：LoRA(all-linear) + head 全参（head lr 可 --head-lr-mult 倍率，默认 x5）；AdamW + cosine warmup（3%）；fp16 AMP + GradScaler（Turing 无 bf16）；gradient checkpointing + enable_input_require_grads（PEFT 组合必需，另有 forward hook 兜底）；周期评测（题内 argmax accuracy 按 kind/lang/option_bucket/route 分层 + mean NLL）；保存 adapter/、scorer_head.pt、tokenizer/、train-manifest.json（配置、数据 sha256、行数、指标、显存峰值、时长、seed、模板版本）。
+- **损失路由**：classification 行 -> masked CE；distillation 行（soft 有效）-> (1-λ)·CE + λ·KL(T)，--lambda-soft 默认 0.3、--soft-temperature 默认 2.0。温度按标准 KD 处理：学生 logits / T；target 视为教师 logits = log p，故按 p**(1/T) 重整化。soft 无效的 distillation 行回退硬标签并计数（soft_invalid_fallback_hard）。
+- **护栏**：--output-dir 必须在仓库外（复用 Track A guard，exit 2）；训练/评测视图文件名含 benchmark/holdout/private 时拒绝（exit 2，保留集不进训练器）。
+
+## 10. 输入模板与 marker 方案（tv-1b）
+
+- 模板版本 tv-1b；与 tv-1 共享固定说明与【情境】【问题】段（字节一致），仅选项段渲染不同：
+  1. 取 row.prompt，按最后一个 【选项】 切出情境/问题段（rpartition，防正文自身含该字样）；
+  2. 丢弃 tv-1 的字母选项段（不依赖字母列表）；
+  3. 追加 【选项】+ 换行 + 每选项一行 'OP: <label>'（label 取 option_labels，缺失回退 options 键）；答案不进输入。
+- **marker 定位（分段 tokenize）**：head 段与每个选项行各为独立 segment，encode(segment, add_special_tokens=False) 后拼接成 input_ids；每选项的评分锚点 = 该选项行（'OP: <label>'）的最后一个 token。
+- **为什么锚点在行末而不是 'OP:' marker 自身**：因果 decoder 的 hidden state 只能看到该位置之前的内容；若把锚点放在选项文字之前的 marker token 上，评分时看不到该选项自身的文字，题内 softmax 会退化为位置先验（laya 的 marker 前置可行是因为它是双向编码器）。Qwen3 是因果模型，锚点必须落在选项文字之后。
+- marker 文本 OP 是普通文本 token（Qwen tokenizer 下 'OP:' -> ['OP', ':']），不依赖任何特有 token id；tiny Llama 随机模型 + stub tokenizer 可完整测试。
+- **左侧截断**：总长超过 --seq-len 时从最左侧截断（先裁固定说明/情境），保留完整选项 marker 区间（第一个选项行的全部 token 必须留下）；连选项区都放不下时该行跳过并计数（skipped_seq_len_too_short_for_options）。选项数 >26 与 Track A 一致跳过。
+- 可选 --shuffle-options：每 epoch 打乱每题选项顺序（options/labels/answer_idx/soft 同步置换）以消融位置偏置；代价是每 epoch 重新 tokenize，默认关闭。
+
+## 11. Track B 命令执行流
+
+同样先激活训练虚拟环境（D:/pol2-train/.venv/Scripts/Activate.ps1）；模型用本地快照 D:/pol2-train/models/Qwen3-1.7B。命令为单行形式（可直接复制）。
+
+### 步骤 1：Dry-Run 校验（0 显存、不加载模型权重；前向形状校验用随机 tiny 模型）
+
+    python finetune/train_decision_scorer.py --train-view D:/pol2-train/data/general-validation-view.jsonl --model D:/pol2-train/models/Qwen3-1.7B --output-dir D:/pol2-train/runs/track-b-1.7b --dry-run
+
+### 步骤 2：小样本冒烟测试（smoke，对齐 Track A 冒烟口径便于对照）
+
+    python finetune/train_decision_scorer.py --train-view D:/pol2-train/data/general-train-view.jsonl --eval-view D:/pol2-train/data/general-validation-view.jsonl --model D:/pol2-train/models/Qwen3-1.7B --output-dir D:/pol2-train/runs/track-b-smoke --limit 4000 --max-steps 40 --epochs 1 --batch-size 2 --grad-accum 4 --seq-len 1024 --eval-limit 300 --eval-every 20 --seed 20261023
+
+### 步骤 3：完整训练（full）
+
+    python finetune/train_decision_scorer.py --train-view D:/pol2-train/data/general-train-view.jsonl --eval-view D:/pol2-train/data/general-validation-view.jsonl --model D:/pol2-train/models/Qwen3-1.7B --output-dir D:/pol2-train/runs/track-b-qwen1.7b-r16 --epochs 2 --batch-size 4 --grad-accum 8 --lr 1e-4 --seq-len 1536 --lora-r 16 --lora-alpha 32 --lora-dropout 0.05 --lambda-soft 0.3 --soft-temperature 2.0 --head-lr-mult 5 --eval-limit 500 --eval-every 200 --seed 20261023
+
+### 步骤 4：断点续跑（resume）
+
+    python finetune/train_decision_scorer.py --train-view D:/pol2-train/data/general-train-view.jsonl --eval-view D:/pol2-train/data/general-validation-view.jsonl --model D:/pol2-train/models/Qwen3-1.7B --output-dir D:/pol2-train/runs/track-b-qwen1.7b-r16 --resume
+
+产物目录：adapter/（LoRA）、scorer_head.pt（head state_dict + 配置）、tokenizer/、train-manifest.json。
+
+## 12. 显存与耗时估算（标注为估算）
+
+| 组成部分 | Qwen3-1.7B (LoRA fp16 + head) | 估算说明 |
+|---|---:|---|
+| 基座权重（AutoModel，仅 transformer 部分） | ~3.4 GB | fp16；无 lm_head 前向（Qwen3-1.7B 词表与 embedding 绑定） |
+| LoRA 参数 + AdamW 状态 + head | ~0.2-0.3 GB | r16 all-linear + head（hidden->1，约 2k 参数） |
+| 激活显存 (bs=4, seq=1536) | ~1.8-2.2 GB | gradient checkpointing + SDPA；marker gather 开销可忽略 |
+| CUDA context 与碎片 | ~1.2 GB | 已设 expandable_segments:True |
+| **预估总显存** | **~6.7-7.3 GB** | 16GB T10 宽裕（Track A 同口径实测峰值 7,965 MB 可交叉参照） |
+
+- **耗时**：与 Track A 同量级（同一 forward 主干，只多 [B, max_opts, H] gather + 一个 Linear，无自回归生成）。按 Track A 冒烟实测（bs2、seq1024，40 step / 4,000 样本 163 s）折算，全量 50,033 行 × 2 epoch 约 **2.8-3.5 小时**（估算；正式数字以 train-manifest.json 为准）。
+- 蒸馏行额外开销可忽略（soft 只是把 one-hot 换成分布，KL 与 CE 同一次前向）。
+
+## 13. 与 Track A 对比
+
+| 维度 | Track A（单字母 SFT） | Track B（候选评分头） |
+|---|---|---|
+| 输出形态 | 末位生成一个字母 token | 每选项 scalar + 题内 softmax |
+| 变长候选 | 2-26（A..Z 上限） | 2-26（同样按视图规则跳过 >26） |
+| 字母/位置先验 | 有（字母频率 + 位置偏置） | 无字母先验；顺序偏置可用 --shuffle-options 消融 |
+| 软标签蒸馏 | 不支持（one-hot） | 原生支持（KL(T) + λ 混合） |
+| 概率读出 | 需从字母 token 分布提取 | 直接题内 softmax，便于温度校准 / ECE / Brier |
+| score 序数语义 | 丢失（无序类别） | 仍为无序类别 CE（CORAL/CORN 序数留 v1.1 消融） |
+| tokenizer 要求 | 字母必须单 token | 无特殊要求（marker 为普通文本，分段 tokenize 定位） |
+
+## 14. 已知限制
+
+1. **>26 选项仍跳过**（与 Track A / 训练视图一致；视图统计 choice 的 4.5% 行 >26 选项，另行处理）。
+2. **位置（选项顺序）偏置**：默认按视图原顺序；--shuffle-options 开启后每 epoch 重 tokenize（时间代价见 §10）。
+3. **score 题仍是平的类别 CE**，不建模档位距离（序数回归留待 v1.1）。
+4. **蒸馏 soft 的选择偏差**：jev-probs 是"教师判定与语料答案一致"的一致子集，只作行为先验，绝不用于校准参照（校准参照仅 calibration 分区的 reference_probability）。
+5. --soft-temperature 是**蒸馏**温度；温度校准链路（validation 派生校准子集拟合 T、报告 ECE/Brier）属后续任务，不在本模块。
+6. fp16 + GradScaler（Turing 无 bf16）；本轮只做 CPU 单测 + dry-run + CPU 微型训练验证，真实 GPU 训练由 Lead 执行。
+7. transformers 5.20.2 下 meta-device 前向不可用（masking_utils 对 meta 张量调用 .item()），因此 dry-run 的前向形状校验使用随机初始化 tiny 模型而非真实架构 meta 实例。
+
+## 15. Track B 离线单元测试
+
+纯 CPU、离线、不下载权重（tiny Llama 随机模型：hidden 32 / 2 层 / 2 头 / intermediate 64 / vocab 128）：
+
+    python -m unittest finetune.test_decision_scorer -v
+
+静态语法校验：
+
+    python -m py_compile finetune/decision_scorer.py finetune/train_decision_scorer.py finetune/test_decision_scorer.py
+
+覆盖：marker 定位/option_count、左截断与确定性、padding mask、masked softmax/CE/KL 手算对照（含温度）、DecisionScorer 前向形状与梯度回传、LoRA 挂载、head 保存/加载、仓库内 output-dir 与保留集文件名护栏、--dry-run 合成数据全路径。
