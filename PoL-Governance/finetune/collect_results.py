@@ -24,6 +24,18 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 BOOTSTRAP_ROUNDS = 1000
 
 
+def resolve_lm_eval_json(path: Path) -> Path:
+    """lm-eval --output_path 目录会写 <dir>/<model>/results_<时间戳>.json；取最新一份。"""
+    if not path.is_dir():
+        return path
+    candidates = sorted(path.rglob("results_*.json"))
+    if not candidates:
+        candidates = sorted(p for p in path.rglob("*.json") if p.name != "config.json")
+    if not candidates:
+        raise ValueError(f"{path}: no lm-eval results JSON found")
+    return max(candidates, key=lambda item: item.stat().st_mtime)
+
+
 def load_json(path: Path) -> Dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -189,7 +201,7 @@ def build_markdown(args: argparse.Namespace) -> str:
     parts.append(render_eval_table(eval_entries))
     if eval_entries:
         parts.append("")
-    lm_entries = [(label, load_json(path)) for label, path in
+    lm_entries = [(label, load_json(resolve_lm_eval_json(path))) for label, path in
                   parse_assignments(args.lm_eval_json, "--lm-eval-json")]
     average_tasks = [task.strip() for task in args.lm_eval_average_tasks.split(",")
                      if task.strip()] if args.lm_eval_average_tasks else None

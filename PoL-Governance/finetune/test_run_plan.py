@@ -46,7 +46,8 @@ class RunPlanTest(unittest.TestCase):
                                        "/custom/model", "/custom/adapter")
         self.assertIn('pretrained="/custom/model"', script)
         self.assertIn('peft="/custom/adapter"', script)
-        self.assertIn('--output_path "/custom/home/evals/lm-eval-base.json"', script)
+        self.assertIn('--output_path "/custom/home/evals/lm-eval-base"', script)
+        self.assertIn("--trust_remote_code", script)
 
     def test_unknown_stage_exits_2(self):
         buffer = io.StringIO()

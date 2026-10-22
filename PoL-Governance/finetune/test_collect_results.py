@@ -107,6 +107,35 @@ class CollectResultsTest(unittest.TestCase):
             self.assertIn("配对 bootstrap", text)
             self.assertIn("差值", text)
 
+
+    def test_resolve_lm_eval_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "lm-eval-base"
+            model_dir = root / "__home__model"
+            model_dir.mkdir(parents=True)
+            older = model_dir / "results_2026-01-01T00-00-00.json"
+            newer = model_dir / "results_2026-01-02T00-00-00.json"
+            write_json(older, {"results": {"erased": {"acc,none": 0.1}}})
+            write_json(newer, {"results": {"erased": {"acc,none": 0.9}}})
+            # 显式设置 mtime，避免文件系统时间精度影响
+            import os
+            os.utime(older, (1_700_000_000, 1_700_000_000))
+            os.utime(newer, (1_700_000_100, 1_700_000_100))
+            resolved = collect_results.resolve_lm_eval_json(root)
+            self.assertEqual(resolved, newer)
+            self.assertEqual(collect_results.load_json(resolved)["results"]["erased"]["acc,none"], 0.9)
+
+    def test_lm_eval_table_from_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "lm-eval"
+            (root / "model").mkdir(parents=True)
+            write_json(root / "model" / "results_2026-01-01T00-00-00.json",
+                       {"results": {"ceval-valid": {"acc,none": 0.5}}})
+            base = collect_results.load_json(collect_results.resolve_lm_eval_json(root))
+            table = collect_results.render_lm_eval_table([("base", base)])
+            self.assertIn("ceval-valid", table)
+            self.assertIn("0.5000", table)
+
     def test_bad_assignment_returns_2(self):
         buffer = io.StringIO()
         with redirect_stderr(buffer):

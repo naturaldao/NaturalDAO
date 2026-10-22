@@ -54,9 +54,9 @@
 
 ### 3.3 通用能力（防遗忘代理）
 
-- 工具：lm-evaluation-harness 0.4.x；
+- 工具：lm-evaluation-harness 0.4.x（WSL 评测环境：lm-eval 0.4.13 + **datasets 3.6.0**（cmmlu 脚本需要）+ `--trust_remote_code`；torch/transformers/peft 见 README §3）；
 - 任务：ceval-valid、cmmlu、mmlu、agieval，**每任务 limit 100**（先跑小样本保时间，结论只写「在所选代理上」）；
-- 若某任务因数据集/依赖版本不可运行（如 cmmlu 在 datasets 5.x 下脚本不可用），必须在结果卡**显式注明**并用剩余任务均值，不得静默省略或替换成更容易的任务；
+- 若某任务因数据集/依赖版本不可运行（如 cmmlu 需要 datasets<4 与 `--trust_remote_code`），必须在结果卡**显式注明**并用剩余任务均值，不得静默省略或替换成更容易的任务；
 - 对照：同底座 0-shot vs adapter，同 prompt 模板（base 模式生成，不用决策头）；
 - 指标：各任务 accuracy 与 4 任务平均；报告原始值与差值。
 
@@ -93,8 +93,8 @@ wsl -d Ubuntu-24.04 -- bash <仓库>/.agent/scratch/run_eval.sh "" <数据>/gene
 # 2) adapter 的 test（若尚未跑）
 wsl -d Ubuntu-24.04 -- bash <仓库>/.agent/scratch/run_eval.sh <adapter> <数据>/general-test-view.jsonl <输出>/track-a-test.json
 # 3) lm-eval base 与 adapter（limit 100）
-lm_eval --model hf --model_args pretrained=<模型>,dtype=float16 --tasks ceval-valid,cmmlu,mmlu,agieval --limit 100 --batch_size 8 --output_path <输出>/lm-eval-base.json
-lm_eval --model hf --model_args pretrained=<模型>,peft=<adapter>,dtype=float16 --tasks ceval-valid,cmmlu,mmlu,agieval --limit 100 --batch_size 8 --output_path <输出>/lm-eval-track-a.json
+lm_eval --model hf --model_args pretrained=<模型>,dtype=float16 --tasks ceval-valid,cmmlu,mmlu,agieval --limit 100 --batch_size 8 --trust_remote_code --output_path <输出>/lm-eval-base
+lm_eval --model hf --model_args pretrained=<模型>,peft=<adapter>,dtype=float16 --tasks ceval-valid,cmmlu,mmlu,agieval --limit 100 --batch_size 8 --trust_remote_code --output_path <输出>/lm-eval-track-a
 # 4) 校准：导出 predictions（--predictions），在半 B 拟合温度，半 A 复核
 # 5) 多 seed 重训（Track A / Track B 各 2–3 seed）
 ~~~

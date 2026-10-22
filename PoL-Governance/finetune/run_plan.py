@@ -53,12 +53,15 @@ def stage_commands(stage: str, home: str, repo: str, model: str, adapter: str) -
             f'--model "{model}" --batch-size 32 --json > "{evals}/base-test.json"',
         ]
     elif stage == "lm-eval":
-        tasks = "ceval-valid,mmlu,agieval"
+        # datasets<4 时需要 --trust_remote_code 才能加载 cmmlu（见 EVAL-PROTOCOL §3.3）
+        tasks = "ceval-valid,cmmlu,mmlu,agieval"
         lines += [
             f'lm_eval --model hf --model_args pretrained="{model}",dtype=float16 '
-            f'--tasks {tasks} --limit 100 --batch_size 8 --output_path "{evals}/lm-eval-base.json"',
+            f'--tasks {tasks} --limit 100 --batch_size 8 --trust_remote_code '
+            f'--output_path "{evals}/lm-eval-base"',
             f'lm_eval --model hf --model_args pretrained="{model}",peft="{adapter}",dtype=float16 '
-            f'--tasks {tasks} --limit 100 --batch_size 8 --output_path "{evals}/lm-eval-track-a.json"',
+            f'--tasks {tasks} --limit 100 --batch_size 8 --trust_remote_code '
+            f'--output_path "{evals}/lm-eval-track-a"',
         ]
     elif stage == "calibrate":
         lines += [

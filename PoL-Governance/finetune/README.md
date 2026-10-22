@@ -335,3 +335,5 @@ python finetune/run_plan.py --stages all --out /tmp/resume.sh
 python finetune/collect_results.py --eval-json base=... --eval-json tuned=... \
   --lm-eval-json base=... --lm-eval-json tuned=... --preds base=... --preds tuned=... --out summary.md
 ~~~
+
+**lm-eval 环境注记（2026-10-23 实测）**：WSL 评测环境使用 lm-eval 0.4.13；cmmlu 数据集脚本要求 `datasets>=3.6,<4` 并传 `--trust_remote_code`（当前 pin 3.6.0，已验证 ceval/cmmlu/mmlu/agieval 任务加载 + 真实 Qwen3-1.7B + PEFT adapter 在 CPU 上 limit=2 跑通）。其余任务若因版本不可用，按 EVAL-PROTOCOL §3.3 规则在结果卡显式注明。
