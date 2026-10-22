@@ -1,0 +1,309 @@
+# PoL2 的 AI 自治治理架构：从规则解释到行动闭环（V2 草案）
+
+**核心术语：** Proof of Love2；Typed Decision Model（TDM，类型化决策模型）；AI-only governance（由 AI 执行治理职能）
+
+> **范围声明**：本方案不设置人工复核、人工批准、人工接管、人工申诉裁决或人工规则更新。治理判断、规则解释、策略变更、运行时授权、审计和纠错均由相互制衡的 AI 组件完成。外部人类活动可以作为环境事实或任务输入被系统读取，但人类不作为治理角色参与决策。
+
+## 摘要
+
+PoL2 治理面向会改变外部状态的 Agent 操作。本文将 TDM 用于有限动作集的判断，将权限检查和动作执行交给独立组件，并用运行日志驱动受约束的策略更新。系统不设置人工决策节点。遇到不确定输入、规则冲突或组件故障时，策略执行点按预设规则限缩、拒绝或暂停动作。
+
+规则解释、动作授权、策略更新、执行和审计属于不同权限域。实现上应使用独立的策略执行点和安全内核，并记录各 AI 代理的模型版本、数据来源、权限及故障依赖。代理间的一致意见不能单独证明事实或授权动作。
+
+已有工作分别研究了 AI 反馈训练、多智能体调节和运行时策略拦截。现有证据尚未覆盖由 AI 执行全部治理职能的真实高影响系统。本文因此把 AI-only 治理作为架构提案和研究问题，并区分已验证的组件与尚待验证的端到端闭环。
+
+## 1. 先例核验：哪些部分有证据，哪些仍是空白
+
+| 先例 | 已展示的机制 | 对 PoL2 的可借鉴部分 | 不能据此声称 |
+|---|---|---|---|
+| Constitutional AI / RLAIF（Bai et al., 2022） | 模型按一组原则自我批评、修订，并用 AI 反馈训练偏好模型；不需要逐条人工危害标签 | AI 之间可以承担批评、比较、反馈与训练信号生成 | 治理原则本身由 AI 自主合法地产生；系统能安全治理外部行动；完全没有人类前置设定。论文明确仍使用给定原则 |
+| Constitutional AI 的原则泛化研究（Kundu et al., 2023） | 检验模型能否从一般原则推广到具体行为，并比较原则表述粒度 | 可研究原则到具体决策的解释模块与规则覆盖率、过度拒绝之间的关系 | 模型对原则的解释稳定、无偏或具有最终授权资格 |
+| ARDE（AAAI 2026） | 外层调节代理读取群体指标并产生治理信号，内层代理据此调整策略；在众包平台数据/环境中评估 | 分层的“治理代理—行动代理”架构和指标反馈 | 完整 AI-only 治理。研究场景是平台调节，不等于 AI 独占规则来源、权利救济和现实责任 |
+| DAO-AI（2025 预印本） | Agent 读取链上提案及历史资料并独立给出投票立场，评估其与既有投票结果的一致程度 | AI 可处理提案、检索历史并生成可审计的治理信号 | DAO 已由 AI 独立治理；其任务是复现/比较现有人类与代币投票，而非取消人类治理主体 |
+| Governance by Construction for Generalist Agents（ACM CAIS 2026 demonstration） | CUGA 在 Agent 执行图多个阶段实施策略拦截；高风险工具调用包含等待人工确认的 Tool Approval 门 | 可借鉴执行链内的策略拦截、分层策略和可审计接口 | 这是含人工审批的企业 Agent 演示，不是 AI-only 治理先例；本方案只借鉴其运行时拦截模式 |
+
+评估此方案时应区分三个层次：组件是否有效，集成原型能否在仿真或沙箱中工作，以及完整系统能否在真实环境中长期运行并自行检测、纠正治理错误。目前引用的工作主要提供组件或局部集成证据，尚未证明第三层能力。
+
+本文所说的 AI-only，指治理职能由 AI 执行；物理执行器、密码学基础设施和形式验证器仍可采用确定性软件或硬件。Proof of Love2 是完整的治理理论体系，其条款、解释和适用版本可以继续演进。每次动作和策略变更都必须记录所依据的理论版本。系统可以读取环境观测和任务事实，但外部输入本身不构成规则变更或权限凭证。
+
+## 2. 治理对象：有后果的行动请求
+
+Agent 和具身系统可读取数据、发送消息、改文件、调用 API、交易或移动。PoL2 网关必须位于所有具有外部后果的工具调用与动作命令路径上。每个请求至少记录：
+
+| 字段 | 内容 |
+|---|---|
+| 主体与权限 | Agent 身份、权限凭证、凭证范围和失效时间 |
+| 目标与动作 | 读取、写入、发送、购买、移动或状态变更及参数 |
+| 上下文来源 | 传感器、规则库、工具返回、用户任务等来源及可信级别 |
+| 影响与可逆性 | 受影响对象、影响半径、可逆性、潜在损失 |
+| 适用规则 | Proof of Love2 理论版本、应用策略版本、规则优先级和适用范围 |
+| 决策证据 | TDM 输出、独立审查结果、形式检查和事实引用 |
+| 执行结果 | 实际状态变化、失败代码、回滚/补偿动作和审计链指针 |
+
+```mermaid
+flowchart LR
+    C[Proof of Love2 理论体系及当前版本] --> I[AI 规则解释与策略编译]
+    I --> O[观察情境、证据来源与权限凭证]
+    O --> P[规划代理提出候选动作]
+    P --> J[TDM 类型化判断]
+    J --> X[异构 AI 对抗审查与形式验证]
+    X --> G{策略执行点：规则、权限、风险与证据}
+    G -->|满足条件| K[独立安全内核]
+    K -->|约束通过| A[执行动作]
+    K -->|不确定/越界| H[SAFE_HALT：限缩、拒绝或暂停]
+    G -->|证据冲突/高风险| H
+    A --> L[(追加式审计账本)]
+    H --> L
+    L --> M[AI 审计与事故分析]
+    M --> T[回放、对抗测试、影子与金丝雀发布]
+    T -->|通过发布门| I
+    T -->|异常阈值| R[机器回滚至已验证策略]
+    R --> G
+```
+
+**图 1. AI-only 治理闭环。** AI 代理解释 Proof of Love2 的适用条款、评估动作并分析事故；策略执行点和安全内核控制状态变更。审计结果可触发规则或策略更新，更新经过回放、对抗测试和分阶段部署后生效。图中展示的是待验证架构。
+
+## 3. AI-only 治理的职责分解
+
+| AI 角色 | 输入 | 输出 | 禁止权限 |
+|---|---|---|---|
+| 任务/规划代理 | 目标、环境状态、能力描述 | 候选动作及预期结果 | 不得自行授权或改规则 |
+| TDM 判断代理 | 类型化问题、候选动作、证据引用 | 类别、排序、概率/置信、拒答状态 | 不得把分数当权限，不得直接执行 |
+| 理论解释代理 | Proof of Love2 当前版本、应用策略、上下文 | 规则适用理由、冲突项、条款引用 | 不得单独发布新版本 |
+| 对抗审查代理 | 原提案、独立证据、风险清单 | 反例、攻击面、替代解释 | 不得与被审查代理共享唯一推理路径 |
+| 形式验证器/政策编译器 | 结构化规则、权限类型、版本约束 | 可执行策略、证明/检查结果 | 不得绕过 Proof of Love2 规定的规则与权限约束 |
+| 授权执行点（PEP） | 策略、凭证、请求和验证结果 | 允许、限幅、拒绝、暂停 | 不得依据自由文本或模型分数越权 |
+| 安全内核 | 即时状态、动力学/资源边界 | 可行控制命令或安全停止 | 不得受普通 Agent 的策略更新修改 |
+| 审计与事故代理 | 追加式事件账本、结果信号 | 归因、异常、反事实和复盘报告 | 不得删除或重写原始轨迹 |
+| 规则提案与版本代理 | 复盘证据、Proof of Love2 理论体系、影响分析 | 候选变更、测试结果、版本提案 | 不得跳过对抗评估、回放、延迟生效与回滚门槛 |
+
+代理间的独立性取决于模型家族、数据、工具权限、检索源、共享依赖和故障域，不能只靠更换角色提示词。关键审查路径应采用异构模型、独立实现或形式工具，并通过消融实验测量错误相关性。若审查代理共享同一模型、语料和提示注入路径，它们的一致意见仍可能来自共同偏差。
+
+### 3.1 决策状态机
+
+将原有 `allow / repair / block / clarify / review` 改为机器可执行的状态，不保留 `review` 作为人工队列：
+
+| 状态 | 含义 | 系统动作 |
+|---|---|---|
+| `ALLOW` | 权限、规则、证据与安全条件全部满足 | 在批准参数范围内执行并记账 |
+| `CONSTRAIN` | 动作可通过限幅、降权或缩小范围满足约束 | 生成受约束动作，再由 PEP 与安全内核复验 |
+| `REPAIR` | 输入/状态可由受信数据源自动补全或纠正 | 重建上下文并重新评估；限定重试次数 |
+| `DEFER` | 不确定、证据冲突、分布外或模型分歧 | 不执行有后果动作；请求独立机器代理补证/复算；超时转 `SAFE_HALT` |
+| `BLOCK` | 违反 Proof of Love2 规则、权限或硬约束 | 拒绝并记录条款、证据与版本 |
+| `SAFE_HALT` | 关键组件失效、审计链中断、约束不可判定或风险阈值越界 | 进入可验证的安全状态，冻结相关权限，触发机器事故分析 |
+
+高风险或不可逆动作采用默认拒绝（fail closed）。独立证据链、规则检查和形式安全条件全部通过后，策略执行点才放行动作。不确定时，系统限缩、暂停或进入安全状态。评估需同时报告误停率、可用性损失和恢复条件。
+
+## 4. Proof of Love2 的演化与版本治理
+
+Proof of Love2 是完整的治理理论体系，并可在 AI 治理流程中继续演进。每次决策绑定当时生效的理论版本、应用策略和模型版本。理论更新属于治理状态变更，须记录变更依据并经过版本验证。
+
+AI 规则更新代理可根据运行日志、环境变化和经验证的失效模式提出修改。理论解释代理分析变更与现有条款的关系；异构对抗代理寻找冲突、漏洞和不利后果；形式验证器检查新旧版本的权限边界及安全性质；评估代理在固定回放集、压力场景和反事实场景中比较版本表现。各代理提交的证据、分歧和测试结果都进入追加式版本账本。
+
+候选版本按以下顺序部署：
+
+1. 生成带有变更原因、影响范围和版本差异的候选版本。
+2. 执行条款一致性检查、权限边界检查、历史回放和对抗测试。
+3. 在影子模式下并行评估新旧版本，记录会改变的授权结果。
+4. 通过机器发布门后，在限定场景中金丝雀部署，再逐步扩大适用范围。
+5. 若监测到安全性质被破坏、合法任务损失超阈值或审计链异常，自动退回最近通过验证的版本，并暂停相关更新。
+
+版本流程让理论更新与运行时授权保持可追溯关系。版本哈希用于确认决策依据和历史变更；每个新版本仍需评估条款语义及其对系统行为的影响。
+
+## 5. TDM 与语言模型：不设人工复核的条件路由
+
+TDM 适合有限候选、格式明确、响应成本敏感的判断；LLM 适合检索、解释、生成反例和处理语义歧义。两者都只是治理组件，均不单独拥有授权权。建议的机器内路由如下：
+
+```mermaid
+flowchart LR
+    E[环境/任务/来源] --> J[TDM：类型化判断]
+    J --> C{风险、校准与 OOD 门}
+    C -->|低风险且已验证| P[PEP：规则/权限检查]
+    C -->|不确定/冲突/高影响| A[异构 AI 审查代理]
+    A --> F[事实检索与形式约束复算]
+    F --> D{独立证据一致且约束可证?}
+    D -->|是| P
+    D -->|否或超时| H[SAFE_HALT：拒绝/限缩/暂停]
+    P --> S[独立安全内核]
+    S --> X[执行或安全停止]
+    X --> L[(追加式审计账本)]
+    H --> L
+    L --> I[AI 事故分析与反事实评估]
+    I --> U[候选策略/校准更新]
+    U --> V[回放、对抗测试、金丝雀、回滚门]
+    V --> P
+```
+
+**图 2. AI 内部条件路由。** 对高不确定或高影响请求，异构审查代理提供第二条机器分析链。代理意见不作为事实真值；无法消除分歧时，系统限缩或停止动作。
+
+| 任务类别 | TDM 的角色 | AI-only 后续控制 |
+|---|---|---|
+| 低影响、候选有限、重复任务 | 初筛/排序 | 任务域校准、漂移监控、机器抽样审计 |
+| 语义复杂或证据来源冲突 | 给出不确定性与候选 | 异构审查代理检索、反例生成、来源交叉验证；无法解决则 `DEFER` |
+| 高影响、不可逆、涉及第三方 | 提供辅助信号 | 双独立推理链、形式权限检查、限制幅度；任一条件失败即 `SAFE_HALT` |
+| 机器人连续控制 | 任务级动作候选 | 本地安全内核、动力学约束、地理围栏、避障和机器自动停止 |
+
+可靠性按任务域、输入分布、模型版本和阈值分别报告。校准集和封存测试集用于固定评估；新场景使用可验证仿真、规则性质或多源机器证据。AI 生成的标签可作为候选监督，不能用于证明生成标签的模型正确。异构模型、独立数据和反事实扰动可用于估计共同偏差；模型间一致性本身不是独立证据。
+
+## 6. 去中心化自治：AI 之间的治理权结构
+
+| 治理层 | AI-only 职能 | 主要制衡 |
+|---|---|---|
+| 理论解释层 | 多个解释代理按 Proof of Love2 当前适用版本分析情境 | 条款引用、语义冲突显式化、不同模型家族交叉解释 |
+| 策略层 | 提案代理生成应用策略与变更 | 反方代理、形式化检查、版本差异和公开机器可读日志 |
+| 运行层 | PEP 按凭证、范围、上下文和策略作授权 | 最小权限、独立安全内核、默认拒绝 |
+| 审计层 | 事故代理检查行动轨迹、偏差与系统性外部性 | 追加式账本、随机种子/输入留存、独立实现复算 |
+| 更新层 | 版本代理按发布门槛更新或回滚理论与策略 | 影子/金丝雀、版本签名、可验证的回滚路径 |
+
+```mermaid
+flowchart TB
+    C[Proof of Love2 理论体系<br/>当前版本与演化记录] --> I[异构 AI 规则解释器]
+    I --> P[AI 策略提案代理]
+    P --> R[对抗审查代理 + 形式验证器]
+    R --> T[回放/压力测试/影子运行]
+    T --> G[受约束版本发布门]
+    G --> E[Agent 与具身系统的 PEP]
+    E --> X[工具/机器人执行与安全内核]
+    X --> L[(不可变审计账本)]
+    L --> A[AI 审计与事故分析代理]
+    A --> P
+    G -->|异常阈值触发| B[机器回滚/安全冻结]
+    B --> E
+```
+
+**图 3. AI-only 治理权分层。** 理论解释、策略提出、独立审查、版本发布和运行时授权由不同 AI 组件承担；审计结果可触发演化提案，新版本须通过测试门并支持回滚。
+
+系统不设置逐案人工表决。传感器和外部数据源将活动、影响和环境变化转成事实事件，再由 AI 组件复算、限缩或暂停动作。缺少可靠数据或无法评估外部影响时，策略执行点停止相关动作。
+
+身份与女巫攻击、模型供应链、密钥轮换、代理串谋、审计账本可用性、跨系统凭证和灾难恢复仍是工程问题。多代理结构本身不保证去中心化：若同一运营者可控制模型、策略签名密钥、执行器和日志存储，治理权仍然集中；需要把信任根、密钥和故障域纳入威胁模型。
+
+## 7. 具身智能的行动治理与 Demo 路线
+
+具身系统把感知、规划和动作连接起来。治理网关处理任务权限和高层动作，底层控制器处理实时动力学与碰撞约束。两者通过受限接口连接，网关不得绕过控制器向电机下发指令。
+
+| 层次 | AI-only 设计 | 示例 |
+|---|---|---|
+| 层次 | 责任 | 多旋翼无人机示例 |
+|---|---|---|
+| 任务权限 | 为任务、区域、时段和动作集合签发短时效凭证 | 只在指定航线和高度范围内执行航点任务 |
+| 动作治理 | 规划代理提出动作，策略执行点检查 Proof of Love2 规则与权限 | GPS 过期时拒绝继续按旧航迹飞行，转入悬停或返航候选 |
+| 物理安全 | 独立控制器验证动力学、碰撞和设备约束 | 地理围栏、避障、速度限制、返航和安全降落 |
+| 结果治理 | 审计代理比较任务目标、轨迹、规则版本和环境状态 | 记录偏航、越界、传感器故障及恢复结果，触发机器复盘 |
+
+PoL2 网关处理任务级权限和高层动作。实时伺服回路继续由本地控制器执行，TDM 输出航点、悬停、绕行等候选，不输出电机控制量。SayCan 将语言目标与技能可行性结合；控制屏障函数可用于安全约束；CaMeL 使用信息流与能力控制限制不可信输入对工具调用的影响。这些工作提供可借鉴的组件设计，尚未验证 Proof of Love2 的完整治理方案。
+
+```mermaid
+flowchart LR
+    S[传感器/任务/来源] --> W[状态估计与来源校验]
+    W --> A[候选动作集]
+    A --> J[TDM + 规划代理]
+    J --> P[PoL2 策略与权限执行点]
+    P --> K[物理安全内核]
+    K -->|通过| D[具身平台执行]
+    K -->|失败/不确定| Z[自动安全停止或恢复]
+    D --> O[轨迹、任务与外部状态]
+    Z --> O
+    O --> L[(审计账本)]
+    L --> M[异构 AI 事故分析]
+    M --> U[候选策略更新 + 回放测试]
+    U --> P
+```
+
+**图 4. 具身行动闭环。** 规划代理提交高层动作；策略执行点检查权限和适用规则；底层安全控制器验证动作是否满足实时约束。无人机可作为该流程的首个仿真实例。
+
+### 无人机 Demo 的仿真选型
+
+无人机仿真工具较多，首个 demo 应先检验治理接口和行动闭环。推荐使用 PX4 SITL 与 Gazebo：PX4 文档将 Gazebo 列为新项目的 3D 仿真路线，支持相机、LiDAR、自定义世界和 ROS 2。PX4 SIH 适合无头控制测试和批量回归，其传感器类型较少。[PX4 仿真选型](https://docs.px4.io/v1.17/en/simulation/index) · [PX4 SIH](https://docs.px4.io/v1.17/en/sim_sih/)。这些文档用于功能选型；实施时应锁定经过联调的 PX4、Gazebo 与 ROS 2 版本，并在容器或依赖清单中固定版本，避免跟随浮动的 `latest`。
+
+| 仿真路线 | 适用阶段 | 主要取舍 |
+|---|---|---|
+| PX4 SITL + Gazebo Harmonic | 首个端到端 demo，测试 PX4 飞控、ROS 2 接口、航点和传感器故障 | 有真实飞控软件在环和 3D 传感器；环境搭建较 SIH 复杂。新项目使用 Gazebo，避免从 Gazebo Classic 起步 |
+| PX4 SIH | 规则门、状态机、批量回归和故障注入 | 启动快、无外部仿真器；适用于控制和任务状态测试，不适合依赖相机或 LiDAR 的视觉任务 |
+| NVIDIA Isaac Sim | 视觉感知、RGB-D/LiDAR、多传感器与高保真场景 | ROS 2 bridge 和传感器模型齐备，适合扩展感知 demo；环境和算力要求较高，首版会增加集成成本 |
+| IAMAI Project AirSim | 需要 Unreal 场景、渲染传感器或多机视觉演示时 | 支持 PX4 SITL、ROS 2、可配置传感器和 Unreal 5 场景；应将其作为可替换仿真后端评估，不与早期 Microsoft AirSim 混为同一维护线 |
+
+PX4 当前文档提供 Gazebo Harmonic 预构建包，并以 ROS 2 offboard 接口连接外部控制节点；直接 ROS 2 控制时，外部节点必须避免与内部控制器向相同话题写入冲突 setpoint。[PX4 预构建 SITL 包](https://docs.px4.io/v1.17/en/simulation/px4_sitl_prebuilt_packages) · [ROS 2 Offboard 控制约束](https://docs.px4.io/v1.17/en/flight_modes_mc/offboard)。因此，demo 应让 PoL2 网关成为规划代理到 PX4 控制接口之间唯一的高层动作通道，ROS 2 控制节点只接收经过授权的航点或模式命令。
+
+Isaac Sim 通过 ROS 2 bridge 发布和订阅 ROS 2 topic，并提供相机、深度、RTX LiDAR 与物理传感器模型；Project AirSim 提供 PX4 SITL、ROS 2 bridge、Unreal 渲染和多机配置。[Isaac Sim ROS 2 Bridge](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/install_ros.html) · [Isaac Sim 传感器](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/sensors/index.html) · [Project AirSim](https://github.com/iamaisim/ProjectAirSim)。这些选项适合视觉保真需求明确后再比较。
+
+### Demo 实现顺序
+
+1. **先定义动作与观测契约。** 状态输入包含位置、速度、电量、定位质量、障碍物距离、任务区域、当前 Proof of Love2 版本和传感器时间戳。候选动作采用有限枚举，例如 `takeoff`、`goto_waypoint`、`hold`、`reroute`、`return_home` 和 `land`。
+2. **搭建单机 SITL 回路。** 使用 PX4 SITL、Gazebo Harmonic 和一架四旋翼，先运行固定航点任务。ROS 2 接收规划代理提出的候选动作；PoL2 网关检查权限、地理围栏、电量和数据新鲜度，再将获准的高层命令交给 offboard 控制节点。PX4 文档指出，外部 ROS 2 控制节点须避免与内部控制器同时写入同一 setpoint topic；demo 应将网关设为唯一外部发布者，并限制其他节点的发布权限。飞控继续负责姿态、速度和电机控制。
+3. **实现策略执行点和日志。** 每个请求写入 `request_id`、策略与模型版本、状态快照引用、候选动作、网关结果、飞控命令、执行后状态和停止原因。超时、状态过期、日志中断或规则冲突进入 `DEFER` 或 `SAFE_HALT`，不得让规划代理直接绕过网关。
+4. **加入可重复的治理场景。** 最小场景包括正常航点、越出地理围栏、低电量、GPS 丢失或过期、障碍物突然出现、任务目标与安全条件冲突。预期动作分别由版本化策略定义，例如限速、悬停、绕行、返航或降落。
+5. **自动运行情景矩阵。** 固定仿真种子和场景参数，批量注入风扰、传感器噪声、延迟、模型分歧和日志故障。用仿真器状态作为动作后果的机器真值，报告任务完成、越界、碰撞、误拦、误停、恢复时间、延迟和运行成本。
+6. **再加视觉与多机。** 当状态机和权限门稳定后，再接入相机/LiDAR、视觉语言模型和多机冲突场景。若主要问题变成视觉逼真度或传感器域差异，再比较 Isaac Sim 与 Project AirSim；不要在 MVP 阶段同时迁移飞控栈和仿真引擎。
+
+首个研究对照可逐项增加组件：基础规划代理、加入 TDM、加入 PoL2 策略执行点、加入独立物理安全层、最后加入 AI 审计和策略更新。所有版本使用同一场景集和随机种子。AI 评审输出不能作为唯一真值；动作合法性由版本化规则判断，飞行结果由仿真器状态与物理约束计算。仿真测试可验证接口和预先定义的场景，不能替代后续硬件在环或受控实机验证。
+
+## 8. NaturalDAO 现有材料如何承接
+
+| 已有材料/机制 | V2 中的位置 | 需要补齐 |
+|---|---|---|
+| EAP 与 Proof of Love2 条款 | 治理理论依据与版本化解释规则 | 机器可读条款、冲突优先级、版本差异与适用范围 |
+| `conforming / violating / insufficient` | 判断代理的三态输出 | 将 `insufficient` 路由到 `DEFER/SAFE_HALT`，不得进入人工队列 |
+| `allow / repair / block / clarify / review` | 旧处置接口 | 移除 `review`，改为 `ALLOW / CONSTRAIN / REPAIR / DEFER / BLOCK / SAFE_HALT` |
+| 质询解释与追加式哈希决策链 | 机器审查证据与事件账本 | 确保代理身份、模型版本、来源和策略签名可校验；哈希只证明未改动，不证明事实或价值正确 |
+| DAO Governance Lab | AI 代理间提案、质疑、反例生成的流程原型 | 当前 Python 原型/模拟不能证明多代理现实自治或公平 |
+| 正式评测器 fixtures | 回归与合成验证 | 补充物理后果、攻击轨迹、AI 共因失效、自动恢复与误停指标 |
+
+这些工作区可作为原型基础。现有模拟投票和合成 fixtures 尚未验证 AI-only 治理；PoL2 运行时集成、策略更新门和事故闭环需要实现后再评估。
+
+## 9. 可检验的研究问题与贡献
+
+### 研究科学问题
+
+> 在不设置人工复核、人工批准或人工规则更新的条件下，如何将可演进的 Proof of Love2 理论体系映射为多 Agent 可执行的策略，并通过异构 AI 审查、运行时约束、版本审计和自动回滚，使工具型或具身 Agent 的行动保持在可测量的授权范围内？
+
+该问题把理论解释、策略更新、动作授权和执行控制纳入同一评估范围。实验需分别测量规则覆盖、代理错误相关性、约束执行率、版本更新效果、回滚能力和合法任务保留率。
+
+### 三项研究贡献
+
+1. **治理架构**：定义无人工复核的职责分离、多代理制衡、默认拒绝和自动回滚协议。
+2. **评估方法**：建立不依赖人工标签的事实/形式约束评测、共因失效测试和 AI 审查分歧报告；明确其不能证明规范正当性的边界。
+3. **行动级证据**：在工具 Agent、模拟器和受控具身任务中评估完整状态变化、安全停机和合法任务损失，而非只报告分类准确率。
+
+### 主要失效模式
+
+| 失效 | 结果 | 必须具备的控制 |
+|---|---|---|
+| 多个代理共享偏差 | 一致地错误解释规则 | 异构模型/数据、形式性质、独立复算与分歧压力测试 |
+| 规则更新被投毒 | 权限包络被逐步放宽 | 版本差异约束、独立对抗测试、延迟发布、影子运行、自动回滚 |
+| 审计链与执行路径同源 | 错误被隐藏或伪造 | 分离写入权限、追加式存储、外部时间戳/签名与故障域隔离 |
+| 不确定时继续行动 | 低概率误判造成高后果 | `DEFER/SAFE_HALT`、默认拒绝、限制恢复条件 |
+| 安全停机过于频繁 | 合法服务不可用 | 报告误停和恢复成本，按任务风险调整授权范围，并持续检查规则符合度 |
+| 理论条款与新情境冲突 | 不同代理给出相反解释或缺少可验证证据 | 保留各版本和解释依据；在候选更新验证完成前限制相关动作 |
+
+## 参考资料
+
+### NaturalDAO 一手材料
+
+1. [NaturalDAO PoL2 理论文档与伦理对齐协议](https://github.com/naturaldao/NaturalDAO/tree/main/PoL)
+2. [PoL2 治理层规范、数据契约与评测器](https://github.com/naturaldao/NaturalDAO/tree/main/PoL-Governance)
+3. [PoL2 DAO Governance Lab：治理原型、实验设计与结果](https://github.com/naturaldao/NaturalDAO/tree/main/PoL-Governance/research/PoL2-DAO-Governance-Lab)
+4. [类型化决策模型文献综述工作区](https://github.com/naturaldao/NaturalDAO/tree/main/PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey)
+5. [NaturalDAO 运行时集成说明](https://github.com/naturaldao/NaturalDAO/tree/main/PoL-Governance/integrations)
+
+### AI 反馈与 AI 治理先例
+
+6. Bai et al. (2022). [Constitutional AI: Harmlessness from AI Feedback](https://arxiv.org/abs/2212.08073), arXiv:2212.08073.
+7. Kundu et al. (2023). [Specific versus General Principles for Constitutional AI](https://arxiv.org/abs/2310.13798), arXiv:2310.13798.
+8. Zhang et al. (2026). [Adaptive Regulation via Dual-Layer Evolution (ARDE)](https://doi.org/10.1609/aaai.v40i46.41314), Proceedings of AAAI 2026, 40(46), 39620–39627.
+9. Han et al. (2025). [DAO-AI: Evaluating Collective Decision-Making through Agentic AI in Decentralized Governance](https://arxiv.org/abs/2510.21117), arXiv preprint.
+10. [Governance by Construction for Generalist Agents](https://doi.org/10.1145/3786335.3813192), Proceedings of the ACM Conference on AI and Agentic Systems (2026).
+
+### 运行时治理与具身控制
+
+11. Lan et al. (2026). [From Detection to Decision: Calibration and Deferral for Prompt-Injection Detection](https://arxiv.org/abs/2610.20907), arXiv preprint.
+12. Wu et al. (2026). [Poisoned into Action: Context Attacks on Typed Decision Workflows](https://arxiv.org/abs/2610.15537), arXiv preprint.
+13. Kekatos et al. (2026). [Formal Runtime Verification for Tool-Using LLM Agents](https://arxiv.org/abs/2610.09793), offline trace study, arXiv preprint.
+14. Hu et al. (2026). [Jev-Guard: Fast Routing and Auditing Agent Actions over Editable Policy Trees](https://arxiv.org/abs/2610.18326), arXiv preprint.
+15. Debenedetti et al. (2025). [Defeating Prompt Injections by Design](https://arxiv.org/abs/2503.18813) (CaMeL); [implementation](https://github.com/google-research/camel-prompt-injection).
+16. Ahn et al. (2022). [Do As I Can, Not As I Say](https://arxiv.org/abs/2204.01691) (SayCan).
+17. Ames et al. (2019). [Control Barrier Function Based Quadratic Programs for Safety Critical Systems](https://arxiv.org/abs/1903.11199).
+18. [OpenJev](https://github.com/alanhuangyoo/OpenJev): open weights and local inference for typed decisions; repository-reported benchmarks and licensing boundaries require separate verification.
+19. [PX4 Simulation](https://docs.px4.io/v1.17/en/simulation/index)；[Gazebo SITL](https://docs.px4.io/v1.17/en/sim_gazebo_gz/)；[预构建 SITL 包](https://docs.px4.io/v1.17/en/simulation/px4_sitl_prebuilt_packages)；[ROS 2 Offboard 控制](https://docs.px4.io/v1.17/en/flight_modes_mc/offboard)；[Simulation in Hardware (SIH)](https://docs.px4.io/v1.17/en/sim_sih/)。
+20. NVIDIA Isaac Sim: [ROS 2 Bridge](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/install_ros.html) and [Sensors](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/sensors/index.html).
+21. IAMAI, [Project AirSim](https://github.com/iamaisim/ProjectAirSim): simulator repository and implementation documentation.
+22. [AnyJev](https://github.com/nokia-applied-research/AnyJev): open implementation for producing typed decisions from language-model outputs.
