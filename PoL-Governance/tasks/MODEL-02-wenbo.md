@@ -30,6 +30,11 @@
 
 2026-10-23｜Wenbo / DSH Agent Team｜**Track B（主路线）代码就绪**：`finetune/decision_scorer.py`（marker 定位 + pointer head + masked softmax/CE/KL）、`train_decision_scorer.py`（LoRA+head、fp16、软标签 λ 混合）、`test_decision_scorer.py`（19 个 CPU 单测全过，tiny 模型）+ dry-run 在真实 validation 视图跑通（marker 位置、padding mask、混合损失形状校验）。GPU 训练待 Track A 完整基线跑完后排期。
 
+2026-10-23｜Wenbo / DSH Agent Team｜**Track A 完整 1 epoch 基线完成**（RX 7900 XT / WSL2 ROCm 7.2.1 / PyTorch 2.9.1）：batch 8×grad-accum 4（有效 32）、seq 1024、lr 1e-4 cosine、seed 20261023；1,564 步、**9,135 s（2.54 h）**、峰值显存 **6,286 MB**。周期评测（validation 500 行）：step400 0.668 / step800 0.758 / step1200 0.792。
+2026-10-23｜Wenbo / DSH Agent Team｜**validation 全量评测（7,887 行）**：0-shot **0.5127** → adapter **0.7883（+27.6pt）**；en 0.4589→0.7621；zh 0.9440→0.9977（天花板/位置先验，不能当能力证据）；choice/noul/score：0.5392→0.7869 / 0.3909→0.8499 / 0.2634→0.7299；选项数 2/3-4/5-8/9-26：0.4843→0.8511 / 0.6147→0.8618 / 0.2940→0.6021 / 0.1516→0.3287。
+2026-10-23｜Wenbo / DSH Agent Team｜**test 评测（15,573 行）**：adapter **0.7785**；en 0.7514 / zh 0.9931；choice 0.7780 / noul 0.8450 / score 0.7069。跳过 >26 选项 656 行与超长 prompt 77 行；**base 0-shot 对照未跑**。
+2026-10-23｜Wenbo / DSH Agent Team｜**GPU 实验按用户要求暂停**，等待设备调整后继续。代码/视图/结果卡/报告已提交到 `pol/MODEL-02/wenbo`；恢复后顺序：test base 对照 → lm-eval → Track B 全量 → 校准 → 多 seed。结果卡：`results/MODEL-02-qwen3-1.7b-track-a-full/CARD.md`；阶段报告：`docs/reports/2026-10-23-phase2-track-a.md`。
+
 ## 交付或交接
 
 - 待交付：训练视图生成脚本、Track A/B 训练入口与配置、结果卡（模型版本/数据 fingerprint/硬件/预算/指标区间）、失败与限制记录

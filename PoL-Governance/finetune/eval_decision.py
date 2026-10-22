@@ -83,6 +83,12 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="评测样本数量上限 (0 表示全量评测)",
     )
     parser.add_argument(
+        "--max-prompt-chars",
+        type=int,
+        default=4000,
+        help="跳过字符数超过该值的超长 prompt（0=不限制；默认 4000）",
+    )
+    parser.add_argument(
         "--batch-size",
         type=int,
         default=8,
@@ -187,6 +193,7 @@ def run_evaluation(args: argparse.Namespace) -> Dict[str, Any]:
         "missing_prompt": 0,
         "missing_options": 0,
         "token_map_mismatch": 0,
+        "prompt_too_long": 0,
     }
 
     batch_items: List[Dict[str, Any]] = []
@@ -264,6 +271,10 @@ def run_evaluation(args: argparse.Namespace) -> Dict[str, Any]:
             if skip_reason:
                 if skip_reason in skipped_stats:
                     skipped_stats[skip_reason] += 1
+                continue
+
+            if args.max_prompt_chars and len(prompt_prefix) > args.max_prompt_chars:
+                skipped_stats["prompt_too_long"] += 1
                 continue
 
             options = row.get("options", [])

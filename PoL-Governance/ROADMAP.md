@@ -49,9 +49,9 @@
 |---|---|---|
 | M2-1 | 模型选型：0.3B–8B、中文、封闭原语、许可清晰、有成熟微调案例 | **完成**：选型报告（内部）；推荐 Qwen3-1.7B 起步 / Qwen3-4B 主力 + LoRA + 候选评分头，文本单 token SFT 作最简基线；Laya 322M 作超廉价层 |
 | M2-2 | 训练数据适配：通用决策数据 + POL2 冻结数据 → 统一训练样本；软标签与 a/b 反事实对的用法 | **完成（general 部分）**：`build_training_view.py` 生成 train 50,033 / validation 7,887 / test 15,650 行统一视图（模板 tv-1，可复算）；PoL2 未批准训练前只做 schema，不进梯度 |
-| M2-3 | 首个基线：LoRA/QLoRA 小模型 + 通用:PoL = 9:1 或 8:2 | **进行中**：Track A（字母 SFT）冒烟通过（validation 子集 0.3833 → 0.5000），完整 1 epoch 运行中；Track B（候选评分头，masked CE + 软蒸馏）代码与 19 个 CPU 单测就绪，待 GPU 训练 |
-| M2-4 | 防遗忘：replay 比例、通用智力代理评测、灾难性遗忘阈值 | 相对基线的下降在预定阈值内 |
-| M2-5 | 校准：温度缩放、ECE/Brier、软标签一致子集偏差的降权 | 校准报告 |
+| M2-3 | 首个基线：LoRA/QLoRA 小模型 + 通用:PoL = 9:1 或 8:2 | **Track A 完成**：Qwen3-1.7B + LoRA 1 epoch（2.54h / 6.29GB）；validation 0-shot 0.5127 → **0.7883**，test adapter **0.7785**；**Track B 代码就绪**（19 个 CPU 单测），待 GPU 训练。GPU 实验暂停待设备调整 |
+| M2-4 | 防遗忘：replay 比例、通用智力代理评测、灾难性遗忘阈值 | **未开始**：lm-eval（ceval/cmmlu/mmlu/agieval）base vs adapter 待跑 |
+| M2-5 | 校准：温度缩放、ECE/Brier、软标签一致子集偏差的降权 | **未开始**：需先有 calibration 子集与 adapter 概率输出 |
 | M2-6 | 评测 harness：internal / external / 保留集统一口径 | 进行中：决策准确率评测（0-shot / adapter，分 kind/lang/选项数）已可用；lm-eval 通用能力代理与校准链路待接入 |
 
 硬件约束：单张 Tesla T10 16GB（Turing，fp16，无 bf16）。首选 LoRA/QLoRA 与成熟框架（LLaMA-Factory / Axolotl / PEFT）；全参与更大模型需要另议算力。

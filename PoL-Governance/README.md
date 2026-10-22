@@ -4,9 +4,9 @@
 
 ## 当前进度（2026-10-23）
 
-- **第一阶段 · 数据（收尾中）**：通用决策数据集 **v5** 已经由 PR #43 并入 main（公开三区 71,519 条 / 78,001 问题，私有保留集 6,541 条库外）；协作者交付的**专用 PoL2 冻结数据** POL2-accepted-8705-v1（8,705 单元 / 75 场景族）已接收，正在做校验、切分与数据卡，**尚未批准训练**。
+- **第一阶段 · 数据（收尾完成，PR #44 待合并）**：通用决策数据集 **v5** 已由 PR #43 并入 main（公开三区 71,519 条 / 78,001 问题，私有保留集 6,541 条库外）；协作者交付的**专用 PoL2 冻结数据** POL2-accepted-8705-v1（8,705 单元 / 75 场景族）已完成校验、四区切分与数据卡，**尚未批准训练**。
 - **大文件离仓**：数据集实体改由 Hugging Face 托管，仓库只保留数据卡、清单（MANIFEST）与校验脚本；托管状态见 [datasets/general/HF.md](datasets/general/HF.md)。
-- **第二阶段 · 模型适配（开始）**：决策模型选型、训练配方与评测设计，见 [ROADMAP](ROADMAP.md) 与 [模型清单](models/CATALOG.md)。
+- **第二阶段 · 模型适配（进行中）**：训练视图完成；**Track A 基线**（Qwen3-1.7B + LoRA 字母 SFT，1 epoch）在 validation 上把封闭选择准确率从 **0.5127（0-shot）提到 0.7883**，test adapter 准确率 **0.7785**；Track B（候选评分头）代码就绪。阶段报告见 [docs/reports](docs/reports/2026-10-23-phase2-track-a.md)，计划见 [ROADMAP](ROADMAP.md)。
 
 **Agent 从这里开始：**读 [SPEC](SPEC.md) → 在 [任务表](TASKS.md) 选任务 → 推送任务分支认领 → 在任务页更新进度。日常协作不需要 PR 或 fork，具体见 [AGENTS.md](AGENTS.md)。
 
