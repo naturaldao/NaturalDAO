@@ -9,8 +9,8 @@
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
-| 1 | 准备数据：通用底座 + PoL 专项 + 独立标注 + 共享划分 | **收尾中**（2026-10-23） |
-| 2 | 模型适配：可复现配方、首个基线、控制遗忘 | **开始** |
+| 1 | 准备数据：通用底座 + PoL 专项 + 独立标注 + 共享划分 | **完成**（数据收尾；HF 上传待执行；集成方式待维护者确认） |
+| 2 | 模型适配：可复现配方、首个基线、控制遗忘 | **进行中**：Track A 基线完成；评测/校准/混合视图就绪；GPU 实验按 owner 要求暂停 |
 | 3 | 校准盲测：同口径评测、效果与成本、保留集统一评测 | 未开始 |
 | 4 | 插件与验证：接入 DSH、试运行、端到端 | 未开始 |
 
@@ -23,7 +23,7 @@
 - [x] P5 概率补全：mercury-decide 原生概率（44,740 行旁挂件）
 - [x] P6 能力拓宽：bigbench + cosmos_qa（语料 23,855 → 74,912）
 - [x] P7 上线：v5 经 PR #43 并入 main；公开三区 71,519 条 / 78,001 问题，私有保留集 6,541 条库外
-- [x] P7b-1 数据集 Hugging Face 导出就绪：公开三区与私有保留集物理分离，清单（MANIFEST）、数据卡、上传手册与下载校验齐备；大文件已从 git 离仓（见 [datasets/general/HF.md](datasets/general/HF.md)）
+- [x] P7b-1 数据集 Hugging Face 导出就绪：公开三区与私有保留集物理分离，清单（MANIFEST）、数据卡、上传手册与下载校验齐备；大文件已从 git 离仓（见 [datasets/general/HF.md](datasets/general/HF.md)）；离线 `verify` 复检通过（公开 7 文件 / 私有包 6 文件 / 包自校验 exit 0）
 - [ ] P7b-2 实际执行 HF 上传：公开仓库 + 私有保留集仓库（需要维护者 token；上传后回填 revision）
 - [x] P7c 专用数据落位：POL2-accepted-8705-v1 解压、校验（pack/族级切分/回答一致）、四区物化、数据卡与可复算脚本（见 [datasets/pol2/FREEZE-8705-V1.md](datasets/pol2/FREEZE-8705-V1.md)）；**未批准训练前只做整理与评测准备**
 - [x] P7d 文档与仓库整理：过时文档归档、内部 Agent 工作区分隔（`.agent/` 不进公开仓库）、大文件离仓、公开文档精简
@@ -49,12 +49,12 @@
 |---|---|---|
 | M2-1 | 模型选型：0.3B–8B、中文、封闭原语、许可清晰、有成熟微调案例 | **完成**：选型报告（内部）；推荐 Qwen3-1.7B 起步 / Qwen3-4B 主力 + LoRA + 候选评分头，文本单 token SFT 作最简基线；Laya 322M 作超廉价层 |
 | M2-2 | 训练数据适配：通用决策数据 + POL2 冻结数据 → 统一训练样本；软标签与 a/b 反事实对的用法 | **完成（general 部分）**：`build_training_view.py` 生成 train 50,033 / validation 7,887 / test 15,650 行统一视图（模板 tv-1，可复算）；PoL2 未批准训练前只做 schema，不进梯度：**pv-1 适配器已就绪**（`datasets/pol2/build_pol2_training_view.py` + `POL2-VIEW.md`），当前唯一允许 `--schema-preview`，写盘 build 在 `training_approved=false` 下 exit 2；preview 实测 train 5,900 行（choice 5,361 / score 539、skipped=0） |
-| M2-3 | 首个基线：LoRA/QLoRA 小模型 + 通用:PoL = 9:1 或 8:2 | **Track A 完成**：Qwen3-1.7B + LoRA 1 epoch（2.54h / 6.29GB）；validation 0-shot 0.5127 → **0.7883**，test adapter **0.7785**；**Track B 代码就绪**（19 个 CPU 单测），待 GPU 训练。GPU 实验暂停待设备调整 |
-| M2-4 | 防遗忘：replay 比例、通用智力代理评测、灾难性遗忘阈值 | **未开始**：lm-eval（ceval/cmmlu/mmlu/agieval）base vs adapter 待跑 |
-| M2-5 | 校准：温度缩放、ECE/Brier、软标签一致子集偏差的降权 | **未开始**：需先有 calibration 子集与 adapter 概率输出 |
-| M2-6 | 评测 harness：internal / external / 保留集统一口径 | 进行中：决策准确率评测（0-shot / adapter，分 kind/lang/选项数）已可用；lm-eval 通用能力代理与校准链路待接入 |
+| M2-3 | 首个基线：LoRA/QLoRA 小模型 + 通用:PoL = 9:1 或 8:2 | **Track A 完成**：Qwen3-1.7B + LoRA 1 epoch（2.54h / 6.29GB）；validation 0-shot 0.5127 → **0.7883**，test adapter **0.7785**；**Track B 训练+独立评测代码就绪**（19+31 个 CPU 单测），待 GPU 训练；**混合视图 mix-1** 与 `pol2-mix` 一键链就绪（9:1/8:2）；GPU 实验暂停待 owner 开启 |
+| M2-4 | 防遗忘：replay 比例、通用智力代理评测、灾难性遗忘阈值 | **链路就绪**：lm-eval（ceval/cmmlu/mmlu/agieval）四任务可用（cmmlu 需 datasets<4 + trust_remote_code），真实底座+adapter CPU 冒烟通过；base vs adapter 正式对比待 GPU |
+| M2-5 | 校准：温度缩放、ECE/Brier、软标签一致子集偏差的降权 | **工具与协议就绪**：`calibrate.py`（半 B 拟合/半 A 复算，NLL/Brier/ECE/MCE，7 个 CPU 测试）；待 GPU 生成 adapter 概率后出报告 |
+| M2-6 | 评测 harness：internal / external / 保留集统一口径 | **基本就绪**：Track A / Track B 同键名 JSON 评测、`collect_results.py` 汇总（分层/配对 bootstrap/多 seed CI/lm-eval 目录）、预注册协议 [EVAL-PROTOCOL](finetune/EVAL-PROTOCOL.md)；正式数字待 GPU |
 
-硬件约束：单张 Tesla T10 16GB（Turing，fp16，无 bf16）。首选 LoRA/QLoRA 与成熟框架（LLaMA-Factory / Axolotl / PEFT）；全参与更大模型需要另议算力。
+硬件约束：**主卡 Radeon RX 7900 XT 20GB**（WSL2 Ubuntu 24.04 + ROCm 7.2.1 + PyTorch 2.9.1+rocm7.2.1；GPU 静默时段 00:30–09:30 / 12:30–15:30）；Tesla T10 16GB 仅作备用（Turing，fp16，无 bf16）。首选 LoRA/QLoRA + PEFT；全参与更大模型需要另议算力。
 
 ## 第三阶段：校准盲测
 
