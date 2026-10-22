@@ -39,7 +39,7 @@
 
 ### 3.1 决策能力（主指标）
 
-- 整体 letter accuracy；
+- 整体 letter accuracy（Track A 用 `eval_decision.py`；Track B 用 `eval_decision_scorer.py`，两者输出同键名 JSON + 逐行 predictions）；
 - 分层：kind（choice/noul/score）、lang（en/zh）、选项数桶（2 / 3-4 / 5-8 / 9-26）、route（classification/distillation）；
 - 缺失/失败行计入分母（不补齐、不推断），与 benchmark/pol2 评测器口径一致；
 - 同时报告 0-shot 基线（同底座、同 prompt、同子集）与差值。
@@ -80,7 +80,7 @@
 ## 5. 统计协议
 
 - 至少 **2–3 个 seed**（种子集合预注册：20261023 / 20261024 / 20261025）；
-- 报告均值 ± 95% CI（Wilson 区间用于比例；配对 bootstrap 1000 次用于 base-vs-adapter 差值）；
+- 报告均值 ± 95% CI（Wilson 区间用于比例；配对 bootstrap 1000 次用于 base-vs-adapter 差值；跨 seed 聚合用 `collect_results.py --seed-eval`，t 分布 CI，n=1 不给 CI）；
 - 分族相关：general v5 按组切分，视图行同族/同 state 存在相关性；item-level bootstrap 会低估 CI，结果卡必须注明「近似 CI，未做 group-cluster bootstrap」；
 - 不做事后挑选（不能先看 test 再决定报告哪个 seed/任务/阈值）。
 

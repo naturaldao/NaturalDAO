@@ -89,8 +89,14 @@ def stage_commands(stage: str, home: str, repo: str, model: str, adapter: str) -
             f'--eval-view "{data}/general-validation-view.jsonl" --model "{model}" '
             f'--output-dir "{runs}/track-b-e1" --epochs 1 --batch-size 8 --grad-accum 4 '
             f'--seq-len 1024 --eval-limit 500 --eval-every 400',
+            f'python -u finetune/eval_decision_scorer.py '
+            f'--eval-view "{data}/general-validation-view.jsonl" --model "{model}" '
+            f'--adapter-dir "{runs}/track-b-e1/adapter" '
+            f'--head-path "{runs}/track-b-e1/scorer_head.pt" '
+            f'--batch-size 16 --json > "{evals}/track-b-val.json"',
         ]
     elif stage == "seeds":
+        # 预注册种子：20261023 是主 run（已有 track-a-val.json），这里补 24/25 并自动评测 + 聚合
         for seed in (20261024, 20261025):
             lines += [
                 f'python -u finetune/train_decision_sft.py '
@@ -98,7 +104,18 @@ def stage_commands(stage: str, home: str, repo: str, model: str, adapter: str) -
                 f'--eval-view "{data}/general-validation-view.jsonl" --model "{model}" '
                 f'--output-dir "{runs}/track-a-e1-seed{seed}" --epochs 1 --batch-size 8 '
                 f'--grad-accum 4 --seq-len 1024 --eval-limit 500 --eval-every 400 --seed {seed}',
+                f'python -u finetune/eval_decision.py --eval-view "{data}/general-validation-view.jsonl" '
+                f'--model "{model}" --adapter "{runs}/track-a-e1-seed{seed}/adapter" '
+                f'--batch-size 32 --json > "{evals}/track-a-val-seed{seed}.json"',
             ]
+        # 多种子汇总（seed 20261023 用主 run 的 validation 评测）
+        lines += [
+            f'python finetune/collect_results.py '
+            f'--seed-eval "track-a={evals}/track-a-val.json" '
+            f'--seed-eval "track-a={evals}/track-a-val-seed20261024.json" '
+            f'--seed-eval "track-a={evals}/track-a-val-seed20261025.json" '
+            f'--out "{evals}/multiseed-track-a.md"',
+        ]
     else:
         raise ValueError(f"unknown stage: {stage}")
     lines.append("")

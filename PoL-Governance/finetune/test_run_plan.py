@@ -40,6 +40,10 @@ class RunPlanTest(unittest.TestCase):
         self.assertIn("calibrate.py fit", script)
         self.assertIn("--seed 20261024", script)
         self.assertIn("--seed 20261025", script)
+        self.assertIn("track-a-val-seed20261024.json", script)
+        self.assertIn("collect_results.py", script)
+        self.assertIn("eval_decision_scorer.py", script)
+        self.assertIn("multiseed-track-a.md", script)
 
     def test_custom_paths_appear(self):
         script = run_plan.build_script(["lm-eval"], "/custom/home", "/custom/repo",

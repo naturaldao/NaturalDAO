@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -135,6 +136,53 @@ class CollectResultsTest(unittest.TestCase):
             table = collect_results.render_lm_eval_table([("base", base)])
             self.assertIn("ceval-valid", table)
             self.assertIn("0.5000", table)
+
+
+    def test_mean_ci95(self):
+        stats = collect_results.mean_ci95([0.78, 0.79, 0.80])
+        self.assertAlmostEqual(stats["mean"], 0.79, places=6)
+        expected = 4.303 * 0.01 / math.sqrt(3)
+        self.assertAlmostEqual(stats["half_width"], expected, places=6)
+        single = collect_results.mean_ci95([0.75])
+        self.assertEqual(single["n"], 1)
+        self.assertEqual(single["half_width"], 0.0)
+
+    def test_render_seed_table(self):
+        runs = [
+            make_eval_dict(0.70, {"choice": 0.70, "noul": 0.60, "score": 0.50}),
+            make_eval_dict(0.80, {"choice": 0.80, "noul": 0.70, "score": 0.60}),
+            make_eval_dict(0.75, {"choice": 0.75, "noul": 0.65, "score": 0.55}),
+        ]
+        table = collect_results.render_seed_table([("track-a", runs)])
+        self.assertIn("多种子汇总", table)
+        self.assertIn("0.7500 ±", table)
+        self.assertIn("各 seed 整体", table)
+
+    def test_cli_with_seed_eval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            paths = []
+            for index, accuracy in enumerate((0.70, 0.80, 0.75)):
+                path = tmp_path / f"seed{index}.json"
+                write_json(path, make_eval_dict(accuracy, {"choice": accuracy, "noul": accuracy, "score": accuracy}))
+                paths.append(path)
+            out = tmp_path / "seed-summary.md"
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                code = collect_results.main([
+                    "--seed-eval", f"track-a={paths[0]}",
+                    "--seed-eval", f"track-a={paths[1]}",
+                    "--seed-eval", f"track-a={paths[2]}",
+                    "--out", str(out),
+                ])
+            self.assertEqual(code, 0)
+            text = out.read_text(encoding="utf-8")
+            self.assertIn("多种子汇总", text)
+            self.assertIn(" | 3 | ", text)
+
+    def test_parse_grouped_bad_assignment(self):
+        with self.assertRaises(ValueError):
+            collect_results.parse_grouped(["no-equals"], "--seed-eval")
 
     def test_bad_assignment_returns_2(self):
         buffer = io.StringIO()

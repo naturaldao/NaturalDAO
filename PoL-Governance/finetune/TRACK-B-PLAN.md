@@ -40,7 +40,7 @@ test 分区只做回归，不参与选型；private benchmark 不触碰。
 
 1. Track B smoke（4,000 行 / 40 步）→ 看 loss/显存/吞吐，确认无 OOM；
 2. Track B full（1 epoch）→ 保存 adapter + scorer_head.pt + train-manifest.json；
-3. validation 全量评测（Track B 专用评测脚本/适配 Track A eval 的 candidate 概率输出）→ 与 Track A、0-shot 同表；
+3. validation 全量评测：`finetune/eval_decision_scorer.py`（与 Track A 同口径 JSON；`--predictions` 导出 candidate_probs）→ 与 Track A、0-shot 同表；
 4. 温度校准（calibrate.py，半 B 拟合 / 半 A 复算）；
 5. lm-eval base/adapter；
 6. 结果卡：`results/MODEL-02-qwen3-1.7b-track-b/CARD.md`。

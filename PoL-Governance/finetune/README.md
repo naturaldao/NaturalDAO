@@ -327,6 +327,8 @@ python finetune/calibrate.py apply --predictions <evals>/val-preds.jsonl --tempe
 - `calibrate.py`：温度缩放（半 B 拟合 / 半 A 复算，NLL/Brier/ECE/MCE）。
 - `collect_results.py`：把决策评测 JSON + lm-eval JSON + 逐行预测汇总成结果卡表格（含配对 bootstrap 95% CI）。
 - `run_plan.py`：为 GPU 恢复生成分阶段 bash 脚本（env-check / base-test / lm-eval / calibrate / track-b-smoke / track-b-full / seeds）。
+- `eval_decision_scorer.py`：Track B（adapter + scorer_head）独立评测；与 Track A 评测同口径输出 JSON，并可导出逐行概率供校准。
+- `collect_results.py --seed-eval`：多 seed 汇总（均值 ± 95% CI，t 分布）。
 
 ~~~bash
 # GPU 恢复后：生成整套脚本并执行
@@ -334,6 +336,17 @@ python finetune/run_plan.py --stages all --out /tmp/resume.sh
 # 汇总结果卡表格
 python finetune/collect_results.py --eval-json base=... --eval-json tuned=... \
   --lm-eval-json base=... --lm-eval-json tuned=... --preds base=... --preds tuned=... --out summary.md
+# 多 seed 汇总（同 LABEL 重复给多个 seed 的评测 JSON；输出均值 ± 95% CI）
+python finetune/collect_results.py --seed-eval track-a=seed20261023.json \
+  --seed-eval track-a=seed20261024.json --seed-eval track-a=seed20261025.json --out seeds.md
 ~~~
 
 **lm-eval 环境注记（2026-10-23 实测）**：WSL 评测环境使用 lm-eval 0.4.13；cmmlu 数据集脚本要求 `datasets>=3.6,<4` 并传 `--trust_remote_code`（当前 pin 3.6.0，已验证 ceval/cmmlu/mmlu/agieval 任务加载 + 真实 Qwen3-1.7B + PEFT adapter 在 CPU 上 limit=2 跑通）。其余任务若因版本不可用，按 EVAL-PROTOCOL §3.3 规则在结果卡显式注明。
+
+**Track B 评测（训练完成后）**：
+
+~~~bash
+python finetune/eval_decision_scorer.py --eval-view <validation/test-view.jsonl> \
+  --model <底座> --adapter-dir <run>/adapter --head-path <run>/scorer_head.pt \
+  --batch-size 16 --device cuda --json --predictions <仓库外>/track-b-preds.jsonl
+~~~

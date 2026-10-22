@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import random
 import sys
 from pathlib import Path
@@ -90,6 +91,76 @@ def paired_bootstrap(base: Dict[str, bool], tuned: Dict[str, bool],
         "rounds": rounds,
         "seed": seed,
     }
+
+
+# 双侧 95% t 分布临界值（df=1..12），df>12 用 1.96 近似
+T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447,
+       7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228, 11: 2.201, 12: 2.179}
+
+
+def mean_ci95(values: Sequence[float]) -> Dict[str, float]:
+    """跨 seed 的均值与 95% CI（t 分布；n=1 时没有 CI）。"""
+    clean = [float(value) for value in values]
+    if not clean:
+        raise ValueError("no seed values")
+    mean = sum(clean) / len(clean)
+    if len(clean) == 1:
+        return {"mean": mean, "half_width": 0.0, "n": 1}
+    variance = sum((value - mean) ** 2 for value in clean) / (len(clean) - 1)
+    std = math.sqrt(variance)
+    critical = T95.get(len(clean) - 1, 1.96)
+    return {"mean": mean, "half_width": critical * std / math.sqrt(len(clean)), "n": len(clean)}
+
+
+def parse_grouped(values: Optional[Sequence[str]], flag: str) -> List[Tuple[str, List[Path]]]:
+    """把重复的 LABEL=PATH 归到同一个 LABEL 下（保持首次出现顺序）。"""
+    if not values:
+        return []
+    groups: Dict[str, List[Path]] = {}
+    order: List[str] = []
+    for value in values:
+        if "=" not in value:
+            raise ValueError(f"{flag} expects LABEL=PATH, got {value!r}")
+        label, path = value.split("=", 1)
+        if label not in groups:
+            groups[label] = []
+            order.append(label)
+        groups[label].append(Path(path))
+    return [(label, groups[label]) for label in order]
+
+
+def render_seed_table(entries: List[Tuple[str, List[Dict[str, Any]]]]) -> str:
+    """多种子决策评测汇总：均值 ± 95% CI（跨 seed）。"""
+    if not entries:
+        return ""
+    columns = ["整体", "choice", "noul", "score", "en", "zh"]
+    lines = ["| 多种子汇总 | seeds | " + " | ".join(columns) + " |",
+             "|---|---:|" + "---:|" * len(columns)]
+    for label, runs in entries:
+        if not runs:
+            continue
+        values: Dict[str, List[float]] = {column: [] for column in columns}
+        for row in runs:
+            buckets = _metric_block(row, "by_option_bucket")
+            kinds = _metric_block(row, "by_kind")
+            langs = _metric_block(row, "by_lang")
+            values["整体"].append(float(row.get("accuracy", 0.0)))
+            values["choice"].append(kinds.get("choice", 0.0))
+            values["noul"].append(kinds.get("noul", 0.0))
+            values["score"].append(kinds.get("score", 0.0))
+            values["en"].append(langs.get("en", 0.0))
+            values["zh"].append(langs.get("zh", 0.0))
+        cells = []
+        for column in columns:
+            stats = mean_ci95(values[column])
+            if stats["n"] == 1:
+                cells.append(f"{stats['mean']:.4f}")
+            else:
+                cells.append(f"{stats['mean']:.4f} ± {stats['half_width']:.4f}")
+        lines.append(f"| {label} | {len(runs)} | " + " | ".join(cells) + " |")
+        per_seed = ", ".join(f"{value:.4f}" for value in values["整体"])
+        lines.append(f"| 各 seed 整体 | — | {per_seed} |" + " |" * (len(columns) - 1))
+    return "\n".join(lines)
 
 
 def _metric_block(row: Dict[str, Any], key: str) -> Dict[str, float]:
@@ -201,6 +272,13 @@ def build_markdown(args: argparse.Namespace) -> str:
     parts.append(render_eval_table(eval_entries))
     if eval_entries:
         parts.append("")
+    seed_entries: List[Tuple[str, List[Dict[str, Any]]]] = [
+        (label, [load_json(path) for path in paths])
+        for label, paths in parse_grouped(args.seed_eval, "--seed-eval")
+    ]
+    if seed_entries:
+        parts.append(render_seed_table(seed_entries))
+        parts.append("")
     lm_entries = [(label, load_json(resolve_lm_eval_json(path))) for label, path in
                   parse_assignments(args.lm_eval_json, "--lm-eval-json")]
     average_tasks = [task.strip() for task in args.lm_eval_average_tasks.split(",")
@@ -234,6 +312,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--eval-json", action="append", help="决策评测 LABEL=PATH（可重复）")
     parser.add_argument("--lm-eval-json", action="append", help="lm-eval LABEL=PATH（可重复）")
+    parser.add_argument("--seed-eval", action="append",
+                        help="多种子决策评测 LABEL=PATH（同 LABEL 重复给多个 seed；汇总为均值±95%CI）")
     parser.add_argument("--preds", action="append", help="逐行预测 LABEL=PATH（恰好两个时做配对 bootstrap）")
     parser.add_argument("--lm-eval-average-tasks", help="逗号分隔的任务名，用于均值（默认全部有 acc 的任务）")
     parser.add_argument("--bootstrap-rounds", type=int, default=BOOTSTRAP_ROUNDS)
