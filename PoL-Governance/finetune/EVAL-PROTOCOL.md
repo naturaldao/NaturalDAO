@@ -56,6 +56,7 @@
 
 - 工具：lm-evaluation-harness 0.4.x；
 - 任务：ceval-valid、cmmlu、mmlu、agieval，**每任务 limit 100**（先跑小样本保时间，结论只写「在所选代理上」）；
+- 若某任务因数据集/依赖版本不可运行（如 cmmlu 在 datasets 5.x 下脚本不可用），必须在结果卡**显式注明**并用剩余任务均值，不得静默省略或替换成更容易的任务；
 - 对照：同底座 0-shot vs adapter，同 prompt 模板（base 模式生成，不用决策头）；
 - 指标：各任务 accuracy 与 4 任务平均；报告原始值与差值。
 
