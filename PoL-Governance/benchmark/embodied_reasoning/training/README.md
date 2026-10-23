@@ -104,7 +104,11 @@ effect. Shielded task outcomes measure the combined model-plus-filter system;
 raw proposal and gate intervention must be reported separately.
 
 See [the evidence and design review](../../../../Research/PoL2-具身策略效应与安全屏蔽评估补充.md)
-for verified runtime-shielding precedents, current evidence limits, and a
+for primary-source runtime-shielding precedents, current evidence limits, and a
 pre-registered-style factorial follow-up design. The synthetic training set
 still lacks positive `transfer` support in validation and holdout; that data
 coverage issue must be fixed before claiming transfer generalization.
+
+The broader PoL2 validation protocol, including exhaustive typed-gate checks,
+EAP-linked embodied scenarios, model-versus-filter ablations, and machine-only
+evaluation criteria, is described in [the embodied governance efficacy design](../../../../Research/PoL2-具身治理有效性实验设计.md).

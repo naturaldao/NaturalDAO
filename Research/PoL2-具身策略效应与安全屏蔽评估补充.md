@@ -81,6 +81,8 @@ Kev 屏幕测试的数据、模型 revision、token 匹配方式和标签局限�
 2. 所有无门控运行继续限定于 MuJoCo；真实机器人或硬件接口不得提供绕过屏蔽器的执行路径。
 3. 优先完成同 checkpoint、token 匹配的提示对照与四格门控消融，再考虑将类型化决策器接入新的操控状态。不要把选择器拟合合约标签的准确率当作“PoL2 推理增强”。
 
+针对“PoL2 有效性”的完整阶段设计，以及 EAP 条款到场景/端点的对应关系，见[《PoL2 具身治理有效性实验设计》](./PoL2-具身治理有效性实验设计.md)。该设计把“拦截器有效”设为机制命题，把“模型学到 PoL2”设为独立行为命题。
+
 ## 参考文献
 
 - Alshiekh, M. et al. (2018). “Safe Reinforcement Learning via Shielding.” *Proceedings of the AAAI Conference on Artificial Intelligence*, 32(1). https://doi.org/10.1609/aaai.v32i1.11797
