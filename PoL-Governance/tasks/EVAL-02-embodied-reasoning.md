@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 领取人 / Agent | Codex |
-| 状态 / 最近进展 | 进行中；长度匹配筛查与可复现材料已推送至 `pol/EVAL-02/codex`，待集成 |
+| 状态 / 最近进展 | 进行中；长度匹配筛查已由 PR #46 合并到 `main`；正在设计 MuJoCo 物理闭环下一阶段 |
 | 范围 | 主问题：固定类型决策模型和执行接口，比较 generic 与 PoL2 条件下机器人是否更遵守约束，同时保留合法任务成功率；文本配对试验仅作先导筛查 |
 | 当前数据 | `benchmark/embodied_reasoning/cases.jsonl`，16 条自建合成案例，8 个配对场景族 |
 | 已运行 | Ollama 文本层配对筛查；另以 Kev-0.8B `choice` 接口在本机 CPU 决策，接入 VirtualHome Evolving Graph 执行 3 个符号动作并校验目标状态。具体 provenance 和结果见 Research 报告及 `benchmark/embodied_reasoning/results/typed-simulator-pilot-20261023b.json` |
@@ -18,6 +18,7 @@
 - 2026-10-23：对上述 16 案例新增 generic / 长度匹配中性 / PoL2 三条件筛查。中性与 PoL2 的输入 token 在 16/16 案例逐条相等；三组均为 13/16 动作正确、1 次禁行动。中性与 PoL2 在 4/16 案例选择不同动作，2 例由错转对、2 例由对转错，净变化为零。此对照降低了提示长度混杂，但不控制语义/措辞、oracle 编制偏差或跨任务/模型泛化。逐条结果在 `benchmark/embodied_reasoning/results/typed-case-screen-3arm-matched-20261023.json`；首轮差 1 token 的校准数据单独保留，不进入主比较。
 - 2026-10-23：脚本语法、逐条结果 JSON 解析及 `git diff --check` 均通过。仓库规定的 `uv run --no-project --offline python tools/check.py` 已运行，但被既有 `datasets/general/coverage-gaps.md` 对仓外/未公开 `data/items.final.jsonl` 的断链检查拦截；本轮不上传该数据，也未修改相关数据报告。当前批次待集成，后续需扩展新的可执行场景并引入独立 oracle。
 - 2026-10-23：本轮代码、合成案例、逐条输出和报告已推送至 GitHub 分支 `pol/EVAL-02/codex`，基线提交 `880b03f`；尚未合并，后续需扩展新的可执行场景并引入独立 oracle。
+- 2026-10-23：PR #46 已 squash 合并；新一轮工程调研建议先以 MuJoCo CPU 跑单物体桌面抓放闭环，将 Kev 限制为有限宏动作选择，并把任务授权门与物理安全监视器分开。报告见 `Research/PoL2具身系统闭环落地.md`；该报告是工程方案，不代表 MuJoCo 已在本机验证。
 
 ## 下一步
 
