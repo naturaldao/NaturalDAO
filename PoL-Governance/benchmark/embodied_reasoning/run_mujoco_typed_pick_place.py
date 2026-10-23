@@ -218,7 +218,50 @@ def filter_candidate_actions(obs: dict[str, Any], instruction_gate: dict[str, An
 
 def choose_action(obs: dict[str, Any], policy: str, model_name: str,
                   ollama_url: str, scripted: bool,
-                  allowed_actions: list[str]) -> dict[str, Any]:
+                  allowed_actions: list[str], typed_policy: Any | None = None) -> dict[str, Any]:
+    if typed_policy is not None:
+        import torch
+        from training.train_typed_policy_mlp import ACTION_ORDER, features
+
+        instruction = POLICY_PROFILE["normalized_instruction"]
+        scope = "MATCH" if (
+            obs["object"]["id"] == instruction["object_id"]
+            and obs["target"]["id"] == instruction["target_id"]
+        ) else "MISMATCH"
+        location = (
+            "TARGET" if obs["target"]["box_in_target"]
+            else "SOURCE" if obs["object"]["on_source_table"]
+            else "OTHER"
+        )
+        row = {
+            "typed_state": [obs["permission"], scope, "FRESH", location,
+                            bool(obs["target"]["box_in_target"])],
+            "candidates": list(ACTION_ORDER),
+            "label": allowed_actions[0],
+        }
+        vector, _, _ = features(row)
+        with torch.no_grad():
+            logits = typed_policy(torch.tensor([vector], dtype=torch.float32))
+            raw_probabilities = logits.softmax(dim=-1)[0]
+            mask = torch.tensor([[name in allowed_actions for name in ACTION_ORDER]], dtype=torch.bool)
+            probabilities = logits.masked_fill(~mask, -1e9).softmax(dim=-1)[0]
+        proposed = ACTION_ORDER[int(raw_probabilities.argmax())]
+        selected = int(probabilities.argmax())
+        action = ACTION_ORDER[selected]
+        if action not in allowed_actions:
+            action = "wait"
+        return {
+            "action": action,
+            "model_proposal_before_gate": proposed,
+            "candidate_filter_intervened": proposed not in allowed_actions,
+            "reason_code": "learned_typed_policy_choice",
+            "model_type": "17-field MLP policy distillation",
+            "eligible_actions": allowed_actions,
+            "raw_probabilities": {name: round(float(raw_probabilities[i]), 7)
+                                  for i, name in enumerate(ACTION_ORDER)},
+            "probabilities": {name: round(float(probabilities[i]), 7)
+                              for i, name in enumerate(ACTION_ORDER)},
+        }
     if scripted:
         if obs["target"]["box_in_target"]:
             action = "done"
@@ -435,7 +478,7 @@ def execute_transfer(model: mujoco.MjModel, data: mujoco.MjData, names: dict[str
 
 def run_episode(policy: str, permission: str, model_name: str, ollama_url: str,
                 scripted: bool, gate_enabled: bool = True,
-                max_decisions: int = 5) -> dict[str, Any]:
+                max_decisions: int = 5, typed_policy: Any | None = None) -> dict[str, Any]:
     model, data, names = build_scene()
     mujoco.mj_forward(model, data)
     for _ in range(250):
@@ -451,7 +494,7 @@ def run_episode(policy: str, permission: str, model_name: str, ollama_url: str,
         instruction_gate = evaluate_instruction_gate(obs, gate_enabled)
         candidate_filter = filter_candidate_actions(obs, instruction_gate, gate_enabled)
         decision = choose_action(obs, policy, model_name, ollama_url, scripted,
-                                 candidate_filter["eligible"])
+                                 candidate_filter["eligible"], typed_policy)
         action = decision["action"]
         gate = {"allowed": False, "reason": "unhandled_action"}
         if action == "transfer":
@@ -552,7 +595,8 @@ def run_episode(policy: str, permission: str, model_name: str, ollama_url: str,
             "natural_language_policy_interpretation": False,
             "human_runtime_approval": False,
         },
-        "model": "scripted-smoke-driver" if scripted else model_name,
+        "model": ("scripted-smoke-driver" if scripted else
+                  "pol2-contract-v0.1-typed-mlp" if typed_policy is not None else model_name),
         "initial_state": initial_state,
         "final_state": terminal_observation,
         "status": final_status,
@@ -576,13 +620,29 @@ def main() -> int:
     parser.add_argument("--model", default="qwen2.5:7b")
     parser.add_argument("--ollama-url", default="http://127.0.0.1:11434")
     parser.add_argument("--scripted", action="store_true", help="deterministic integration smoke driver")
+    parser.add_argument("--typed-checkpoint", type=Path, default=None,
+                        help="run the locally trained typed-choice policy from this checkpoint")
     parser.add_argument("--disable-gate", action="store_true",
                         help="simulation-only ablation; never connect this mode to hardware")
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
 
+    typed_policy = None
+    if args.typed_checkpoint:
+        import torch
+        from training.train_typed_policy_mlp import TypedPolicy
+
+        checkpoint = torch.load(args.typed_checkpoint, map_location="cpu", weights_only=False)
+        if checkpoint.get("policy_id") != POLICY_PROFILE["policy_id"]:
+            raise ValueError("trained checkpoint policy ID does not match the active contract")
+        if checkpoint.get("policy_sha256") != POLICY_SHA256:
+            raise ValueError("trained checkpoint was built against a different policy profile")
+        typed_policy = TypedPolicy()
+        typed_policy.load_state_dict(checkpoint["state_dict"])
+        typed_policy.eval()
     result = run_episode(args.policy, args.permission, args.model, args.ollama_url,
-                         args.scripted, gate_enabled=not args.disable_gate)
+                         args.scripted, gate_enabled=not args.disable_gate,
+                         typed_policy=typed_policy)
     rendered = json.dumps(result, ensure_ascii=False, indent=2)
     print(rendered)
     if args.output:
