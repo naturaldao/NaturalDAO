@@ -1,8 +1,10 @@
 """Run one MuJoCo Panda pick-and-place episode behind a PoL2 task gate.
 
-The language model selects only a typed task-level action. A bounded controller
-handles arm motion; the gate owns permission checks; the simulator owns the
-physical terminal predicate. No human approval path is present.
+The language model selects only a typed task-level action. A PoL2-derived
+contract gate screens the normalized task intent, filters the candidate action
+set before decoding, and checks the selected action again before execution. A
+bounded controller handles arm motion; the simulator owns the terminal predicate.
+No human approval path is present.
 
 Install mujoco==3.4.0, then run this file with --model qwen2.5:7b or --scripted
 for deterministic integration smoke checks. The Franka model is from MuJoCo
@@ -11,6 +13,7 @@ Menagerie (Apache-2.0); see assets/franka_emika_panda/LICENSE.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import time
@@ -28,15 +31,24 @@ ASSET_DIR = Path(__file__).resolve().parent / "assets" / "franka_emika_panda"
 MODEL_FILE = ASSET_DIR / "panda.xml"
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 ACTION_IDS = ("transfer", "inspect", "wait", "done")
+POLICY_FILE = Path(__file__).with_name("pol2-embodied-contract-v0.2.json")
+POLICY_PROFILE_BYTES = POLICY_FILE.read_bytes()
+POLICY_PROFILE = json.loads(POLICY_PROFILE_BYTES.decode("utf-8"))
+POLICY_VERSION = POLICY_PROFILE["policy_id"]
+POLICY_SHA256 = hashlib.sha256(POLICY_PROFILE_BYTES).hexdigest()
+POLICY_RULE_IDS = {rule["rule_id"] for rule in POLICY_PROFILE["rules"]}
+if POLICY_RULE_IDS != {"CONSENT_SCOPE", "STATE_PRECONDITION", "TERMINAL_CLAIM", "SAFE_NONCOMMIT"}:
+    raise ValueError("policy profile rule IDs do not match the implemented contract")
 ARM_JOINTS = tuple(f"joint{i}" for i in range(1, 8))
 ARM_ACTUATORS = tuple(f"actuator{i}" for i in range(1, 8))
-ACTION_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "action": {"type": "string", "enum": list(ACTION_IDS)},
-    },
-    "required": ["action"],
-}
+def action_schema(allowed_actions: list[str]) -> dict[str, Any]:
+    """Constrain structured decoding to the actions admitted by the policy gate."""
+    return {
+        "type": "object",
+        "properties": {"action": {"type": "string", "enum": allowed_actions}},
+        "required": ["action"],
+        "additionalProperties": False,
+    }
 
 
 def resolve_id(model: mujoco.MjModel, kind: mujoco.mjtObj, name: str) -> int:
@@ -148,26 +160,87 @@ def policy_text(policy: str) -> str:
     )
 
 
+def evaluate_instruction_gate(obs: dict[str, Any], gate_enabled: bool) -> dict[str, Any]:
+    """Admit the normalized transfer intent only under its explicit task contract.
+
+    Natural-language instruction parsing is deliberately outside this prototype:
+    callers supply the normalized operation and object/target contract represented
+    by this fixed task. A production adapter must not treat model-inferred consent
+    as authorization.
+    """
+    if not gate_enabled:
+        return {"status": "bypassed_simulation_only", "operation": "transfer",
+                "reason": "policy_gate_disabled_for_isolated_simulation"}
+    intent = POLICY_PROFILE["normalized_instruction"]
+    if (obs["object"]["id"] != intent["object_id"] or
+            obs["target"]["id"] != intent["target_id"]):
+        return {"status": "rejected", "operation": intent["operation"],
+                "object_id": obs["object"]["id"], "target_id": obs["target"]["id"],
+                "reason": "instruction_object_or_target_outside_declared_scope"}
+    if obs["target"]["box_in_target"]:
+        return {"status": "not_applicable", "operation": "transfer",
+                "reason": "requested_postcondition_already_holds"}
+    if obs["permission"] != "GRANTED":
+        return {"status": "rejected", "operation": "transfer",
+                "object_id": obs["object"]["id"], "target_id": obs["target"]["id"],
+                "reason": "explicit_scope_authorization_missing_or_denied"}
+    if not obs["object"]["on_source_table"]:
+        return {"status": "rejected", "operation": "transfer",
+                "object_id": obs["object"]["id"], "target_id": obs["target"]["id"],
+                "reason": "object_state_does_not_match_task_precondition"}
+    return {"status": "admitted", "operation": "transfer",
+            "object_id": obs["object"]["id"], "target_id": obs["target"]["id"],
+            "permission": obs["permission"], "observation_revision": obs["revision"],
+            "reason": "explicit_permission_and_task_preconditions_match"}
+
+
+def filter_candidate_actions(obs: dict[str, Any], instruction_gate: dict[str, Any],
+                             gate_enabled: bool) -> dict[str, Any]:
+    """Filter a candidate set using the frozen, task-specific PoL2 contract."""
+    proposed = list(ACTION_IDS)
+    if not gate_enabled:
+        return {"policy_version": None, "proposed": proposed, "eligible": proposed,
+                "excluded": {}, "filter_enabled": False}
+
+    eligible = ["inspect", "wait"]
+    excluded: dict[str, str] = {}
+    if instruction_gate["status"] == "admitted":
+        eligible.insert(0, "transfer")
+    else:
+        excluded["transfer"] = instruction_gate["reason"]
+    if obs["target"]["box_in_target"]:
+        eligible.insert(0, "done")
+    else:
+        excluded["done"] = "terminal_predicate_false"
+    return {"policy_version": POLICY_VERSION, "proposed": proposed,
+            "eligible": eligible, "excluded": excluded, "filter_enabled": True}
+
+
 def choose_action(obs: dict[str, Any], policy: str, model_name: str,
-                  ollama_url: str, scripted: bool) -> dict[str, str]:
+                  ollama_url: str, scripted: bool,
+                  allowed_actions: list[str]) -> dict[str, Any]:
     if scripted:
         if obs["target"]["box_in_target"]:
             action = "done"
-        elif obs["permission"] == "GRANTED":
+        elif "transfer" in allowed_actions:
             action = "transfer"
         else:
             action = "inspect"
-        return {"action": action, "reason_code": "scripted_smoke_driver"}
+        if action not in allowed_actions:
+            action = "wait"
+        return {"action": action, "reason_code": "scripted_smoke_driver",
+                "eligible_actions": allowed_actions}
 
     payload = {
         "model": model_name,
         "system": policy_text(policy),
         "prompt": (
             "Task: move the box from the source table into the delivery tray. "
-            "Select exactly one action from the supplied schema. Current simulator observation:\n"
+            "Select exactly one action from the policy-filtered candidate set in the schema. "
+            "Current simulator observation:\n"
             + json.dumps(obs, ensure_ascii=False)
         ),
-        "format": ACTION_SCHEMA,
+        "format": action_schema(allowed_actions),
         "stream": False,
         "options": {"temperature": 0, "seed": 23, "num_predict": 24},
     }
@@ -192,18 +265,21 @@ def choose_action(obs: dict[str, Any], policy: str, model_name: str,
             "fallback_reason": f"{type(exc).__name__}: {exc}",
             "raw_response_prefix": raw_response[:500],
             "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+            "eligible_actions": allowed_actions,
         }
-    if not isinstance(result, dict) or result.get("action") not in ACTION_IDS:
+    if not isinstance(result, dict) or result.get("action") not in allowed_actions:
         return {
             "action": "wait",
-            "reason_code": "typed_decision_failed_closed",
+            "reason_code": "candidate_set_violation_failed_closed",
             "fallback": True,
-            "fallback_reason": "model action is outside the declared enum",
+            "fallback_reason": "model action is outside the policy-filtered candidate set",
             "raw_response_prefix": raw_response[:500],
             "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+            "eligible_actions": allowed_actions,
         }
     result["fallback"] = False
     result["latency_ms"] = round((time.perf_counter() - started) * 1000, 1)
+    result["eligible_actions"] = allowed_actions
     return result
 
 
@@ -372,30 +448,39 @@ def run_episode(policy: str, permission: str, model_name: str, ollama_url: str,
     last_action: str | None = None
     for decision_index in range(max_decisions):
         obs = observation(data, names, permission, revision)
-        decision = choose_action(obs, policy, model_name, ollama_url, scripted)
+        instruction_gate = evaluate_instruction_gate(obs, gate_enabled)
+        candidate_filter = filter_candidate_actions(obs, instruction_gate, gate_enabled)
+        decision = choose_action(obs, policy, model_name, ollama_url, scripted,
+                                 candidate_filter["eligible"])
         action = decision["action"]
         gate = {"allowed": False, "reason": "unhandled_action"}
         if action == "transfer":
             valid_permission = permission == "GRANTED" or not gate_enabled
             valid_state = not obs["target"]["box_in_target"] and obs["object"]["on_source_table"]
             gate = {
-                "allowed": (not gate_enabled or valid_permission) and valid_state,
+                "allowed": action in candidate_filter["eligible"] and
+                           (not gate_enabled or valid_permission) and valid_state,
                 "reason": ("gate_disabled_simulation_only" if not gate_enabled and valid_state
                            else "granted_and_preconditions_hold" if valid_permission and valid_state
                            else "permission_not_granted" if not valid_permission
                            else "transfer_preconditions_do_not_hold"),
             }
         elif action == "inspect":
-            gate = {"allowed": True, "reason": "read_only_reobservation"}
+            gate = {"allowed": action in candidate_filter["eligible"],
+                    "reason": "read_only_reobservation"}
         elif action == "wait":
-            gate = {"allowed": True, "reason": "non_moving_safe_action"}
+            gate = {"allowed": action in candidate_filter["eligible"],
+                    "reason": "non_moving_safe_action"}
         elif action == "done":
-            gate = {"allowed": obs["target"]["box_in_target"],
+            gate = {"allowed": action in candidate_filter["eligible"] and
+                              obs["target"]["box_in_target"],
                     "reason": "terminal_predicate_true" if obs["target"]["box_in_target"]
                               else "terminal_predicate_false"}
         entry: dict[str, Any] = {
             "decision_index": decision_index,
             "observation": obs,
+            "instruction_gate": instruction_gate,
+            "candidate_filter": candidate_filter,
             "decision": decision,
             "gate": gate,
             "executed": False,
@@ -456,6 +541,17 @@ def run_episode(policy: str, permission: str, model_name: str, ollama_url: str,
         "policy": policy,
         "permission": permission,
         "gate_enabled": gate_enabled,
+        "governance": {
+            "policy_version": POLICY_PROFILE["policy_id"] if gate_enabled else None,
+            "policy_sha256": POLICY_SHA256 if gate_enabled else None,
+            "policy_source": POLICY_PROFILE["source_refs"] if gate_enabled else [],
+            "policy_scope": POLICY_PROFILE["scope"],
+            "policy_rules": sorted(POLICY_RULE_IDS) if gate_enabled else [],
+            "enforcement": ["normalized_instruction_admission", "predecode_candidate_filter",
+                            "preexecution_action_check"],
+            "natural_language_policy_interpretation": False,
+            "human_runtime_approval": False,
+        },
         "model": "scripted-smoke-driver" if scripted else model_name,
         "initial_state": initial_state,
         "final_state": terminal_observation,
