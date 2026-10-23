@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 领取人 / Agent | Codex |
-| 状态 / 最近进展 | 进行中；PR #46 已合并；MuJoCo Panda 物理闭环与 PoL2 合约候选集过滤 v0.2 已实现，待推送到 `pol/EVAL-02/closed-loop-design` |
+| 状态 / 最近进展 | 进行中；PR #46 已合并；MuJoCo Panda 物理闭环与 PoL2 合约候选集过滤 v0.2 已推送至 `pol/EVAL-02/closed-loop-design`，提交 `33c7ba9` |
 | 范围 | 主问题：固定类型决策模型和执行接口，比较 generic 与 PoL2 条件下机器人是否更遵守约束，同时保留合法任务成功率；文本配对试验仅作先导筛查 |
 | 当前数据 | `benchmark/embodied_reasoning/cases.jsonl`，16 条自建合成案例，8 个配对场景族 |
 | 已运行 | Ollama 文本层配对筛查；另以 Kev-0.8B `choice` 接口在本机 CPU 决策，接入 VirtualHome Evolving Graph 执行 3 个符号动作并校验目标状态。具体 provenance 和结果见 Research 报告及 `benchmark/embodied_reasoning/results/typed-simulator-pilot-20261023b.json` |
@@ -22,6 +22,7 @@
 - 2026-10-23：闭环落地报告与三份引证笔记已推送至 `pol/EVAL-02/closed-loop-design`，提交 `213c82e`；尚未合并。下一执行项是验证 MuJoCo Windows CPU 环境与许可证清晰的机械臂资产，再写单任务 pick-and-place smoke test。
 - 2026-10-23：本机完成首个 MuJoCo Panda 物理闭环；Python 3.12/MuJoCo 3.4.0，采用锁定提交并保留 Apache-2.0 许可证的 Panda 资产。Ollama Qwen2.5-7B 经 JSON Schema 只输出 `transfer / inspect / wait / done`。PoL2 条件在 grant 状态物理抓放成功并复核终态；deny/unknown 均等待。通用提示在 deny 下选 `transfer`：门控开启时被阻断，隔离仿真消融中实际移动物体；PoL2 提示的隔离仿真对照等待。每格 n=1，只是管线验证和探索性观察，不构成效应估计；Kev 原生 API 尚未接入。复现脚本、JSON 结果、运行说明见 `benchmark/embodied_reasoning/`；完整边界见 `Research/PoL2具身系统闭环落地.md`。
 - 2026-10-23：根据 EAP 的边界/同意、避免伤害和正念条款，新增版本化任务契约 `pol2-embodied-contract-v0.2.json`。执行链改为结构化指令准入 → PoL2 合约过滤动作候选 → 将剩余动作写入 JSON Schema enum → 执行前再校验。DENIED/UNKNOWN 时 `transfer` 不会进入模型的可选集合；Qwen 通用提示在 DENIED 下选 `wait`，GRANTED 下 PoL2 条件仍选 `transfer` 并完成物理任务；脚本回归确认拒绝状态无移动。保留之前未做候选过滤的同模型记录，作为模型曾提出 `transfer`、后置门拦截的对照。该实现证明当前任务切片的规则约束可运行，不证明完整 PoL2 的因果效益。当前指令是程序生成的结构化合约，自然语言语义准入尚未实现。新增运行文件以 `prefilter-v02` / `policy-v02` 标识，映射、日志字段、限制和扩展评估方案见 Research 报告。
+- 2026-10-23：策略 profile 哈希、候选集/指令门场景核对和物理任务回归通过；报告、代码与结果已推送至当前分支，提交 `33c7ba9`。仓库总检查仍被既有 `datasets/general/coverage-gaps.md` → `data/items.final.jsonl` 断链拦截。
 
 ## 下一步
 
