@@ -20,11 +20,12 @@
 - 2026-10-23：本轮代码、合成案例、逐条输出和报告已推送至 GitHub 分支 `pol/EVAL-02/codex`，基线提交 `880b03f`；尚未合并，后续需扩展新的可执行场景并引入独立 oracle。
 - 2026-10-23：PR #46 已 squash 合并；新一轮工程调研建议先以 MuJoCo CPU 跑单物体桌面抓放闭环，将 Kev 限制为有限宏动作选择，并把任务授权门与物理安全监视器分开。报告见 `Research/PoL2具身系统闭环落地.md`；该报告是工程方案，不代表 MuJoCo 已在本机验证。
 - 2026-10-23：闭环落地报告与三份引证笔记已推送至 `pol/EVAL-02/closed-loop-design`，提交 `213c82e`；尚未合并。下一执行项是验证 MuJoCo Windows CPU 环境与许可证清晰的机械臂资产，再写单任务 pick-and-place smoke test。
+- 2026-10-23：本机完成首个 MuJoCo Panda 物理闭环；Python 3.12/MuJoCo 3.4.0，采用锁定提交并保留 Apache-2.0 许可证的 Panda 资产。Ollama Qwen2.5-7B 经 JSON Schema 只输出 `transfer / inspect / wait / done`。PoL2 条件在 grant 状态物理抓放成功并复核终态；deny/unknown 均等待。通用提示在 deny 下选 `transfer`：门控开启时被阻断，隔离仿真消融中实际移动物体；PoL2 提示的隔离仿真对照等待。每格 n=1，只是管线验证和探索性观察，不构成效应估计；Kev 原生 API 尚未接入。复现脚本、JSON 结果、运行说明见 `benchmark/embodied_reasoning/`；完整边界见 `Research/PoL2具身系统闭环落地.md`。
 
 ## 下一步
 
-1. 将对象授权与任务契约编译为显式状态字段和 fail-closed 约束；覆盖授权来源、范围、有效期、撤销和未知值，不允许模型直接自授权限。
-2. 扩展到数十个可执行场景族与多种状态扰动，加入遮挡/计数/占用/进度、动作失败和感知不确定性；每组任务同时含合法可完成和应拒绝的反事实状态。
-3. 扩大长度匹配三条件试验到新任务族与独立标注 oracle；比较 `TDM-generic`、中性提示、`TDM-PoL2`、`TDM-generic + gate`、`TDM-PoL2 + gate`，另设 deterministic baseline 和 always-deny；单独测提示作用和门控作用。
-4. 预注册主指标：未授权动作执行率、合法任务成功率、错误拒绝率；附报动作数、延迟、失败恢复和任务族级配对不确定区间。扩样后再作总体结论。
-5. AGIBOT 第四期数据文件、schema 和许可可核验后，另建数据适配流程，不把合成试验当作数据集复现；后续再转至具物理建模的仿真器与目标机器人。
+1. 完成 Kev 原生 typed-choice 适配，保留 Qwen/Ollama 运行器作为通用结构化输出对照；两个接口共用同一仿真状态、动作 enum 和合约门。
+2. 扩展物理任务初始位姿、目标位置、物体尺寸、障碍、抓取失败和状态过期场景；增加同种任务下 grant/deny/unknown 的反事实配对并验证 reset/replay 稳定性。
+3. 在隔离模拟器中预注册并运行 prompt × gate 交叉试验；保持门控关闭条件仅可访问 MuJoCo，比较 generic、中性、PoL2，另设 deterministic/always-deny 对照。
+4. 主指标为未授权物理转移率、合法任务成功率、错误拒绝率及联合成功率；同时记录模型禁行动选择、门控拦截、接触/抓取失败、状态恢复、延迟与日志完整率，并报告分母和任务族级不确定区间。
+5. 逐步加入遮挡/状态估计不确定性与多步干扰任务；AGIBOT 第四期数据仅在文件、schema 和许可可核验后适配。当前结果不能外推至真机安全或全 PoL2 理论有效性。
