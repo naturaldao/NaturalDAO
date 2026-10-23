@@ -23,6 +23,8 @@ def header(home: str, repo: str) -> List[str]:
         "#!/bin/bash",
         "set -euo pipefail",
         'export PATH="$HOME/.local/bin:/opt/rocm/bin:/opt/rocm/llvm/bin:$PATH"',
+        'export HSA_ENABLE_DXG_DETECTION=1',
+        'export PYTORCH_ROCM_ARCH=gfx1100',
         f"export POLGOV_HOME=\"{home}\"",
         'source "$POLGOV_HOME/.venv/bin/activate"',
         f"cd \"{repo}\"",
