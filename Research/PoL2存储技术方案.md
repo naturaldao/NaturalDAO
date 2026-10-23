@@ -10,15 +10,53 @@
 | 证据边界 | 官方文档与原始论文核查、现有代码静态检查、可复算容量情景；没有完成 PoL2 大规模性能、断电、辐照或轨道实验 |
 | 身份与许可 | 本项目第一方材料使用 Proof of Love2 标识；第三方许可保持各自原样，此前已授予的 CC0 权限不因本次更新撤销 |
 
+<!-- readability-v2 -->
+
+> **汇报主线：先建立可信事实与版本边界，再扩展 AI 检索、训练与行动闭环。** 本文为技术方案；容量数字属于假设情景，性能与轨道能力仍待验证。
+
+![PoL2 架构总览：权威事实、版本化派生、受控行动及实施顺序](./PoL2存储V2支撑/figures/architecture-overview.png)
+
+*图 1｜阅读总览。详细的数据流、提交时序与恢复状态图分别见第 4、5、9 节。*
+
+### 按汇报问题阅读
+
+| 你要回答的问题 | 直接阅读 | 应带走的结论 |
+| --- | --- | --- |
+| 为什么需要 V2？ | [执行摘要](#section-1)、[V1 修正](#section-2) | 保留事实，把索引和模型产物作为派生层 |
+| 系统具体怎么组织？ | [数据模型](#section-3)、[架构](#section-4)、[写入协议](#section-5) | 权威状态、版本发布和可见性必须一致 |
+| 如何适应 AI？ | [混合检索](#section-6)、[数据闭环](#section-7)、[回放与 API](#section-11) | 检索、训练、记忆、授权分别管理 |
+| 规模和成本多大？ | [容量模型与情景](#section-8) | 计算副本、迁移和空闲储备；不能只算向量 |
+| 如何保证可靠与自治？ | [恢复与删除](#section-9)、[安全边界](#section-10) | 可恢复、可撤销、可审计才能进入生产 |
+| 现在能做什么，怎么验收？ | [代码衔接](#section-13)、[验收路线](#section-14)、[风险](#section-15) | 先过正确性闸门，再测规模与故障 |
+| 轨道部署有哪些前提？ | [轨道约束](#section-12)、[一手来源](#section-16) | 地面验证不能替代任务资格验证 |
+
+---
+
+<a id="section-1"></a>
+
 ## 1. 执行摘要：高密度首先要求保住事实和版本边界
 
-**PoL2 应以“不可变多模态原件＋版本化事件账本＋事务性元数据”作为权威事实源，把 ANN、全文索引、关系投影、训练数据集和缓存作为有版本、可撤销、可重建的派生物。** 原件负责保存实际发生过什么，事件账本负责保存谁在什么版本下改变了什么，事务性元数据负责决定当前可见状态。向量近邻只帮助找到候选，不能承担规则授权、事实真实性或证据完备性的证明。适应 AI 时代的关键不在预先选定一个最大向量引擎，而在原文、模型、策略、时间、许可和执行轨迹之间建立可追溯关系，并以测量决定索引覆盖比例和升级时机。
+**PoL2 应以“不可变多模态原件＋版本化事件账本＋事务性元数据”作为权威事实源，把 ANN、全文索引、关系投影、训练数据集和缓存作为有版本、可撤销、可重建的派生物。** 原件负责保存实际发生过什么，事件账本负责保存谁在什么版本下改变了什么，事务性元数据负责决定当前可见状态。向量近邻只帮助找到候选，不能承担规则授权、事实真实性或证据完备性的证明。
 
-现有 PostgreSQL/pgvector 已经是可用的集成起点，V2 不再把 Hannoy 作为默认 MVP，也不预定 DiskANN 为最终内核。代码检查发现三个具体缺口：默认 `halfvec(4096)` 超出 pgvector 当前 halfvec ANN 的 4,000 维索引上限；`replace_embeddings` 是事务内全表清空再装载，不是在线双代迁移；`vector_search` 对全表按距离排序，没有作用域、模型、有效版本或快照过滤。应先修补这些边界，再用相同工作负载比较替代引擎。[现有实现](https://github.com/naturaldao/NaturalDAO/blob/09fdf57/POL2-Steward/pol2-service/service/store_postgres.py#L467)、[pgvector 官方说明](https://github.com/pgvector/pgvector)。
+适应 AI 时代的关键不在预先选定一个最大向量引擎，而在原文、模型、策略、时间、许可和执行轨迹之间建立可追溯关系，并以测量决定索引覆盖比例和升级时机。
 
-容量不能只统计向量本体。本报告给出三组**假设情景，而非业务预测或性能实验**：每日事件为 $10^6/10^8/10^{10}$，保留一年，10% 事件进入检索、每个索引事件 8 个向量，另计原件归档、元数据、双副本、七日额外热副本、双代迁移和 25% 配置空闲。在这些限定假设下，配置量约为 **5.54 TB、781.24 TB 和 108.41 PB**；这仍未包括视频大对象、模型权重、备份历史等成本。最低一档已有 2.92 亿个向量，因此不能误当作第一轮原型目标。复算程序与完整输入见[容量情景支撑](./PoL2存储V2支撑/容量情景结果.md)。
+现有 PostgreSQL/pgvector 已经是可用的集成起点，V2 不再把 Hannoy 作为默认 MVP，也不预定 DiskANN 为最终内核。
 
-实施分三条有依赖的路线：**地面原型**先证明提交、过滤、撤销、回放和迁移正确；**地面生产**在实测瓶颈出现后增加分区、独立对象存储、日志解耦和湖仓快照；**轨道配置**必须另过任务相关的辐照、热真空、功率与失联自治资格验证。全 AI 治理沿用 [PoL2-EG V2](./PoL2-治理支点与行动闭环-V2.md)：AI 提案、独立机器验证、确定性策略门禁、分阶段发布和自动回滚，不设运行时人工批准节点。代理的一致意见不能证明事实，机器审查也不能绕过授权和持久化边界。
+代码检查发现三个具体缺口：默认 `halfvec(4096)` 超出 pgvector 当前 halfvec ANN 的 4,000 维索引上限；`replace_embeddings` 是事务内全表清空再装载，不是在线双代迁移；`vector_search` 对全表按距离排序，没有作用域、模型、有效版本或快照过滤。
+
+应先修补这些边界，再用相同工作负载比较替代引擎。
+
+[现有实现](https://github.com/naturaldao/NaturalDAO/blob/09fdf57/POL2-Steward/pol2-service/service/store_postgres.py#L467)、[pgvector 官方说明](https://github.com/pgvector/pgvector)。
+
+容量不能只统计向量本体。本报告给出三组**假设情景，而非业务预测或性能实验**：每日事件为 $10^6/10^8/10^{10}$，保留一年，10% 事件进入检索、每个索引事件 8 个向量，另计原件归档、元数据、双副本、七日额外热副本、双代迁移和 25% 配置空闲。
+
+在这些限定假设下，配置量约为 **5.54 TB、781.24 TB 和 108.41 PB**；这仍未包括视频大对象、模型权重、备份历史等成本。最低一档已有 2.92 亿个向量，因此不能误当作第一轮原型目标。复算程序与完整输入见[容量情景支撑](./PoL2存储V2支撑/容量情景结果.md)。
+
+实施分三条有依赖的路线：**地面原型**先证明提交、过滤、撤销、回放和迁移正确；**地面生产**在实测瓶颈出现后增加分区、独立对象存储、日志解耦和湖仓快照；**轨道配置**必须另过任务相关的辐照、热真空、功率与失联自治资格验证。
+
+全 AI 治理沿用 [PoL2-EG V2](./PoL2-治理支点与行动闭环-V2.md)：AI 提案、独立机器验证、确定性策略门禁、分阶段发布和自动回滚，不设运行时人工批准节点。代理的一致意见不能证明事实，机器审查也不能绕过授权和持久化边界。
+
+<a id="section-2"></a>
 
 ## 2. V1 的哪些结论保留，哪些必须修正
 
@@ -37,6 +75,8 @@ V1 对随机检索、持续写入、治理留痕和轨道约束的关注仍然�
 | 全局不引入加密等机制 | 受控单信任原型可保持不加密；新增威胁触发对应控制 | 不把更强防护强制套到所有配置，也不把原型当对抗系统 |
 
 不继承 V1 中未在本轮打开原文核对的近期预印本收益数字、Star 数或厂商吞吐宣传；它们不构成 PoL2 的性能证据。DiskANN 当前仓库展示的是可组合 Rust 索引库及 DataProvider 接口，不能据此声称具备本方案的跨层事务、历史回放和治理语义。[DiskANN 官方仓库](https://github.com/microsoft/DiskANN)。
+
+<a id="section-3"></a>
 
 ## 3. 明确数据密度：字节、事件、版本与关系共同增长
 
@@ -89,6 +129,8 @@ V1 对随机检索、持续写入、治理留痕和轨道约束的关注仍然�
 
 Agent 生成的事实、摘要或候选政策均先进入候选域；即便多数 Agent 同意，也不能自动成为有效规则。来源、引用和冲突状态随版本进入机器准入验证。运行时授权点只读取已发布政策和明确的当前有效状态。
 
+<a id="section-4"></a>
+
 ## 4. 架构：事实源稳定，投影按访问模式增加
 
 ```mermaid
@@ -117,11 +159,17 @@ flowchart TB
 
 ### 4.1 格式分工与升级条件
 
-原始模态按适合其语义的格式保存；列式事件与标注优先使用 Parquet；Arrow 用于批处理的内存交换，不能当作持久事务数据库。Parquet 定义文件布局和编码，不提供跨文件业务提交；Arrow 也不替实现承担并发更新协调。[Parquet 概述](https://parquet.apache.org/docs/overview/)、[Arrow 规范](https://arrow.apache.org/docs/format/Columnar.html)。
+原始模态按适合其语义的格式保存；列式事件与标注优先使用 Parquet；Arrow 用于批处理的内存交换，不能当作持久事务数据库。Parquet 定义文件布局和编码，不提供跨文件业务提交；Arrow 也不替实现承担并发更新协调。
 
-出现多写者、跨引擎快照和训练扫描需求后，引入一个明确版本的 Iceberg catalog。Iceberg 的快照与 manifest 可以管理表文件；它的元数据提交仍依赖 catalog 原子操作，也不会自动把外部 BLOB、模型权重和 ANN 纳入一体事务。PoL2 的 ReleaseManifest 因而仍需存在，绑定多表 snapshot 与外部依赖。[Iceberg 规范](https://iceberg.apache.org/spec/)。
+[Parquet 概述](https://parquet.apache.org/docs/overview/)、[Arrow 规范](https://arrow.apache.org/docs/format/Columnar.html)。
 
-Paimon 主键表适合 upsert/CDC，但逻辑当前行不能取代不可变业务事件。Lance 可作为多模态随机采样、特征读取和检索投影候选，不应与 Iceberg、Paimon 同时未经验证地成为三套主事实源。格式选择记录版本、读取引擎和兼容矩阵；“最新规范有此字段”不等于所有引擎已稳定支持。[Paimon 主键表](https://paimon.apache.org/docs/2.1/primary-key-table/)、[Lance 官方文档](https://lance.org/)。
+出现多写者、跨引擎快照和训练扫描需求后，引入一个明确版本的 Iceberg catalog。Iceberg 的快照与 manifest 可以管理表文件；它的元数据提交仍依赖 catalog 原子操作，也不会自动把外部 BLOB、模型权重和 ANN 纳入一体事务。
+
+PoL2 的 ReleaseManifest 因而仍需存在，绑定多表 snapshot 与外部依赖。[Iceberg 规范](https://iceberg.apache.org/spec/)。
+
+Paimon 主键表适合 upsert/CDC，但逻辑当前行不能取代不可变业务事件。Lance 可作为多模态随机采样、特征读取和检索投影候选，不应与 Iceberg、Paimon 同时未经验证地成为三套主事实源。格式选择记录版本、读取引擎和兼容矩阵；“最新规范有此字段”不等于所有引擎已稳定支持。
+
+[Paimon 主键表](https://paimon.apache.org/docs/2.1/primary-key-table/)、[Lance 官方文档](https://lance.org/)。
 
 | 部署层级 | 最小组成 | 增加组件的实测触发条件 |
 | --- | --- | --- |
@@ -137,13 +185,19 @@ SQLite 可用于孤立的小型边缘缓冲，但当前基线不必从 PostgreSQ
 
 短事件先进入可校验的追加段，再批量生成列式文件；大模态 BLOB 保持独立，小 BLOB 可不可变打包，保存 `pack_id/offset/length/hash`。不要为每个 token、chunk 或事件单独创建对象。可将 128–512 MiB 列式文件作为第一轮测试候选，最终按尾延迟、随机读取放大、删除重写与故障重建测定；这不是生产最优值。
 
-按有限时间窗口加有限 hash bucket 分区，避免按 event ID 或无限增长的 Agent ID 建目录。读取走 manifest 与元数据访问路径，不靠每次全桶 LIST。压实任务与线上查询争用 IO，须观测小文件数、最老积压、待压实字节和后台读写预算。Iceberg 官方维护说明也把小文件、manifest 重写和快照维护作为持续职责。[Iceberg 维护](https://iceberg.apache.org/docs/latest/maintenance/)。关系层只保存有来源、受作用域约束的显式边及经验证的有限派生边，不为全部对象生成全连接的 $O(N^2)$ 关系。
+按有限时间窗口加有限 hash bucket 分区，避免按 event ID 或无限增长的 Agent ID 建目录。读取走 manifest 与元数据访问路径，不靠每次全桶 LIST。压实任务与线上查询争用 IO，须观测小文件数、最老积压、待压实字节和后台读写预算。
+
+Iceberg 官方维护说明也把小文件、manifest 重写和快照维护作为持续职责。[Iceberg 维护](https://iceberg.apache.org/docs/latest/maintenance/)。关系层只保存有来源、受作用域约束的显式边及经验证的有限派生边，不为全部对象生成全连接的 $O(N^2)$ 关系。
 
 ### 4.3 链上只锚定必要承诺，链下保存高密度事实
 
 NaturalDAO 的区块链部分不应承载全部原始事件、音视频、个人信息、embedding 或每次判定正文。本方案将链下原件与事件系统作为容量和读取主体，按实际治理需要选择性发布批次根、schema/manifest/政策版本和最小发布记录。锚定频率由审计窗口、费用和链可用性预算决定；离线期间可形成明确标注的本地检查点，不能假装已经获得链上最终性。
 
-链适配器必须定义交易确认、最终性、重组回退和重提交行为，以及锚定记录与链下 release 的映射。承诺根不证明知识真实、发布者有权或动作被授权，也不能保证链下数据始终可取；敏感内容的可枚举 hash 仍可能泄露关联。地面/轨道断链时不要求每个 Agent 回合完成同步全球共识，改用生产者流序列、写入 epoch 和明确的跨域确认层级，在恢复连接后对账。事件时间不作为完美全局时钟；实体版本、逻辑顺序和冲突策略共同决定可见性。上述为 PoL2 协议设计，未声称现有链上实现已提供这些保证。
+链适配器必须定义交易确认、最终性、重组回退和重提交行为，以及锚定记录与链下 release 的映射。承诺根不证明知识真实、发布者有权或动作被授权，也不能保证链下数据始终可取；敏感内容的可枚举 hash 仍可能泄露关联。
+
+地面/轨道断链时不要求每个 Agent 回合完成同步全球共识，改用生产者流序列、写入 epoch 和明确的跨域确认层级，在恢复连接后对账。事件时间不作为完美全局时钟；实体版本、逻辑顺序和冲突策略共同决定可见性。上述为 PoL2 协议设计，未声称现有链上实现已提供这些保证。
+
+<a id="section-5"></a>
 
 ## 5. 写入与可见性：只承诺已经实现的持久化层级
 
@@ -171,23 +225,39 @@ sequenceDiagram
 
 **图 2. 跨层提交与发布协议。** 对象成功而 SQL 失败留下孤儿，稍后安全回收；SQL 成功而消费者失败留下重试任务。不得因 ANN 暂时不可用而抹掉已提交事实。投影完成与业务提交是不同水位。
 
-PostgreSQL 事务只覆盖纳入同一事务的表；普通文件、对象存储和 ANN 不会因调用顺序自动原子化。若对象层没有满足要求的持久化确认，SQL 不得引用为“已持久原件”。AWS S3 提供成功对象写后的强一致读取和单 key 原子更新，但不提供跨 key 原子更新；这些语义不能自动外推其他 S3-compatible 服务。[S3 一致性模型](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html)。
+PostgreSQL 事务只覆盖纳入同一事务的表；普通文件、对象存储和 ANN 不会因调用顺序自动原子化。若对象层没有满足要求的持久化确认，SQL 不得引用为“已持久原件”。AWS S3 提供成功对象写后的强一致读取和单 key 原子更新，但不提供跨 key 原子更新；这些语义不能自动外推其他 S3-compatible 服务。
 
-事务 outbox 至少记录事件 ID、目标 generation、重试次数、下次尝试和处理租约。消费者在投影侧用 `(event_id, generation)` 去重；先投影成功再确认消费，崩溃重复处理应安全。Kafka 的事务也不自动保证外部 SQL、对象层和 ANN 的端到端 exactly-once；采用“至少一次传输＋幂等逻辑提交”是明确且可测试的契约。[Kafka 消息语义](https://kafka.apache.org/41/design/design/)。
+[S3 一致性模型](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html)。
+
+事务 outbox 至少记录事件 ID、目标 generation、重试次数、下次尝试和处理租约。消费者在投影侧用 `(event_id, generation)` 去重；先投影成功再确认消费，崩溃重复处理应安全。
+
+Kafka 的事务也不自动保证外部 SQL、对象层和 ANN 的端到端 exactly-once；采用“至少一次传输＋幂等逻辑提交”是明确且可测试的契约。[Kafka 消息语义](https://kafka.apache.org/41/design/design/)。
 
 顺序只在声明的实体或生产者分区内约束，不声称全局全序。迟到事件分别保存发生时间和摄入时间，冲突版本进入隔离，不能仅以到达先后覆盖业务事实。watermark 表示已处理前缀，不表示未来不会收到更早的事件。每批事件生成段级摘要和树根，不对每条追加事件重新 hash 整个历史文件。
 
-watermark 的实际契约是**分区位置向量＋缺口集合**，不是全表最大 ID。SQL sequence/自增 ID 的分配顺序不等于事务提交顺序，不能将 `MAX(id)` 当作已提交或已投影前缀。每个声明分区采用可核对的事务提交/日志位置标识，记录已确认与已应用区间以及 gaps；只有前面的提交与处理缺口关闭后才推进连续前缀。中止事务由事务状态证明排除，不以盲目等待其分配号填补；分区重配置记录 epoch 和旧新位置映射。release 对每个分区声明覆盖位置，跨分区只承诺该向量所定义的一致发布，不凭单个最大数伪造全局顺序。
+watermark 的实际契约是**分区位置向量＋缺口集合**，不是全表最大 ID。SQL sequence/自增 ID 的分配顺序不等于事务提交顺序，不能将 `MAX(id)` 当作已提交或已投影前缀。每个声明分区采用可核对的事务提交/日志位置标识，记录已确认与已应用区间以及 gaps；只有前面的提交与处理缺口关闭后才推进连续前缀。
+
+中止事务由事务状态证明排除，不以盲目等待其分配号填补；分区重配置记录 epoch 和旧新位置映射。release 对每个分区声明覆盖位置，跨分区只承诺该向量所定义的一致发布，不凭单个最大数伪造全局顺序。
 
 ### 5.1 查询只看一致的 release，撤销另走即时权威检查
 
 普通查询固定 `release_id`、有效时间和索引 generation；候选必须属于该 release 的实际成员与版本。对“截至某时点”的历史检索，使用相应快照或显式 membership/version 过滤；在当前索引上过量召回不能证明历史 top-k 完整。release 发布前逐项检查原件存在、引用完整、模型一致、保留 pin 和投影水位。
 
-当前撤销不能等待旧快照自然过期。查询和缓存返回前，都向权威元数据核验撤销/授权 epoch；政策撤销触发主动失效。缓存 key 绑定 `scope_hash + release_id + policy_version + model/encoder/reranker_generation + query_normalizer_version + valid_at semantics`，不允许仅用文本 hash 或 TTL。审计读取旧原件的权限与当前动作使用证据的权限分开。
+当前撤销不能等待旧快照自然过期。查询和缓存返回前，都向权威元数据核验撤销/授权 epoch；政策撤销触发主动失效。
+
+缓存 key 绑定 `scope_hash + release_id + policy_version + model/encoder/reranker_generation + query_normalizer_version + valid_at semantics`，不允许仅用文本 hash 或 TTL。
+
+审计读取旧原件的权限与当前动作使用证据的权限分开。
 
 高风险新政策或撤销尚未进入 ANN 时，对受影响实体使用有界 exact/delta 查询；不能确认完整性则 `DEFER`，不签发该动作许可。低风险、与变更无关的流量仍可服务，避免以全局停机替代精确隔离。副本迟滞、索引缺失和原件不可用均有显式状态码，不能默默返回“无相关证据”。
 
-查询与缓存核验只保证核验时点，不能覆盖“取证后、动作执行前发生撤销”的竞态。执行许可必须绑定 `policy_epoch`、`authorization_epoch`、`scope_hash`、动作类型与规范化参数摘要、失效时间及一次性 nonce；撤销事件单调增加相应 epoch，政策回滚也不得降低撤销 epoch。策略执行点在授权派发前读取当前权威 epoch，在同一授权事务中核验匹配、有效期和参数摘要，并原子消费 nonce、记录授权派发意图；epoch 不匹配则拒绝并重新评估。派发器只消费已提交意图，以 operation ID 幂等重试，旧进程用 fencing token 隔离。该事务是软件授权的线性化点，不意味着数据库事务能与不可逆物理动作原子提交；若要求撤销一直生效到实际执行，工具/设备的最后执行点必须接受 epoch/fencing/nonce 并再次核验或遵守明确的有界许可协议。不能支持该协议的执行器应声明撤销窗口、限制动作与许可寿命，不能声称无竞态的物理授权。
+查询与缓存核验只保证核验时点，不能覆盖“取证后、动作执行前发生撤销”的竞态。执行许可必须绑定 `policy_epoch`、`authorization_epoch`、`scope_hash`、动作类型与规范化参数摘要、失效时间及一次性 nonce；撤销事件单调增加相应 epoch，政策回滚也不得降低撤销 epoch。
+
+策略执行点在授权派发前读取当前权威 epoch，在同一授权事务中核验匹配、有效期和参数摘要，并原子消费 nonce、记录授权派发意图；epoch 不匹配则拒绝并重新评估。派发器只消费已提交意图，以 operation ID 幂等重试，旧进程用 fencing token 隔离。
+
+该事务是软件授权的线性化点，不意味着数据库事务能与不可逆物理动作原子提交；若要求撤销一直生效到实际执行，工具/设备的最后执行点必须接受 epoch/fencing/nonce 并再次核验或遵守明确的有界许可协议。不能支持该协议的执行器应声明撤销窗口、限制动作与许可寿命，不能声称无竞态的物理授权。
+
+<a id="section-6"></a>
 
 ## 6. AI 检索：先确定有效集合，再优化候选召回
 
@@ -197,19 +267,25 @@ watermark 的实际契约是**分区位置向量＋缺口集合**，不是全表
 
 关系扩展设置边类型白名单、最大跳数、节点/字节/时间预算，并保留每条边的来源与有效版本。检索某政策时可强制精确读取其撤销、例外和上位条款，这比指望 ANN 自然返回全部规则更可控。发现冲突时保留双方证据，不能让 reranker 将低相似度反证消失。结构化过滤必须在外部 reranker 获得正文之前生效，并在最终取原文时复核。
 
-Qdrant 的 Query API 展示多路 prefetch 与 RRF 融合；RRF 融合的是排序，不是已校准概率。LanceDB 文档区分预过滤和后过滤，后过滤会使结果不足 limit。pgvector 近似扫描也存在过滤后候选不足，迭代扫描扩大预算仍不能保证达到 k。[Qdrant 混合查询](https://qdrant.tech/documentation/search/hybrid-queries/)、[LanceDB 过滤](https://docs.lancedb.com/search/filtering)、[pgvector](https://github.com/pgvector/pgvector)。
+Qdrant 的 Query API 展示多路 prefetch 与 RRF 融合；RRF 融合的是排序，不是已校准概率。LanceDB 文档区分预过滤和后过滤，后过滤会使结果不足 limit。pgvector 近似扫描也存在过滤后候选不足，迭代扫描扩大预算仍不能保证达到 k。
+
+[Qdrant 混合查询](https://qdrant.tech/documentation/search/hybrid-queries/)、[LanceDB 过滤](https://docs.lancedb.com/search/filtering)、[pgvector](https://github.com/pgvector/pgvector)。
 
 若有效集合很小或过滤选择率很低，直接精确扫描该集合常比无限扩大 ANN 搜索合理。引擎的谓词能力、历史 membership、删除语义和模型隔离是选型硬门槛，不能只比较裸向量 QPS。查询扩展次数分别统计总检索次数、实际并行扇出、并发 RPS 和串行依赖；并行调用增加负载，但不能把其所有延迟简单相加为 TTFT。串行依赖的关键路径才直接累加。
 
 ### 6.2 多向量只用于可证明带来净收益的层
 
-ColBERT 的 late interaction 以 query/document token 表征做细粒度匹配；它提示一种精排方法，不证明 PoL2 全库铺开值得。[ColBERT 原始论文](https://arxiv.org/abs/2004.12832)。设 $N_c$ 为 chunk 数、$t$ 为每 chunk 平均 token 向量数、$d_t$ 为 token 向量维度、$b$ 为每分量字节，则表征本体：
+ColBERT 的 late interaction 以 query/document token 表征做细粒度匹配；它提示一种精排方法，不证明 PoL2 全库铺开值得。[ColBERT 原始论文](https://arxiv.org/abs/2004.12832)。
+
+设 $N_c$ 为 chunk 数、$t$ 为每 chunk 平均 token 向量数、$d_t$ 为 token 向量维度、$b$ 为每分量字节，则表征本体：
 
 $$
 D_{multi}=N_c t d_t b,\qquad \frac{D_{multi}}{D_{single}}=\frac{t d_t}{d}.
 $$
 
-其中 $d$ 是单向量维度，容量单位为 byte；不包含 ID、offset、图、复制与版本。实际评估还需 $t$ 的 P95/P99 和事件级上限，防止极长文档支配存储。默认仅为高价值条款、小比例关键证据或精排候选保存多向量；不是所有 token 都建立 ANN 图。Qdrant 官方精排示例即为精排多向量关闭 HNSW，说明保存细粒度表征与为其全建图可以分开。[混合检索与多向量精排](https://qdrant.tech/documentation/tutorials-basics/reranking-hybrid-search/)。
+其中 $d$ 是单向量维度，容量单位为 byte；不包含 ID、offset、图、复制与版本。实际评估还需 $t$ 的 P95/P99 和事件级上限，防止极长文档支配存储。默认仅为高价值条款、小比例关键证据或精排候选保存多向量；不是所有 token 都建立 ANN 图。
+
+Qdrant 官方精排示例即为精排多向量关闭 HNSW，说明保存细粒度表征与为其全建图可以分开。[混合检索与多向量精排](https://qdrant.tech/documentation/tutorials-basics/reranking-hybrid-search/)。
 
 ### 6.3 召回目标是校准指标，不是逐查询证明
 
@@ -229,7 +305,11 @@ API 返回的 `estimated_recall` 允许为 `null`。只有存在适用校准集�
 | LanceDB | 多模态与训练采样投影挑战者 | 随机读取/扫描并发、快照边界、过滤与删除可见性 |
 | DiskANN3 | 需要定制 provider 的后续路线 | 持久化、谓词、集成成本、恢复和接口版本稳定性 |
 
-pgvectorscale 的索引标签过滤不等于任意 WHERE 全部下推，且官方仍提示项目成熟度与使用限制；DiskANN3 是索引库而非完整权威数据库。不能按 README 的厂商性能图排序，更不能用 Star 数替代运维验证。[pgvectorscale](https://github.com/timescale/pgvectorscale)、[DiskANN](https://github.com/microsoft/DiskANN)、[LanceDB 混合检索](https://docs.lancedb.com/search/hybrid-search)。
+pgvectorscale 的索引标签过滤不等于任意 WHERE 全部下推，且官方仍提示项目成熟度与使用限制；DiskANN3 是索引库而非完整权威数据库。不能按 README 的厂商性能图排序，更不能用 Star 数替代运维验证。
+
+[pgvectorscale](https://github.com/timescale/pgvectorscale)、[DiskANN](https://github.com/microsoft/DiskANN)、[LanceDB 混合检索](https://docs.lancedb.com/search/hybrid-search)。
+
+<a id="section-7"></a>
 
 ## 7. AI 数据闭环：训练原料、代理记忆与推理缓存分开管理
 
@@ -247,11 +327,21 @@ pgvectorscale 的索引标签过滤不等于任意 WHERE 全部下推，且官�
 
 长期 Agent 记忆至少区分事实知识、情节轨迹与程序性候选。事实必须引用原件，情节记录实际执行，程序性知识若改变权限或规则必须经过政策发布闭环。LangGraph 的跨会话 namespace 记忆模型可作为应用层组织参考，不能替代 PoL2 的事实与授权契约。[LangGraph 记忆概念](https://docs.langchain.com/oss/python/concepts/memory)。
 
-KV/prefix cache 保存推理计算的中间状态，可以驱逐重算；证据记录和执行账本不能随缓存淘汰。vLLM 的 prefix caching 按父块、精确 token 和额外上下文构造 hash，支持 cache salt；这解决计算复用，不能使任意两个语义相近请求共享事实授权。[vLLM prefix caching](https://docs.vllm.ai/en/latest/design/prefix_caching/)。跨请求结果缓存、证据缓存与 KV cache 分别观测命中、失效和隔离边界，模型、适配器或策略改变后不得复用错误上下文。
+KV/prefix cache 保存推理计算的中间状态，可以驱逐重算；证据记录和执行账本不能随缓存淘汰。vLLM 的 prefix caching 按父块、精确 token 和额外上下文构造 hash，支持 cache salt；这解决计算复用，不能使任意两个语义相近请求共享事实授权。
+
+[vLLM prefix caching](https://docs.vllm.ai/en/latest/design/prefix_caching/)。跨请求结果缓存、证据缓存与 KV cache 分别观测命中、失效和隔离边界，模型、适配器或策略改变后不得复用错误上下文。
 
 ### 7.3 模型、分块和量化都采用 generation 迁移
 
-先取得一致基线快照及其分区水位向量 $W_0$，并在回填开始前持久注册消费位置和保留 pin，保证 $W_0$ 之后的 outbox 更新、删除与撤销不会被回收；再冻结旧 manifest → 按基线回填新代 → 连续重放增量至发布水位向量 $W$ → 删除/过滤/质量验证 → shadow read → 同步切换索引与 query encoder → 观察期保留回滚 → 按全局 GC 回收。另一可选协议是在基线回填前先启用持久双写；两种协议都必须以实体版本 CAS 阻止旧回填覆盖较新更新或删除 tombstone。发布前验证从 $W_0$ 到 $W$ 的每个声明分区连续前缀完整且无未解决缺口；不能只比较最大记录号，也不能先回填完再开始保留增量。不得用旧 query encoder 查询新模型向量，也不得混合不同模型的分数而不声明融合方法。Qdrant 的模型迁移官方流程包含新集合、alias 切换及观察期双写，提供了可借鉴的操作模式，但 PoL2 仍须自行绑定政策与证据 release。[Embedding 模型迁移](https://qdrant.tech/documentation/tutorials-operations/embedding-model-migration/)。
+先取得一致基线快照及其分区水位向量 $W_0$，并在回填开始前持久注册消费位置和保留 pin，保证 $W_0$ 之后的 outbox 更新、删除与撤销不会被回收；再冻结旧 manifest → 按基线回填新代 → 连续重放增量至发布水位向量 $W$ → 删除/过滤/质量验证 → shadow read → 同步切换索引与 query encoder → 观察期保留回滚 → 按全局 GC 回收。
+
+另一可选协议是在基线回填前先启用持久双写；两种协议都必须以实体版本 CAS 阻止旧回填覆盖较新更新或删除 tombstone。发布前验证从 $W_0$ 到 $W$ 的每个声明分区连续前缀完整且无未解决缺口；不能只比较最大记录号，也不能先回填完再开始保留增量。
+
+不得用旧 query encoder 查询新模型向量，也不得混合不同模型的分数而不声明融合方法。Qdrant 的模型迁移官方流程包含新集合、alias 切换及观察期双写，提供了可借鉴的操作模式，但 PoL2 仍须自行绑定政策与证据 release。
+
+[Embedding 模型迁移](https://qdrant.tech/documentation/tutorials-operations/embedding-model-migration/)。
+
+<a id="section-8"></a>
 
 ## 8. 容量、带宽、寿命与成本：用完整账本替代单个压缩率
 
@@ -263,7 +353,9 @@ $$
 D_i=\lambda_i b_i c_i d_i T_i.
 $$
 
-非平稳到达应按时间积分；字节去重与语义去重不同，且压缩、去重不能重复扣减。版本未在到达率中计入时单独加版本差异；如果每次修订已经作为事件计入，就不再无条件乘版本数。采用复制时物理因子为副本数；采用 $(k+m)$ 分片的纠删码时理想容量因子为 $(k+m)/k$，另计小对象、对齐和实现开销。[Ceph 纠删码](https://docs.ceph.com/en/umbrella/rados/operations/erasure-code/)。
+非平稳到达应按时间积分；字节去重与语义去重不同，且压缩、去重不能重复扣减。版本未在到达率中计入时单独加版本差异；如果每次修订已经作为事件计入，就不再无条件乘版本数。采用复制时物理因子为副本数；采用 $(k+m)$ 分片的纠删码时理想容量因子为 $(k+m)/k$，另计小对象、对齐和实现开销。
+
+[Ceph 纠删码](https://docs.ceph.com/en/umbrella/rados/operations/erasure-code/)。
 
 $$
 \begin{aligned}
@@ -319,7 +411,9 @@ python Research/PoL2存储V2支撑/capacity_model.py --scenarios Research/PoL2�
 python -m unittest discover -s Research/PoL2存储V2支撑 -p test_capacity_model.py -v
 ```
 
-未覆盖的视频等大对象、模型权重、网络/WAL、EC 修复流量与暂存、数据库页/TOAST/索引膨胀、分片倾斜、隔离备份历史、训练物化必须另建账。$D_{temp}$ 仅支持此处向量及 ANN 双代字节估算，不代表全系统恢复空间充足。常驻内存还有路由、目录、bitmap、缓存和引擎实现开销，不能把磁盘索引宣称为零内存。若每个 token 全量建图，$f$ 与 $m$ 的放大很快超过原件；反过来，真实视频流也会使原件主导。
+未覆盖的视频等大对象、模型权重、网络/WAL、EC 修复流量与暂存、数据库页/TOAST/索引膨胀、分片倾斜、隔离备份历史、训练物化必须另建账。$D_{temp}$ 仅支持此处向量及 ANN 双代字节估算，不代表全系统恢复空间充足。常驻内存还有路由、目录、bitmap、缓存和引擎实现开销，不能把磁盘索引宣称为零内存。
+
+若每个 token 全量建图，$f$ 与 $m$ 的放大很快超过原件；反过来，真实视频流也会使原件主导。
 
 ### 8.3 带宽、恢复窗口与能耗不能由容量直接推出
 
@@ -327,15 +421,21 @@ python -m unittest discover -s Research/PoL2存储V2支撑 -p test_capacity_mode
 
 若外部到达率为 $Q$ request/s，每请求平均调用检索 $k$ 次，总调用量近似 $Qk$，但峰值并发与延迟取决于调用图、批处理和缓存命中。把 P99 和 P99.9、超时率、有效证据读取 byte/query、无效过滤比例与恢复期间降级一起记录。
 
-软件写放大 $A_{app}=W_{host}/W_{logical}$，设备写放大 $A_{dev}=W_{NAND}/W_{host}$；在同一设备和同一统计窗口下，$W_{NAND}=W_{logical}A_{app}A_{dev}$。集群复制、日志、压实、训练导出、索引重建和修复分别计量；不能拿集群逻辑量除单盘 SMART 数推 WAF。产品 TBW 若按 host 写入标定，寿命预算使用 host 写入，不能无条件再除一次设备 WAF。无 NAND telemetry 时仅报告 host 写量，不伪称测到 FTL 行为。
+软件写放大 $A_{app}=W_{host}/W_{logical}$，设备写放大 $A_{dev}=W_{NAND}/W_{host}$；在同一设备和同一统计窗口下，$W_{NAND}=W_{logical}A_{app}A_{dev}$。集群复制、日志、压实、训练导出、索引重建和修复分别计量；不能拿集群逻辑量除单盘 SMART 数推 WAF。
+
+产品 TBW 若按 host 写入标定，寿命预算使用 host 写入，不能无条件再除一次设备 WAF。无 NAND telemetry 时仅报告 host 写量，不伪称测到 FTL 行为。
 
 成本按每月固定资产摊销、可用容量、对象请求、带宽/出口、索引常驻内存、计算与功率拆分。能耗 $E_{energy}=\int P(t)\,dt$，$P$ 用 W、时间用 h 时结果为 Wh；kWh 再除 1,000。价格、硬件型号和工作负载尚未知，不提供虚构货币总价或 SSD 年限。应比较“每百万已正确处理的请求”“每 TB-year 可恢复原件”和“每次完整训练扫描”的成本，而非仅按裸 GB 比价。
+
+<a id="section-9"></a>
 
 ## 9. 可靠性、保留与删除：恢复能力必须有可读原件
 
 ### 9.1 每层防护解决不同失效
 
-介质 ECC 处理其能力范围内的位错误；端到端 hash 检测路径或静默损坏；复制/EC 恢复指定介质或节点丢失；隔离备份用于误删、污染传播和整域损失。几个副本处于同一 SSD、控制器、供电或航天器，只能算对应低层故障的冗余，不能算整域独立。Ceph deep scrub 会读取数据检查校验和，普通 scrub 不能视为全量内容验证。[Ceph scrub](https://docs.ceph.com/en/quincy/rados/configuration/osd-config-ref/)。
+介质 ECC 处理其能力范围内的位错误；端到端 hash 检测路径或静默损坏；复制/EC 恢复指定介质或节点丢失；隔离备份用于误删、污染传播和整域损失。几个副本处于同一 SSD、控制器、供电或航天器，只能算对应低层故障的冗余，不能算整域独立。Ceph deep scrub 会读取数据检查校验和，普通 scrub 不能视为全量内容验证。
+
+[Ceph scrub](https://docs.ceph.com/en/quincy/rados/configuration/osd-config-ref/)。
 
 热日志和小元数据优先复制；冷数据封装成不可变大段后再评估 EC。4+2 或 8+3 只是候选编码参数；其理想因子为 1.5 和 1.375，能否承受对应域故障还取决于放置、剩余分片状态和实际故障相关性。纠删码不是防止软件把错误同步写到全部分片的机制。
 
@@ -362,17 +462,31 @@ RPO 表示在声明故障集合下可接受的数据损失窗口；RTO 表示恢
 
 配置分别声明消息重放、原件、判定重放、训练可复现、旧模型与灾备保留期。若某判定要求完整回放，则全部依赖需保留到其回放承诺结束；若依法或按策略删除 payload，就将该判定标为 `privacy_deleted/payload_expired`，不再声称完整原文回放。
 
-GC 的 mark 根包括 retained release、training run、decision retention、backup pin、active reader lease 与在途事务；sweep 只删除未标记且超过安全期的内容。先生成候选删除清单、dry-run 和审计，再延迟物理回收。安全期覆盖最长写入、重试、离线消费者和时钟误差，不能直接沿用产品默认天数。Iceberg 快照到期后不可再 time-travel，孤儿清理窗口过短还会误删在途文件；单个表的维护不能代替外部原件 GC。[Iceberg 维护](https://iceberg.apache.org/docs/latest/maintenance/)。
+GC 的 mark 根包括 retained release、training run、decision retention、backup pin、active reader lease 与在途事务；sweep 只删除未标记且超过安全期的内容。先生成候选删除清单、dry-run 和审计，再延迟物理回收。
 
-mark 后仍可能出现新 release、reader 或在途写 pin，因此 dry-run 与宽限期不足以保证安全。GC 使用版本化根集和 GC epoch：mark 固定根版本，所有新增引用/租约必须经权威事务登记；sweep 前通过根版本 CAS 或等效 writer barrier 检测变化，并在同一删除授权事务中重新确认目标的实时零引用、无有效 reader lease、无在途 pin。目标先进入 `delete_intent`，该状态与新引用登记互斥，拒绝新 pin；如果根版本或条件改变则放弃本轮候选并重新标记。既有 reader 租约须允许读完或明确完成撤销，不能静默删除 pin；到期 reader 通过 fencing token 在实际读取路径拒绝继续读取，过期进程不得复活旧租约。物理删除 worker 只执行已持久授权且仍匹配对象版本/GC epoch 的删除意图，失败可重试；引用创建若看到删除意图应重新摄入或选择未删除的可验证内容。对不受控的外部直读需另设保留屏障，不能声称 reader 保护成立。
+安全期覆盖最长写入、重试、离线消费者和时钟误差，不能直接沿用产品默认天数。Iceberg 快照到期后不可再 time-travel，孤儿清理窗口过短还会误删在途文件；单个表的维护不能代替外部原件 GC。[Iceberg 维护](https://iceberg.apache.org/docs/latest/maintenance/)。
+
+mark 后仍可能出现新 release、reader 或在途写 pin，因此 dry-run 与宽限期不足以保证安全。
+
+GC 使用版本化根集和 GC epoch：mark 固定根版本，所有新增引用/租约必须经权威事务登记；sweep 前通过根版本 CAS 或等效 writer barrier 检测变化，并在同一删除授权事务中重新确认目标的实时零引用、无有效 reader lease、无在途 pin。
+
+目标先进入 `delete_intent`，该状态与新引用登记互斥，拒绝新 pin；如果根版本或条件改变则放弃本轮候选并重新标记。既有 reader 租约须允许读完或明确完成撤销，不能静默删除 pin；到期 reader 通过 fencing token 在实际读取路径拒绝继续读取，过期进程不得复活旧租约。
+
+物理删除 worker 只执行已持久授权且仍匹配对象版本/GC epoch 的删除意图，失败可重试；引用创建若看到删除意图应重新摄入或选择未删除的可验证内容。对不受控的外部直读需另设保留屏障，不能声称 reader 保护成立。
 
 pack 中一项到期不能直接释放其字节：重写新 pack、校验内容、切换 locator manifest，待旧 reader 和 snapshot 释放后删旧 pack。索引 tombstone 只代表查询不可见，不等于向量、原件、备份、缓存和训练导出均已擦除。删除后的训练模型残留是独立的撤回、重训或遗忘验证任务，不能以删原文宣称模型已忘记。
 
 ### 9.3 Merkle 能验证承诺，不能证明事实真实
 
-批次树根、包含证明和一致性证明有助于发现日志字节改变或历史分叉；签名验证与 Merkle 包含验证是不同步骤。根值若仅与日志放在同一可改写主机，攻击者可一起改写。联网/对抗配置可增加独立见证与跨域 checkpoint，受控原型则明确不承诺恶意节点防护。RFC 9162 的构件可借鉴，但借鉴不等于 PoL2 已实现 Certificate Transparency 协议。[RFC 9162](https://www.rfc-editor.org/rfc/rfc9162.html)。
+批次树根、包含证明和一致性证明有助于发现日志字节改变或历史分叉；签名验证与 Merkle 包含验证是不同步骤。根值若仅与日志放在同一可改写主机，攻击者可一起改写。联网/对抗配置可增加独立见证与跨域 checkpoint，受控原型则明确不承诺恶意节点防护。
 
-Merkle 根不证明内容真实、提交者有权、检索无遗漏或模型判断正确，也不恢复丢失字节。裸 hash 对可枚举原文仍可能产生关联泄露，不能自动当匿名化。审计 envelope 与可删除 payload 分离，保留随机 ID、事件种类、版本和必要承诺值。采用独立加密密钥的配置可评估 cryptographic erase，但需验证密钥及备份不可恢复；不加密配置不能宣称删密钥完成擦除。介质清理须有明确方法与验证，不能把应用删除按钮等同于介质不可恢复。[NIST SP 800-88 Rev.2](https://csrc.nist.gov/pubs/sp/800/88/r2/final)。
+RFC 9162 的构件可借鉴，但借鉴不等于 PoL2 已实现 Certificate Transparency 协议。[RFC 9162](https://www.rfc-editor.org/rfc/rfc9162.html)。
+
+Merkle 根不证明内容真实、提交者有权、检索无遗漏或模型判断正确，也不恢复丢失字节。裸 hash 对可枚举原文仍可能产生关联泄露，不能自动当匿名化。审计 envelope 与可删除 payload 分离，保留随机 ID、事件种类、版本和必要承诺值。
+
+采用独立加密密钥的配置可评估 cryptographic erase，但需验证密钥及备份不可恢复；不加密配置不能宣称删密钥完成擦除。介质清理须有明确方法与验证，不能把应用删除按钮等同于介质不可恢复。[NIST SP 800-88 Rev.2](https://csrc.nist.gov/pubs/sp/800/88/r2/final)。
+
+<a id="section-10"></a>
 
 ## 10. 安全配置与全 AI 自治：权限边界不随模型建议改变
 
@@ -383,9 +497,13 @@ Merkle 根不证明内容真实、提交者有权、检索无遗漏或模型判�
 | C：跨主体/对抗 | 存在可作恶主体及分区 | 单列信任根、作恶上限、共识、fencing 和网络策略；未实现不得宣称 BFT |
 | O：轨道 | 在 A/B/C 所选信任配置外增加任务环境风险 | 追加资格验证与失联策略，不自动降低地面权限或保留要求 |
 
-读取文档、网页、工具返回和记忆时，一律把其中内容视为数据，不能作为更改系统规则、增加权限或调用工具的控制指令。候选知识、已发布政策、执行凭证分别使用独立权限。外部来源污染可以经摘要、索引、reranker、工具与记忆写回传播，必须覆盖整条链路的注入测试。RAG 或微调并不能充分消除 prompt injection。[OWASP LLM01](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)。
+读取文档、网页、工具返回和记忆时，一律把其中内容视为数据，不能作为更改系统规则、增加权限或调用工具的控制指令。候选知识、已发布政策、执行凭证分别使用独立权限。外部来源污染可以经摘要、索引、reranker、工具与记忆写回传播，必须覆盖整条链路的注入测试。RAG 或微调并不能充分消除 prompt injection。
+
+[OWASP LLM01](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)。
 
 AI 提议改变理论解释、索引参数或保留策略时，先生成差异与影响清单，由独立 verifier、确定性 schema/权限检查、回放和对抗测试共同进入发布门。阶段发布设置时间、流量、动作范围与自动回滚门槛；控制器可暂停训练、降低非关键遥测或延后压实，不能为了磁盘空间绕过原件保留和冗余条件。共用模型、检索源和运行库会造成相关错误，角色名不同不构成独立审查。
+
+<a id="section-11"></a>
 
 ## 11. 回放和 API 契约：保存实际证据，才能解释实际判断
 
@@ -398,7 +516,9 @@ AI 提议改变理论解释、索引参数或保留策略时，先生成差异�
 | R2：重新检索 | index snapshot、query vector、过滤、预算、排序与 tie-break | 报告环境与容差；重建 ANN 不必逐位同图 |
 | R3：模型重生成 | 模型权重/tokenizer/prompt/runtime/随机状态/工具响应 | 按声明容差比较；外部 API 版本标签不保证逐 token 一致 |
 
-DecisionRecord 保存原始及规范 query 引用、query embedding 字节、encoder/chunker/normalizer/quantizer/reranker 版本、过滤表达式、候选 ID/分数与融合配置、选中原文范围与 hash、工具参数与返回、prompt、模型 artifact hash 或外部版本标识、sampling 参数、实际输出、policy/release/index generation 和水位。只存 request hash 不能重构请求，只存证据 ID 不能找回已清理正文。R2/R3 重算是新事件，不覆盖 R0 的历史结果。解释字段保存有限、可观察、可检验的理由、规则引用和工具轨迹；不要求无限保存隐藏思维链，也不把模型自述当作其真实因果过程。
+DecisionRecord 保存原始及规范 query 引用、query embedding 字节、encoder/chunker/normalizer/quantizer/reranker 版本、过滤表达式、候选 ID/分数与融合配置、选中原文范围与 hash、工具参数与返回、prompt、模型 artifact hash 或外部版本标识、sampling 参数、实际输出、policy/release/index generation 和水位。
+
+只存 request hash 不能重构请求，只存证据 ID 不能找回已清理正文。R2/R3 重算是新事件，不覆盖 R0 的历史结果。解释字段保存有限、可观察、可检验的理由、规则引用和工具轨迹；不要求无限保存隐藏思维链，也不把模型自述当作其真实因果过程。
 
 ### 11.2 建议 API，而非现有服务能力声明
 
@@ -437,15 +557,27 @@ DecisionRecord 保存原始及规范 query 引用、query embedding 字节、enc
 }
 ```
 
-`recall_target` 不得由客户端指定更低值以绕过风险政策；服务端取适用配置。`eligible_count` 未精确计算时可空，不能猜数。失效代码至少区分 `STALE_WATERMARK`、`SCOPE_DENIED`、`SNAPSHOT_UNAVAILABLE`、`PAYLOAD_EXPIRED`、`PRIVACY_DELETED`、`EVIDENCE_UNAVAILABLE`、`BUDGET_EXHAUSTED` 与 `VERSION_CONFLICT`，便于机器恢复和审计。
+`recall_target` 不得由客户端指定更低值以绕过风险政策；服务端取适用配置。`eligible_count` 未精确计算时可空，不能猜数。
 
-水位示例仅含一个分区，位置字符串为不透明示意值，不是 SQL sequence；真实多分区请求必须列出全部相关分区与 epoch。`gaps` 表示尚未确认完成的提交/应用位置，不能因观察到更大位置而删除。许可失败另区分 `AUTH_EPOCH_MISMATCH`、`PERMIT_EXPIRED`、`NONCE_CONSUMED`、`ACTION_DIGEST_MISMATCH` 和 `FENCED_WRITER`，GC 失败区分根版本变化、引用恢复及有效租约存在。
+失效代码至少区分 `STALE_WATERMARK`、`SCOPE_DENIED`、`SNAPSHOT_UNAVAILABLE`、`PAYLOAD_EXPIRED`、`PRIVACY_DELETED`、`EVIDENCE_UNAVAILABLE`、`BUDGET_EXHAUSTED` 与 `VERSION_CONFLICT`，便于机器恢复和审计。
+
+水位示例仅含一个分区，位置字符串为不透明示意值，不是 SQL sequence；真实多分区请求必须列出全部相关分区与 epoch。`gaps` 表示尚未确认完成的提交/应用位置，不能因观察到更大位置而删除。
+
+许可失败另区分 `AUTH_EPOCH_MISMATCH`、`PERMIT_EXPIRED`、`NONCE_CONSUMED`、`ACTION_DIGEST_MISMATCH` 和 `FENCED_WRITER`，GC 失败区分根版本变化、引用恢复及有效租约存在。
+
+<a id="section-12"></a>
 
 ## 12. 轨道路线：通信、辐射和热必须联合验证
 
 轨道配置记录高度、倾角、寿命、屏蔽、太阳活动、姿态与可用通信窗口。断链时本地与跨域持久化状态分开：未完成下传/跨星确认的记录只能标本地持久；恢复后按 operation ID、生产者序列、manifest 和 hash 对账。对依赖新鲜地面政策的动作设最大陈旧窗口，超过则限制相关动作，不能把失联解释为获得更大自治权限。
 
-器件资格必须覆盖完整 SSD/控制器/固件/供电及实际工作状态。NASA NEPP 的主动 SSD 辐照研究强调多部件和状态相关性，支持 test-like-you-fly 方法，不支持把他人剂量阈值或工业级标签迁移为 PoL2 适航结论。[NASA 主动 SSD 辐照研究](https://nepp.nasa.gov/docs/tasks/075-EEE-Parts-Assurance/NEPP-2024-Paper-Wilcox-SSD-Radiation-Assurance-with-Active-Testing-20250000802.pdf)。区分可纠正位错误、功能中断、潜在破坏性闩锁与累积剂量影响；静态存储通过并不意味着写入、GC、复位或休眠唤醒通过。ESA 的器件试验材料同样说明需检验辐射行为，但其 FPGA 案例不是 SSD 认证。[ESA 器件辐射试验](https://www.esa.int/Enabling_Support/Space_Engineering_Technology/Shaping_the_Future/Radiation_testing_of_EEE_Parts)。
+器件资格必须覆盖完整 SSD/控制器/固件/供电及实际工作状态。NASA NEPP 的主动 SSD 辐照研究强调多部件和状态相关性，支持 test-like-you-fly 方法，不支持把他人剂量阈值或工业级标签迁移为 PoL2 适航结论。
+
+[NASA 主动 SSD 辐照研究](https://nepp.nasa.gov/docs/tasks/075-EEE-Parts-Assurance/NEPP-2024-Paper-Wilcox-SSD-Radiation-Assurance-with-Active-Testing-20250000802.pdf)。
+
+区分可纠正位错误、功能中断、潜在破坏性闩锁与累积剂量影响；静态存储通过并不意味着写入、GC、复位或休眠唤醒通过。ESA 的器件试验材料同样说明需检验辐射行为，但其 FPGA 案例不是 SSD 认证。
+
+[ESA 器件辐射试验](https://www.esa.int/Enabling_Support/Space_Engineering_Technology/Shaping_the_Future/Radiation_testing_of_EEE_Parts)。
 
 真空环境对外净散热以辐射为主，内部仍可通过导热、热管等把热送到辐射面。理想灰体的一阶净辐射：
 
@@ -456,6 +588,8 @@ $$
 $Q_{net}$ 单位 W，$\epsilon$ 为发射率，$\sigma\approx5.670374419\times10^{-8}\ \mathrm{W\,m^{-2}\,K^{-4}}$，$A$ 为 $m^2$，$F$ 为有效视因子，$T_r,T_{env}$ 为 K。仅忽略背景且 $F=1$ 时简化为 $\epsilon\sigma AT_r^4$。在 $T_r=300\,K$、$\epsilon=0.9$ 的理想冷背景示例中约为 413 W/$m^2$，1 kW 约需 2.42 $m^2$；**这不是飞行设计值**。实际需加入太阳、反照、地球红外、储热、遮挡、涂层退化和器件至辐射面的热阻，不能把 NAND 温度直接当辐射板温度。[NASA 热控章节](https://www.nasa.gov/smallsat-institute/sst-soa/thermal-control/)。
 
 系统调度同时限制摄入、训练、scrub、压实和重建功率；冗余不足时优先修复，但不能越过热/供电硬限制。硬件 watchdog、独立供电隔离和只读保护用于挂死与可信原件保存。单星多盘不覆盖整星故障，跨星或地面独立副本需要实际链路预算。完成 RHA、热真空、功率循环、断链自治、软件回滚与整机故障隔离前，文档只称“轨道研究路线”。
+
+<a id="section-13"></a>
 
 ## 13. 架构决策记录与现有代码衔接
 
@@ -469,13 +603,27 @@ $Q_{net}$ 单位 W，$\epsilon$ 为发射率，$\sigma\approx5.670374419\times10
 | ADR-V2-06 | 原始训练谱系、split 和权限独立 | 防止污染与未授权重用；增加数据治理成本 | 不允许通过删除标记绕开该决策 |
 | ADR-V2-07 | 轨道与对抗安全为条件配置 | 不让未验证长期目标拖垮原型，也不夸大原型能力 | 任务、硬件、通信与威胁模型明确时 |
 
-代码基线为提交 `09fdf57`，本轮属于**静态检查，不是运行验证**。默认维度来自构造函数；该文件定义的 embeddings 表只有 record ID 主键及模型字段，没有此处所需的实体版本、scope、release、generation，也未见 ANN 建索引语句。未检查运行数据库，不能据此断言 DBA 或其他迁移从未建立索引；需读取真实 schema 并以 EXPLAIN 验证执行路径。[初始化与 schema](https://github.com/naturaldao/NaturalDAO/blob/09fdf57/POL2-Steward/pol2-service/service/store_postgres.py#L14)。
+代码基线为提交 `09fdf57`，本轮属于**静态检查，不是运行验证**。默认维度来自构造函数；该文件定义的 embeddings 表只有 record ID 主键及模型字段，没有此处所需的实体版本、scope、release、generation，也未见 ANN 建索引语句。
 
-`replace_embeddings` 在同一连接事务内执行 TRUNCATE 与逐条 INSERT，不能误述为“任何中间失败都会留下半表”。问题是它获取整表相关锁、清除旧代、没有 shadow generation 和在线回滚能力。下一步增加 generation 复合键、批量导入、候选校验和原子活动指针，不直接改现有 pilot schema 的含义。[批量替换实现](https://github.com/naturaldao/NaturalDAO/blob/09fdf57/POL2-Steward/pol2-service/service/store_postgres.py#L467)。
+未检查运行数据库，不能据此断言 DBA 或其他迁移从未建立索引；需读取真实 schema 并以 EXPLAIN 验证执行路径。
 
-`vector_search` 当前 SQL 为全局 ORDER BY，无 scope/model/版本谓词。这说明该函数缺少所需边界，不等于已证实端到端跨项目泄露；调用者和返回后过滤仍需另行审计。新增接口必须把过滤条件下推并最终核验，旧接口作为受控测试适配器逐步退出。4096 维可选择保留原向量、二进制量化建候选索引后原向量精排，或另选验证过的低维模型；不能随意截掉 96 维就声称质量无损。每种方案都需 exact baseline 和过滤后 recall 验证。[检索实现](https://github.com/naturaldao/NaturalDAO/blob/09fdf57/POL2-Steward/pol2-service/service/store_postgres.py#L477)、[pgvector 维度与量化说明](https://github.com/pgvector/pgvector)。
+[初始化与 schema](https://github.com/naturaldao/NaturalDAO/blob/09fdf57/POL2-Steward/pol2-service/service/store_postgres.py#L14)。
+
+`replace_embeddings` 在同一连接事务内执行 TRUNCATE 与逐条 INSERT，不能误述为“任何中间失败都会留下半表”。问题是它获取整表相关锁、清除旧代、没有 shadow generation 和在线回滚能力。
+
+下一步增加 generation 复合键、批量导入、候选校验和原子活动指针，不直接改现有 pilot schema 的含义。
+
+[批量替换实现](https://github.com/naturaldao/NaturalDAO/blob/09fdf57/POL2-Steward/pol2-service/service/store_postgres.py#L467)。
+
+`vector_search` 当前 SQL 为全局 ORDER BY，无 scope/model/版本谓词。这说明该函数缺少所需边界，不等于已证实端到端跨项目泄露；调用者和返回后过滤仍需另行审计。新增接口必须把过滤条件下推并最终核验，旧接口作为受控测试适配器逐步退出。
+
+4096 维可选择保留原向量、二进制量化建候选索引后原向量精排，或另选验证过的低维模型；不能随意截掉 96 维就声称质量无损。每种方案都需 exact baseline 和过滤后 recall 验证。
+
+[检索实现](https://github.com/naturaldao/NaturalDAO/blob/09fdf57/POL2-Steward/pol2-service/service/store_postgres.py#L477)、[pgvector 维度与量化说明](https://github.com/pgvector/pgvector)。
 
 本次文档更新不声称上述服务改造已完成，也不更改规则引擎、第三方代码或许可。现有 tasks/runs/steps/permits 可映射执行谱系，但新增事实源契约须用迁移脚本、兼容测试和增量验证实现，不以本文数据表示例直接覆盖现有数据库。
+
+<a id="section-14"></a>
 
 ## 14. 验收矩阵：先过正确性，再过规模和故障
 
@@ -514,6 +662,8 @@ $Q_{net}$ 单位 W，$\epsilon$ 为发射率，$\sigma\approx5.670374419\times10
 
 **M4，轨道资格路线。** 在地面闭环成熟后，依据任务硬件完成联合验证和通信失联场景；任何失败回到受控地面配置，不把研究目标写成部署能力。
 
+<a id="section-15"></a>
+
 ## 15. 风险登记与可深入研究的问题
 
 | 风险 | 早期信号 | 控制/验证 | 剩余边界 |
@@ -539,6 +689,8 @@ $Q_{net}$ 单位 W，$\epsilon$ 为发射率，$\sigma\approx5.670374419\times10
 **问题四：容量、热与恢复如何共同约束自治？** 在稳态摄入、通信断链及单域失效同时出现时，比较固定后台配额和风险/功率感知调度，验证证据持久性、尾延迟与修复积压。地面功率/热模拟先形成工程模型，再由任务相关硬件试验校准，不能以仿真替代飞行资格。
 
 本报告将 PoL2 的存储问题定义为“受约束的证据生命周期系统”：事实不会因模型升级丢失，权限不会因缓存复用扩大，撤销不会因 ANN 滞后失效，训练不会因拥有原件而自动获得许可。下一项具体成果应是可重跑的 M0 基线与故障记录；它会决定真正需要的规模和组件，而不是让远期 PB 情景反向决定原型复杂度。
+
+<a id="section-16"></a>
 
 ## 16. 一手来源与证据边界
 
