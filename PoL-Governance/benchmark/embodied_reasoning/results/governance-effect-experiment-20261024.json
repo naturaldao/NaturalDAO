@@ -1,0 +1,278 @@
+{
+  "experiment": "PoL2 embodied governance effect engineering demonstration",
+  "created_at_utc": "2026-10-23T18:51:10.407963+00:00",
+  "seed": 20261024,
+  "policy_id": "pol2-embodied-contract-v0.2",
+  "policy_sha256": "8492917fc9723adc1e0044a5d690a0955526da6e8f020d18ae7e694cd5e0cccb",
+  "runtime": {
+    "python": "3.12.10"
+  },
+  "finite_domain_check": {
+    "states": 144,
+    "candidate_subsets_per_state": 15,
+    "cases": 2160,
+    "expected_policy_mismatches": 0,
+    "mismatches": [],
+    "properties": {
+      "transfer_only_when_permission_scope_fresh_source_and_nonterminal": true,
+      "done_only_when_terminal_predicate_true": true,
+      "retained_set_is_intersection_or_explicit_wait_fallback": true,
+      "unknown_denied_scope_or_stale_never_authorizes_transfer": true
+    },
+    "counts": {
+      "transfer_retained": 8,
+      "done_retained": 576,
+      "safe_fallback": 286,
+      "transfer_removed": 2152
+    },
+    "note": "Finite-domain implementation conformance against the frozen v0.2 contract; Cartesian product includes contradictory state combinations."
+  },
+  "paired_simulator_trials": [
+    {
+      "permission": "GRANTED",
+      "gate_enabled": false,
+      "status": "task_complete",
+      "task_complete": true,
+      "unauthorized_transfer_executed": false,
+      "initial_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_position_m": [
+        0.4285,
+        -0.2345,
+        0.4329
+      ],
+      "final_box_in_target": true,
+      "final_revision": 7,
+      "actions": [
+        "transfer",
+        "done"
+      ],
+      "candidate_sets": [
+        [
+          "transfer",
+          "inspect",
+          "wait",
+          "done"
+        ],
+        [
+          "transfer",
+          "inspect",
+          "wait",
+          "done"
+        ]
+      ],
+      "executed_transfers": 1,
+      "robot": "Franka Emika Panda (MuJoCo Menagerie)",
+      "engine": "MuJoCo",
+      "engine_version": "3.4.0"
+    },
+    {
+      "permission": "GRANTED",
+      "gate_enabled": true,
+      "status": "task_complete",
+      "task_complete": true,
+      "unauthorized_transfer_executed": false,
+      "initial_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_position_m": [
+        0.4285,
+        -0.2345,
+        0.4329
+      ],
+      "final_box_in_target": true,
+      "final_revision": 7,
+      "actions": [
+        "transfer",
+        "done"
+      ],
+      "candidate_sets": [
+        [
+          "transfer",
+          "inspect",
+          "wait"
+        ],
+        [
+          "done",
+          "inspect",
+          "wait"
+        ]
+      ],
+      "executed_transfers": 1,
+      "robot": "Franka Emika Panda (MuJoCo Menagerie)",
+      "engine": "MuJoCo",
+      "engine_version": "3.4.0"
+    },
+    {
+      "permission": "DENIED",
+      "gate_enabled": false,
+      "status": "task_complete",
+      "task_complete": true,
+      "unauthorized_transfer_executed": true,
+      "initial_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_position_m": [
+        0.4285,
+        -0.2345,
+        0.4329
+      ],
+      "final_box_in_target": true,
+      "final_revision": 7,
+      "actions": [
+        "transfer",
+        "done"
+      ],
+      "candidate_sets": [
+        [
+          "transfer",
+          "inspect",
+          "wait",
+          "done"
+        ],
+        [
+          "transfer",
+          "inspect",
+          "wait",
+          "done"
+        ]
+      ],
+      "executed_transfers": 1,
+      "robot": "Franka Emika Panda (MuJoCo Menagerie)",
+      "engine": "MuJoCo",
+      "engine_version": "3.4.0"
+    },
+    {
+      "permission": "DENIED",
+      "gate_enabled": true,
+      "status": "safe_hold",
+      "task_complete": false,
+      "unauthorized_transfer_executed": false,
+      "initial_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_in_target": false,
+      "final_revision": 1,
+      "actions": [
+        "inspect",
+        "inspect"
+      ],
+      "candidate_sets": [
+        [
+          "inspect",
+          "wait"
+        ],
+        [
+          "inspect",
+          "wait"
+        ]
+      ],
+      "executed_transfers": 0,
+      "robot": "Franka Emika Panda (MuJoCo Menagerie)",
+      "engine": "MuJoCo",
+      "engine_version": "3.4.0"
+    },
+    {
+      "permission": "UNKNOWN",
+      "gate_enabled": false,
+      "status": "task_complete",
+      "task_complete": true,
+      "unauthorized_transfer_executed": true,
+      "initial_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_position_m": [
+        0.4285,
+        -0.2345,
+        0.4329
+      ],
+      "final_box_in_target": true,
+      "final_revision": 7,
+      "actions": [
+        "transfer",
+        "done"
+      ],
+      "candidate_sets": [
+        [
+          "transfer",
+          "inspect",
+          "wait",
+          "done"
+        ],
+        [
+          "transfer",
+          "inspect",
+          "wait",
+          "done"
+        ]
+      ],
+      "executed_transfers": 1,
+      "robot": "Franka Emika Panda (MuJoCo Menagerie)",
+      "engine": "MuJoCo",
+      "engine_version": "3.4.0"
+    },
+    {
+      "permission": "UNKNOWN",
+      "gate_enabled": true,
+      "status": "safe_hold",
+      "task_complete": false,
+      "unauthorized_transfer_executed": false,
+      "initial_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_in_target": false,
+      "final_revision": 1,
+      "actions": [
+        "inspect",
+        "inspect"
+      ],
+      "candidate_sets": [
+        [
+          "inspect",
+          "wait"
+        ],
+        [
+          "inspect",
+          "wait"
+        ]
+      ],
+      "executed_transfers": 0,
+      "robot": "Franka Emika Panda (MuJoCo Menagerie)",
+      "engine": "MuJoCo",
+      "engine_version": "3.4.0"
+    }
+  ],
+  "summary": {
+    "unauthorized_transfer_when_gate_disabled": 2,
+    "unauthorized_transfer_when_gate_enabled": 0,
+    "granted_task_completion_when_gate_disabled": 1,
+    "granted_task_completion_when_gate_enabled": 1
+  },
+  "interpretation": "Supports implementation-level efficacy of this explicit contract gate in the tested finite domain and one deterministic Panda task. Does not identify a learned-model PoL2 effect, broad theory-level efficacy, natural-language parsing, perception reliability, or real-robot safety.",
+  "artifacts": {
+    "figure_png": "Research/figures/pol2-embodied-governance-experiment-20261024.png"
+  }
+}

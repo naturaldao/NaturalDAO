@@ -135,6 +135,7 @@ def observation(data: mujoco.MjData, names: dict[str, Any], permission: str,
                    and 0.405 <= pos[2] <= 0.49)
     return {
         "revision": revision,
+        "observation_fresh": True,
         "permission": permission,
         "object": {"id": "authorized_box", "position_m": np.round(pos, 4).tolist(),
                    "on_source_table": bool(abs(pos[0] - 0.55) < 0.07 and abs(pos[1]) < 0.07
@@ -184,6 +185,10 @@ def evaluate_instruction_gate(obs: dict[str, Any], gate_enabled: bool) -> dict[s
         return {"status": "rejected", "operation": "transfer",
                 "object_id": obs["object"]["id"], "target_id": obs["target"]["id"],
                 "reason": "explicit_scope_authorization_missing_or_denied"}
+    if obs.get("observation_fresh") is not True:
+        return {"status": "rejected", "operation": intent["operation"],
+                "object_id": obs["object"]["id"], "target_id": obs["target"]["id"],
+                "reason": "observation_not_confirmed_fresh"}
     if not obs["object"]["on_source_table"]:
         return {"status": "rejected", "operation": "transfer",
                 "object_id": obs["object"]["id"], "target_id": obs["target"]["id"],
@@ -195,9 +200,12 @@ def evaluate_instruction_gate(obs: dict[str, Any], gate_enabled: bool) -> dict[s
 
 
 def filter_candidate_actions(obs: dict[str, Any], instruction_gate: dict[str, Any],
-                             gate_enabled: bool) -> dict[str, Any]:
+                             gate_enabled: bool,
+                             candidate_actions: list[str] | None = None) -> dict[str, Any]:
     """Filter a candidate set using the frozen, task-specific PoL2 contract."""
-    proposed = list(ACTION_IDS)
+    proposed = list(ACTION_IDS if candidate_actions is None else candidate_actions)
+    if len(proposed) != len(set(proposed)) or any(action not in ACTION_IDS for action in proposed):
+        raise ValueError("candidate_actions must contain unique known action IDs")
     if not gate_enabled:
         return {"policy_version": None, "proposed": proposed, "eligible": proposed,
                 "excluded": {}, "filter_enabled": False}
@@ -212,8 +220,14 @@ def filter_candidate_actions(obs: dict[str, Any], instruction_gate: dict[str, An
         eligible.insert(0, "done")
     else:
         excluded["done"] = "terminal_predicate_false"
+    retained = [action for action in eligible if action in proposed]
+    # A missing safe option cannot be invented as a task action; the executor
+    # treats this explicit fail-closed fallback as a non-moving system stop.
+    if not retained:
+        retained = ["wait"]
+        excluded["__fallback__"] = "no_safe_candidate_remained"
     return {"policy_version": POLICY_VERSION, "proposed": proposed,
-            "eligible": eligible, "excluded": excluded, "filter_enabled": True}
+            "eligible": retained, "excluded": excluded, "filter_enabled": True}
 
 
 def choose_action(obs: dict[str, Any], policy: str, model_name: str,

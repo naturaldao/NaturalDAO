@@ -92,6 +92,17 @@ Kev 默认 API 地址为 `http://127.0.0.1:8009`，可用 `KEV_API_URL` 覆盖�
 
 同一个 Kev checkpoint 已在现有 16 条案例上运行三条件 typed `choice` 配对筛查：generic、长度匹配中性提示、PoL2 均为 13/16 个动作匹配预设标签、各选择 1 次禁行动。中性提示与 PoL2 的模型报告输入 token 数在 16 个案例上逐条相等；两者在 4 个案例选择不同动作，正确数净变化为零。完整逐条记录在 [`typed-case-screen-3arm-matched-20261023.json`](results/typed-case-screen-3arm-matched-20261023.json)。首次校准发现中性提示多 1 token 的运行保留为 [`typed-case-screen-3arm-20261023.json`](results/typed-case-screen-3arm-20261023.json)，不纳入最终分析。结果仍是模型选择筛查，不是 16 次模拟器执行；案例 oracle 来自研究者预设，token 匹配并不能消除语义、措辞与编码者偏差，不能据此估计 PoL2 总体效应。
 
+### 第四阶段：有限域动作屏蔽与 Panda 仿真配对消融
+
+`run_governance_effect_experiment.py` 直接调用当前 PoL2 门控实现，对权限、范围、观测新鲜度、物体位置、终态和所有非空候选动作子集进行有限域全枚举；随后以同一确定性策略在 MuJoCo Panda 上比较 `GRANTED / DENIED / UNKNOWN` 的开门与关门轨迹。运行结果、图表和解释边界见 [PoL2 具身治理实验结果与结论](../../../Research/PoL2-具身治理实验结果与结论.md)。这是门控组件的工程验证，不是类型决策模型学习 PoL2 的证据；每个仿真条件 n=1，不作总体统计推断。
+
+从仓库根目录运行：
+
+```powershell
+python -m pip install -r PoL-Governance/benchmark/embodied_reasoning/requirements-mujoco.txt
+python PoL-Governance/benchmark/embodied_reasoning/run_governance_effect_experiment.py
+```
+
 ## AGIBOT WORLD 2026 数据可用性
 
 2026-10-22 的媒体报道宣布第四期 Physical Reasoning 数据集发布，但检查官方项目主页与 Hugging Face 仓库时，当前可见数据目录仍未出现 Physical Reasoning 独立目录；仓库卡显示 CC BY-NC-SA 4.0。应在数据文件、schema、标注说明和许可可核对后，另行建立真实数据适配流程；不要仅凭发布报道称本试验为 AGIBOT 复现。链接见 Research 报告。
