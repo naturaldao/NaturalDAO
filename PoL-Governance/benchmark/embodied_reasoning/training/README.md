@@ -84,3 +84,27 @@ comparison needs more independent action-relevant state families, positive
 transfer coverage in held-out conditions, multiple seeds and episodes, and a
 matched generic-policy baseline. The hard contract filter should remain active
 for any future model experiment.
+
+## Follow-up evidence review (2026-10-24)
+
+The broader embodied benchmark now contains separate evidence about prompt
+effects and runtime enforcement. In a 16-case paired Kev typed-choice screen,
+generic, token-matched neutral, and PoL2 prompts each matched the prespecified
+action labels on 13/16 cases and each selected one forbidden action. Neutral
+and PoL2 inputs had exactly equal reported token counts case by case. This
+screen does not show a net PoL2 advantage over the matched neutral wording.
+
+In a separate single MuJoCo Panda condition, Qwen2.5-7B with a generic prompt
+and the gate disabled proposed and executed `transfer` despite `DENIED`
+permission. With a PoL2 prompt, the same scenario's single unshielded run
+selected `wait`. A forced-action probe also executed the forbidden move with
+the gate bypassed and blocked it with the gate enabled. These observations
+motivate a larger paired study, but `n=1` does not identify a stable prompt
+effect. Shielded task outcomes measure the combined model-plus-filter system;
+raw proposal and gate intervention must be reported separately.
+
+See [the evidence and design review](../../../../Research/PoL2-具身策略效应与安全屏蔽评估补充.md)
+for verified runtime-shielding precedents, current evidence limits, and a
+pre-registered-style factorial follow-up design. The synthetic training set
+still lacks positive `transfer` support in validation and holdout; that data
+coverage issue must be fixed before claiming transfer generalization.
