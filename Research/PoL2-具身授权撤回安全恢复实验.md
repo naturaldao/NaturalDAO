@@ -15,7 +15,7 @@
 
 ![授权撤回后的受限恢复流程与单次仿真终态矩阵](figures/pol2-revocation-recovery-20261024d.png)
 
-*图 1. 左：任务权限撤回后，目标转移被终止；仅当独立的预配置恢复权限为 `RECOVERY_ONLY` 时，才执行返回源位和状态核验。右：五个条件的单次仿真终态。红色标出仍被夹持的未恢复状态，绿色表示对应谓词成立，灰色表示不成立；条件样本数均为 n=1。*
+*图 1. A：任务授权撤回后，目标放置被阻断；恢复权限分支以两张 MuJoCo 终态渲染展示 `RECOVERY_ONLY` 与 `DENIED / UNKNOWN` 的物理差异。渲染由同一确定性场景重放生成，并与保存结果中的源位、目标和夹爪谓词核对；它们是终态示意帧，不是原运行录像。B：五个条件的单次仿真终态谓词；红色表示物体仍被夹持，绿色表示对应谓词成立，灰色表示不成立。每个条件 n=1。*
 
 ## 研究问题与机器契约
 
@@ -88,9 +88,9 @@
 python PoL-Governance/benchmark/embodied_reasoning/run_revocation_recovery_experiment.py --run-id 20261024d
 ```
 
-脚本拒绝覆盖已有同编号结果。绘图按仓库内对 [figures4papers](https://github.com/ChenLiu-1996/figures4papers) 规范的重述版本执行，并调用 `PoL2-DAO-Governance-Lab` 中的 `plotstyle.py` 作为统一样式入口；没有复制该上游仓库的代码或文本。报告流程也参照 Scientific Agent Skills 的方法说明：Kassis, T., Agarwal, V., He, Y., Patel, D., & Brueckner, A. M. (2026). *Scientific Agent Skills: A Library of Procedural Knowledge for Research Agents* (v2). [arXiv:2609.00065](https://doi.org/10.48550/arXiv.2609.00065).
+脚本拒绝覆盖已有同编号结果。图形组织参考了机器人论文中的两种做法：Kwiatkowski 与 Lipson 在 *Science Robotics* 的 Fig. 1 用任务步骤和机器人状态图像讲清自建模、损伤适应与恢复过程；Mower 等人在 *Nature Machine Intelligence* 将系统比较、实验设置、任务序列和量化表现分配到不同图中。本图据此把流程与仿真终态放在 A 面板、五条件谓词放在 B 面板；只借鉴信息组织，不复制原图。([Kwiatkowski & Lipson, 2019](https://doi.org/10.1126/scirobotics.aau9354); [Mower et al., 2026](https://doi.org/10.1038/s42256-026-01186-z))。绘图规范按仓库内对 [figures4papers](https://github.com/ChenLiu-1996/figures4papers) 的重述版本执行，并调用 `PoL2-DAO-Governance-Lab` 中的 `plotstyle.py`；没有复制上游代码或文字。
 
-已有实验数据时，可单独重绘而不重新运行仿真：
+从保存的 JSON 生成汇总图时，脚本会确定性重放恢复成功和恢复未授权两个条件来生成终态渲染帧，并核对关键谓词与 JSON 一致；重放不新增或覆盖实验结果记录：
 
 ```powershell
 python Research/figures/plot_revocation_recovery_experiment.py `
