@@ -1,0 +1,1093 @@
+{
+  "experiment": "Recovery-policy precondition and execution-fault sweep",
+  "created_at_utc": "2026-10-24T09:13:47.306348+00:00",
+  "runtime": {
+    "python": "3.12.10",
+    "mujoco": "3.4.0"
+  },
+  "robot": "Franka Emika Panda (MuJoCo Menagerie)",
+  "task_policy": "pol2-embodied-contract-v0.2",
+  "task_policy_sha256": "8492917fc9723adc1e0044a5d690a0955526da6e8f020d18ae7e694cd5e0cccb",
+  "recovery_policy": "pol2-embodied-recovery-policy-v0.1",
+  "recovery_policy_sha256": "805a379ce9b137e84796ee3a5d550c6dda1f2a9f6ffb71039581dd55a391bb6b",
+  "experiment_script_sha256": "6c54578eff17822d2fd136b49f0ea914f9e2270a182c73045b5ef7dcb07936b5",
+  "design": "3 deterministic source layouts x 5 precondition/fault conditions; one trajectory per cell; 15 total",
+  "source_layouts_xy_m": {
+    "left_near": [
+      0.515,
+      -0.035
+    ],
+    "center": [
+      0.55,
+      0.0
+    ],
+    "right_near": [
+      0.585,
+      0.035
+    ]
+  },
+  "conditions_n": {
+    "left_near/valid_recovery": 1,
+    "center/valid_recovery": 1,
+    "right_near/valid_recovery": 1,
+    "left_near/carry_pose_drift": 1,
+    "center/carry_pose_drift": 1,
+    "right_near/carry_pose_drift": 1,
+    "left_near/grasp_loss": 1,
+    "center/grasp_loss": 1,
+    "right_near/grasp_loss": 1,
+    "left_near/stale_source_record": 1,
+    "center/stale_source_record": 1,
+    "right_near/stale_source_record": 1,
+    "left_near/post_completion": 1,
+    "center/post_completion": 1,
+    "right_near/post_completion": 1
+  },
+  "cases": [
+    {
+      "layout_id": "left_near",
+      "initial_source_xy_m": [
+        0.515,
+        -0.035
+      ],
+      "condition": "valid_recovery",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "none",
+        "injection_checkpoint": null
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_succeeded",
+        "reason": "all_machine_postconditions_hold",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00601,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "postconditions": {
+          "object_on_source": true,
+          "direct_source_table_contact": true,
+          "gripper_released": true,
+          "target_predicate_false": true,
+          "object_position_m": [
+            0.5129,
+            -0.0384,
+            0.4219
+          ],
+          "source_position_error_m": 0.00397,
+          "tray_floor_contact": false,
+          "object_on_source_after_retreat": true,
+          "source_contact_after_retreat": true,
+          "gripper_released_after_retreat": true,
+          "target_predicate_false_after_retreat": true,
+          "final_object_position_m": [
+            0.5129,
+            -0.0384,
+            0.4219
+          ]
+        },
+        "phases": [
+          {
+            "phase": "recovery_return_over_source",
+            "target_m": [
+              0.515,
+              -0.035,
+              0.625
+            ],
+            "actual_m": [
+              0.5154,
+              -0.0365,
+              0.6188
+            ],
+            "box_m": [
+              0.5141,
+              -0.0336,
+              0.5191
+            ],
+            "ik_error_m": 0.00169,
+            "tracking_error_m": 0.00643,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_lower_to_source",
+            "target_m": [
+              0.515,
+              -0.035,
+              0.535
+            ],
+            "actual_m": [
+              0.5151,
+              -0.035,
+              0.5309
+            ],
+            "box_m": [
+              0.5133,
+              -0.0321,
+              0.4297
+            ],
+            "ik_error_m": 0.00213,
+            "tracking_error_m": 0.00408,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_release",
+            "box_m": [
+              0.5129,
+              -0.0384,
+              0.4219
+            ]
+          },
+          {
+            "phase": "recovery_retreat_after_support_verified",
+            "target_m": [
+              0.515,
+              -0.035,
+              0.64
+            ],
+            "actual_m": [
+              0.5162,
+              -0.035,
+              0.6325
+            ],
+            "box_m": [
+              0.5129,
+              -0.0384,
+              0.4219
+            ],
+            "ik_error_m": 0.0015,
+            "tracking_error_m": 0.00757,
+            "sim_steps": 450
+          }
+        ],
+        "object_position_before_recovery_m": [
+          0.4303,
+          -0.2328,
+          0.5209
+        ]
+      },
+      "recovery_motion_issued": true,
+      "final_object_position_m": [
+        0.5129,
+        -0.0384,
+        0.4219
+      ],
+      "object_on_source": true,
+      "object_in_target": false,
+      "physical_goal_predicate": false,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": true,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 8.24
+    },
+    {
+      "layout_id": "center",
+      "initial_source_xy_m": [
+        0.55,
+        0.0
+      ],
+      "condition": "valid_recovery",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "none",
+        "injection_checkpoint": null
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_succeeded",
+        "reason": "all_machine_postconditions_hold",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00597,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "postconditions": {
+          "object_on_source": true,
+          "direct_source_table_contact": true,
+          "gripper_released": true,
+          "target_predicate_false": true,
+          "object_position_m": [
+            0.5481,
+            -0.0068,
+            0.4219
+          ],
+          "source_position_error_m": 0.00703,
+          "tray_floor_contact": false,
+          "object_on_source_after_retreat": true,
+          "source_contact_after_retreat": true,
+          "gripper_released_after_retreat": true,
+          "target_predicate_false_after_retreat": true,
+          "final_object_position_m": [
+            0.5481,
+            -0.0068,
+            0.4219
+          ]
+        },
+        "phases": [
+          {
+            "phase": "recovery_return_over_source",
+            "target_m": [
+              0.55,
+              0.0,
+              0.625
+            ],
+            "actual_m": [
+              0.5508,
+              -0.0011,
+              0.6181
+            ],
+            "box_m": [
+              0.5494,
+              0.0044,
+              0.5116
+            ],
+            "ik_error_m": 0.00132,
+            "tracking_error_m": 0.007,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_lower_to_source",
+            "target_m": [
+              0.55,
+              0.0,
+              0.535
+            ],
+            "actual_m": [
+              0.5503,
+              -0.0001,
+              0.5308
+            ],
+            "box_m": [
+              0.5484,
+              0.0043,
+              0.4273
+            ],
+            "ik_error_m": 0.00252,
+            "tracking_error_m": 0.00421,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_release",
+            "box_m": [
+              0.5481,
+              -0.0068,
+              0.4219
+            ]
+          },
+          {
+            "phase": "recovery_retreat_after_support_verified",
+            "target_m": [
+              0.55,
+              0.0,
+              0.64
+            ],
+            "actual_m": [
+              0.5514,
+              -0.0,
+              0.6318
+            ],
+            "box_m": [
+              0.5481,
+              -0.0068,
+              0.4219
+            ],
+            "ik_error_m": 0.00159,
+            "tracking_error_m": 0.00829,
+            "sim_steps": 450
+          }
+        ],
+        "object_position_before_recovery_m": [
+          0.4304,
+          -0.2283,
+          0.5154
+        ]
+      },
+      "recovery_motion_issued": true,
+      "final_object_position_m": [
+        0.5481,
+        -0.0068,
+        0.4219
+      ],
+      "object_on_source": true,
+      "object_in_target": false,
+      "physical_goal_predicate": false,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": true,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 8.24
+    },
+    {
+      "layout_id": "right_near",
+      "initial_source_xy_m": [
+        0.585,
+        0.035
+      ],
+      "condition": "valid_recovery",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "none",
+        "injection_checkpoint": null
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_succeeded",
+        "reason": "all_machine_postconditions_hold",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00637,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "postconditions": {
+          "object_on_source": true,
+          "direct_source_table_contact": true,
+          "gripper_released": true,
+          "target_predicate_false": true,
+          "object_position_m": [
+            0.5837,
+            0.0194,
+            0.4219
+          ],
+          "source_position_error_m": 0.01565,
+          "tray_floor_contact": false,
+          "object_on_source_after_retreat": true,
+          "source_contact_after_retreat": true,
+          "gripper_released_after_retreat": true,
+          "target_predicate_false_after_retreat": true,
+          "final_object_position_m": [
+            0.5837,
+            0.0194,
+            0.4219
+          ]
+        },
+        "phases": [
+          {
+            "phase": "recovery_return_over_source",
+            "target_m": [
+              0.585,
+              0.035,
+              0.625
+            ],
+            "actual_m": [
+              0.5858,
+              0.0337,
+              0.6173
+            ],
+            "box_m": [
+              0.5845,
+              0.0359,
+              0.5113
+            ],
+            "ik_error_m": 0.00169,
+            "tracking_error_m": 0.00781,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_lower_to_source",
+            "target_m": [
+              0.585,
+              0.035,
+              0.535
+            ],
+            "actual_m": [
+              0.5856,
+              0.0349,
+              0.5285
+            ],
+            "box_m": [
+              0.5839,
+              0.0364,
+              0.428
+            ],
+            "ik_error_m": 0.00082,
+            "tracking_error_m": 0.00657,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_release",
+            "box_m": [
+              0.5837,
+              0.0194,
+              0.4219
+            ]
+          },
+          {
+            "phase": "recovery_retreat_after_support_verified",
+            "target_m": [
+              0.585,
+              0.035,
+              0.64
+            ],
+            "actual_m": [
+              0.5865,
+              0.0349,
+              0.6299
+            ],
+            "box_m": [
+              0.5837,
+              0.0194,
+              0.4219
+            ],
+            "ik_error_m": 0.00288,
+            "tracking_error_m": 0.01024,
+            "sim_steps": 450
+          }
+        ],
+        "object_position_before_recovery_m": [
+          0.4307,
+          -0.2274,
+          0.5146
+        ]
+      },
+      "recovery_motion_issued": true,
+      "final_object_position_m": [
+        0.5837,
+        0.0194,
+        0.4219
+      ],
+      "object_on_source": true,
+      "object_in_target": false,
+      "physical_goal_predicate": false,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": true,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 8.24
+    },
+    {
+      "layout_id": "left_near",
+      "initial_source_xy_m": [
+        0.515,
+        -0.035
+      ],
+      "condition": "carry_pose_drift",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "end_effector_displaced_by_0_07m",
+        "injection_checkpoint": "before_place"
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.0707,
+          "carry_pose_within_0_04m": false,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.4992,
+        -0.234,
+        0.5176
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "physical_goal_predicate": false,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 5.36
+    },
+    {
+      "layout_id": "center",
+      "initial_source_xy_m": [
+        0.55,
+        0.0
+      ],
+      "condition": "carry_pose_drift",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "end_effector_displaced_by_0_07m",
+        "injection_checkpoint": "before_place"
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.07072,
+          "carry_pose_within_0_04m": false,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.4991,
+        -0.2297,
+        0.5111
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "physical_goal_predicate": false,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 5.36
+    },
+    {
+      "layout_id": "right_near",
+      "initial_source_xy_m": [
+        0.585,
+        0.035
+      ],
+      "condition": "carry_pose_drift",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "end_effector_displaced_by_0_07m",
+        "injection_checkpoint": "before_place"
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.07073,
+          "carry_pose_within_0_04m": false,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.4991,
+        -0.2297,
+        0.5099
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "physical_goal_predicate": false,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 5.36
+    },
+    {
+      "layout_id": "left_near",
+      "initial_source_xy_m": [
+        0.515,
+        -0.035
+      ],
+      "condition": "grasp_loss",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "gripper_open_fault_over_target",
+        "injection_checkpoint": "before_place",
+        "agent_release_command": false
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": false,
+          "target_not_reached": false,
+          "carry_pose_error_m": 0.00594,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.43,
+        -0.2362,
+        0.4329
+      ],
+      "object_on_source": false,
+      "object_in_target": true,
+      "physical_goal_predicate": true,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 5.3
+    },
+    {
+      "layout_id": "center",
+      "initial_source_xy_m": [
+        0.55,
+        0.0
+      ],
+      "condition": "grasp_loss",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "gripper_open_fault_over_target",
+        "injection_checkpoint": "before_place",
+        "agent_release_command": false
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": false,
+          "target_not_reached": false,
+          "carry_pose_error_m": 0.0059,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.43,
+        -0.2357,
+        0.4329
+      ],
+      "object_on_source": false,
+      "object_in_target": true,
+      "physical_goal_predicate": true,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 5.3
+    },
+    {
+      "layout_id": "right_near",
+      "initial_source_xy_m": [
+        0.585,
+        0.035
+      ],
+      "condition": "grasp_loss",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "gripper_open_fault_over_target",
+        "injection_checkpoint": "before_place",
+        "agent_release_command": false
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": false,
+          "target_not_reached": false,
+          "carry_pose_error_m": 0.00629,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.4303,
+        -0.2446,
+        0.4329
+      ],
+      "object_on_source": false,
+      "object_in_target": true,
+      "physical_goal_predicate": true,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 5.3
+    },
+    {
+      "layout_id": "left_near",
+      "initial_source_xy_m": [
+        0.515,
+        -0.035
+      ],
+      "condition": "stale_source_record",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "source_record_outside_workspace",
+        "recorded_source_xy_m": [
+          0.95,
+          0.0
+        ],
+        "injection_checkpoint": "recovery_dispatch"
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00601,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": false
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.4303,
+        -0.2328,
+        0.5209
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "physical_goal_predicate": false,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 4.46
+    },
+    {
+      "layout_id": "center",
+      "initial_source_xy_m": [
+        0.55,
+        0.0
+      ],
+      "condition": "stale_source_record",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "source_record_outside_workspace",
+        "recorded_source_xy_m": [
+          0.95,
+          0.0
+        ],
+        "injection_checkpoint": "recovery_dispatch"
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00597,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": false
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.4304,
+        -0.2283,
+        0.5154
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "physical_goal_predicate": false,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 4.46
+    },
+    {
+      "layout_id": "right_near",
+      "initial_source_xy_m": [
+        0.585,
+        0.035
+      ],
+      "condition": "stale_source_record",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "task_transfer_outcome": "blocked",
+      "task_transfer_reason": "permission_not_granted_before_place",
+      "injected_fault": {
+        "type": "source_record_outside_workspace",
+        "recorded_source_xy_m": [
+          0.95,
+          0.0
+        ],
+        "injection_checkpoint": "recovery_dispatch"
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00637,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": false
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.4307,
+        -0.2274,
+        0.5146
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "physical_goal_predicate": false,
+      "authorized_task_completion": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 4.46
+    },
+    {
+      "layout_id": "left_near",
+      "initial_source_xy_m": [
+        0.515,
+        -0.035
+      ],
+      "condition": "post_completion",
+      "task_permission_schedule": [
+        "GRANTED"
+      ],
+      "task_transfer_outcome": "executed",
+      "task_transfer_reason": null,
+      "injected_fault": {
+        "type": "adversarial_recovery_request_after_task_completion",
+        "injection_checkpoint": "postcondition"
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": false,
+          "target_not_reached": false,
+          "carry_pose_error_m": 0.00827,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.4285,
+        -0.2364,
+        0.4329
+      ],
+      "object_on_source": false,
+      "object_in_target": true,
+      "physical_goal_predicate": true,
+      "authorized_task_completion": true,
+      "task_complete": true,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 7.1
+    },
+    {
+      "layout_id": "center",
+      "initial_source_xy_m": [
+        0.55,
+        0.0
+      ],
+      "condition": "post_completion",
+      "task_permission_schedule": [
+        "GRANTED"
+      ],
+      "task_transfer_outcome": "executed",
+      "task_transfer_reason": null,
+      "injected_fault": {
+        "type": "adversarial_recovery_request_after_task_completion",
+        "injection_checkpoint": "postcondition"
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": false,
+          "target_not_reached": false,
+          "carry_pose_error_m": 0.00826,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.4285,
+        -0.2345,
+        0.4329
+      ],
+      "object_on_source": false,
+      "object_in_target": true,
+      "physical_goal_predicate": true,
+      "authorized_task_completion": true,
+      "task_complete": true,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 7.1
+    },
+    {
+      "layout_id": "right_near",
+      "initial_source_xy_m": [
+        0.585,
+        0.035
+      ],
+      "condition": "post_completion",
+      "task_permission_schedule": [
+        "GRANTED"
+      ],
+      "task_transfer_outcome": "executed",
+      "task_transfer_reason": null,
+      "injected_fault": {
+        "type": "adversarial_recovery_request_after_task_completion",
+        "injection_checkpoint": "postcondition"
+      },
+      "recovery_authority": "RECOVERY_ONLY",
+      "recovery": {
+        "status": "recovery_failed",
+        "reason": "recovery_precondition_failed",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": false,
+          "target_not_reached": false,
+          "carry_pose_error_m": 0.00825,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "recovery_motion_issued": false,
+      "final_object_position_m": [
+        0.4285,
+        -0.2449,
+        0.4329
+      ],
+      "object_on_source": false,
+      "object_in_target": true,
+      "physical_goal_predicate": true,
+      "authorized_task_completion": true,
+      "task_complete": true,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": false,
+      "expected_mechanism_outcome": true,
+      "simulated_seconds": 7.1
+    }
+  ],
+  "summary": {
+    "cases": 15,
+    "expected_mechanism_outcomes": 15,
+    "recovery_successes_valid_condition": 3,
+    "recovery_motion_under_failed_preconditions": 0,
+    "physical_target_predicate_true_after_grasp_loss_fault": 3,
+    "authorized_task_completions_after_revocation": 0,
+    "agent_release_command_during_grasp_loss_injection": false
+  },
+  "limits": [
+    "single deterministic trajectory per layout-condition cell; no rate or confidence interval inference",
+    "faults use privileged MuJoCo interventions and are not realistic fault distributions",
+    "grasp-loss test opens the gripper above the delivery tray; passive fall can satisfy the task predicate",
+    "no collision force limits, perception uncertainty, asynchronous network/ledger fault or hardware safety claim"
+  ],
+  "figures": [
+    "Research/figures/pol2-recovery-precondition-faults-20261024i.png",
+    "Research/figures/pol2-recovery-precondition-faults-20261024i.pdf"
+  ]
+}
