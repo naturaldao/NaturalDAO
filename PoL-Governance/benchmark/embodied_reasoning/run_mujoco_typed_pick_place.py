@@ -21,7 +21,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import mujoco
 import numpy as np
@@ -435,22 +435,44 @@ def set_gripper(model: mujoco.MjModel, data: mujoco.MjData, names: dict[str, Any
 
 
 def execute_transfer(model: mujoco.MjModel, data: mujoco.MjData, names: dict[str, Any],
-                     permission: str, revision: int, gate_enabled: bool
+                     permission: str, revision: int, gate_enabled: bool,
+                     permission_reader: Callable[[], str] | None = None
                      ) -> tuple[list[dict[str, Any]], int, dict[str, Any]]:
     phases: list[dict[str, Any]] = []
+    permission_checks: list[dict[str, str]] = []
+    def read_permission(checkpoint: str) -> str:
+        read_error = None
+        try:
+            current = permission_reader() if permission_reader is not None else permission
+        except Exception as exc:
+            current = "UNKNOWN"
+            read_error = type(exc).__name__
+        if current not in ("GRANTED", "DENIED", "UNKNOWN"):
+            current = "UNKNOWN"
+        check = {"checkpoint": checkpoint, "permission": current}
+        if read_error:
+            check["read_error"] = read_error
+        permission_checks.append(check)
+        return current
+
     source = box_position(data, names)
     tray = np.array([0.43, -0.24])
-    if gate_enabled and permission != "GRANTED":
-        return phases, revision, {"status": "blocked", "reason": "authorization_not_granted"}
+    current_permission = read_permission("transfer_start")
+    if gate_enabled and current_permission != "GRANTED":
+        return phases, revision, {"status": "blocked", "reason": "authorization_not_granted",
+                                  "permission_checks": permission_checks}
     # Repeat the rule check at the physical commitment boundary immediately
     # before grasp, even though the enclosing task gate already allowed transfer.
     move_hand(model, data, names, [float(source[0]), float(source[1]), 0.60], "approach", phases)
     revision += 1
-    current = observation(data, names, permission, revision)
+    current_permission = read_permission("before_grasp")
+    current = observation(data, names, current_permission, revision)
     if not current["object"]["on_source_table"]:
-        return phases, revision, {"status": "stopped", "reason": "source_state_changed_before_grasp"}
-    if gate_enabled and permission != "GRANTED":
-        return phases, revision, {"status": "blocked", "reason": "permission_revoked_before_grasp"}
+        return phases, revision, {"status": "stopped", "reason": "source_state_changed_before_grasp",
+                                  "permission_checks": permission_checks}
+    if gate_enabled and current_permission != "GRANTED":
+        return phases, revision, {"status": "blocked", "reason": "permission_not_granted_before_grasp",
+                                  "permission_checks": permission_checks}
     move_hand(model, data, names, [float(source[0]), float(source[1]), 0.52], "descend", phases)
     revision += 1
     set_gripper(model, data, names, control=0)
@@ -458,19 +480,23 @@ def execute_transfer(model: mujoco.MjModel, data: mujoco.MjData, names: dict[str
     phases.append({"phase": "close_gripper", "bilateral_contact": contact,
                    "box_m": np.round(box_position(data, names), 4).tolist()})
     if not all(contact.values()):
-        return phases, revision, {"status": "execution_failed", "reason": "no_bilateral_grasp_contact"}
+        return phases, revision, {"status": "execution_failed", "reason": "no_bilateral_grasp_contact",
+                                  "permission_checks": permission_checks}
 
     before_lift = box_position(data, names)
     move_hand(model, data, names, [float(source[0]), float(source[1]), 0.625], "lift", phases)
     revision += 1
     after_lift = box_position(data, names)
     if after_lift[2] < before_lift[2] + 0.025:
-        return phases, revision, {"status": "execution_failed", "reason": "object_did_not_lift"}
+        return phases, revision, {"status": "execution_failed", "reason": "object_did_not_lift",
+                                  "permission_checks": permission_checks}
 
     move_hand(model, data, names, [float(tray[0]), float(tray[1]), 0.625], "transport", phases)
     revision += 1
-    if gate_enabled and permission != "GRANTED":
-        return phases, revision, {"status": "blocked", "reason": "permission_revoked_before_place"}
+    current_permission = read_permission("before_place")
+    if gate_enabled and current_permission != "GRANTED":
+        return phases, revision, {"status": "blocked", "reason": "permission_not_granted_before_place",
+                                  "permission_checks": permission_checks}
     move_hand(model, data, names, [float(tray[0]), float(tray[1]), 0.535], "place", phases)
     revision += 1
     set_gripper(model, data, names, control=255)
@@ -481,12 +507,14 @@ def execute_transfer(model: mujoco.MjModel, data: mujoco.MjData, names: dict[str
     for _ in range(240):
         mujoco.mj_step(model, data)
     revision += 1
-    terminal = observation(data, names, permission, revision)
+    current_permission = read_permission("after_release")
+    terminal = observation(data, names, current_permission, revision)
     return phases, revision, {
         "status": "executed",
         "task_complete": terminal["target"]["box_in_target"],
         "terminal_observation": terminal,
         "postcondition_source_box_removed": not terminal["object"]["on_source_table"],
+        "permission_checks": permission_checks,
     }
 
 

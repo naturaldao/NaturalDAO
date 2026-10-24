@@ -103,6 +103,18 @@ python -m pip install -r PoL-Governance/benchmark/embodied_reasoning/requirement
 python PoL-Governance/benchmark/embodied_reasoning/run_governance_effect_experiment.py
 ```
 
+### 第五阶段：授权撤回与权限账本故障注入
+
+`run_permission_revocation_experiment.py` 将权限回调接入 Panda transfer 控制器，在抓取前、搬运到目标上方后、账本读取超时及持续授权四种状态下，检查物体位姿、夹爪接触和门控结果。报告与数据见 [PoL2 具身授权撤回边界实验](../../../Research/PoL2-具身授权撤回边界实验.md)。当前发现：抓取前撤回与读取失败会停止在物体接触前；放置前撤回虽阻止了放置，但会留下被夹持的物体，说明安全中止与安全恢复需要作为不同属性验证。
+
+运行命令：
+
+```powershell
+python PoL-Governance/benchmark/embodied_reasoning/run_permission_revocation_experiment.py
+```
+
+每个权限时间表仍为单次确定性轨迹，结果用于定位控制边界，不代表发生率或统计效应。
+
 ## AGIBOT WORLD 2026 数据可用性
 
 2026-10-22 的媒体报道宣布第四期 Physical Reasoning 数据集发布，但检查官方项目主页与 Hugging Face 仓库时，当前可见数据目录仍未出现 Physical Reasoning 独立目录；仓库卡显示 CC BY-NC-SA 4.0。应在数据文件、schema、标注说明和许可可核对后，另行建立真实数据适配流程；不要仅凭发布报道称本试验为 AGIBOT 复现。链接见 Research 报告。
