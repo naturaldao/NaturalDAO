@@ -1,0 +1,1142 @@
+{
+  "experiment": "Bounded recovery across source layouts after task authorization revocation",
+  "created_at_utc": "2026-10-24T07:42:20.291025+00:00",
+  "runtime": {
+    "python": "3.12.10",
+    "mujoco": "3.4.0"
+  },
+  "robot": "Franka Emika Panda (MuJoCo Menagerie)",
+  "task_policy": "pol2-embodied-contract-v0.2",
+  "task_policy_sha256": "8492917fc9723adc1e0044a5d690a0955526da6e8f020d18ae7e694cd5e0cccb",
+  "recovery_policy": "pol2-embodied-recovery-policy-v0.1",
+  "recovery_policy_sha256": "805a379ce9b137e84796ee3a5d550c6dda1f2a9f6ffb71039581dd55a391bb6b",
+  "experiment_script_sha256": "89c01146a112634e7ac7ad3a9c5c355afa148d09930f752661ee3fb2caaee382",
+  "design": "3 deterministic source positions x 4 authority conditions; one trajectory per cell; 12 total",
+  "source_layouts_xy_m": {
+    "left_near": [
+      0.515,
+      -0.035
+    ],
+    "center": [
+      0.55,
+      0.0
+    ],
+    "right_near": [
+      0.585,
+      0.035
+    ]
+  },
+  "conditions_n": {
+    "left_near/recovery_denied": 1,
+    "left_near/recovery_unknown": 1,
+    "left_near/recovery_only": 1,
+    "left_near/continuous_grant": 1,
+    "center/recovery_denied": 1,
+    "center/recovery_unknown": 1,
+    "center/recovery_only": 1,
+    "center/continuous_grant": 1,
+    "right_near/recovery_denied": 1,
+    "right_near/recovery_unknown": 1,
+    "right_near/recovery_only": 1,
+    "right_near/continuous_grant": 1
+  },
+  "cases": [
+    {
+      "layout_id": "left_near",
+      "source_xy_m": [
+        0.515,
+        -0.035
+      ],
+      "condition": "recovery_denied",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "recovery_authority": "DENIED",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "DENIED"
+        }
+      ],
+      "transfer_outcome": "blocked",
+      "transfer_block_reason": "permission_not_granted_before_place",
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport"
+      ],
+      "recovery": {
+        "status": "recovery_unavailable",
+        "reason": "recovery_authority_not_explicitly_granted",
+        "authority": "DENIED",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00601,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "final_object_position_m": [
+        0.4303,
+        -0.2328,
+        0.5209
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "all_contact_sides": {
+        "left": true,
+        "right": true
+      },
+      "simulated_seconds": 4.46,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "left_near",
+      "source_xy_m": [
+        0.515,
+        -0.035
+      ],
+      "condition": "recovery_unknown",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "recovery_authority": "UNKNOWN",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "DENIED"
+        }
+      ],
+      "transfer_outcome": "blocked",
+      "transfer_block_reason": "permission_not_granted_before_place",
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport"
+      ],
+      "recovery": {
+        "status": "recovery_unavailable",
+        "reason": "recovery_authority_not_explicitly_granted",
+        "authority": "UNKNOWN",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00601,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "final_object_position_m": [
+        0.4303,
+        -0.2328,
+        0.5209
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "all_contact_sides": {
+        "left": true,
+        "right": true
+      },
+      "simulated_seconds": 4.46,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "left_near",
+      "source_xy_m": [
+        0.515,
+        -0.035
+      ],
+      "condition": "recovery_only",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "recovery_authority": "RECOVERY_ONLY",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "DENIED"
+        }
+      ],
+      "transfer_outcome": "blocked",
+      "transfer_block_reason": "permission_not_granted_before_place",
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport"
+      ],
+      "recovery": {
+        "status": "recovery_succeeded",
+        "reason": "all_machine_postconditions_hold",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00601,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "postconditions": {
+          "object_on_source": true,
+          "direct_source_table_contact": true,
+          "gripper_released": true,
+          "target_predicate_false": true,
+          "object_position_m": [
+            0.5129,
+            -0.0384,
+            0.4219
+          ],
+          "source_position_error_m": 0.00397,
+          "tray_floor_contact": false,
+          "object_on_source_after_retreat": true,
+          "source_contact_after_retreat": true,
+          "gripper_released_after_retreat": true,
+          "target_predicate_false_after_retreat": true,
+          "final_object_position_m": [
+            0.5129,
+            -0.0384,
+            0.4219
+          ]
+        },
+        "phases": [
+          {
+            "phase": "recovery_return_over_source",
+            "target_m": [
+              0.515,
+              -0.035,
+              0.625
+            ],
+            "actual_m": [
+              0.5154,
+              -0.0365,
+              0.6188
+            ],
+            "box_m": [
+              0.5141,
+              -0.0336,
+              0.5191
+            ],
+            "ik_error_m": 0.00169,
+            "tracking_error_m": 0.00643,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_lower_to_source",
+            "target_m": [
+              0.515,
+              -0.035,
+              0.535
+            ],
+            "actual_m": [
+              0.5151,
+              -0.035,
+              0.5309
+            ],
+            "box_m": [
+              0.5133,
+              -0.0321,
+              0.4297
+            ],
+            "ik_error_m": 0.00213,
+            "tracking_error_m": 0.00408,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_release",
+            "box_m": [
+              0.5129,
+              -0.0384,
+              0.4219
+            ]
+          },
+          {
+            "phase": "recovery_retreat_after_support_verified",
+            "target_m": [
+              0.515,
+              -0.035,
+              0.64
+            ],
+            "actual_m": [
+              0.5162,
+              -0.035,
+              0.6325
+            ],
+            "box_m": [
+              0.5129,
+              -0.0384,
+              0.4219
+            ],
+            "ik_error_m": 0.0015,
+            "tracking_error_m": 0.00757,
+            "sim_steps": 450
+          }
+        ],
+        "object_position_before_recovery_m": [
+          0.4303,
+          -0.2328,
+          0.5209
+        ]
+      },
+      "final_object_position_m": [
+        0.5129,
+        -0.0384,
+        0.4219
+      ],
+      "object_on_source": true,
+      "object_in_target": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": true,
+      "all_contact_sides": {
+        "left": false,
+        "right": false
+      },
+      "simulated_seconds": 8.24,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "left_near",
+      "source_xy_m": [
+        0.515,
+        -0.035
+      ],
+      "condition": "continuous_grant",
+      "task_permission_schedule": [
+        "GRANTED"
+      ],
+      "recovery_authority": "DENIED",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "after_release",
+          "permission": "GRANTED"
+        }
+      ],
+      "transfer_outcome": "executed",
+      "transfer_block_reason": null,
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport",
+        "place",
+        "release",
+        "retreat"
+      ],
+      "recovery": {
+        "status": "not_applicable",
+        "authority": "DENIED",
+        "phases": []
+      },
+      "final_object_position_m": [
+        0.4285,
+        -0.2364,
+        0.4329
+      ],
+      "object_on_source": false,
+      "object_in_target": true,
+      "task_complete": true,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": false,
+      "all_contact_sides": {
+        "left": false,
+        "right": false
+      },
+      "simulated_seconds": 7.1,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "center",
+      "source_xy_m": [
+        0.55,
+        0.0
+      ],
+      "condition": "recovery_denied",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "recovery_authority": "DENIED",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "DENIED"
+        }
+      ],
+      "transfer_outcome": "blocked",
+      "transfer_block_reason": "permission_not_granted_before_place",
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport"
+      ],
+      "recovery": {
+        "status": "recovery_unavailable",
+        "reason": "recovery_authority_not_explicitly_granted",
+        "authority": "DENIED",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00597,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "final_object_position_m": [
+        0.4304,
+        -0.2283,
+        0.5154
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "all_contact_sides": {
+        "left": true,
+        "right": true
+      },
+      "simulated_seconds": 4.46,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "center",
+      "source_xy_m": [
+        0.55,
+        0.0
+      ],
+      "condition": "recovery_unknown",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "recovery_authority": "UNKNOWN",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "DENIED"
+        }
+      ],
+      "transfer_outcome": "blocked",
+      "transfer_block_reason": "permission_not_granted_before_place",
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport"
+      ],
+      "recovery": {
+        "status": "recovery_unavailable",
+        "reason": "recovery_authority_not_explicitly_granted",
+        "authority": "UNKNOWN",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00597,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "final_object_position_m": [
+        0.4304,
+        -0.2283,
+        0.5154
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "all_contact_sides": {
+        "left": true,
+        "right": true
+      },
+      "simulated_seconds": 4.46,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "center",
+      "source_xy_m": [
+        0.55,
+        0.0
+      ],
+      "condition": "recovery_only",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "recovery_authority": "RECOVERY_ONLY",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "DENIED"
+        }
+      ],
+      "transfer_outcome": "blocked",
+      "transfer_block_reason": "permission_not_granted_before_place",
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport"
+      ],
+      "recovery": {
+        "status": "recovery_succeeded",
+        "reason": "all_machine_postconditions_hold",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00597,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "postconditions": {
+          "object_on_source": true,
+          "direct_source_table_contact": true,
+          "gripper_released": true,
+          "target_predicate_false": true,
+          "object_position_m": [
+            0.5481,
+            -0.0068,
+            0.4219
+          ],
+          "source_position_error_m": 0.00703,
+          "tray_floor_contact": false,
+          "object_on_source_after_retreat": true,
+          "source_contact_after_retreat": true,
+          "gripper_released_after_retreat": true,
+          "target_predicate_false_after_retreat": true,
+          "final_object_position_m": [
+            0.5481,
+            -0.0068,
+            0.4219
+          ]
+        },
+        "phases": [
+          {
+            "phase": "recovery_return_over_source",
+            "target_m": [
+              0.55,
+              0.0,
+              0.625
+            ],
+            "actual_m": [
+              0.5508,
+              -0.0011,
+              0.6181
+            ],
+            "box_m": [
+              0.5494,
+              0.0044,
+              0.5116
+            ],
+            "ik_error_m": 0.00132,
+            "tracking_error_m": 0.007,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_lower_to_source",
+            "target_m": [
+              0.55,
+              0.0,
+              0.535
+            ],
+            "actual_m": [
+              0.5503,
+              -0.0001,
+              0.5308
+            ],
+            "box_m": [
+              0.5484,
+              0.0043,
+              0.4273
+            ],
+            "ik_error_m": 0.00252,
+            "tracking_error_m": 0.00421,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_release",
+            "box_m": [
+              0.5481,
+              -0.0068,
+              0.4219
+            ]
+          },
+          {
+            "phase": "recovery_retreat_after_support_verified",
+            "target_m": [
+              0.55,
+              0.0,
+              0.64
+            ],
+            "actual_m": [
+              0.5514,
+              -0.0,
+              0.6318
+            ],
+            "box_m": [
+              0.5481,
+              -0.0068,
+              0.4219
+            ],
+            "ik_error_m": 0.00159,
+            "tracking_error_m": 0.00829,
+            "sim_steps": 450
+          }
+        ],
+        "object_position_before_recovery_m": [
+          0.4304,
+          -0.2283,
+          0.5154
+        ]
+      },
+      "final_object_position_m": [
+        0.5481,
+        -0.0068,
+        0.4219
+      ],
+      "object_on_source": true,
+      "object_in_target": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": true,
+      "all_contact_sides": {
+        "left": false,
+        "right": false
+      },
+      "simulated_seconds": 8.24,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "center",
+      "source_xy_m": [
+        0.55,
+        0.0
+      ],
+      "condition": "continuous_grant",
+      "task_permission_schedule": [
+        "GRANTED"
+      ],
+      "recovery_authority": "DENIED",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "after_release",
+          "permission": "GRANTED"
+        }
+      ],
+      "transfer_outcome": "executed",
+      "transfer_block_reason": null,
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport",
+        "place",
+        "release",
+        "retreat"
+      ],
+      "recovery": {
+        "status": "not_applicable",
+        "authority": "DENIED",
+        "phases": []
+      },
+      "final_object_position_m": [
+        0.4285,
+        -0.2345,
+        0.4329
+      ],
+      "object_on_source": false,
+      "object_in_target": true,
+      "task_complete": true,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": false,
+      "all_contact_sides": {
+        "left": false,
+        "right": false
+      },
+      "simulated_seconds": 7.1,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "right_near",
+      "source_xy_m": [
+        0.585,
+        0.035
+      ],
+      "condition": "recovery_denied",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "recovery_authority": "DENIED",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "DENIED"
+        }
+      ],
+      "transfer_outcome": "blocked",
+      "transfer_block_reason": "permission_not_granted_before_place",
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport"
+      ],
+      "recovery": {
+        "status": "recovery_unavailable",
+        "reason": "recovery_authority_not_explicitly_granted",
+        "authority": "DENIED",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00637,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "final_object_position_m": [
+        0.4307,
+        -0.2274,
+        0.5146
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "all_contact_sides": {
+        "left": true,
+        "right": true
+      },
+      "simulated_seconds": 4.46,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "right_near",
+      "source_xy_m": [
+        0.585,
+        0.035
+      ],
+      "condition": "recovery_unknown",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "recovery_authority": "UNKNOWN",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "DENIED"
+        }
+      ],
+      "transfer_outcome": "blocked",
+      "transfer_block_reason": "permission_not_granted_before_place",
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport"
+      ],
+      "recovery": {
+        "status": "recovery_unavailable",
+        "reason": "recovery_authority_not_explicitly_granted",
+        "authority": "UNKNOWN",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00637,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "phases": []
+      },
+      "final_object_position_m": [
+        0.4307,
+        -0.2274,
+        0.5146
+      ],
+      "object_on_source": false,
+      "object_in_target": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": true,
+      "source_table_contact": false,
+      "all_contact_sides": {
+        "left": true,
+        "right": true
+      },
+      "simulated_seconds": 4.46,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "right_near",
+      "source_xy_m": [
+        0.585,
+        0.035
+      ],
+      "condition": "recovery_only",
+      "task_permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "recovery_authority": "RECOVERY_ONLY",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "DENIED"
+        }
+      ],
+      "transfer_outcome": "blocked",
+      "transfer_block_reason": "permission_not_granted_before_place",
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport"
+      ],
+      "recovery": {
+        "status": "recovery_succeeded",
+        "reason": "all_machine_postconditions_hold",
+        "authority": "RECOVERY_ONLY",
+        "preconditions": {
+          "bilateral_grasp": true,
+          "target_not_reached": true,
+          "carry_pose_error_m": 0.00637,
+          "carry_pose_within_0_04m": true,
+          "source_workspace_valid": true
+        },
+        "postconditions": {
+          "object_on_source": true,
+          "direct_source_table_contact": true,
+          "gripper_released": true,
+          "target_predicate_false": true,
+          "object_position_m": [
+            0.5837,
+            0.0194,
+            0.4219
+          ],
+          "source_position_error_m": 0.01565,
+          "tray_floor_contact": false,
+          "object_on_source_after_retreat": true,
+          "source_contact_after_retreat": true,
+          "gripper_released_after_retreat": true,
+          "target_predicate_false_after_retreat": true,
+          "final_object_position_m": [
+            0.5837,
+            0.0194,
+            0.4219
+          ]
+        },
+        "phases": [
+          {
+            "phase": "recovery_return_over_source",
+            "target_m": [
+              0.585,
+              0.035,
+              0.625
+            ],
+            "actual_m": [
+              0.5858,
+              0.0337,
+              0.6173
+            ],
+            "box_m": [
+              0.5845,
+              0.0359,
+              0.5113
+            ],
+            "ik_error_m": 0.00169,
+            "tracking_error_m": 0.00781,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_lower_to_source",
+            "target_m": [
+              0.585,
+              0.035,
+              0.535
+            ],
+            "actual_m": [
+              0.5856,
+              0.0349,
+              0.5285
+            ],
+            "box_m": [
+              0.5839,
+              0.0364,
+              0.428
+            ],
+            "ik_error_m": 0.00082,
+            "tracking_error_m": 0.00657,
+            "sim_steps": 450
+          },
+          {
+            "phase": "recovery_release",
+            "box_m": [
+              0.5837,
+              0.0194,
+              0.4219
+            ]
+          },
+          {
+            "phase": "recovery_retreat_after_support_verified",
+            "target_m": [
+              0.585,
+              0.035,
+              0.64
+            ],
+            "actual_m": [
+              0.5865,
+              0.0349,
+              0.6299
+            ],
+            "box_m": [
+              0.5837,
+              0.0194,
+              0.4219
+            ],
+            "ik_error_m": 0.00288,
+            "tracking_error_m": 0.01024,
+            "sim_steps": 450
+          }
+        ],
+        "object_position_before_recovery_m": [
+          0.4307,
+          -0.2274,
+          0.5146
+        ]
+      },
+      "final_object_position_m": [
+        0.5837,
+        0.0194,
+        0.4219
+      ],
+      "object_on_source": true,
+      "object_in_target": false,
+      "task_complete": false,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": true,
+      "all_contact_sides": {
+        "left": false,
+        "right": false
+      },
+      "simulated_seconds": 8.24,
+      "expected_mechanism_outcome": true
+    },
+    {
+      "layout_id": "right_near",
+      "source_xy_m": [
+        0.585,
+        0.035
+      ],
+      "condition": "continuous_grant",
+      "task_permission_schedule": [
+        "GRANTED"
+      ],
+      "recovery_authority": "DENIED",
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "after_release",
+          "permission": "GRANTED"
+        }
+      ],
+      "transfer_outcome": "executed",
+      "transfer_block_reason": null,
+      "transfer_phases": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport",
+        "place",
+        "release",
+        "retreat"
+      ],
+      "recovery": {
+        "status": "not_applicable",
+        "authority": "DENIED",
+        "phases": []
+      },
+      "final_object_position_m": [
+        0.4285,
+        -0.2449,
+        0.4329
+      ],
+      "object_on_source": false,
+      "object_in_target": true,
+      "task_complete": true,
+      "bilateral_gripper_contact": false,
+      "source_table_contact": false,
+      "all_contact_sides": {
+        "left": false,
+        "right": false
+      },
+      "simulated_seconds": 7.1,
+      "expected_mechanism_outcome": true
+    }
+  ],
+  "summary": {
+    "cases": 12,
+    "all_expected_mechanisms_observed": true,
+    "recovery_only_successes": 3,
+    "unauthorized_task_completions_after_revocation": 0,
+    "positions_with_positive_control_success": 3
+  },
+  "limits": [
+    "single deterministic trajectory per cell; positions are chosen stress points, not random samples",
+    "source shifts remain within the original scene and source observation tolerance",
+    "privileged simulator state, obstacle-free tray path, synchronous revocation checks",
+    "synthetic recovery authority; no force/torque bounds or hardware safety inference"
+  ],
+  "figures": [
+    "Research/figures/pol2-recovery-layout-sweep-20261024f.png",
+    "Research/figures/pol2-recovery-layout-sweep-20261024f.pdf"
+  ]
+}

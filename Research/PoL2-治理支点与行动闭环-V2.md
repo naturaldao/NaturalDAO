@@ -247,6 +247,18 @@ PX4 v1.17 提供 SIH 无头仿真和 Gazebo Harmonic SITL 的预构建包，均�
 
 这些工作区可作为原型基础。现有模拟投票和合成 fixtures 尚未验证 PoL2-EG；PoL2 运行时集成、策略更新门和事故闭环需要实现后再评估。
 
+### 8.1 审计事实源与向量检索的职责边界
+
+Daism 社区材料《向量数据库与 PostgreSQL》提出将关系型数据与向量相似检索放在同一 PostgreSQL 技术栈中考察。对 PoL2-EG 有用的部分是**存储分工思路**：可把任务契约、授权签发与撤销、策略版本、动作提案、PEP 决策、执行回执、物理后置条件和审计来源作为结构化、可版本化的事实记录；把历史事件或案例的 embedding 用于查找相似故障和复盘材料。该材料是技术讨论线索，不是 PoL2 实现或性能证据。[Daism 社区材料](https://daism.io/zh/communities/enkier/eaa5b5c91bde4f4eaadafd8c8ebd7929)
+
+向量相似度只能产生**检索候选**，不能授予权限、证明事实、覆盖撤销或替代精确状态谓词。`GRANTED / DENIED / UNKNOWN`、凭证范围、失效时间、规则版本和当前物体/设备状态必须由结构化字段与确定性校验决定；检索结果若进入动作判断，须再次核验来源、版本、作用域与时效。该边界也符合 pgvector 文档所述：默认精确最近邻检索可获得完全召回；HNSW/IVFFlat 近似索引用速度换取召回，并且过滤在近似扫描后应用时可能漏掉足够结果。对授权判定而言，即使召回完备也不应把语义相似当作权限证据。[pgvector：索引与过滤](https://github.com/pgvector/pgvector#filtering)
+
+OpenAI 的 PostgreSQL 扩展实践展示了读副本、查询限流、写入整形、慢查询治理与高写入负载分流等工程手段，也记录了单主写入、MVCC 写放大和分片复杂度的约束。因此它支持“PostgreSQL 可作为候选事实源并需按负载演进”，不支持“所有治理事件和向量都应永久放在一个数据库”。[Scaling PostgreSQL at OpenAI](https://openai.com/zh-Hant-HK/index/scaling-postgresql/)
+
+当前 Panda × MuJoCo 实验体量小，JSON 结果和逐动作轨迹足以支撑复现；现阶段不引入 PostgreSQL 或向量服务，以免增加与 PoL2 因果机制无关的基础设施变量。后续真实集成时，先明确事件 schema、幂等键、单调授权 epoch、撤销与动作提交的原子边界、追加式审计策略及离线备份，再按并发和检索负载决定是否使用 PostgreSQL/pgvector。RLS 可限制数据库行访问，但表所有者、超级用户和 `BYPASSRLS` 角色可绕过，故它只能是纵深防护，不能取代 PEP 的动作授权。[PostgreSQL 行级安全](https://www.postgresql.org/docs/current/ddl-rowsecurity.html)
+
+这项建议只补充 PoL2-EG 的持久化与检索边界，不改变本轮仿真的权限规则，也不声称数据库方案已经实现或验证。
+
 ## 9. 可检验的研究问题与贡献
 
 ### 研究科学问题
@@ -298,10 +310,11 @@ PX4 v1.17 提供 SIH 无头仿真和 Gazebo Harmonic SITL 的预构建包，均�
 14. Hu et al. (2026). [Jev-Guard: Fast Routing and Auditing Agent Actions over Editable Policy Trees](https://arxiv.org/abs/2610.18326), arXiv preprint.
 15. Debenedetti et al. (2025). [Defeating Prompt Injections by Design](https://arxiv.org/abs/2503.18813) (CaMeL); [implementation](https://github.com/google-research/camel-prompt-injection).
 16. Ahn et al. (2022). [Do As I Can, Not As I Say](https://arxiv.org/abs/2204.01691) (SayCan).
-17. Ames et al. (2019). [Control Barrier Function Based Quadratic Programs for Safety Critical Systems](https://arxiv.org/abs/1903.11199).
-18. [OpenJev](https://github.com/alanhuangyoo/OpenJev): open weights and local inference for typed decisions; repository-reported benchmarks and licensing boundaries require separate verification.
-19. [PX4 Simulation](https://docs.px4.io/v1.17/en/simulation/index)；[Gazebo SITL](https://docs.px4.io/v1.17/en/sim_gazebo_gz/)；[预构建 SITL 包](https://docs.px4.io/v1.17/en/simulation/px4_sitl_prebuilt_packages)；[ROS 2 Offboard 控制](https://docs.px4.io/v1.17/en/flight_modes/offboard)；[Simulation in Hardware (SIH)](https://docs.px4.io/v1.17/en/sim_sih/)。
-20. NVIDIA Isaac Sim: [ROS 2 Bridge](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/install_ros.html) and [Sensors](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/sensors/index.html).
+17. Daism 社区（2026-10-23）. [向量数据库与 PostgreSQL](https://daism.io/zh/communities/enkier/eaa5b5c91bde4f4eaadafd8c8ebd7929)。社区技术讨论；用于提出存储职责边界，不作为性能或 PoL2 有效性证据。
+18. Ames et al. (2019). [Control Barrier Function Based Quadratic Programs for Safety Critical Systems](https://arxiv.org/abs/1903.11199).
+19. [OpenJev](https://github.com/alanhuangyoo/OpenJev): open weights and local inference for typed decisions; repository-reported benchmarks and licensing boundaries require separate verification.
+20. [PX4 Simulation](https://docs.px4.io/v1.17/en/simulation/index)；[Gazebo SITL](https://docs.px4.io/v1.17/en/sim_gazebo_gz/)；[预构建 SITL 包](https://docs.px4.io/v1.17/en/simulation/px4_sitl_prebuilt_packages)；[ROS 2 Offboard 控制](https://docs.px4.io/v1.17/en/flight_modes/offboard)；[Simulation in Hardware (SIH)](https://docs.px4.io/v1.17/en/sim_sih/)。
+21. NVIDIA Isaac Sim: [ROS 2 Bridge](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/install_ros.html) and [Sensors](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/sensors/index.html).
 21. IAMAI, [Project AirSim](https://github.com/iamaisim/ProjectAirSim): simulator repository and implementation documentation.
 22. [AnyJev](https://github.com/nokia-applied-research/AnyJev): open implementation for producing typed decisions from language-model outputs.
 23. PX4: [Multicopter Mission Mode](https://docs.px4.io/v1.17/en/flight_modes_mc/mission)；[Offboard Mode](https://docs.px4.io/v1.17/en/flight_modes/offboard)；[安全/失效配置](https://docs.px4.io/v1.17/zh/config/safety)。
