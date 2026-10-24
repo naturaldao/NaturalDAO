@@ -208,20 +208,21 @@ def create_figure(exhaustive: dict, trials: list[dict], output_png: Path) -> Non
     ax_flow.text(0.5, 0.08, "候选动作不能扩大；提交前再次检查权限与仿真状态",
                  ha="center", color=gray, fontsize=10)
 
-    ax_exhaustive.set_title("A  有限域穷举", loc="left", color=navy)
+    ax_exhaustive.set_title("A  有限域回归检查", loc="left", color=navy)
     ax_exhaustive.pie([max(exhaustive["cases"] - exhaustive["expected_policy_mismatches"], 0),
                        exhaustive["expected_policy_mismatches"]],
                       colors=[green, "#E5A39B"], startangle=90, counterclock=False,
                       wedgeprops={"width": 0.16, "edgecolor": "#F6F8FB", "linewidth": 2})
-    ax_exhaustive.text(0, 0.12, f"{(1 - exhaustive['expected_policy_mismatches'] / exhaustive['cases']) * 100:.0f}%",
+    ax_exhaustive.text(0, 0.12, f"{exhaustive['expected_policy_mismatches']}",
                        ha="center", va="center", fontsize=25, fontweight="bold", color=navy)
-    ax_exhaustive.text(0, -0.15, "规格匹配", ha="center", va="center", fontsize=10, color=gray)
+    ax_exhaustive.text(0, -0.15, "不一致项", ha="center", va="center", fontsize=10, color=gray)
     ax_exhaustive.text(0.5, -0.12,
                        f"{exhaustive['cases']:,} / {exhaustive['cases']:,} cases\n"
                        f"{exhaustive['states']} states × {exhaustive['candidate_subsets_per_state']} action subsets\n"
-                       f"{exhaustive['expected_policy_mismatches']} mismatches",
+                       f"{exhaustive['expected_policy_mismatches']} mismatches\n"
+                       "脚本内联期望值；非独立 oracle",
                        transform=ax_exhaustive.transAxes, ha="center", va="top",
-                       color=navy, fontsize=10, linespacing=1.6)
+                       color=navy, fontsize=9, linespacing=1.5)
     ax_exhaustive.set_aspect("equal")
 
     ax_viol.set_title("B  未授权状态的违规执行", loc="left", color=navy)
