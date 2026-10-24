@@ -78,6 +78,7 @@
 - [恢复权限与回退策略规格](../PoL-Governance/benchmark/embodied_reasoning/pol2-embodied-recovery-policy-v0.1.json)
 - [实验脚本](../PoL-Governance/benchmark/embodied_reasoning/run_revocation_recovery_experiment.py)
 - [底层 MuJoCo Panda 执行控制器](../PoL-Governance/benchmark/embodied_reasoning/run_mujoco_typed_pick_place.py)
+- [仅从已有 JSON 重绘图表的脚本](figures/plot_revocation_recovery_experiment.py)
 - 图：[`PNG`](figures/pol2-revocation-recovery-20261024d.png) · [`矢量 PDF`](figures/pol2-revocation-recovery-20261024d.pdf)
 - [上一轮授权撤回边界实验](PoL2-具身授权撤回边界实验.md)
 
@@ -88,5 +89,13 @@ python PoL-Governance/benchmark/embodied_reasoning/run_revocation_recovery_exper
 ```
 
 脚本拒绝覆盖已有同编号结果。绘图按仓库内对 [figures4papers](https://github.com/ChenLiu-1996/figures4papers) 规范的重述版本执行，并调用 `PoL2-DAO-Governance-Lab` 中的 `plotstyle.py` 作为统一样式入口；没有复制该上游仓库的代码或文本。报告流程也参照 Scientific Agent Skills 的方法说明：Kassis, T., Agarwal, V., He, Y., Patel, D., & Brueckner, A. M. (2026). *Scientific Agent Skills: A Library of Procedural Knowledge for Research Agents* (v2). [arXiv:2609.00065](https://doi.org/10.48550/arXiv.2609.00065).
+
+已有实验数据时，可单独重绘而不重新运行仿真：
+
+```powershell
+python Research/figures/plot_revocation_recovery_experiment.py `
+  --result PoL-Governance/benchmark/embodied_reasoning/results/revocation-recovery-experiment-20261024d.json `
+  --output-stem Research/figures/pol2-revocation-recovery-20261024d
+```
 
 定向检查通过：实验脚本可编译；五条件结果和汇总状态可解析；恢复策略与脚本 SHA-256 与结果记录相符；PNG 已打开检查，PDF 为单页矢量输出并已渲染检查。仓库级 `uv run --no-project --offline python tools/check.py` 未通过，其在本实验代码检查前被既有非便携链接 `datasets/general/coverage-gaps.md → data/items.final.jsonl` 拦截；该数据文件不属于本轮范围，也未改动。
