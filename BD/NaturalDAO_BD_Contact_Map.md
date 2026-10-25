@@ -48,6 +48,8 @@
 
 ## Outreach workflow
 
+**Draft emails:** [30 personalized NaturalDAO collaboration outreach emails](NaturalDAO_BD_Outreach_Emails.md) (2026-10-26; Chinese / English; drafts only, not sent).
+
 1. Pick 8–10 A+/A contacts for the first batch.
 2. Read one recent paper/post from each person before writing.
 3. Make the first ask small and specific; do not begin with “strategic cooperation”.
