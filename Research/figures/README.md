@@ -11,3 +11,4 @@
 | 图件 | 对应报告 | 内容 |
 |---|---|---|
 | [PoL2 理论行为能力广域评测](pol2-full-theory-behavioral-competence-20261026.png)（[PDF](pol2-full-theory-behavioral-competence-20261026.pdf)） | [评测报告](../Embodied/02-实验设计与审计/PoL2-理论行为能力广域评测.md) | 底座、规则摘要注入、参数微调的候选处置命中率及阶段切片 |
+| [PoL2 参数微调因果消融](pol2-sft-parameter-ablation-20261028.png)（[PDF](pol2-sft-parameter-ablation-20261028.pdf)） | [消融报告](../Embodied/02-实验设计与审计/PoL2参数微调因果消融实验.md) | 比较完整 SFT 与保留训练头、恢复初始 LoRA 的条件；展示总体及阶段差异。重绘脚本位于 [评测目录](../../PoL-Governance/benchmark/pol2/plot_sft_parameter_ablation.py)。
