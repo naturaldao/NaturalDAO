@@ -128,4 +128,13 @@
 - [前一轮广域行为评测报告](PoL2-理论行为能力广域评测.md)
 - [图件 PNG](../../figures/pol2-sft-parameter-ablation-20261028.png) · [PDF](../../figures/pol2-sft-parameter-ablation-20261028.pdf)
 
-在配有上述模型权重缓存的环境中，先运行前一轮训练脚本生成三个 seed 的适配器，再执行 `evaluate_sft_parameter_ablation.py`；脚本拒绝覆盖已存在结果目录，并将数据、规则、代码与模型参数哈希写入 JSON。运行环境为 Python 3.10.21、PyTorch 2.9.1+cu128、RTX 5070，最大分配显存约 **2.10 GiB**，评测耗时约 **315 秒**。由于模型服务和底座权重许可不由本研究决定，复现时须遵守各自条款。
+在配有上述模型权重缓存的环境中，先用前一轮训练脚本生成三个 seed 的适配器，再执行消融。为匹配本脚本的默认输入目录，可运行：
+
+```powershell
+& 'D:\cache\kev-runtime\Scripts\python.exe' PoL-Governance/benchmark/pol2/run_full_theory_behavioral_competence.py `
+  --output PoL-Governance/benchmark/pol2/results/full-theory-competence-20261026d `
+  --epochs 3 --seeds 20261026 20261027 20261028
+& 'D:\cache\kev-runtime\Scripts\python.exe' PoL-Governance/benchmark/pol2/evaluate_sft_parameter_ablation.py
+```
+
+脚本拒绝覆盖已存在结果目录，并将数据、规则、代码与模型参数哈希写入 JSON。运行环境为 Python 3.10.21、PyTorch 2.9.1+cu128、RTX 5070，最大分配显存约 **2.10 GiB**，评测耗时约 **315 秒**。由于模型服务和底座权重许可不由本研究决定，复现时须遵守各自条款。
