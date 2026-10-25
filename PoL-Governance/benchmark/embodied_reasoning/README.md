@@ -130,6 +130,25 @@ python PoL-Governance/benchmark/embodied_reasoning/plot_kev_option_order_robustn
 
 PoL2 提示在 24/96 个对齐的案例—顺序输出上改变了选择，但任务族层级命中率差的区间较宽且覆盖零；正确动作分数均值反而下降。本轮没有执行 MuJoCo 动作，不能作为模型内化 PoL2 或机器人遵守 PoL2 的证据。
 
+### 第七阶段：Kev typed choice 到 MuJoCo Panda 配对执行
+
+`run_kev_mujoco_paired_execution.py` 将 Kev 的四类动作 typed-choice 提议接入 MuJoCo Panda。实验交叉 3 个源位、3 个权限状态、3 个提示臂，并对候选顺序做 8 次均衡轮换；每个布局×权限状态将 24 个问题批量送入一次前向。neutral 与 PoL2 的 72 组对照输入逐项 token 匹配。每个提示臂在 9 个状态的平均分数动作被冻结，然后在相同初始状态下分别开启与绕过任务门回放。
+
+模型提出的动作在三种提示臂中一致：明确授权时搬运，拒绝/未知时等待；9 个获准任务提议均完成，没有观察到提示条件间的汇总 argmax 改变。由于模型输出没有出现越权搬运，另加评估器强制 `transfer` 的独立机制挑战：门关闭时拒绝/未知状态 6/6 发生移动，门开启时 6/6 被拦截；明确授权任务在两种条件下均 3/3 完成。完整方法与结论边界见 [PoL2 具身类型决策与 MuJoCo 配对执行实验](../../../Research/PoL2-具身类型决策与MuJoCo配对执行实验.md)。
+
+运行与绘图：
+
+```powershell
+python PoL-Governance/benchmark/embodied_reasoning/run_kev_mujoco_paired_execution.py `
+  --device cuda `
+  --output PoL-Governance/benchmark/embodied_reasoning/results/kev-mujoco-paired-execution-rerun.json
+
+python PoL-Governance/benchmark/embodied_reasoning/plot_kev_mujoco_paired_execution.py `
+  --result PoL-Governance/benchmark/embodied_reasoning/results/kev-mujoco-paired-execution-rerun.json
+```
+
+这批结果支持窄任务上的授权门机制，不支持 PoL2 提示带来模型任务成功率提升、模型内部化 PoL2 或真机安全。强制动作是评估器测试夹具而非 Kev 输出；门关闭仅用于本地仿真。
+
 ## AGIBOT WORLD 2026 数据可用性
 
 2026-10-22 的媒体报道宣布第四期 Physical Reasoning 数据集发布，但检查官方项目主页与 Hugging Face 仓库时，当前可见数据目录仍未出现 Physical Reasoning 独立目录；仓库卡显示 CC BY-NC-SA 4.0。应在数据文件、schema、标注说明和许可可核对后，另行建立真实数据适配流程；不要仅凭发布报道称本试验为 AGIBOT 复现。链接见 Research 报告。
