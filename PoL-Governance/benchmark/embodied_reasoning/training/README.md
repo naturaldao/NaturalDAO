@@ -108,3 +108,24 @@ for verified runtime-shielding precedents, current evidence limits, and a
 pre-registered-style factorial follow-up design. The synthetic training set
 still lacks positive `transfer` support in validation and holdout; that data
 coverage issue must be fixed before claiming transfer generalization.
+
+## Internal rule representation diagnostic
+
+The [bidirectional activation-interchange experiment](../../../../Research/Embodied/02-实验设计与审计/PoL2内在规则表征双向激活交换实验.md)
+compares matched task-only and PoL2-contract SFT models on exact one-field
+minimal pairs. Both arms showed similar normalized margin transfer under field
+activation swaps, so this is not evidence of a uniquely PoL2-specific internal
+mechanism. On the small clean-action set, PoL2-SFT scored 27/30 versus 23/30
+for task-only, but both arms missed all stale-to-inspect cases. Same-value
+placebo effects were zero. These findings do not establish complete PoL2
+internalization.
+
+Reproduce and draw the figure with:
+
+```powershell
+$env:HF_HUB_OFFLINE = '1'
+& 'D:\cache\kev-runtime\Scripts\python.exe' PoL-Governance/benchmark/embodied_reasoning/training/run_activation_interchange_pol2.py --device cuda
+& 'D:\cache\kev-runtime\Scripts\python.exe' PoL-Governance/benchmark/embodied_reasoning/training/plot_activation_interchange_pol2.py
+```
+
+Raw results are saved under `results/kev-pol2-counterfactual-causal-20261026/activation_interchange/`.

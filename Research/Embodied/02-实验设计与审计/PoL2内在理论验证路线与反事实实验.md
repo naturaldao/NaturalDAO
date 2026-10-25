@@ -37,8 +37,8 @@ PoL2 是可继续演化的理论体系。“模型理解完整 PoL2”若不限�
 |---|---|---|---|
 | 随机留出是否足够 | SCAN 和 CFQ 展示模型在普通测试上成功、但在系统性组合泛化切分上失败的情形。[Lake & Baroni, ICML 2018](https://proceedings.mlr.press/v80/lake18a.html)；[Keysers et al., ICLR 2020](https://arxiv.org/abs/1912.09713) | 把同一任务措辞、实体和状态变量做成成对对照；未来必须另外留出未见规则组合 | 当前状态轴值均在训练中出现，不能称为组合泛化测试 |
 | 能力测试与不变性 | CheckList 提出最小功能、标签保持不变与定向变化测试，避免只用单一平均准确率。[Ribeiro et al., ACL 2020](https://aclanthology.org/2020.acl-main.442/) | 分开报告“目标动作改变时方向正确”与“目标不变时预测不变” | 通过某一小组最小对不能证明广泛规则能力 |
-| 内部定位需因果干预 | Activation patching 最佳实践指出结论对损坏方式、效应指标和位置选择敏感。[Zhang & Nanda, ICLR 2024](https://openreview.net/forum?id=Hf17y6u9BC) | 下一阶段在受控事实对上做双向 patching，报告接受/拒绝 logit margin 和方向对称性 | 只看到激活可解码、或 patch 后输出翻转，不能独自证明机制解释忠实 |
-| 高层规则与神经状态的对应 | 因果抽象/DAS 使用 interchange intervention 检验神经网络是否实现指定的高层变量关系。[Geiger et al., COLM 2024](https://proceedings.mlr.press/v236/geiger24a.html)；[Geiger et al., JMLR 2025](https://jmlr.org/papers/volume26/23-0058/23-0058.pdf) | 在低层反事实基准通过后，把授权、范围、证据新鲜度等写成高层变量，再测试激活交换是否服从形式化合约 | 高层映射本身仍是指定任务上的机制模型，不等于完整伦理理论 |
+| 内部定位需因果干预 | Activation patching 最佳实践指出结论对损坏方式、效应指标和位置选择敏感。[Zhang & Nanda, ICLR 2024](https://openreview.net/forum?id=Hf17y6u9BC) | 已完成[双向字段激活交换](PoL2内在规则表征双向激活交换实验.md)：比较 PoL2-SFT 与 task-only，发现两臂的标准化字段激活转移接近；PoL2-SFT 在小型 clean 对上为 27/30，但 stale→inspect 仍失败 | 只看到激活可解码、或 patch 后输出翻转，不能独自证明机制解释忠实 |
+| 高层规则与神经状态的对应 | 因果抽象/DAS 使用 interchange intervention 检验神经网络是否实现指定的高层变量关系。[Geiger et al., CLeaR 2024](https://proceedings.mlr.press/v236/geiger24a.html)；[Geiger et al., JMLR 2025](https://jmlr.org/papers/volume26/23-0058/23-0058.pdf) | 下一阶段把授权、范围、证据新鲜度等写成高层变量，并在未见规则组合上测试高层模型与神经网络的干预忠实度 | 高层映射本身仍是指定任务上的机制模型，不等于完整伦理理论 |
 | 自我解释是否忠实 | CoT 干预研究发现，模型可能隐去影响选择的信号并事后合理化。[Turpin et al., NeurIPS 2023](https://proceedings.neurips.cc/paper_files/paper/2023/hash/ed3fea9033a80fea1376299fa7863f4a-Abstract.html) | 不以模型给出的解释作为本实验主指标；依据评分与输出动作分开测 | 流畅解释不能当成内部推理的直接读数 |
 
 以上文献提供的是评估和干预方法先例，不是 PoL2 的实验验证。更完整的文献笔记见[内在理论验证研究笔记索引](../05-研究笔记/PoL2内在理论验证/README.md)。
