@@ -129,3 +129,25 @@ $env:HF_HUB_OFFLINE = '1'
 ```
 
 Raw results are saved under `results/kev-pol2-counterfactual-causal-20261026/activation_interchange/`.
+
+## Held-out rule-composition generalization
+
+The [composition report](../../../../Research/Embodied/02-实验设计与审计/PoL2规则组合泛化实验-未见规则组合.md) tests whether models trained only on the canonical state and single-factor changes compose the v0.2 contract on all 134 multi-factor combinations in its finite state lattice. Three seeds per matched training arm are evaluated on two new task phrasings. The held-out set contains no positive transfer target, and the executable priority order remains a narrow research operationalization, not a complete PoL2 formalization.
+
+Reproduce from the repository root with the project interpreter:
+
+    D:\cache\kev-runtime\Scripts\python.exe PoL-Governance/benchmark/embodied_reasoning/training/run_rule_composition_generalization.py --device cuda
+    D:\cache\kev-runtime\Scripts\python.exe PoL-Governance/benchmark/embodied_reasoning/training/plot_rule_composition_generalization.py
+
+The public JSON contains the generated synthetic splits, per-seed aggregate metrics, and per-prompt predictions. Adapter weights remain local.
+
+## Held-out rule-composition generalization
+
+The [composition report](../../../../Research/Embodied/02-实验设计与审计/PoL2规则组合泛化实验-未见规则组合.md) tests whether models trained only on the canonical state and single-factor changes compose the v0.2 contract on all 134 multi-factor combinations in its finite state lattice. Three seeds per matched training arm are evaluated on two new task phrasings. The held-out set contains no positive transfer target, and the executable priority order remains a narrow research operationalization, not a complete PoL2 formalization.
+
+Reproduce from the repository root with the project interpreter:
+
+    D:\cache\kev-runtime\Scripts\python.exe PoL-Governance/benchmark/embodied_reasoning/training/run_rule_composition_generalization.py --device cuda
+    D:\cache\kev-runtime\Scripts\python.exe PoL-Governance/benchmark/embodied_reasoning/training/plot_rule_composition_generalization.py
+
+The public JSON contains the generated synthetic splits, per-seed aggregate metrics, and per-prompt predictions. Adapter weights remain local.
