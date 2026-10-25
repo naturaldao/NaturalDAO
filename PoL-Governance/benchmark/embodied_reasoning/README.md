@@ -115,6 +115,21 @@ python PoL-Governance/benchmark/embodied_reasoning/run_permission_revocation_exp
 
 每个权限时间表仍为单次确定性轨迹，结果用于定位控制边界，不代表发生率或统计效应。
 
+### 第六阶段：Kev 类型化选择的候选顺序鲁棒性
+
+`run_kev_option_order_robustness.py` 在既有 16 条案例上比较 `generic / neutral_matched / pol2` 三个提示臂，并枚举每例 3 个候选动作的全部 6 种排列。每条案例把 18 个独立 typed `choice` 问题批量送入同一次前向传播；首例另行核验批量与单题概率差小于 `1e-6`。统计推断以 8 个任务族为配对单位，不把 96 个顺序重复选择当作独立样本。完整方法、结果和结论边界见[候选顺序鲁棒性扩展实验报告](../../../Research/PoL2-具身类型决策候选顺序鲁棒性扩展实验.md)。
+
+精确结果、checkpoint/base/source revision 与运行模块 SHA-256 在 [`kev-option-order-robustness-20261025.json`](results/kev-option-order-robustness-20261025.json)；图表由 `plot_kev_option_order_robustness.py` 从同一结果 JSON 生成。运行前需在当前 Python 环境安装 Kev Space `c64fc358f304f0da39aff8bb50dafae11c06cfe0` 的 `kev` 包和依赖，并可访问 pinned checkpoint：
+
+```powershell
+python PoL-Governance/benchmark/embodied_reasoning/run_kev_option_order_robustness.py `
+  --device cuda `
+  --output PoL-Governance/benchmark/embodied_reasoning/results/kev-option-order-robustness-rerun.json
+python PoL-Governance/benchmark/embodied_reasoning/plot_kev_option_order_robustness.py
+```
+
+PoL2 提示在 24/96 个对齐的案例—顺序输出上改变了选择，但任务族层级命中率差的区间较宽且覆盖零；正确动作分数均值反而下降。本轮没有执行 MuJoCo 动作，不能作为模型内化 PoL2 或机器人遵守 PoL2 的证据。
+
 ## AGIBOT WORLD 2026 数据可用性
 
 2026-10-22 的媒体报道宣布第四期 Physical Reasoning 数据集发布，但检查官方项目主页与 Hugging Face 仓库时，当前可见数据目录仍未出现 Physical Reasoning 独立目录；仓库卡显示 CC BY-NC-SA 4.0。应在数据文件、schema、标注说明和许可可核对后，另行建立真实数据适配流程；不要仅凭发布报道称本试验为 AGIBOT 复现。链接见 Research 报告。

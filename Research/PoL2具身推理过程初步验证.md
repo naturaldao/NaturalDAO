@@ -126,6 +126,8 @@ PoL2 与长度匹配中性提示在 4/16 个案例上给出不同动作，其中
 
 逐案请求、返回概率、token 数、原始响应与配对结果见[三条件长度匹配筛查结果](../PoL-Governance/benchmark/embodied_reasoning/results/typed-case-screen-3arm-matched-20261023.json)；首次发现相差 1 token 的校准轮也保留在结果目录中，不纳入最终分析。这组记录测的是**模型选择**；VirtualHome 只对 4.4 所述搬运动作做过状态转移验证，不能将 16 案例筛查描述成 16 个模拟器任务。
 
+此后增加的[候选顺序鲁棒性扩展实验](PoL2-具身类型决策候选顺序鲁棒性扩展实验.md)对同一 16 条案例穷举全部 6 种候选排列。PoL2 与长度匹配中性提示在 24/96 个对齐选择中输出不同动作；top-choice 命中率描述性提高 5.2 个百分点，但任务族层级区间宽且覆盖零。对预设正确动作的模型平均概率质量下降 4.1 个百分点，8 个任务族中有 7 个下降。故更准确的当前判断是：PoL2 提示会影响部分类型化选择，但没有可靠证据表明其稳定改善正确动作分数、总体执行效用或顺序鲁棒性。该扩展仍未连接仿真动作执行，也不能证明隐式推理过程改变。
+
 ### 4.3 建议的分阶段执行验证
 
 1. **闭环接口试验：**先选有可执行原子动作和状态变化的模拟器任务，冻结 action schema、状态观测、目标谓词和 PoL2 约束；对同一初始场景运行 `TDM-generic` 与 `TDM-PoL2` 配对条件。每次执行后重新观察，不允许模型直接修改仿真状态。
@@ -159,6 +161,7 @@ PoL2 与长度匹配中性提示在 4/16 个案例上给出不同动作，其中
 - 当前结果：[`stage2b Qwen`](../PoL-Governance/results/embodied-reasoning-stage2b-qwen-20261023/summary.json)、[`stage2b Llama`](../PoL-Governance/results/embodied-reasoning-stage2b-llama-20261023/summary.json)，逐次提示与输出在同目录 `predictions.jsonl`。
 - 第三阶段闭环试跑：[runner](../PoL-Governance/benchmark/embodied_reasoning/run_typed_simulator_pilot.py)、[逐次请求/决策/终态结果](../PoL-Governance/benchmark/embodied_reasoning/results/typed-simulator-pilot-20261023b.json)。
 - 第四阶段长度匹配筛查：[runner](../PoL-Governance/benchmark/embodied_reasoning/run_typed_case_screen.py)、[逐条三条件结果](../PoL-Governance/benchmark/embodied_reasoning/results/typed-case-screen-3arm-matched-20261023.json)。
+- 第五阶段候选顺序鲁棒性扩展：[报告](PoL2-具身类型决策候选顺序鲁棒性扩展实验.md)、[运行脚本](../PoL-Governance/benchmark/embodied_reasoning/run_kev_option_order_robustness.py)、[逐题结果](../PoL-Governance/benchmark/embodied_reasoning/results/kev-option-order-robustness-20261025.json)、[图表脚本](../PoL-Governance/benchmark/embodied_reasoning/plot_kev_option_order_robustness.py)。该轮 16 案例 × 3 提示 × 6 种候选顺序，共 288 条输出，推断单位为 8 个任务族。
 - 第一阶段结果仅作为流程迭代记录：[`pilot 20261023b`](../PoL-Governance/results/embodied-reasoning-pilot-20261023b/summary.json)。首轮 `20261023a` 的 oracle 缺陷已在其结果及本项目历史记录中说明，不纳入主结论。
 - 本地复算命令示例：
 
