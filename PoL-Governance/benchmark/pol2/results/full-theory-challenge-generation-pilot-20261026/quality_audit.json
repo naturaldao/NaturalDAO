@@ -1,0 +1,91 @@
+{
+  "purpose": "pre-training validity gate; not model outcome evaluation",
+  "pilot": "PoL-Governance\\benchmark\\pol2\\results\\full-theory-challenge-generation-pilot-20261026",
+  "n": 6,
+  "passed_all_gates": 2,
+  "grounded_n": 2,
+  "decidable_n": 6,
+  "leakage_n": 2,
+  "passed_by_label": {
+    "consistent": 2,
+    "insufficient": 0,
+    "conflicting": 0
+  },
+  "passed_by_split_and_label": {
+    "train.cases.jsonl": {
+      "consistent": 1,
+      "insufficient": 0,
+      "conflicting": 0
+    },
+    "test.cases.jsonl": {
+      "consistent": 1,
+      "insufficient": 0,
+      "conflicting": 0
+    }
+  },
+  "reviewer_model": "qwen2.5:7b",
+  "blind_to_labels": true,
+  "review_script_sha256": "4602921ce408a74ce9ef5cc5f5195fb567411a66f76b1e3c4d8ad8032651cf2f",
+  "builder_script_sha256": "fceefe76bd2e66364f7eac6a182a7a0f2da4d007e7e6e7a7fce885ff6d5a6f48",
+  "reviews": [
+    {
+      "id": "love2-insufficient-1",
+      "grounded_in_source": false,
+      "label_decidable_from_facts": true,
+      "surface_cue_leakage": false,
+      "reason": "案例描述了心理学家研究情感体验与行为之间的关系，但未直接提及社会治理层面的公平和公正，因此无法直接从来源条目中得出结论。",
+      "atom_id": "love2",
+      "label": "insufficient"
+    },
+    {
+      "id": "love2-conflicting-1",
+      "grounded_in_source": false,
+      "label_decidable_from_facts": true,
+      "surface_cue_leakage": true,
+      "reason": "案例描述了企业家的行为被指控为炫耀财富和自我宣传，这涉及道德判断，与来源条目中的平等互利和公平公正不符。",
+      "atom_id": "love2",
+      "label": "conflicting"
+    },
+    {
+      "id": "love2-consistent-1",
+      "grounded_in_source": true,
+      "label_decidable_from_facts": true,
+      "surface_cue_leakage": false,
+      "reason": "案例描述了恋人的平等关系，这与来源条目中提到的平等互利和公平公正一致。",
+      "atom_id": "love2",
+      "label": "consistent"
+    },
+    {
+      "id": "love2-insufficient-2",
+      "grounded_in_source": false,
+      "label_decidable_from_facts": true,
+      "surface_cue_leakage": false,
+      "reason": "案例描述了哲学家思考情感体验与行为的关系，但未直接提及社会治理层面的公平和公正，因此无法直接从来源条目中得出结论。",
+      "atom_id": "love2",
+      "label": "insufficient"
+    },
+    {
+      "id": "love2-conflicting-2",
+      "grounded_in_source": false,
+      "label_decidable_from_facts": true,
+      "surface_cue_leakage": true,
+      "reason": "案例描述了政治家的行为被指控为利用弱势群体的需求来获取政治支持，这涉及道德判断，与来源条目中的平等互利和公平公正不符。",
+      "atom_id": "love2",
+      "label": "conflicting"
+    },
+    {
+      "id": "love2-consistent-2",
+      "grounded_in_source": true,
+      "label_decidable_from_facts": true,
+      "surface_cue_leakage": false,
+      "reason": "案例描述了母亲的行为出于对孩子的爱和责任，这与来源条目中提到的平等互利和公平公正一致。",
+      "atom_id": "love2",
+      "label": "consistent"
+    }
+  ],
+  "decision": "STOP: blind quality gate leaves one or more labels absent in train/test; do not train or score this challenge set.",
+  "limitations": [
+    "Single knowledge atom and six candidate cases only; this is a feasibility pilot, not a full benchmark audit.",
+    "Machine quality review is not normative gold and must be validated before a confirmatory study."
+  ]
+}
