@@ -18,9 +18,9 @@
 
 日期｜留言人/Agent｜进展、问题或回复｜证据/相关分支｜下一步
 
-2026-10-24｜Codex｜依据 2026-10-24 方法审计，选择授权撤回后的恢复缺口作为下一轮。恢复规则与任务授权分离；未知恢复权限不视作许可。｜`effdea3`、Research/PoL2-具身实验规范性与方法审计.md｜实现并测量恢复边界
+2026-10-24｜Codex｜依据 2026-10-24 方法审计，选择授权撤回后的恢复缺口作为下一轮。恢复规则与任务授权分离；未知恢复权限不视作许可。｜`effdea3`、Research/Embodied/02-实验设计与审计/PoL2-具身实验规范性与方法审计.md｜实现并测量恢复边界
 
-2026-10-24｜Codex｜五条件 MuJoCo 试验完成：恢复专用权限下将物体放回源位、释放并通过桌面接触/目标未完成双重检查；恢复权限拒绝或未知时未回退，悬持状态仍未解决。PNG 与矢量 PDF 已按仓库 figure4papers 风格绘制并检查；结果记录含策略与脚本 SHA-256。定向检查通过；仓库级检查被既有 `datasets/general/coverage-gaps.md → data/items.final.jsonl` 非便携链接拦截，数据未改动。｜`benchmark/embodied_reasoning/results/revocation-recovery-experiment-20261024d.json`、Research/PoL2-具身授权撤回安全恢复实验.md｜已推送 main
+2026-10-24｜Codex｜五条件 MuJoCo 试验完成：恢复专用权限下将物体放回源位、释放并通过桌面接触/目标未完成双重检查；恢复权限拒绝或未知时未回退，悬持状态仍未解决。PNG 与矢量 PDF 已按仓库 figure4papers 风格绘制并检查；结果记录含策略与脚本 SHA-256。定向检查通过；仓库级检查被既有 `datasets/general/coverage-gaps.md → data/items.final.jsonl` 非便携链接拦截，数据未改动。｜`benchmark/embodied_reasoning/results/revocation-recovery-experiment-20261024d.json`、Research/Embodied/04-门控撤权与恢复实验/PoL2-具身授权撤回安全恢复实验.md｜已推送 main
 
 ## 交付或交接
 

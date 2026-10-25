@@ -103,7 +103,7 @@ motivate a larger paired study, but `n=1` does not identify a stable prompt
 effect. Shielded task outcomes measure the combined model-plus-filter system;
 raw proposal and gate intervention must be reported separately.
 
-See [the evidence and design review](../../../../Research/PoL2-具身策略效应与安全屏蔽评估补充.md)
+See [the evidence and design review](../../../../Research/Embodied/02-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%A1%E8%AE%A1/PoL2-%E5%85%B7%E8%BA%AB%E7%AD%96%E7%95%A5%E6%95%88%E5%BA%94%E4%B8%8E%E5%AE%89%E5%85%A8%E5%B1%8F%E8%94%BD%E8%AF%84%E4%BC%B0%E8%A1%A5%E5%85%85.md)
 for verified runtime-shielding precedents, current evidence limits, and a
 pre-registered-style factorial follow-up design. The synthetic training set
 still lacks positive `transfer` support in validation and holdout; that data

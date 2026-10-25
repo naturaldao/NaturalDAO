@@ -94,7 +94,7 @@ Kev 默认 API 地址为 `http://127.0.0.1:8009`，可用 `KEV_API_URL` 覆盖�
 
 ### 第四阶段：有限域动作屏蔽与 Panda 仿真配对消融
 
-`run_governance_effect_experiment.py` 直接调用当前 PoL2 门控实现，对权限、范围、观测新鲜度、物体位置、终态和所有非空候选动作子集进行有限域全枚举；随后以同一确定性策略在 MuJoCo Panda 上比较 `GRANTED / DENIED / UNKNOWN` 的开门与关门轨迹。运行结果、图表和解释边界见 [PoL2 具身治理实验结果与结论](../../../Research/PoL2-具身治理实验结果与结论.md)。这是门控组件的工程验证，不是类型决策模型学习 PoL2 的证据；每个仿真条件 n=1，不作总体统计推断。
+`run_governance_effect_experiment.py` 直接调用当前 PoL2 门控实现，对权限、范围、观测新鲜度、物体位置、终态和所有非空候选动作子集进行有限域全枚举；随后以同一确定性策略在 MuJoCo Panda 上比较 `GRANTED / DENIED / UNKNOWN` 的开门与关门轨迹。运行结果、图表和解释边界见 [PoL2 具身治理实验结果与结论](../../../Research/Embodied/04-%E9%97%A8%E6%8E%A7%E6%92%A4%E6%9D%83%E4%B8%8E%E6%81%A2%E5%A4%8D%E5%AE%9E%E9%AA%8C/PoL2-%E5%85%B7%E8%BA%AB%E6%B2%BB%E7%90%86%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C%E4%B8%8E%E7%BB%93%E8%AE%BA.md)。这是门控组件的工程验证，不是类型决策模型学习 PoL2 的证据；每个仿真条件 n=1，不作总体统计推断。
 
 从仓库根目录运行：
 
@@ -105,7 +105,7 @@ python PoL-Governance/benchmark/embodied_reasoning/run_governance_effect_experim
 
 ### 第五阶段：授权撤回与权限账本故障注入
 
-`run_permission_revocation_experiment.py` 将权限回调接入 Panda transfer 控制器，在抓取前、搬运到目标上方后、账本读取超时及持续授权四种状态下，检查物体位姿、夹爪接触和门控结果。报告与数据见 [PoL2 具身授权撤回边界实验](../../../Research/PoL2-具身授权撤回边界实验.md)。当前发现：抓取前撤回与读取失败会停止在物体接触前；放置前撤回虽阻止了放置，但会留下被夹持的物体，说明安全中止与安全恢复需要作为不同属性验证。
+`run_permission_revocation_experiment.py` 将权限回调接入 Panda transfer 控制器，在抓取前、搬运到目标上方后、账本读取超时及持续授权四种状态下，检查物体位姿、夹爪接触和门控结果。报告与数据见 [PoL2 具身授权撤回边界实验](../../../Research/Embodied/04-%E9%97%A8%E6%8E%A7%E6%92%A4%E6%9D%83%E4%B8%8E%E6%81%A2%E5%A4%8D%E5%AE%9E%E9%AA%8C/PoL2-%E5%85%B7%E8%BA%AB%E6%8E%88%E6%9D%83%E6%92%A4%E5%9B%9E%E8%BE%B9%E7%95%8C%E5%AE%9E%E9%AA%8C.md)。当前发现：抓取前撤回与读取失败会停止在物体接触前；放置前撤回虽阻止了放置，但会留下被夹持的物体，说明安全中止与安全恢复需要作为不同属性验证。
 
 运行命令：
 
@@ -117,7 +117,7 @@ python PoL-Governance/benchmark/embodied_reasoning/run_permission_revocation_exp
 
 ### 第六阶段：Kev 类型化选择的候选顺序鲁棒性
 
-`run_kev_option_order_robustness.py` 在既有 16 条案例上比较 `generic / neutral_matched / pol2` 三个提示臂，并枚举每例 3 个候选动作的全部 6 种排列。每条案例把 18 个独立 typed `choice` 问题批量送入同一次前向传播；首例另行核验批量与单题概率差小于 `1e-6`。统计推断以 8 个任务族为配对单位，不把 96 个顺序重复选择当作独立样本。完整方法、结果和结论边界见[候选顺序鲁棒性扩展实验报告](../../../Research/PoL2-具身类型决策候选顺序鲁棒性扩展实验.md)。
+`run_kev_option_order_robustness.py` 在既有 16 条案例上比较 `generic / neutral_matched / pol2` 三个提示臂，并枚举每例 3 个候选动作的全部 6 种排列。每条案例把 18 个独立 typed `choice` 问题批量送入同一次前向传播；首例另行核验批量与单题概率差小于 `1e-6`。统计推断以 8 个任务族为配对单位，不把 96 个顺序重复选择当作独立样本。完整方法、结果和结论边界见[候选顺序鲁棒性扩展实验报告](../../../Research/Embodied/03-%E7%AD%96%E7%95%A5%E4%B8%8E%E5%86%B3%E7%AD%96%E5%AE%9E%E9%AA%8C/PoL2-%E5%85%B7%E8%BA%AB%E7%B1%BB%E5%9E%8B%E5%86%B3%E7%AD%96%E5%80%99%E9%80%89%E9%A1%BA%E5%BA%8F%E9%B2%81%E6%A3%92%E6%80%A7%E6%89%A9%E5%B1%95%E5%AE%9E%E9%AA%8C.md)。
 
 精确结果、checkpoint/base/source revision 与运行模块 SHA-256 在 [`kev-option-order-robustness-20261025.json`](results/kev-option-order-robustness-20261025.json)；图表由 `plot_kev_option_order_robustness.py` 从同一结果 JSON 生成。运行前需在当前 Python 环境安装 Kev Space `c64fc358f304f0da39aff8bb50dafae11c06cfe0` 的 `kev` 包和依赖，并可访问 pinned checkpoint：
 
@@ -134,7 +134,7 @@ PoL2 提示在 24/96 个对齐的案例—顺序输出上改变了选择，但�
 
 `run_kev_mujoco_paired_execution.py` 将 Kev 的四类动作 typed-choice 提议接入 MuJoCo Panda。实验交叉 3 个源位、3 个权限状态、3 个提示臂，并对候选顺序做 8 次均衡轮换；每个布局×权限状态将 24 个问题批量送入一次前向。neutral 与 PoL2 的 72 组对照输入逐项 token 匹配。每个提示臂在 9 个状态的平均分数动作被冻结，然后在相同初始状态下分别开启与绕过任务门回放。
 
-模型提出的动作在三种提示臂中一致：明确授权时搬运，拒绝/未知时等待；9 个获准任务提议均完成，没有观察到提示条件间的汇总 argmax 改变。由于模型输出没有出现越权搬运，另加评估器强制 `transfer` 的独立机制挑战：门关闭时拒绝/未知状态 6/6 发生移动，门开启时 6/6 被拦截；明确授权任务在两种条件下均 3/3 完成。完整方法与结论边界见 [PoL2 具身类型决策与 MuJoCo 配对执行实验](../../../Research/PoL2-具身类型决策与MuJoCo配对执行实验.md)。
+模型提出的动作在三种提示臂中一致：明确授权时搬运，拒绝/未知时等待；9 个获准任务提议均完成，没有观察到提示条件间的汇总 argmax 改变。由于模型输出没有出现越权搬运，另加评估器强制 `transfer` 的独立机制挑战：门关闭时拒绝/未知状态 6/6 发生移动，门开启时 6/6 被拦截；明确授权任务在两种条件下均 3/3 完成。完整方法与结论边界见 [PoL2 具身类型决策与 MuJoCo 配对执行实验](../../../Research/Embodied/03-%E7%AD%96%E7%95%A5%E4%B8%8E%E5%86%B3%E7%AD%96%E5%AE%9E%E9%AA%8C/PoL2-%E5%85%B7%E8%BA%AB%E7%B1%BB%E5%9E%8B%E5%86%B3%E7%AD%96%E4%B8%8EMuJoCo%E9%85%8D%E5%AF%B9%E6%89%A7%E8%A1%8C%E5%AE%9E%E9%AA%8C.md)。
 
 运行与绘图：
 

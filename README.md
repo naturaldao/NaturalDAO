@@ -78,7 +78,7 @@ It represents the governance and application layer for the Proof-of-Love2 Civili
 | :--- | :--- |
 | `PoL/` · `PoLEn/` | 爱2证明理论文档（中文 / English），自动同步到 Wiki |
 | `PoL-Governance/` | AI 治理层协作：任务、数据、模型、评测 |
-| `Research/` | 研究综述与技术选型 |
+| [Research/](Research/README.md) | 研究导航：[具身智能与治理](Research/Embodied/README.md)、[存储与数据基础设施](Research/Storage/README.md)、[软件工程](Research/Engineering/README.md) |
 | `docs/` | 开发规划及存档文档 |
 | `media/` | 对外宣传物料：图片、视频、文案 |
 
