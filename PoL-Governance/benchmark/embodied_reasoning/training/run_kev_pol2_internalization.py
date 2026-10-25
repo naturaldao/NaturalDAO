@@ -310,7 +310,7 @@ def summarize_predictions(rows: list[dict], nlls: list[float] | None) -> dict:
     }
 
 
-def train_one(seed: int, arm: str, rows: list[dict], validation: list[dict], out_dir: Path, initial_ckpt, tok, device: str, epochs: int = 2, batch_size: int = 4) -> dict:
+def train_one(seed: int, arm: str, rows: list[dict], validation: list[dict], out_dir: Path, initial_ckpt, tok, device: str, epochs: int = 2, batch_size: int = 4, pairwise_weight: float = 0.0, pairwise_margin: float = 0.5) -> dict:
     torch.manual_seed(seed)
     random.seed(seed)
     from kev.checkpoint import LoadOptions
@@ -334,24 +334,46 @@ def train_one(seed: int, arm: str, rows: list[dict], validation: list[dict], out
         order = list(range(len(rows)))
         rng.shuffle(order)
         optimizer.zero_grad(set_to_none=True)
-        total_loss, steps = 0.0, 0
+        total_loss, total_nll, steps = 0.0, 0.0, 0
         for begin in range(0, len(order), batch_size):
             ids = order[begin:begin + batch_size]
             batch = [rows[i] for i in ids]
             encoded = [encode_row(model, tok, r, arm) for r in batch]
             outputs = model.forward_batch(encoded)
             labels = [r["policy_action_index"] if arm == "pol2_sft" else r["task_only_action_index"] for r in batch]
-            losses = [F.cross_entropy(o[0].float().view(1, -1), torch.tensor([y], device=o[0].device)) for o, y in zip(outputs, labels)]
-            loss = torch.stack(losses).mean() / grad_accum
+            losses, nll_losses = [], []
+            for output, row, y in zip(outputs, batch, labels):
+                logits = output[0].float()
+                ce = F.cross_entropy(logits.view(1, -1), torch.tensor([y], device=logits.device))
+                nll_losses.append(ce)
+                if pairwise_weight > 0 and arm == "pol2_sft":
+                    preferred = row["policy_action"]
+                    eligible = set(row["eligible_actions"])
+                    pos = row["options"].index(preferred)
+                    pairs = [F.relu(pairwise_margin - (logits[pos] - logits[j]))
+                             for j, action in enumerate(row["options"])
+                             if action != preferred and action in eligible]
+                    pairs.extend(F.relu(pairwise_margin - (logits[i] - logits[j]))
+                                 for i, action_i in enumerate(row["options"]) if action_i in eligible
+                                 for j, action_j in enumerate(row["options"]) if action_j not in eligible)
+                    if pairs:
+                        ce = ce + pairwise_weight * torch.stack(pairs).mean()
+                losses.append(ce)
+            batch_objective = torch.stack(losses).mean()
+            batch_nll = torch.stack(nll_losses).mean()
+            loss = batch_objective / grad_accum
             loss.backward()
-            total_loss += float(loss.detach()) * grad_accum
+            total_loss += float(batch_objective.detach())
+            total_nll += float(batch_nll.detach())
             steps += 1
             if steps % grad_accum == 0 or begin + batch_size >= len(order):
                 torch.nn.utils.clip_grad_norm_([*lora_params, *head_params], 1.0)
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
         val, _ = evaluate(model, tok, validation, arm, batch_size=8)
-        history.append({"epoch": epoch, "train_nll": total_loss / max(steps, 1), "validation_nll": val["nll_vs_arm_training_target"],
+        history.append({"epoch": epoch, "train_nll": total_nll / max(steps, 1),
+                        "train_objective": total_loss / max(steps, 1),
+                        "validation_nll": val["nll_vs_arm_training_target"],
                         "validation_policy_exact": val["exact_match_to_pol2_preferred_action"]})
         print(f"[{arm} seed={seed}] epoch={epoch} train_nll={history[-1]['train_nll']:.4f} "
               f"validation_nll={history[-1]['validation_nll']:.4f}", flush=True)
@@ -369,13 +391,15 @@ def train_one(seed: int, arm: str, rows: list[dict], validation: list[dict], out
     meta = Meta(base=BASE_ID, base_revision=BASE_REVISION, head=head, lora=16, head_dim=256,
                 option_isolation=False, special_embeddings=False, weights_dtype="bf16", temperature=1.0,
                 holdout=[], weights="lora", extra={"experiment": "PoL2 behavioral internalization v1",
-                                                     "arm": arm, "seed": seed, "initial_checkpoint": INITIAL_CHECKPOINT})
+                                                     "arm": arm, "seed": seed, "initial_checkpoint": INITIAL_CHECKPOINT,
+                                                     "pairwise_weight": pairwise_weight, "pairwise_margin": pairwise_margin})
     write_meta(str(out_dir), meta)
     metrics, predictions = evaluate(model, tok, validation, arm, batch_size=8)
     trainable = sum(p.numel() for p in [*lora_params, *head_params])
     del predictions
     return {"seed": seed, "arm": arm, "best_epoch": best_epoch, "history": history,
             "validation": metrics, "trainable_parameters": trainable,
+            "pairwise_weight": pairwise_weight, "pairwise_margin": pairwise_margin,
             "checkpoint_dir": out_dir.relative_to(out_dir.parents[2]).as_posix(), "adapter_sha256": sha256(out_dir / "adapter_model.safetensors"),
             "head_sha256": sha256(out_dir / "head.pt"), "model": model}
 

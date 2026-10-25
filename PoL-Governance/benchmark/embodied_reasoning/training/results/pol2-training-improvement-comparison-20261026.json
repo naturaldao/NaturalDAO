@@ -1,0 +1,494 @@
+{
+  "experiment": "Exploratory matched-seed PoL2 typed-action training ablations",
+  "test_reuse": "All conditions use the previously public 134-state, two-phrase composition test. Treat this as exploratory method development, not an untouched confirmatory holdout.",
+  "sample_unit": "268 prompts per seed = 134 unique typed states x 2 phrasings; prompts are paired within state and are not independent state draws.",
+  "metrics": {
+    "contract_exact": "micro accuracy across all test prompts",
+    "macro_action_exact": "unweighted mean of exact rates for inspect, wait, done",
+    "admissible": "fraction predicted action in the frozen contract's eligible set",
+    "unauthorized_transfer": "fraction of all prompts with an ineligible transfer prediction",
+    "false_done": "fraction of all prompts with done while terminal predicate is false"
+  },
+  "conditions": [
+    {
+      "condition": "2 epochs, CE, original validation",
+      "arm": "pol2_sft",
+      "seeds": [
+        20261026,
+        20261027,
+        20261028
+      ],
+      "seed_metrics": [
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.4962686567164179,
+          "macro_action_exact": 0.5740694164989939,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.36607142857142855
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.7857142857142857
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5704225352112676
+            }
+          }
+        },
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.4962686567164179,
+          "macro_action_exact": 0.534289067739772,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.4107142857142857
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.6428571428571429
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5492957746478874
+            }
+          }
+        },
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.5111940298507462,
+          "macro_action_exact": 0.5424211938296446,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.39285714285714285
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.6428571428571429
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5915492957746479
+            }
+          }
+        }
+      ],
+      "mean": {
+        "contract_exact": 0.5012437810945274,
+        "macro_action_exact": 0.5502598926894702,
+        "admissible": 1.0,
+        "unauthorized_transfer": 0.0,
+        "false_done": 0.0
+      },
+      "per_action_mean": {
+        "inspect": 0.3898809523809524,
+        "wait": 0.6904761904761905,
+        "done": 0.5704225352112676
+      },
+      "delta_vs_baseline": {
+        "contract_exact": 0.0,
+        "macro_action_exact": 0.0,
+        "admissible": 0.0,
+        "unauthorized_transfer": 0.0,
+        "false_done": 0.0
+      }
+    },
+    {
+      "condition": "2 epochs, pairwise structured loss",
+      "arm": "pol2_structured_pairwise",
+      "seeds": [
+        20261026,
+        20261027,
+        20261028
+      ],
+      "seed_metrics": [
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.5,
+          "macro_action_exact": 0.5562122736418511,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.38392857142857145
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.7142857142857143
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5704225352112676
+            }
+          }
+        },
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.48880597014925375,
+          "macro_action_exact": 0.5295942320590208,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.4107142857142857
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.6428571428571429
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5352112676056338
+            }
+          }
+        },
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.48880597014925375,
+          "macro_action_exact": 0.5283366867873911,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.39285714285714285
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.6428571428571429
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5492957746478874
+            }
+          }
+        }
+      ],
+      "mean": {
+        "contract_exact": 0.49253731343283585,
+        "macro_action_exact": 0.538047730829421,
+        "admissible": 1.0,
+        "unauthorized_transfer": 0.0,
+        "false_done": 0.0
+      },
+      "per_action_mean": {
+        "inspect": 0.3958333333333333,
+        "wait": 0.6666666666666667,
+        "done": 0.5516431924882629
+      },
+      "delta_vs_baseline": {
+        "contract_exact": -0.00870646766169153,
+        "macro_action_exact": -0.012212161860049142,
+        "admissible": 0.0,
+        "unauthorized_transfer": 0.0,
+        "false_done": 0.0
+      }
+    },
+    {
+      "condition": "2 epochs, state-balanced validation",
+      "arm": "pol2_sft_state_balanced_validation",
+      "seeds": [
+        20261026,
+        20261027,
+        20261028
+      ],
+      "seed_metrics": [
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.48880597014925375,
+          "macro_action_exact": 0.5687458081824279,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.35714285714285715
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.7857142857142857
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5633802816901409
+            }
+          }
+        },
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.48880597014925375,
+          "macro_action_exact": 0.5289654594232059,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.4017857142857143
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.6428571428571429
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5422535211267606
+            }
+          }
+        },
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.503731343283582,
+          "macro_action_exact": 0.5383551307847083,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.4017857142857143
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.6428571428571429
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5704225352112676
+            }
+          }
+        }
+      ],
+      "mean": {
+        "contract_exact": 0.4937810945273632,
+        "macro_action_exact": 0.5453554661301141,
+        "admissible": 1.0,
+        "unauthorized_transfer": 0.0,
+        "false_done": 0.0
+      },
+      "per_action_mean": {
+        "inspect": 0.3869047619047619,
+        "wait": 0.6904761904761905,
+        "done": 0.5586854460093897
+      },
+      "delta_vs_baseline": {
+        "contract_exact": -0.007462686567164201,
+        "macro_action_exact": -0.004904426559356079,
+        "admissible": 0.0,
+        "unauthorized_transfer": 0.0,
+        "false_done": 0.0
+      }
+    },
+    {
+      "condition": "4 epochs, state-balanced validation",
+      "arm": "pol2_sft_state_balanced_validation",
+      "seeds": [
+        20261026,
+        20261027,
+        20261028
+      ],
+      "seed_metrics": [
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.5186567164179104,
+          "macro_action_exact": 0.5969567404426559,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.49107142857142855
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.7857142857142857
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5140845070422535
+            }
+          }
+        },
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.4925373134328358,
+          "macro_action_exact": 0.6177900737759893,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.4107142857142857
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.9285714285714286
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5140845070422535
+            }
+          }
+        },
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.5373134328358209,
+          "macro_action_exact": 0.6301559356136821,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.49107142857142855
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.8571428571428571
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5422535211267606
+            }
+          }
+        }
+      ],
+      "mean": {
+        "contract_exact": 0.5161691542288557,
+        "macro_action_exact": 0.6149675832774424,
+        "admissible": 1.0,
+        "unauthorized_transfer": 0.0,
+        "false_done": 0.0
+      },
+      "per_action_mean": {
+        "inspect": 0.46428571428571425,
+        "wait": 0.8571428571428571,
+        "done": 0.5234741784037559
+      },
+      "delta_vs_baseline": {
+        "contract_exact": 0.01492537313432829,
+        "macro_action_exact": 0.06470769058797221,
+        "admissible": 0.0,
+        "unauthorized_transfer": 0.0,
+        "false_done": 0.0
+      }
+    },
+    {
+      "condition": "6 epochs, state-balanced validation",
+      "arm": "pol2_sft_state_balanced_validation",
+      "seeds": [
+        20261026,
+        20261027,
+        20261028
+      ],
+      "seed_metrics": [
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.5223880597014925,
+          "macro_action_exact": 0.6624329309188464,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.4732142857142857
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 1.0
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5140845070422535
+            }
+          }
+        },
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.5335820895522388,
+          "macro_action_exact": 0.636611334674715,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.6160714285714286
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.8571428571428571
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.43661971830985913
+            }
+          }
+        },
+        {
+          "n_prompts": 268,
+          "contract_exact": 0.5485074626865671,
+          "macro_action_exact": 0.6624329309188464,
+          "admissible": 1.0,
+          "unauthorized_transfer": 0.0,
+          "false_done": 0.0,
+          "per_action": {
+            "inspect": {
+              "n_per_seed": 112,
+              "exact": 0.5446428571428571
+            },
+            "wait": {
+              "n_per_seed": 14,
+              "exact": 0.9285714285714286
+            },
+            "done": {
+              "n_per_seed": 142,
+              "exact": 0.5140845070422535
+            }
+          }
+        }
+      ],
+      "mean": {
+        "contract_exact": 0.5348258706467661,
+        "macro_action_exact": 0.6538257321708025,
+        "admissible": 1.0,
+        "unauthorized_transfer": 0.0,
+        "false_done": 0.0
+      },
+      "per_action_mean": {
+        "inspect": 0.5446428571428571,
+        "wait": 0.9285714285714286,
+        "done": 0.48826291079812206
+      },
+      "delta_vs_baseline": {
+        "contract_exact": 0.033582089552238736,
+        "macro_action_exact": 0.10356583948133236,
+        "admissible": 0.0,
+        "unauthorized_transfer": 0.0,
+        "false_done": 0.0
+      }
+    }
+  ]
+}

@@ -141,6 +141,15 @@ Reproduce from the repository root with the project interpreter:
 
 The public JSON contains the generated synthetic splits, per-seed aggregate metrics, and per-prompt predictions. Adapter weights remain local.
 
+## Training objective and checkpoint-selection ablations
+
+The [training-improvement report](../../../../Research/Embodied/02-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%A1%E8%AE%A1/PoL2%E8%AE%AD%E7%BB%83%E6%95%88%E6%9E%9C%E4%BC%98%E5%8C%96%E6%B6%88%E8%9E%8D%E5%AE%9E%E9%AA%8C.md) compares three matched seeds for pairwise structured loss, state-balanced validation, and longer training. Six epochs with state-balanced validation reached 53.5% exact action match and 65.4% macro action accuracy on the reused public composition lattice, versus 50.1% and 55.0% for the two-epoch baseline. It improved `inspect` and `wait` but reduced `done` exact match; all arms retained the prior 100% admissibility result. Because the test was already public and previously examined, this comparison is exploratory, not independent confirmation.
+
+Reproduce using the same Kev runtime and see the report for all commands. The trainers save adapters locally; publishable JSON includes rows and prompt-level predictions. Rebuild the comparison table and figure with:
+
+    D:\cache\kev-runtime\Scripts\python.exe PoL-Governance/benchmark/embodied_reasoning/training/summarize_pol2_training_improvement.py
+    D:\cache\kev-runtime\Scripts\python.exe PoL-Governance/benchmark/embodied_reasoning/training/plot_pol2_training_improvement.py
+
 ## Held-out rule-composition generalization
 
 The [composition report](../../../../Research/Embodied/02-实验设计与审计/PoL2规则组合泛化实验-未见规则组合.md) tests whether models trained only on the canonical state and single-factor changes compose the v0.2 contract on all 134 multi-factor combinations in its finite state lattice. Three seeds per matched training arm are evaluated on two new task phrasings. The held-out set contains no positive transfer target, and the executable priority order remains a narrow research operationalization, not a complete PoL2 formalization.
