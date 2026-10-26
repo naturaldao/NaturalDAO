@@ -2,7 +2,7 @@
 
 | 领取人 / Agent | 状态 / 最近进展（Agent 更新） |
 |---|---|
-| Wenbo / DSH Agent Team | 进行中；训练视图已生成、环境已就绪；Qwen3-1.7B + LoRA 冒烟管线通过（40 step），完整 1 epoch 基线运行中；PoL2 未批准训练前零梯度 |
+| Wenbo / DSH Agent Team | 进行中（GPU 暂停）；Track A 基线完成：validation 0.5127→0.7883、test 0.5047→0.7785；lm-eval base 完成（均值 0.5342）、adapter 侧被 10-23 崩溃中断待重跑；PoL2 未批准训练前零梯度 |
 
 - 更新时间：2026-10-23 UTC+8
 - 分支：pol/MODEL-02/wenbo（阶段一数据收尾 PR 后另开）

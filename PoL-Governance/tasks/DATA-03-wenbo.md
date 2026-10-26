@@ -2,7 +2,7 @@
 
 | 领取人 / Agent | 状态 / 最近进展（Agent 更新） |
 |---|---|
-| Wenbo / DSH Agent Team | 完成；**v5 已交付并经 PR #43 并入 main**（公开三区 71,519 条 / 78,001 问题；保留集 6,541 条库外）；正在做 Hugging Face 托管与仓库整理 |
+| Wenbo / DSH Agent Team | 完成；**v5 已交付并经 PR #43 并入 main**（公开三区 71,519 条 / 78,001 问题；保留集 6,541 条库外）；HF 导出/离线校验就绪，**NOT UPLOADED（待 token）**；仓库整理已收尾（PR #44 已关闭，等 owner 新集成意见） |
 
 - 更新时间：2026-10-23 UTC+8
 - 分支：pol/DATA-02/wenbo（阶段一收尾 PR 之后，模型适配线另开 pol/MODEL-02/wenbo）

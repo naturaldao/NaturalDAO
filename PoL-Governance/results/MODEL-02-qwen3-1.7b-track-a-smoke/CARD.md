@@ -1,5 +1,7 @@
 # 实验结果：Track A 冒烟基线（Qwen3-1.7B + LoRA 字母 SFT）
 
+> **历史冒烟卡（2026-10-22，T10）**：仅管线验证；完整 1 epoch 基线见 [MODEL-02-qwen3-1.7b-track-a-full](../MODEL-02-qwen3-1.7b-track-a-full/CARD.md)。
+
 - **任务 / 分支 / 领取人 / Agent**：MODEL-02 / `pol/MODEL-02/wenbo` / Wenbo / DSH Agent Team
 - **模型与底座 revision / 方法**：Qwen/Qwen3-1.7B（本地快照，2026-10-22 下载） + PEFT LoRA r16 / alpha32 / dropout 0.05 / all-linear；completion-only 单字母 SFT（A..Z 对应选项下标）
 - **数据版本 / 划分 / 校准方法**：general v5 训练视图（`datasets/general/build_training_view.py`，template tv-1）；
