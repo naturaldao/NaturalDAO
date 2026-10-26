@@ -1,0 +1,119 @@
+{
+  "response_content": "{\"answers\": [{\"qid\": \"Q001\", \"answer\": \"POL2-R001\"}, {\"qid\": \"Q002\", \"answer\": \"POL2-R013\"}, {\"qid\": \"Q003\", \"answer\": \"POL2-R023\"}, {\"qid\": \"Q004\", \"answer\": \"POL2-R004\"}, {\"qid\": \"Q005\", \"answer\": \"POL2-R025\"}, {\"qid\": \"Q006\", \"answer\": \"POL2-R005\"}, {\"qid\": \"Q007\", \"answer\": \"POL2-R010\"}, {\"qid\": \"Q008\", \"answer\": \"POL2-R007\"}, {\"qid\": \"Q009\", \"answer\": \"POL2-R008\"}, {\"qid\": \"Q010\", \"answer\": \"POL2-R024\"}, {\"qid\": \"Q011\", \"answer\": \"POL2-R009\"}, {\"qid\": \"Q012\", \"answer\": \"POL2-R004\"}, {\"qid\": \"Q013\", \"answer\": \"POL2-R014\"}, {\"qid\": \"Q014\", \"answer\": \"POL2-R018\"}, {\"qid\": \"Q015\", \"answer\": \"POL2-R015\"}, {\"qid\": \"Q016\", \"answer\": \"POL2-R017\"}, {\"qid\": \"Q017\", \"answer\": \"POL2-R026\"}, {\"qid\": \"Q018\", \"answer\": \"POL2-R020\"}, {\"qid\": \"Q019\", \"answer\": \"POL2-R019\"}, {\"qid\": \"Q020\", \"answer\": \"POL2-R027\"}, {\"qid\": \"Q021\", \"answer\": \"POL2-R016\"}, {\"qid\": \"Q022\", \"answer\": \"POL2-R012\"}, {\"qid\": \"Q023\", \"answer\": \"POL2-R026\"}, {\"qid\": \"Q024\", \"answer\": \"POL2-R028\"}, {\"qid\": \"Q025\", \"answer\": \"POL2-R021\"}, {\"qid\": \"Q026\", \"answer\": \"POL2-R003\"}, {\"qid\": \"Q027\", \"answer\": \"POL2-R015\"}, {\"qid\": \"Q028\", \"answer\": \"POL2-R012\"}]}",
+  "parsed": {
+    "answers": [
+      {
+        "qid": "Q001",
+        "answer": "POL2-R001"
+      },
+      {
+        "qid": "Q002",
+        "answer": "POL2-R013"
+      },
+      {
+        "qid": "Q003",
+        "answer": "POL2-R023"
+      },
+      {
+        "qid": "Q004",
+        "answer": "POL2-R004"
+      },
+      {
+        "qid": "Q005",
+        "answer": "POL2-R025"
+      },
+      {
+        "qid": "Q006",
+        "answer": "POL2-R005"
+      },
+      {
+        "qid": "Q007",
+        "answer": "POL2-R010"
+      },
+      {
+        "qid": "Q008",
+        "answer": "POL2-R007"
+      },
+      {
+        "qid": "Q009",
+        "answer": "POL2-R008"
+      },
+      {
+        "qid": "Q010",
+        "answer": "POL2-R024"
+      },
+      {
+        "qid": "Q011",
+        "answer": "POL2-R009"
+      },
+      {
+        "qid": "Q012",
+        "answer": "POL2-R004"
+      },
+      {
+        "qid": "Q013",
+        "answer": "POL2-R014"
+      },
+      {
+        "qid": "Q014",
+        "answer": "POL2-R018"
+      },
+      {
+        "qid": "Q015",
+        "answer": "POL2-R015"
+      },
+      {
+        "qid": "Q016",
+        "answer": "POL2-R017"
+      },
+      {
+        "qid": "Q017",
+        "answer": "POL2-R026"
+      },
+      {
+        "qid": "Q018",
+        "answer": "POL2-R020"
+      },
+      {
+        "qid": "Q019",
+        "answer": "POL2-R019"
+      },
+      {
+        "qid": "Q020",
+        "answer": "POL2-R027"
+      },
+      {
+        "qid": "Q021",
+        "answer": "POL2-R016"
+      },
+      {
+        "qid": "Q022",
+        "answer": "POL2-R012"
+      },
+      {
+        "qid": "Q023",
+        "answer": "POL2-R026"
+      },
+      {
+        "qid": "Q024",
+        "answer": "POL2-R028"
+      },
+      {
+        "qid": "Q025",
+        "answer": "POL2-R021"
+      },
+      {
+        "qid": "Q026",
+        "answer": "POL2-R003"
+      },
+      {
+        "qid": "Q027",
+        "answer": "POL2-R015"
+      },
+      {
+        "qid": "Q028",
+        "answer": "POL2-R012"
+      }
+    ]
+  }
+}

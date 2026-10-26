@@ -1,0 +1,39 @@
+{
+  "response_content": "{\n  \"answers\": [\n    {\"qid\": \"Q001\", \"answer\": \"production_socialization\"},\n    {\"qid\": \"Q002\", \"answer\": \"production_socialization\"},\n    {\"qid\": \"Q003\", \"answer\": \"mindfulness\"},\n    {\"qid\": \"Q004\", \"answer\": \"love_languages\"},\n    {\"qid\": \"Q005\", \"answer\": \"love_languages\"},\n    {\"qid\": \"Q006\", \"answer\": \"contemplative_axioms\"},\n    {\"qid\": \"Q007\", \"answer\": \"public_welfare\"},\n    {\"qid\": \"Q008\", \"answer\": \"naturaldao\"}\n  ]\n}",
+  "parsed": {
+    "answers": [
+      {
+        "qid": "Q001",
+        "answer": "production_socialization"
+      },
+      {
+        "qid": "Q002",
+        "answer": "production_socialization"
+      },
+      {
+        "qid": "Q003",
+        "answer": "mindfulness"
+      },
+      {
+        "qid": "Q004",
+        "answer": "love_languages"
+      },
+      {
+        "qid": "Q005",
+        "answer": "love_languages"
+      },
+      {
+        "qid": "Q006",
+        "answer": "contemplative_axioms"
+      },
+      {
+        "qid": "Q007",
+        "answer": "public_welfare"
+      },
+      {
+        "qid": "Q008",
+        "answer": "naturaldao"
+      }
+    ]
+  }
+}

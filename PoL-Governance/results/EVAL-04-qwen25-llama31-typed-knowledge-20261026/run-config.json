@@ -1,0 +1,58 @@
+{
+  "task": "EVAL-04",
+  "experiment": "PoL2 typed-knowledge pilot v1.3",
+  "run_date": "2026-10-26",
+  "dataset": {
+    "id": "pol2-typed-knowledge-v1.3",
+    "items": 123,
+    "seed": 20261026,
+    "source_commit": "c70227fbc13b64f189c54efe2d45f2d77bc3babf",
+    "item_sha256": "12987a6b7b67d28a8216abec9dbcb0d58fee257ba769329c1d183fdd2f7ecd8d",
+    "label_sha256": "2a62917cb8ccd6fa9080619f0606790534ee04c3f344a46128599be7d1506bed"
+  },
+  "models": [
+    {
+      "tag": "qwen2.5:7b",
+      "purpose": "unadapted local inference baseline",
+      "immutable_model_digest": null
+    },
+    {
+      "tag": "llama3.1:8b",
+      "purpose": "unadapted local inference baseline",
+      "immutable_model_digest": null
+    }
+  ],
+  "runtime": {
+    "engine": "Ollama local chat API",
+    "engine_version": "not recorded",
+    "hardware": "local CPU inference; exact CPU model not recorded",
+    "num_gpu": 0,
+    "temperature": 0,
+    "num_ctx": 16384,
+    "num_predict": 8192,
+    "batch_size": 8,
+    "precision": "backend default; not recorded"
+  },
+  "conditions": [
+    "closed_book",
+    "source_context"
+  ],
+  "outputs": {
+    "expected_predictions": 492,
+    "completed_predictions": 492,
+    "execution_errors": 0,
+    "scoring": "exact match; multi-source tasks also report set micro precision/recall; no pooled score"
+  },
+  "validity": {
+    "initial_structured_record_context": "excluded because target identifiers/names were exposed",
+    "v1_3_source_context": "raw source excerpts only; structured target records and metadata withheld",
+    "public_exploratory_set": true,
+    "sealed_confirmatory_test": false
+  },
+  "limits": [
+    "No fine-tuning or training was performed.",
+    "Ollama model tags are recorded, but immutable model digests and engine version were not captured.",
+    "No controlled latency, energy, or monetary-cost comparison was run.",
+    "The public source-derived set does not establish complete PoL2 internalization."
+  ]
+}

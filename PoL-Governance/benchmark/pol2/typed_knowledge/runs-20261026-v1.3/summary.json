@@ -1,0 +1,1135 @@
+{
+  "report_kind": "pol2_typed_knowledge_pilot",
+  "dataset": {
+    "dataset_id": "pol2-typed-knowledge-v1.3",
+    "created_utc": "2026-10-26",
+    "seed": 20261026,
+    "source_manifest": "POL2-Steward/pol2-service/knowledge/source-manifest.json",
+    "source_manifest_sha256": "195b6571b58d0dc9237cffb14cb6714e5dc8eb33054c0a242f8068fd58487eaa",
+    "source_commit": "c70227fbc13b64f189c54efe2d45f2d77bc3babf",
+    "theory_source_sha256_normalized": {
+      "PoL/0. 前言.md": "b400699d0e65af1304f2dea8d91fd7bd3e2aba2e0ee25bdee72dd809a89d62ef",
+      "PoL/1. 爱2、恨2、爱2证明、恨2证明、富爱文明.md": "1e32ca8000997cf951c6a516e6f4215f89f10b97bac4156c4e3ff1443773acf5",
+      "PoL/2. 爱语.md": "2ddd9335569113a92312fada7b8a434d1ae98f131127b94349531165a24386b8",
+      "PoL/3. PoL2之冥想智慧公理.md": "46ddc30f3e784e6b08e7724d549124dc1e3c906a504c3945b7eb4edb167fa7b7",
+      "PoL/4. PoL2之伦理对齐协议.md": "b6978d982aa2fdeb519d6a5ada570782c5b2f20da8cc665a286a7531690edbf8",
+      "PoL/5. AI和人类文明的治理：从恨2证明到爱2证明.md": "0217310270879e44551bf043f61bb4c275baeffa7457154ace0aef89fb64956e",
+      "PoL/6. 富爱文明生产公共化协议.md": "194eb3469516a2e3b3d1b506a0ae8ed9b2ef795267ce00245199399b5c2aa9d6",
+      "PoL/7. 人类公共福利的治理协议.md": "29bd79f8528f6452d66577085bee85ec0399cb851b077c255dc5b98ce0a37c67",
+      "PoL/8. 总结.md": "dafa6b701698969d8c090dc328c28df627eef6663c8988745a118e1ba021715e",
+      "PoL/PoL共识的工程策略.md": "9157ad7b10a75b93cf697a2e337a400cf1f296ca5472a3046751dad2a7cde630",
+      "PoL/Readme.md": "0f6b74d934d3e07eba0b0c1dfd90b4d7290fc94ef2e8b355985029149d366dd5"
+    },
+    "input_sha256": {
+      "concepts.jsonl": "bc31a72f572ab4ff335cb9aa8a457ff771b99b8da9b60384020af5bd164a83c7",
+      "relations.jsonl": "3dc49f221c58aadb1bcaada01e72bef47c84aa409526c3fd5aec7a6e7be3b2d9",
+      "propositions.jsonl": "c087926533bd8977e2f35d054727512f2edf903c670f08870708653a29b285f9",
+      "love-languages.jsonl": "42d7a265b1ebfd84ddc6e44ad57a82110c5e5e020e0eba0d51e57d6f8f5c8022",
+      "rule-mapping.jsonl": "e446c09124310d531a23e09d360224733fb179e96a686085f7d24c8ec7a450e9",
+      "interpretations.jsonl": "44ae8a154bff4c42449fddb441b640b220beff89d7d1ad40ddaa1db6cfd9917c"
+    },
+    "item_sha256": "12987a6b7b67d28a8216abec9dbcb0d58fee257ba769329c1d183fdd2f7ecd8d",
+    "label_sha256": "2a62917cb8ccd6fa9080619f0606790534ee04c3f344a46128599be7d1506bed",
+    "n_items": 123,
+    "by_knowledge_type": {
+      "axioms_propositions": 13,
+      "concepts_relations": 48,
+      "explicit_governance_rules": 28,
+      "love_languages": 16,
+      "researcher_interpretations": 18
+    },
+    "label_status_by_type": {
+      "axioms_propositions": {
+        "reviewed": 13
+      },
+      "concepts_relations": {
+        "reviewed": 48
+      },
+      "explicit_governance_rules": {
+        "candidate": 28
+      },
+      "love_languages": {
+        "reviewed": 16
+      },
+      "researcher_interpretations": {
+        "validated_reference": 18
+      }
+    },
+    "conditions": [
+      "closed_book",
+      "source_context"
+    ],
+    "limits": [
+      "Public exploratory set; items and labels are not sealed and must not be used for confirmatory claims.",
+      "Knowledge-pack statuses and source anchors provide traceability, not complete normative gold labels.",
+      "Rule mappings retain candidate versus approved-boundary provenance; scores must be stratified by this status.",
+      "Interpretation source anchors measure curated provenance retrieval, not entailment or truth of the interpretation.",
+      "Source context contains source excerpts only; the structured target record is withheld.",
+      "No model is trained on this set; no aggregate score is computed across knowledge types."
+    ]
+  },
+  "runs": [
+    {
+      "model": "llama3.1:8b",
+      "condition": "closed_book",
+      "knowledge_type": "axioms_propositions",
+      "n_predictions": 13,
+      "n_expected": 13,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "axioms_propositions": {
+          "n_expected": 13,
+          "n_submitted": 13,
+          "exact_match_n": 4,
+          "exact_match_rate": 0.3076923076923077,
+          "mean_random_exact_chance": 0.13986013986013984,
+          "execution_ok_n": 13,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.12631578947368421,
+          "citation_or_set_micro_recall": 0.9230769230769231
+        },
+        "axiom_component_identification": {
+          "n_expected": 4,
+          "n_submitted": 4,
+          "exact_match_n": 4,
+          "exact_match_rate": 1.0,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 4,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 1.0,
+          "citation_or_set_micro_recall": 1.0
+        },
+        "proposition_source_attribution": {
+          "n_expected": 9,
+          "n_submitted": 9,
+          "exact_match_n": 0,
+          "exact_match_rate": 0.0,
+          "mean_random_exact_chance": 0.09090909090909091,
+          "execution_ok_n": 9,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.08791208791208792,
+          "citation_or_set_micro_recall": 0.8888888888888888
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "llama3.1:8b",
+      "condition": "closed_book",
+      "knowledge_type": "concepts_relations",
+      "n_predictions": 48,
+      "n_expected": 48,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "concepts_relations": {
+          "n_expected": 48,
+          "n_submitted": 48,
+          "exact_match_n": 33,
+          "exact_match_rate": 0.6875,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 48,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.6875,
+          "citation_or_set_micro_recall": 0.6875
+        },
+        "definition_to_concept": {
+          "n_expected": 26,
+          "n_submitted": 26,
+          "exact_match_n": 23,
+          "exact_match_rate": 0.8846153846153846,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 26,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8846153846153846,
+          "citation_or_set_micro_recall": 0.8846153846153846
+        },
+        "directed_relation_completion": {
+          "n_expected": 22,
+          "n_submitted": 22,
+          "exact_match_n": 10,
+          "exact_match_rate": 0.45454545454545453,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 22,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.45454545454545453,
+          "citation_or_set_micro_recall": 0.45454545454545453
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "llama3.1:8b",
+      "condition": "closed_book",
+      "knowledge_type": "explicit_governance_rules",
+      "n_predictions": 28,
+      "n_expected": 28,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "explicit_governance_rules": {
+          "n_expected": 28,
+          "n_submitted": 28,
+          "exact_match_n": 22,
+          "exact_match_rate": 0.7857142857142857,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 28,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.7857142857142857,
+          "citation_or_set_micro_recall": 0.7857142857142857
+        },
+        "review_question_to_rule": {
+          "n_expected": 28,
+          "n_submitted": 28,
+          "exact_match_n": 22,
+          "exact_match_rate": 0.7857142857142857,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 28,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.7857142857142857,
+          "citation_or_set_micro_recall": 0.7857142857142857
+        },
+        "rule_label_basis": {
+          "has_approved_boundary_reference": {
+            "n_expected": 13,
+            "n_submitted": 13,
+            "exact_match_n": 9,
+            "exact_match_rate": 0.6923076923076923,
+            "mean_random_exact_chance": 0.25,
+            "execution_ok_n": 13,
+            "missing_or_failed_n": 0,
+            "citation_or_set_micro_precision": 0.6923076923076923,
+            "citation_or_set_micro_recall": 0.6923076923076923
+          },
+          "candidate_mapping_only": {
+            "n_expected": 15,
+            "n_submitted": 15,
+            "exact_match_n": 13,
+            "exact_match_rate": 0.8666666666666667,
+            "mean_random_exact_chance": 0.25,
+            "execution_ok_n": 15,
+            "missing_or_failed_n": 0,
+            "citation_or_set_micro_precision": 0.8666666666666667,
+            "citation_or_set_micro_recall": 0.8666666666666667
+          }
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "llama3.1:8b",
+      "condition": "closed_book",
+      "knowledge_type": "love_languages",
+      "n_predictions": 16,
+      "n_expected": 16,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "love_languages": {
+          "n_expected": 16,
+          "n_submitted": 16,
+          "exact_match_n": 14,
+          "exact_match_rate": 0.875,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 16,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.875,
+          "citation_or_set_micro_recall": 0.875
+        },
+        "definition_to_love_language": {
+          "n_expected": 16,
+          "n_submitted": 16,
+          "exact_match_n": 14,
+          "exact_match_rate": 0.875,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 16,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.875,
+          "citation_or_set_micro_recall": 0.875
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "llama3.1:8b",
+      "condition": "closed_book",
+      "knowledge_type": "researcher_interpretations",
+      "n_predictions": 18,
+      "n_expected": 18,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "researcher_interpretations": {
+          "n_expected": 18,
+          "n_submitted": 18,
+          "exact_match_n": 6,
+          "exact_match_rate": 0.3333333333333333,
+          "mean_random_exact_chance": 0.21296296296296294,
+          "execution_ok_n": 18,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.7222222222222222,
+          "citation_or_set_micro_recall": 0.5
+        },
+        "interpretation_provenance_retrieval": {
+          "n_expected": 18,
+          "n_submitted": 18,
+          "exact_match_n": 6,
+          "exact_match_rate": 0.3333333333333333,
+          "mean_random_exact_chance": 0.21296296296296294,
+          "execution_ok_n": 18,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.7222222222222222,
+          "citation_or_set_micro_recall": 0.5
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "llama3.1:8b",
+      "condition": "source_context",
+      "knowledge_type": "axioms_propositions",
+      "n_predictions": 13,
+      "n_expected": 13,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "axioms_propositions": {
+          "n_expected": 13,
+          "n_submitted": 13,
+          "exact_match_n": 7,
+          "exact_match_rate": 0.5384615384615384,
+          "mean_random_exact_chance": 0.13986013986013984,
+          "execution_ok_n": 13,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.625,
+          "citation_or_set_micro_recall": 0.7692307692307693
+        },
+        "axiom_component_identification": {
+          "n_expected": 4,
+          "n_submitted": 4,
+          "exact_match_n": 4,
+          "exact_match_rate": 1.0,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 4,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 1.0,
+          "citation_or_set_micro_recall": 1.0
+        },
+        "proposition_source_attribution": {
+          "n_expected": 9,
+          "n_submitted": 9,
+          "exact_match_n": 3,
+          "exact_match_rate": 0.3333333333333333,
+          "mean_random_exact_chance": 0.09090909090909091,
+          "execution_ok_n": 9,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.5,
+          "citation_or_set_micro_recall": 0.6666666666666666
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "llama3.1:8b",
+      "condition": "source_context",
+      "knowledge_type": "concepts_relations",
+      "n_predictions": 48,
+      "n_expected": 48,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "concepts_relations": {
+          "n_expected": 48,
+          "n_submitted": 48,
+          "exact_match_n": 35,
+          "exact_match_rate": 0.7291666666666666,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 48,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.7291666666666666,
+          "citation_or_set_micro_recall": 0.7291666666666666
+        },
+        "definition_to_concept": {
+          "n_expected": 26,
+          "n_submitted": 26,
+          "exact_match_n": 23,
+          "exact_match_rate": 0.8846153846153846,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 26,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8846153846153846,
+          "citation_or_set_micro_recall": 0.8846153846153846
+        },
+        "directed_relation_completion": {
+          "n_expected": 22,
+          "n_submitted": 22,
+          "exact_match_n": 12,
+          "exact_match_rate": 0.5454545454545454,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 22,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.5454545454545454,
+          "citation_or_set_micro_recall": 0.5454545454545454
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "llama3.1:8b",
+      "condition": "source_context",
+      "knowledge_type": "explicit_governance_rules",
+      "n_predictions": 28,
+      "n_expected": 28,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "explicit_governance_rules": {
+          "n_expected": 28,
+          "n_submitted": 28,
+          "exact_match_n": 23,
+          "exact_match_rate": 0.8214285714285714,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 28,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8214285714285714,
+          "citation_or_set_micro_recall": 0.8214285714285714
+        },
+        "review_question_to_rule": {
+          "n_expected": 28,
+          "n_submitted": 28,
+          "exact_match_n": 23,
+          "exact_match_rate": 0.8214285714285714,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 28,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8214285714285714,
+          "citation_or_set_micro_recall": 0.8214285714285714
+        },
+        "rule_label_basis": {
+          "has_approved_boundary_reference": {
+            "n_expected": 13,
+            "n_submitted": 13,
+            "exact_match_n": 10,
+            "exact_match_rate": 0.7692307692307693,
+            "mean_random_exact_chance": 0.25,
+            "execution_ok_n": 13,
+            "missing_or_failed_n": 0,
+            "citation_or_set_micro_precision": 0.7692307692307693,
+            "citation_or_set_micro_recall": 0.7692307692307693
+          },
+          "candidate_mapping_only": {
+            "n_expected": 15,
+            "n_submitted": 15,
+            "exact_match_n": 13,
+            "exact_match_rate": 0.8666666666666667,
+            "mean_random_exact_chance": 0.25,
+            "execution_ok_n": 15,
+            "missing_or_failed_n": 0,
+            "citation_or_set_micro_precision": 0.8666666666666667,
+            "citation_or_set_micro_recall": 0.8666666666666667
+          }
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "llama3.1:8b",
+      "condition": "source_context",
+      "knowledge_type": "love_languages",
+      "n_predictions": 16,
+      "n_expected": 16,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "love_languages": {
+          "n_expected": 16,
+          "n_submitted": 16,
+          "exact_match_n": 13,
+          "exact_match_rate": 0.8125,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 16,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8125,
+          "citation_or_set_micro_recall": 0.8125
+        },
+        "definition_to_love_language": {
+          "n_expected": 16,
+          "n_submitted": 16,
+          "exact_match_n": 13,
+          "exact_match_rate": 0.8125,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 16,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8125,
+          "citation_or_set_micro_recall": 0.8125
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "llama3.1:8b",
+      "condition": "source_context",
+      "knowledge_type": "researcher_interpretations",
+      "n_predictions": 18,
+      "n_expected": 18,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "researcher_interpretations": {
+          "n_expected": 18,
+          "n_submitted": 18,
+          "exact_match_n": 8,
+          "exact_match_rate": 0.4444444444444444,
+          "mean_random_exact_chance": 0.21296296296296294,
+          "execution_ok_n": 18,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.7777777777777778,
+          "citation_or_set_micro_recall": 0.5384615384615384
+        },
+        "interpretation_provenance_retrieval": {
+          "n_expected": 18,
+          "n_submitted": 18,
+          "exact_match_n": 8,
+          "exact_match_rate": 0.4444444444444444,
+          "mean_random_exact_chance": 0.21296296296296294,
+          "execution_ok_n": 18,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.7777777777777778,
+          "citation_or_set_micro_recall": 0.5384615384615384
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "condition": "closed_book",
+      "knowledge_type": "axioms_propositions",
+      "n_predictions": 13,
+      "n_expected": 13,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "axioms_propositions": {
+          "n_expected": 13,
+          "n_submitted": 13,
+          "exact_match_n": 9,
+          "exact_match_rate": 0.6923076923076923,
+          "mean_random_exact_chance": 0.13986013986013984,
+          "execution_ok_n": 13,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.6923076923076923,
+          "citation_or_set_micro_recall": 0.6923076923076923
+        },
+        "axiom_component_identification": {
+          "n_expected": 4,
+          "n_submitted": 4,
+          "exact_match_n": 4,
+          "exact_match_rate": 1.0,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 4,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 1.0,
+          "citation_or_set_micro_recall": 1.0
+        },
+        "proposition_source_attribution": {
+          "n_expected": 9,
+          "n_submitted": 9,
+          "exact_match_n": 5,
+          "exact_match_rate": 0.5555555555555556,
+          "mean_random_exact_chance": 0.09090909090909091,
+          "execution_ok_n": 9,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.5555555555555556,
+          "citation_or_set_micro_recall": 0.5555555555555556
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "condition": "closed_book",
+      "knowledge_type": "concepts_relations",
+      "n_predictions": 48,
+      "n_expected": 48,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "concepts_relations": {
+          "n_expected": 48,
+          "n_submitted": 48,
+          "exact_match_n": 30,
+          "exact_match_rate": 0.625,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 48,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.625,
+          "citation_or_set_micro_recall": 0.625
+        },
+        "definition_to_concept": {
+          "n_expected": 26,
+          "n_submitted": 26,
+          "exact_match_n": 21,
+          "exact_match_rate": 0.8076923076923077,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 26,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8076923076923077,
+          "citation_or_set_micro_recall": 0.8076923076923077
+        },
+        "directed_relation_completion": {
+          "n_expected": 22,
+          "n_submitted": 22,
+          "exact_match_n": 9,
+          "exact_match_rate": 0.4090909090909091,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 22,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.4090909090909091,
+          "citation_or_set_micro_recall": 0.4090909090909091
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "condition": "closed_book",
+      "knowledge_type": "explicit_governance_rules",
+      "n_predictions": 28,
+      "n_expected": 28,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "explicit_governance_rules": {
+          "n_expected": 28,
+          "n_submitted": 28,
+          "exact_match_n": 24,
+          "exact_match_rate": 0.8571428571428571,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 28,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8571428571428571,
+          "citation_or_set_micro_recall": 0.8571428571428571
+        },
+        "review_question_to_rule": {
+          "n_expected": 28,
+          "n_submitted": 28,
+          "exact_match_n": 24,
+          "exact_match_rate": 0.8571428571428571,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 28,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8571428571428571,
+          "citation_or_set_micro_recall": 0.8571428571428571
+        },
+        "rule_label_basis": {
+          "has_approved_boundary_reference": {
+            "n_expected": 13,
+            "n_submitted": 13,
+            "exact_match_n": 11,
+            "exact_match_rate": 0.8461538461538461,
+            "mean_random_exact_chance": 0.25,
+            "execution_ok_n": 13,
+            "missing_or_failed_n": 0,
+            "citation_or_set_micro_precision": 0.8461538461538461,
+            "citation_or_set_micro_recall": 0.8461538461538461
+          },
+          "candidate_mapping_only": {
+            "n_expected": 15,
+            "n_submitted": 15,
+            "exact_match_n": 13,
+            "exact_match_rate": 0.8666666666666667,
+            "mean_random_exact_chance": 0.25,
+            "execution_ok_n": 15,
+            "missing_or_failed_n": 0,
+            "citation_or_set_micro_precision": 0.8666666666666667,
+            "citation_or_set_micro_recall": 0.8666666666666667
+          }
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "condition": "closed_book",
+      "knowledge_type": "love_languages",
+      "n_predictions": 16,
+      "n_expected": 16,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "love_languages": {
+          "n_expected": 16,
+          "n_submitted": 16,
+          "exact_match_n": 15,
+          "exact_match_rate": 0.9375,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 16,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.9375,
+          "citation_or_set_micro_recall": 0.9375
+        },
+        "definition_to_love_language": {
+          "n_expected": 16,
+          "n_submitted": 16,
+          "exact_match_n": 15,
+          "exact_match_rate": 0.9375,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 16,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.9375,
+          "citation_or_set_micro_recall": 0.9375
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "condition": "closed_book",
+      "knowledge_type": "researcher_interpretations",
+      "n_predictions": 18,
+      "n_expected": 18,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "researcher_interpretations": {
+          "n_expected": 18,
+          "n_submitted": 18,
+          "exact_match_n": 5,
+          "exact_match_rate": 0.2777777777777778,
+          "mean_random_exact_chance": 0.21296296296296294,
+          "execution_ok_n": 18,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.56,
+          "citation_or_set_micro_recall": 0.5384615384615384
+        },
+        "interpretation_provenance_retrieval": {
+          "n_expected": 18,
+          "n_submitted": 18,
+          "exact_match_n": 5,
+          "exact_match_rate": 0.2777777777777778,
+          "mean_random_exact_chance": 0.21296296296296294,
+          "execution_ok_n": 18,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.56,
+          "citation_or_set_micro_recall": 0.5384615384615384
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "condition": "source_context",
+      "knowledge_type": "axioms_propositions",
+      "n_predictions": 13,
+      "n_expected": 13,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "axioms_propositions": {
+          "n_expected": 13,
+          "n_submitted": 13,
+          "exact_match_n": 9,
+          "exact_match_rate": 0.6923076923076923,
+          "mean_random_exact_chance": 0.13986013986013984,
+          "execution_ok_n": 13,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.7142857142857143,
+          "citation_or_set_micro_recall": 0.7692307692307693
+        },
+        "axiom_component_identification": {
+          "n_expected": 4,
+          "n_submitted": 4,
+          "exact_match_n": 4,
+          "exact_match_rate": 1.0,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 4,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 1.0,
+          "citation_or_set_micro_recall": 1.0
+        },
+        "proposition_source_attribution": {
+          "n_expected": 9,
+          "n_submitted": 9,
+          "exact_match_n": 5,
+          "exact_match_rate": 0.5555555555555556,
+          "mean_random_exact_chance": 0.09090909090909091,
+          "execution_ok_n": 9,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.6,
+          "citation_or_set_micro_recall": 0.6666666666666666
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "condition": "source_context",
+      "knowledge_type": "concepts_relations",
+      "n_predictions": 48,
+      "n_expected": 48,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "concepts_relations": {
+          "n_expected": 48,
+          "n_submitted": 48,
+          "exact_match_n": 38,
+          "exact_match_rate": 0.7916666666666666,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 48,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.7959183673469388,
+          "citation_or_set_micro_recall": 0.8125
+        },
+        "definition_to_concept": {
+          "n_expected": 26,
+          "n_submitted": 26,
+          "exact_match_n": 23,
+          "exact_match_rate": 0.8846153846153846,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 26,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8888888888888888,
+          "citation_or_set_micro_recall": 0.9230769230769231
+        },
+        "directed_relation_completion": {
+          "n_expected": 22,
+          "n_submitted": 22,
+          "exact_match_n": 15,
+          "exact_match_rate": 0.6818181818181818,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 22,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.6818181818181818,
+          "citation_or_set_micro_recall": 0.6818181818181818
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "condition": "source_context",
+      "knowledge_type": "explicit_governance_rules",
+      "n_predictions": 28,
+      "n_expected": 28,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "explicit_governance_rules": {
+          "n_expected": 28,
+          "n_submitted": 28,
+          "exact_match_n": 26,
+          "exact_match_rate": 0.9285714285714286,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 28,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.9285714285714286,
+          "citation_or_set_micro_recall": 0.9285714285714286
+        },
+        "review_question_to_rule": {
+          "n_expected": 28,
+          "n_submitted": 28,
+          "exact_match_n": 26,
+          "exact_match_rate": 0.9285714285714286,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 28,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.9285714285714286,
+          "citation_or_set_micro_recall": 0.9285714285714286
+        },
+        "rule_label_basis": {
+          "has_approved_boundary_reference": {
+            "n_expected": 13,
+            "n_submitted": 13,
+            "exact_match_n": 12,
+            "exact_match_rate": 0.9230769230769231,
+            "mean_random_exact_chance": 0.25,
+            "execution_ok_n": 13,
+            "missing_or_failed_n": 0,
+            "citation_or_set_micro_precision": 0.9230769230769231,
+            "citation_or_set_micro_recall": 0.9230769230769231
+          },
+          "candidate_mapping_only": {
+            "n_expected": 15,
+            "n_submitted": 15,
+            "exact_match_n": 14,
+            "exact_match_rate": 0.9333333333333333,
+            "mean_random_exact_chance": 0.25,
+            "execution_ok_n": 15,
+            "missing_or_failed_n": 0,
+            "citation_or_set_micro_precision": 0.9333333333333333,
+            "citation_or_set_micro_recall": 0.9333333333333333
+          }
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "condition": "source_context",
+      "knowledge_type": "love_languages",
+      "n_predictions": 16,
+      "n_expected": 16,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "love_languages": {
+          "n_expected": 16,
+          "n_submitted": 16,
+          "exact_match_n": 16,
+          "exact_match_rate": 1.0,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 16,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 1.0,
+          "citation_or_set_micro_recall": 1.0
+        },
+        "definition_to_love_language": {
+          "n_expected": 16,
+          "n_submitted": 16,
+          "exact_match_n": 16,
+          "exact_match_rate": 1.0,
+          "mean_random_exact_chance": 0.25,
+          "execution_ok_n": 16,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 1.0,
+          "citation_or_set_micro_recall": 1.0
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    },
+    {
+      "model": "qwen2.5:7b",
+      "condition": "source_context",
+      "knowledge_type": "researcher_interpretations",
+      "n_predictions": 18,
+      "n_expected": 18,
+      "complete": true,
+      "missing_ids": [],
+      "extra_ids": [],
+      "duplicate_ids": [],
+      "by_type_and_task": {
+        "researcher_interpretations": {
+          "n_expected": 18,
+          "n_submitted": 18,
+          "exact_match_n": 8,
+          "exact_match_rate": 0.4444444444444444,
+          "mean_random_exact_chance": 0.21296296296296294,
+          "execution_ok_n": 18,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8,
+          "citation_or_set_micro_recall": 0.7692307692307693
+        },
+        "interpretation_provenance_retrieval": {
+          "n_expected": 18,
+          "n_submitted": 18,
+          "exact_match_n": 8,
+          "exact_match_rate": 0.4444444444444444,
+          "mean_random_exact_chance": 0.21296296296296294,
+          "execution_ok_n": 18,
+          "missing_or_failed_n": 0,
+          "citation_or_set_micro_precision": 0.8,
+          "citation_or_set_micro_recall": 0.7692307692307693
+        }
+      },
+      "execution_errors": {},
+      "interpretation": "Exact-match and set-overlap descriptives only; do not average across knowledge types."
+    }
+  ],
+  "run_errors": [],
+  "paired_context_comparisons": [
+    {
+      "model": "llama3.1:8b",
+      "knowledge_type": "concepts_relations",
+      "n_paired": 48,
+      "transitions": {
+        "both_wrong": 11,
+        "context_only_correct": 4,
+        "both_correct": 31,
+        "closed_only_correct": 2
+      },
+      "closed_book_accuracy": 0.6875,
+      "source_context_accuracy": 0.7291666666666666,
+      "net_context_gain_pp": 4.166666666666667
+    },
+    {
+      "model": "llama3.1:8b",
+      "knowledge_type": "researcher_interpretations",
+      "n_paired": 18,
+      "transitions": {
+        "both_wrong": 10,
+        "both_correct": 6,
+        "context_only_correct": 2
+      },
+      "closed_book_accuracy": 0.3333333333333333,
+      "source_context_accuracy": 0.4444444444444444,
+      "net_context_gain_pp": 11.11111111111111
+    },
+    {
+      "model": "llama3.1:8b",
+      "knowledge_type": "explicit_governance_rules",
+      "n_paired": 28,
+      "transitions": {
+        "both_wrong": 5,
+        "both_correct": 22,
+        "context_only_correct": 1
+      },
+      "closed_book_accuracy": 0.7857142857142857,
+      "source_context_accuracy": 0.8214285714285714,
+      "net_context_gain_pp": 3.5714285714285716
+    },
+    {
+      "model": "llama3.1:8b",
+      "knowledge_type": "axioms_propositions",
+      "n_paired": 13,
+      "transitions": {
+        "both_wrong": 6,
+        "context_only_correct": 3,
+        "both_correct": 4
+      },
+      "closed_book_accuracy": 0.3076923076923077,
+      "source_context_accuracy": 0.5384615384615384,
+      "net_context_gain_pp": 23.076923076923077
+    },
+    {
+      "model": "llama3.1:8b",
+      "knowledge_type": "love_languages",
+      "n_paired": 16,
+      "transitions": {
+        "both_correct": 13,
+        "closed_only_correct": 1,
+        "both_wrong": 2
+      },
+      "closed_book_accuracy": 0.875,
+      "source_context_accuracy": 0.8125,
+      "net_context_gain_pp": -6.25
+    },
+    {
+      "model": "qwen2.5:7b",
+      "knowledge_type": "concepts_relations",
+      "n_paired": 48,
+      "transitions": {
+        "both_wrong": 7,
+        "both_correct": 27,
+        "context_only_correct": 11,
+        "closed_only_correct": 3
+      },
+      "closed_book_accuracy": 0.625,
+      "source_context_accuracy": 0.7916666666666666,
+      "net_context_gain_pp": 16.666666666666668
+    },
+    {
+      "model": "qwen2.5:7b",
+      "knowledge_type": "researcher_interpretations",
+      "n_paired": 18,
+      "transitions": {
+        "both_wrong": 9,
+        "both_correct": 4,
+        "closed_only_correct": 1,
+        "context_only_correct": 4
+      },
+      "closed_book_accuracy": 0.2777777777777778,
+      "source_context_accuracy": 0.4444444444444444,
+      "net_context_gain_pp": 16.666666666666668
+    },
+    {
+      "model": "qwen2.5:7b",
+      "knowledge_type": "explicit_governance_rules",
+      "n_paired": 28,
+      "transitions": {
+        "both_correct": 23,
+        "context_only_correct": 3,
+        "closed_only_correct": 1,
+        "both_wrong": 1
+      },
+      "closed_book_accuracy": 0.8571428571428571,
+      "source_context_accuracy": 0.9285714285714286,
+      "net_context_gain_pp": 7.142857142857143
+    },
+    {
+      "model": "qwen2.5:7b",
+      "knowledge_type": "axioms_propositions",
+      "n_paired": 13,
+      "transitions": {
+        "both_wrong": 3,
+        "both_correct": 8,
+        "context_only_correct": 1,
+        "closed_only_correct": 1
+      },
+      "closed_book_accuracy": 0.6923076923076923,
+      "source_context_accuracy": 0.6923076923076923,
+      "net_context_gain_pp": 0.0
+    },
+    {
+      "model": "qwen2.5:7b",
+      "knowledge_type": "love_languages",
+      "n_paired": 16,
+      "transitions": {
+        "both_correct": 15,
+        "context_only_correct": 1
+      },
+      "closed_book_accuracy": 0.9375,
+      "source_context_accuracy": 1.0,
+      "net_context_gain_pp": 6.25
+    }
+  ],
+  "comparison_limit": "Descriptive matched-item transitions only; the public pilot is small, non-sealed, and labels are source-derived annotations rather than complete normative gold."
+}

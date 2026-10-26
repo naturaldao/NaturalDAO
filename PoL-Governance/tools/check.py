@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = ROOT.parent
 
 
 def files(root):
@@ -38,7 +39,10 @@ def main():
                 if '://' in link or link.startswith('#'):
                     continue
                 target = (path.parent / unquote(link.split('#')[0])).resolve()
-                if not target.is_relative_to(ROOT) or not target.exists():
+                # Markdown in PoL-Governance may link to sibling repo folders
+                # such as Research; keep links inside the checkout, not only
+                # inside this subproject.
+                if not target.is_relative_to(REPO_ROOT) or not target.exists():
                     raise ValueError(f'Broken/nonportable link: {path.relative_to(ROOT)} -> {link}')
                 links += 1
         for name in ('datasets', 'models'):
