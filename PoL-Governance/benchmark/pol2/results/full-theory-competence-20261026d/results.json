@@ -1,0 +1,1041 @@
+{
+  "experiment": "PoL2 broad behavioral competence pilot",
+  "run_utc": "2026-10-25T15:24:31Z",
+  "dataset": {
+    "training_files": [
+      "dev",
+      "boundaries",
+      "love-languages"
+    ],
+    "test_files": [
+      "holdout",
+      "sealed",
+      "final-confirmation",
+      "final-confirmation-v2",
+      "final-confirmation-v3"
+    ],
+    "training_n": 63,
+    "test_raw_n": 87,
+    "test_unique_n": 81,
+    "removed_exact_duplicates": [
+      "FC3-001",
+      "FC3-006",
+      "FC3-007",
+      "FC3-008",
+      "FC3-009",
+      "FC3-010"
+    ],
+    "train_case_ids": [
+      "DEV-001",
+      "DEV-002",
+      "DEV-003",
+      "DEV-004",
+      "DEV-005",
+      "DEV-006",
+      "DEV-007",
+      "DEV-008",
+      "DEV-009",
+      "DEV-010",
+      "DEV-011",
+      "DEV-012",
+      "DEV-013",
+      "DEV-014",
+      "DEV-015",
+      "DEV-016",
+      "DEV-017",
+      "DEV-018",
+      "DEV-019",
+      "DEV-020",
+      "DEV-021",
+      "DEV-022",
+      "DEV-023",
+      "DEV-024",
+      "DEV-025",
+      "DEV-026",
+      "DEV-027",
+      "DEV-028",
+      "DEV-029",
+      "BND-001",
+      "BND-002",
+      "BND-003",
+      "BND-004",
+      "BND-005",
+      "BND-006",
+      "BND-007",
+      "BND-008",
+      "BND-009",
+      "BND-010",
+      "BND-011",
+      "BND-012",
+      "BND-013",
+      "BND-014",
+      "LLC-001",
+      "LLC-002",
+      "LLC-003",
+      "LLC-004",
+      "LLC-005",
+      "LLC-006",
+      "LLC-007",
+      "LLC-008",
+      "LLC-009",
+      "LLC-010",
+      "LLC-011",
+      "LLC-012",
+      "LLC-013",
+      "LLC-014",
+      "LLC-015",
+      "LLC-016",
+      "LLC-017",
+      "LLC-018",
+      "LLC-019",
+      "LLC-020"
+    ],
+    "test_rule_ids": [
+      "POL2-R001",
+      "POL2-R002",
+      "POL2-R003",
+      "POL2-R004",
+      "POL2-R005",
+      "POL2-R006",
+      "POL2-R007",
+      "POL2-R008",
+      "POL2-R010",
+      "POL2-R011",
+      "POL2-R012",
+      "POL2-R014",
+      "POL2-R015",
+      "POL2-R016",
+      "POL2-R017",
+      "POL2-R018",
+      "POL2-R019",
+      "POL2-R020",
+      "POL2-R021",
+      "POL2-R022",
+      "POL2-R023",
+      "POL2-R024",
+      "POL2-R025",
+      "POL2-R026",
+      "POL2-R027",
+      "POL2-R028"
+    ],
+    "test_rule_coverage_n": 26,
+    "coverage_denominator": 28,
+    "train_test_exact_text_overlap": 0,
+    "labels_status": "candidate expected outcomes; not independently established gold labels"
+  },
+  "conditions": {
+    "base": "frozen Kev typed-choice checkpoint; generic task instruction; no PoL2 rules supplied",
+    "retrieval": "same frozen checkpoint and instruction, with case source_refs used to retrieve rule-mapping summaries",
+    "parameter_sft": "same initial checkpoint; 63 candidate training cases; multi-acceptable set likelihood; no rule text at inference; three seeds",
+    "choice_order_repeats": 7
+  },
+  "model_and_training": {
+    "kev_checkpoint": "jaredpalmer/kev-0.8b@bf75a6a8848ea6960ff2ed108d9ed44c2941174f",
+    "base_model": "Qwen/Qwen3.5-0.8B-Base",
+    "base_revision": "dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68",
+    "kev_revision": "bf75a6a8848ea6960ff2ed108d9ed44c2941174f",
+    "checkpoint_temperature": 2.3510958125672174,
+    "epochs": 3,
+    "seeds": [
+      20261026,
+      20261027,
+      20261028
+    ],
+    "optimizer": "AdamW; LoRA lr=1e-5; decision head lr=2e-5; weight_decay=0.01; gradient accumulation=2; batch_size=4",
+    "precision": "bfloat16"
+  },
+  "base": {
+    "n_cases": 81,
+    "case_order_accuracy": 0.5079365079365079,
+    "mean_accepted_probability_mass": 0.3317103282740665,
+    "order_stable_case_rate": 0.654320987654321,
+    "per_stage": {
+      "clarification": {
+        "n_cases": 3,
+        "order_accuracy": 0.8571428571428571,
+        "mean_accepted_probability_mass": 0.3660350427741096
+      },
+      "knowledge_update": {
+        "n_cases": 4,
+        "order_accuracy": 0.21428571428571427,
+        "mean_accepted_probability_mass": 0.25390210268752916
+      },
+      "operation": {
+        "n_cases": 9,
+        "order_accuracy": 0.2857142857142857,
+        "mean_accepted_probability_mass": 0.23569357871181434
+      },
+      "output": {
+        "n_cases": 33,
+        "order_accuracy": 0.3593073593073593,
+        "mean_accepted_probability_mass": 0.3191268113300656
+      },
+      "plan": {
+        "n_cases": 12,
+        "order_accuracy": 0.7619047619047619,
+        "mean_accepted_probability_mass": 0.4184283335648832
+      },
+      "requirement": {
+        "n_cases": 20,
+        "order_accuracy": 0.7071428571428572,
+        "mean_accepted_probability_mass": 0.3540628033024924
+      }
+    },
+    "per_rule": {
+      "POL2-R001": {
+        "n_cases": 3,
+        "order_accuracy": 1.0
+      },
+      "POL2-R002": {
+        "n_cases": 3,
+        "order_accuracy": 0.09523809523809523
+      },
+      "POL2-R003": {
+        "n_cases": 1,
+        "order_accuracy": 1.0
+      },
+      "POL2-R004": {
+        "n_cases": 2,
+        "order_accuracy": 0.7857142857142857
+      },
+      "POL2-R005": {
+        "n_cases": 4,
+        "order_accuracy": 0.4642857142857143
+      },
+      "POL2-R006": {
+        "n_cases": 3,
+        "order_accuracy": 0.6190476190476191
+      },
+      "POL2-R007": {
+        "n_cases": 9,
+        "order_accuracy": 0.06349206349206349
+      },
+      "POL2-R008": {
+        "n_cases": 2,
+        "order_accuracy": 1.0
+      },
+      "POL2-R010": {
+        "n_cases": 30,
+        "order_accuracy": 0.6
+      },
+      "POL2-R011": {
+        "n_cases": 5,
+        "order_accuracy": 0.11428571428571428
+      },
+      "POL2-R012": {
+        "n_cases": 8,
+        "order_accuracy": 0.35714285714285715
+      },
+      "POL2-R014": {
+        "n_cases": 4,
+        "order_accuracy": 0.5
+      },
+      "POL2-R015": {
+        "n_cases": 7,
+        "order_accuracy": 0.14285714285714285
+      },
+      "POL2-R016": {
+        "n_cases": 5,
+        "order_accuracy": 0.4857142857142857
+      },
+      "POL2-R017": {
+        "n_cases": 6,
+        "order_accuracy": 0.23809523809523808
+      },
+      "POL2-R018": {
+        "n_cases": 4,
+        "order_accuracy": 0.6071428571428571
+      },
+      "POL2-R019": {
+        "n_cases": 7,
+        "order_accuracy": 0.8979591836734694
+      },
+      "POL2-R020": {
+        "n_cases": 11,
+        "order_accuracy": 0.4675324675324675
+      },
+      "POL2-R021": {
+        "n_cases": 4,
+        "order_accuracy": 0.21428571428571427
+      },
+      "POL2-R022": {
+        "n_cases": 5,
+        "order_accuracy": 0.5714285714285714
+      },
+      "POL2-R023": {
+        "n_cases": 4,
+        "order_accuracy": 0.8928571428571428
+      },
+      "POL2-R024": {
+        "n_cases": 8,
+        "order_accuracy": 0.6428571428571429
+      },
+      "POL2-R025": {
+        "n_cases": 7,
+        "order_accuracy": 0.7551020408163265
+      },
+      "POL2-R026": {
+        "n_cases": 6,
+        "order_accuracy": 0.5
+      },
+      "POL2-R027": {
+        "n_cases": 2,
+        "order_accuracy": 0.21428571428571427
+      },
+      "POL2-R028": {
+        "n_cases": 4,
+        "order_accuracy": 0.8928571428571428
+      }
+    },
+    "worst_case_ids": [
+      "HOLD-004",
+      "HOLD-006",
+      "HOLD-008",
+      "HOLD-009",
+      "HOLD-011",
+      "HOLD-012",
+      "HOLD-014",
+      "HOLD-016",
+      "HOLD-017",
+      "HOLD-021"
+    ]
+  },
+  "retrieval": {
+    "n_cases": 81,
+    "case_order_accuracy": 0.5061728395061729,
+    "mean_accepted_probability_mass": 0.35785675538963324,
+    "order_stable_case_rate": 0.6172839506172839,
+    "per_stage": {
+      "clarification": {
+        "n_cases": 3,
+        "order_accuracy": 0.5714285714285714,
+        "mean_accepted_probability_mass": 0.31199007765168235
+      },
+      "knowledge_update": {
+        "n_cases": 4,
+        "order_accuracy": 0.0,
+        "mean_accepted_probability_mass": 0.3003713113388845
+      },
+      "operation": {
+        "n_cases": 9,
+        "order_accuracy": 0.5714285714285714,
+        "mean_accepted_probability_mass": 0.3141369100305296
+      },
+      "output": {
+        "n_cases": 33,
+        "order_accuracy": 0.4935064935064935,
+        "mean_accepted_probability_mass": 0.3453486604188686
+      },
+      "plan": {
+        "n_cases": 12,
+        "order_accuracy": 0.7619047619047619,
+        "mean_accepted_probability_mass": 0.46631655613670037
+      },
+      "requirement": {
+        "n_cases": 20,
+        "order_accuracy": 0.4357142857142857,
+        "mean_accepted_probability_mass": 0.35147025252559355
+      }
+    },
+    "per_rule": {
+      "POL2-R001": {
+        "n_cases": 3,
+        "order_accuracy": 0.7142857142857143
+      },
+      "POL2-R002": {
+        "n_cases": 3,
+        "order_accuracy": 0.19047619047619047
+      },
+      "POL2-R003": {
+        "n_cases": 1,
+        "order_accuracy": 1.0
+      },
+      "POL2-R004": {
+        "n_cases": 2,
+        "order_accuracy": 0.5
+      },
+      "POL2-R005": {
+        "n_cases": 4,
+        "order_accuracy": 0.0
+      },
+      "POL2-R006": {
+        "n_cases": 3,
+        "order_accuracy": 0.8095238095238095
+      },
+      "POL2-R007": {
+        "n_cases": 9,
+        "order_accuracy": 0.7619047619047619
+      },
+      "POL2-R008": {
+        "n_cases": 2,
+        "order_accuracy": 0.8571428571428572
+      },
+      "POL2-R010": {
+        "n_cases": 30,
+        "order_accuracy": 0.7285714285714285
+      },
+      "POL2-R011": {
+        "n_cases": 5,
+        "order_accuracy": 0.08571428571428572
+      },
+      "POL2-R012": {
+        "n_cases": 8,
+        "order_accuracy": 0.4464285714285714
+      },
+      "POL2-R014": {
+        "n_cases": 4,
+        "order_accuracy": 0.25
+      },
+      "POL2-R015": {
+        "n_cases": 7,
+        "order_accuracy": 0.2857142857142857
+      },
+      "POL2-R016": {
+        "n_cases": 5,
+        "order_accuracy": 0.4
+      },
+      "POL2-R017": {
+        "n_cases": 6,
+        "order_accuracy": 0.7142857142857143
+      },
+      "POL2-R018": {
+        "n_cases": 4,
+        "order_accuracy": 0.25
+      },
+      "POL2-R019": {
+        "n_cases": 7,
+        "order_accuracy": 0.5510204081632653
+      },
+      "POL2-R020": {
+        "n_cases": 11,
+        "order_accuracy": 0.5454545454545454
+      },
+      "POL2-R021": {
+        "n_cases": 4,
+        "order_accuracy": 0.0
+      },
+      "POL2-R022": {
+        "n_cases": 5,
+        "order_accuracy": 0.14285714285714285
+      },
+      "POL2-R023": {
+        "n_cases": 4,
+        "order_accuracy": 1.0
+      },
+      "POL2-R024": {
+        "n_cases": 8,
+        "order_accuracy": 0.5535714285714286
+      },
+      "POL2-R025": {
+        "n_cases": 7,
+        "order_accuracy": 0.40816326530612246
+      },
+      "POL2-R026": {
+        "n_cases": 6,
+        "order_accuracy": 0.3333333333333333
+      },
+      "POL2-R027": {
+        "n_cases": 2,
+        "order_accuracy": 0.5
+      },
+      "POL2-R028": {
+        "n_cases": 4,
+        "order_accuracy": 0.7142857142857143
+      }
+    },
+    "worst_case_ids": [
+      "HOLD-001",
+      "HOLD-005",
+      "HOLD-008",
+      "HOLD-009",
+      "HOLD-011",
+      "HOLD-012",
+      "HOLD-014",
+      "HOLD-017",
+      "HOLD-020",
+      "HOLD-021"
+    ]
+  },
+  "parameter_sft_seed_results": [
+    {
+      "seed": 20261026,
+      "history": [
+        {
+          "epoch": 1,
+          "mean_set_nll": 0.885364355519414
+        },
+        {
+          "epoch": 2,
+          "mean_set_nll": 0.7025698246434331
+        },
+        {
+          "epoch": 3,
+          "mean_set_nll": 0.4881250085309148
+        }
+      ],
+      "trainable_parameters": 11347456,
+      "adapter_sha256": "56f70d6fd63dc6370420196a7c60eb15d721d503c3b337403c497855545b4970",
+      "head_sha256": "71fab075a25640b6e5b59ca5c43fd93486fbb9aaf561ab4328a9492a2cf42d11",
+      "test": {
+        "n_cases": 81,
+        "case_order_accuracy": 0.6613756613756614,
+        "mean_accepted_probability_mass": 0.4199536657289354,
+        "order_stable_case_rate": 0.6790123456790124,
+        "per_stage": {
+          "clarification": {
+            "n_cases": 3,
+            "order_accuracy": 0.7619047619047619,
+            "mean_accepted_probability_mass": 0.4273499399423599
+          },
+          "knowledge_update": {
+            "n_cases": 4,
+            "order_accuracy": 0.25,
+            "mean_accepted_probability_mass": 0.3481040559709072
+          },
+          "operation": {
+            "n_cases": 9,
+            "order_accuracy": 0.6825396825396826,
+            "mean_accepted_probability_mass": 0.3779338715479724
+          },
+          "output": {
+            "n_cases": 33,
+            "order_accuracy": 0.6623376623376623,
+            "mean_accepted_probability_mass": 0.40882547490008464
+          },
+          "plan": {
+            "n_cases": 12,
+            "order_accuracy": 0.9642857142857143,
+            "mean_accepted_probability_mass": 0.5361856941932014
+          },
+          "requirement": {
+            "n_cases": 20,
+            "order_accuracy": 0.5357142857142857,
+            "mean_accepted_probability_mass": 0.40074535171900477
+          }
+        },
+        "per_rule": {
+          "POL2-R001": {
+            "n_cases": 3,
+            "order_accuracy": 0.6666666666666666
+          },
+          "POL2-R002": {
+            "n_cases": 3,
+            "order_accuracy": 0.5714285714285714
+          },
+          "POL2-R003": {
+            "n_cases": 1,
+            "order_accuracy": 1.0
+          },
+          "POL2-R004": {
+            "n_cases": 2,
+            "order_accuracy": 1.0
+          },
+          "POL2-R005": {
+            "n_cases": 4,
+            "order_accuracy": 0.21428571428571427
+          },
+          "POL2-R006": {
+            "n_cases": 3,
+            "order_accuracy": 0.6666666666666666
+          },
+          "POL2-R007": {
+            "n_cases": 9,
+            "order_accuracy": 0.7777777777777778
+          },
+          "POL2-R008": {
+            "n_cases": 2,
+            "order_accuracy": 0.6428571428571428
+          },
+          "POL2-R010": {
+            "n_cases": 30,
+            "order_accuracy": 0.919047619047619
+          },
+          "POL2-R011": {
+            "n_cases": 5,
+            "order_accuracy": 0.3142857142857143
+          },
+          "POL2-R012": {
+            "n_cases": 8,
+            "order_accuracy": 0.6607142857142857
+          },
+          "POL2-R014": {
+            "n_cases": 4,
+            "order_accuracy": 0.42857142857142855
+          },
+          "POL2-R015": {
+            "n_cases": 7,
+            "order_accuracy": 0.3877551020408163
+          },
+          "POL2-R016": {
+            "n_cases": 5,
+            "order_accuracy": 0.5714285714285714
+          },
+          "POL2-R017": {
+            "n_cases": 6,
+            "order_accuracy": 0.7380952380952381
+          },
+          "POL2-R018": {
+            "n_cases": 4,
+            "order_accuracy": 0.4642857142857143
+          },
+          "POL2-R019": {
+            "n_cases": 7,
+            "order_accuracy": 0.7346938775510204
+          },
+          "POL2-R020": {
+            "n_cases": 11,
+            "order_accuracy": 0.6363636363636364
+          },
+          "POL2-R021": {
+            "n_cases": 4,
+            "order_accuracy": 0.25
+          },
+          "POL2-R022": {
+            "n_cases": 5,
+            "order_accuracy": 0.22857142857142856
+          },
+          "POL2-R023": {
+            "n_cases": 4,
+            "order_accuracy": 0.9642857142857143
+          },
+          "POL2-R024": {
+            "n_cases": 8,
+            "order_accuracy": 0.9464285714285714
+          },
+          "POL2-R025": {
+            "n_cases": 7,
+            "order_accuracy": 0.5918367346938775
+          },
+          "POL2-R026": {
+            "n_cases": 6,
+            "order_accuracy": 0.5
+          },
+          "POL2-R027": {
+            "n_cases": 2,
+            "order_accuracy": 0.8571428571428572
+          },
+          "POL2-R028": {
+            "n_cases": 4,
+            "order_accuracy": 0.9642857142857143
+          }
+        },
+        "worst_case_ids": [
+          "HOLD-006",
+          "HOLD-008",
+          "HOLD-009",
+          "HOLD-012",
+          "HOLD-017",
+          "HOLD-021",
+          "SEALED-017",
+          "SEALED-020",
+          "FC-005",
+          "FC-013"
+        ]
+      }
+    },
+    {
+      "seed": 20261027,
+      "history": [
+        {
+          "epoch": 1,
+          "mean_set_nll": 0.9295590240508318
+        },
+        {
+          "epoch": 2,
+          "mean_set_nll": 0.6870448309928179
+        },
+        {
+          "epoch": 3,
+          "mean_set_nll": 0.5060169091448188
+        }
+      ],
+      "trainable_parameters": 11347456,
+      "adapter_sha256": "9a6736d02ea999e1211d6b1c666c69d16c87e6d49f10679f33a044ea94c08584",
+      "head_sha256": "324d4f9b7b8879410c2b2929e18d334f4f36d51e8f0ef4adaea24eaec2e42213",
+      "test": {
+        "n_cases": 81,
+        "case_order_accuracy": 0.6525573192239859,
+        "mean_accepted_probability_mass": 0.41159473217668985,
+        "order_stable_case_rate": 0.7160493827160493,
+        "per_stage": {
+          "clarification": {
+            "n_cases": 3,
+            "order_accuracy": 0.8095238095238095,
+            "mean_accepted_probability_mass": 0.43544727138110567
+          },
+          "knowledge_update": {
+            "n_cases": 4,
+            "order_accuracy": 0.25,
+            "mean_accepted_probability_mass": 0.3528157273041351
+          },
+          "operation": {
+            "n_cases": 9,
+            "order_accuracy": 0.6666666666666666,
+            "mean_accepted_probability_mass": 0.3688634557146875
+          },
+          "output": {
+            "n_cases": 33,
+            "order_accuracy": 0.6320346320346321,
+            "mean_accepted_probability_mass": 0.39861285301062455
+          },
+          "plan": {
+            "n_cases": 12,
+            "order_accuracy": 0.9761904761904762,
+            "mean_accepted_probability_mass": 0.5215513955446935
+          },
+          "requirement": {
+            "n_cases": 20,
+            "order_accuracy": 0.5428571428571428,
+            "mean_accepted_probability_mass": 0.3944478292816452
+          }
+        },
+        "per_rule": {
+          "POL2-R001": {
+            "n_cases": 3,
+            "order_accuracy": 0.6666666666666666
+          },
+          "POL2-R002": {
+            "n_cases": 3,
+            "order_accuracy": 0.5714285714285714
+          },
+          "POL2-R003": {
+            "n_cases": 1,
+            "order_accuracy": 1.0
+          },
+          "POL2-R004": {
+            "n_cases": 2,
+            "order_accuracy": 1.0
+          },
+          "POL2-R005": {
+            "n_cases": 4,
+            "order_accuracy": 0.14285714285714285
+          },
+          "POL2-R006": {
+            "n_cases": 3,
+            "order_accuracy": 0.6666666666666666
+          },
+          "POL2-R007": {
+            "n_cases": 9,
+            "order_accuracy": 0.7777777777777778
+          },
+          "POL2-R008": {
+            "n_cases": 2,
+            "order_accuracy": 0.7142857142857143
+          },
+          "POL2-R010": {
+            "n_cases": 30,
+            "order_accuracy": 0.9238095238095239
+          },
+          "POL2-R011": {
+            "n_cases": 5,
+            "order_accuracy": 0.2571428571428571
+          },
+          "POL2-R012": {
+            "n_cases": 8,
+            "order_accuracy": 0.6428571428571428
+          },
+          "POL2-R014": {
+            "n_cases": 4,
+            "order_accuracy": 0.25
+          },
+          "POL2-R015": {
+            "n_cases": 7,
+            "order_accuracy": 0.2857142857142857
+          },
+          "POL2-R016": {
+            "n_cases": 5,
+            "order_accuracy": 0.5714285714285714
+          },
+          "POL2-R017": {
+            "n_cases": 6,
+            "order_accuracy": 0.7380952380952381
+          },
+          "POL2-R018": {
+            "n_cases": 4,
+            "order_accuracy": 0.4642857142857143
+          },
+          "POL2-R019": {
+            "n_cases": 7,
+            "order_accuracy": 0.7551020408163265
+          },
+          "POL2-R020": {
+            "n_cases": 11,
+            "order_accuracy": 0.6363636363636364
+          },
+          "POL2-R021": {
+            "n_cases": 4,
+            "order_accuracy": 0.25
+          },
+          "POL2-R022": {
+            "n_cases": 5,
+            "order_accuracy": 0.19999999999999998
+          },
+          "POL2-R023": {
+            "n_cases": 4,
+            "order_accuracy": 0.9642857142857143
+          },
+          "POL2-R024": {
+            "n_cases": 8,
+            "order_accuracy": 0.9642857142857143
+          },
+          "POL2-R025": {
+            "n_cases": 7,
+            "order_accuracy": 0.6122448979591837
+          },
+          "POL2-R026": {
+            "n_cases": 6,
+            "order_accuracy": 0.5238095238095238
+          },
+          "POL2-R027": {
+            "n_cases": 2,
+            "order_accuracy": 0.7857142857142857
+          },
+          "POL2-R028": {
+            "n_cases": 4,
+            "order_accuracy": 1.0
+          }
+        },
+        "worst_case_ids": [
+          "HOLD-006",
+          "HOLD-008",
+          "HOLD-009",
+          "HOLD-012",
+          "HOLD-017",
+          "HOLD-021",
+          "SEALED-017",
+          "SEALED-020",
+          "FC-005",
+          "FC-010"
+        ]
+      }
+    },
+    {
+      "seed": 20261028,
+      "history": [
+        {
+          "epoch": 1,
+          "mean_set_nll": 0.884823540225625
+        },
+        {
+          "epoch": 2,
+          "mean_set_nll": 0.6628106366842985
+        },
+        {
+          "epoch": 3,
+          "mean_set_nll": 0.4923968883231282
+        }
+      ],
+      "trainable_parameters": 11347456,
+      "adapter_sha256": "37cce357a024f9bb2103193727793b66b72a8f04187d5dbde711478c61dd6658",
+      "head_sha256": "907ea9f4d8d14aeae8a446c1eb2a9f4f62834ab360bdc94595fceb04126e9042",
+      "test": {
+        "n_cases": 81,
+        "case_order_accuracy": 0.6684303350970018,
+        "mean_accepted_probability_mass": 0.41848462316284785,
+        "order_stable_case_rate": 0.7407407407407407,
+        "per_stage": {
+          "clarification": {
+            "n_cases": 3,
+            "order_accuracy": 0.8095238095238095,
+            "mean_accepted_probability_mass": 0.4357458140168871
+          },
+          "knowledge_update": {
+            "n_cases": 4,
+            "order_accuracy": 0.25,
+            "mean_accepted_probability_mass": 0.35848034053508726
+          },
+          "operation": {
+            "n_cases": 9,
+            "order_accuracy": 0.7142857142857143,
+            "mean_accepted_probability_mass": 0.37919693240629776
+          },
+          "output": {
+            "n_cases": 33,
+            "order_accuracy": 0.658008658008658,
+            "mean_accepted_probability_mass": 0.4059130044017003
+          },
+          "plan": {
+            "n_cases": 12,
+            "order_accuracy": 0.9761904761904762,
+            "mean_accepted_probability_mass": 0.5308806191065482
+          },
+          "requirement": {
+            "n_cases": 20,
+            "order_accuracy": 0.5428571428571428,
+            "mean_accepted_probability_mass": 0.3988813352904149
+          }
+        },
+        "per_rule": {
+          "POL2-R001": {
+            "n_cases": 3,
+            "order_accuracy": 0.6666666666666666
+          },
+          "POL2-R002": {
+            "n_cases": 3,
+            "order_accuracy": 0.5238095238095238
+          },
+          "POL2-R003": {
+            "n_cases": 1,
+            "order_accuracy": 1.0
+          },
+          "POL2-R004": {
+            "n_cases": 2,
+            "order_accuracy": 1.0
+          },
+          "POL2-R005": {
+            "n_cases": 4,
+            "order_accuracy": 0.3214285714285714
+          },
+          "POL2-R006": {
+            "n_cases": 3,
+            "order_accuracy": 0.6666666666666666
+          },
+          "POL2-R007": {
+            "n_cases": 9,
+            "order_accuracy": 0.7777777777777778
+          },
+          "POL2-R008": {
+            "n_cases": 2,
+            "order_accuracy": 0.7142857142857143
+          },
+          "POL2-R010": {
+            "n_cases": 30,
+            "order_accuracy": 0.919047619047619
+          },
+          "POL2-R011": {
+            "n_cases": 5,
+            "order_accuracy": 0.2857142857142857
+          },
+          "POL2-R012": {
+            "n_cases": 8,
+            "order_accuracy": 0.6607142857142857
+          },
+          "POL2-R014": {
+            "n_cases": 4,
+            "order_accuracy": 0.42857142857142855
+          },
+          "POL2-R015": {
+            "n_cases": 7,
+            "order_accuracy": 0.3877551020408163
+          },
+          "POL2-R016": {
+            "n_cases": 5,
+            "order_accuracy": 0.5714285714285714
+          },
+          "POL2-R017": {
+            "n_cases": 6,
+            "order_accuracy": 0.7380952380952381
+          },
+          "POL2-R018": {
+            "n_cases": 4,
+            "order_accuracy": 0.4642857142857143
+          },
+          "POL2-R019": {
+            "n_cases": 7,
+            "order_accuracy": 0.7755102040816326
+          },
+          "POL2-R020": {
+            "n_cases": 11,
+            "order_accuracy": 0.6103896103896104
+          },
+          "POL2-R021": {
+            "n_cases": 4,
+            "order_accuracy": 0.25
+          },
+          "POL2-R022": {
+            "n_cases": 5,
+            "order_accuracy": 0.34285714285714286
+          },
+          "POL2-R023": {
+            "n_cases": 4,
+            "order_accuracy": 0.9642857142857143
+          },
+          "POL2-R024": {
+            "n_cases": 8,
+            "order_accuracy": 0.9642857142857143
+          },
+          "POL2-R025": {
+            "n_cases": 7,
+            "order_accuracy": 0.6326530612244898
+          },
+          "POL2-R026": {
+            "n_cases": 6,
+            "order_accuracy": 0.5238095238095238
+          },
+          "POL2-R027": {
+            "n_cases": 2,
+            "order_accuracy": 0.7857142857142857
+          },
+          "POL2-R028": {
+            "n_cases": 4,
+            "order_accuracy": 1.0
+          }
+        },
+        "worst_case_ids": [
+          "HOLD-006",
+          "HOLD-008",
+          "HOLD-009",
+          "HOLD-012",
+          "HOLD-014",
+          "HOLD-017",
+          "HOLD-021",
+          "SEALED-017",
+          "SEALED-020",
+          "FC-005"
+        ]
+      }
+    }
+  ],
+  "parameter_sft_mean_accuracy": 0.660787771898883,
+  "parameter_sft_sd_across_seeds": 0.007952821433550106,
+  "constant_train_majority_baseline": {
+    "label": "revise",
+    "train_case_label_count": 40,
+    "test_accepted_case_rate": 0.5925925925925926
+  },
+  "paired_case_bootstrap": {
+    "parameter_sft_vs_base": {
+      "mean_case_paired_difference": 0.15285126396237508,
+      "case_bootstrap_95_ci": [
+        0.044091710758377416,
+        0.25925925925925924
+      ],
+      "bootstrap_unit": "case; each case is averaged across 7 candidate-order rotations and 3 SFT seeds"
+    },
+    "parameter_sft_vs_rule_summaries": {
+      "mean_case_paired_difference": 0.15461493239271018,
+      "case_bootstrap_95_ci": [
+        0.07231040564373897,
+        0.23574368018812464
+      ],
+      "bootstrap_unit": "case; each case is averaged across 7 candidate-order rotations and 3 SFT seeds"
+    }
+  },
+  "runtime": {
+    "device": "NVIDIA GeForce RTX 5070",
+    "torch": "2.9.1+cu128",
+    "peak_cuda_memory_gib": 4.990841865539551,
+    "elapsed_seconds": 521.5781237999909,
+    "runner_sha256": "0fd2eb8fd67ab59eccf5225a9bb53d9adf8cf6a4e4e0bde5907a6859c0c10609",
+    "eval_readme_sha256": "324691bd5fbc71e05005eeeafe15ffbd5b552c838adb4adf8f9e01f49951a56c",
+    "dataset_sha256": {
+      "dev": "31b2820348b6ba5a1f06ee29d6eb6994248934b40ef51a992a3a9e3d773a0647",
+      "boundaries": "28487f7b596f8a66195570ae4979eb2ca81cdfdc5a50eaa1b384adcdeb2471e7",
+      "love-languages": "ae161c071f71233dffbdc395518fb3c5ab596a6aaefb364e3562eeabf8606a68",
+      "holdout": "cb3084962801b29424151651b547678e086a5a04406f9bb7a7573bec956f9cf9",
+      "sealed": "91c1583bafc795b02410be8fafe5dfcbee5e98cca4cd3d252e86a1c570a5290d",
+      "final-confirmation": "bddd41366ad25bd1741c7a3aa6e3a5950ae63ee390043ad00034d57e55d20d36",
+      "final-confirmation-v2": "0d3b6a7ec2add6b5184133a36e7f1653fcd50fd121011d77385a0f6c92b291a3",
+      "final-confirmation-v3": "a699c7f62d1485bb28bc2c722587fac2c65037a21132fb1e77f3462567cd8a67"
+    },
+    "rule_mapping_sha256": "e446c09124310d531a23e09d360224733fb179e96a686085f7d24c8ec7a450e9"
+  },
+  "limitations": [
+    "This evaluates a finite candidate case set and its supplied acceptable labels, not unrestricted understanding of an evolving theory or private belief.",
+    "Case labels are candidate expectations and have not been independently adjudicated as a gold standard.",
+    "The train/test split is case-level, not rule-family-level: test cases reuse rule families seen during training.",
+    "Test covers 26 of 28 rule IDs and is not a claim of complete rule coverage.",
+    "Kev emits a typed verdict only; this experiment does not assess faithful explanation, correct citations, deliberation, or embodied consequences.",
+    "Seven option orders are repeated measurements of the same cases, not seven independent samples."
+  ]
+}

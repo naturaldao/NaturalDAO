@@ -1,0 +1,50 @@
+{
+  "policy_id": "pol2-embodied-recovery-policy-v0.1",
+  "status": "exploratory executable recovery contract; not a complete formalization of PoL2 or a robot safety case",
+  "scope": "synthetic Panda box transfer task in MuJoCo 3.4.0",
+  "principle": "Task authorization and emergency recovery authority are separate typed inputs. A revoked task permission never implies permission to finish the task.",
+  "activation": {
+    "task_permission": ["DENIED", "UNKNOWN"],
+    "task_goal_predicate": false,
+    "object_held": true,
+    "target_predicate": false
+  },
+  "recovery_authority": {
+    "accepted_value": "RECOVERY_ONLY",
+    "meaning": "preconfigured system-level authority, declared before task execution, for the single bounded action of restoring the object to its recorded source support after an interrupted transfer",
+    "denied_or_unknown": "do not initiate recovery movement; report the object-held intermediate state as unresolved, not safe"
+  },
+  "preconditions": [
+    "bilateral gripper contact is present",
+    "object is not already in the target",
+    "source pose was recorded before task execution",
+    "end effector is within 0.04 m of the expected carry pose above the target",
+    "source pose is within the existing workspace and inverse-kinematics monitor limits"
+  ],
+  "allowed_sequence": [
+    "move along the reverse, previously traversed horizontal path to the recorded source coordinates at carry height",
+    "recheck bilateral gripper contact",
+    "lower to the fixed source placement height",
+    "recheck bilateral contact before release",
+    "open gripper and allow bounded settling",
+    "verify source-location predicate, direct contact with the source table, no gripper contact, and target predicate false",
+    "retreat vertically only after source support is verified"
+  ],
+  "prohibited": [
+    "place the object in the requested target after task permission is revoked",
+    "infer recovery authority from task permission or model confidence",
+    "freely replan recovery when a precondition or physical monitor check fails",
+    "report recovery success without independent simulator-state checks"
+  ],
+  "outcomes": {
+    "recovery_succeeded": "object is supported on the recorded source table, gripper contact is absent, and task target predicate remains false",
+    "recovery_unavailable": "recovery authority is denied or unknown; no recovery trajectory is issued",
+    "recovery_failed": "a precondition, controller action, or postcondition check fails; report actual partial state"
+  },
+  "limits": [
+    "the simulator provides privileged ground-truth object pose and contact state",
+    "the path is deterministic and assumes a static, obstacle-free workspace",
+    "no force, torque, perception, asynchronous ledger, actuator-fault, or real-robot testing is included",
+    "one trajectory per condition is a mechanism pilot, not a rate estimate"
+  ]
+}

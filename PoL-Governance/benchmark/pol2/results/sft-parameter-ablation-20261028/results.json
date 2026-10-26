@@ -1,0 +1,1252 @@
+{
+  "experiment": "PoL2 SFT learned-LoRA parameter ablation (exploratory re-evaluation)",
+  "run_utc": "2026-10-25T15:42:18Z",
+  "design": {
+    "primary_estimand": "case-paired accuracy difference: full SFT adapter vs same SFT head with the initial Kev LoRA restored",
+    "intervention": "restore all LoRA tensors from the pinned initial Kev checkpoint; preserve the fine-tuned decision head",
+    "other_conditions": [
+      "initial Kev checkpoint",
+      "initial Kev checkpoint plus retrieved rule summaries"
+    ],
+    "candidate_order_rotations": 7,
+    "seeds": [
+      20261026,
+      20261027,
+      20261028
+    ],
+    "label_source": "same candidate expected-verdict labels used in the prior broad pilot; not independent gold labels",
+    "dataset_status": "post-hoc reuse of the previously reported 81-case holdout; not a new or confirmatory test set",
+    "train_cases": 63,
+    "test_unique_cases": 81,
+    "removed_exact_duplicates": [
+      "FC3-001",
+      "FC3-006",
+      "FC3-007",
+      "FC3-008",
+      "FC3-009",
+      "FC3-010"
+    ]
+  },
+  "metrics": {
+    "base": {
+      "n_cases": 81,
+      "case_accuracy": 0.5079365079365079,
+      "accepted_probability_mass": 0.3317103282740665,
+      "order_stable_case_rate": 0.654320987654321,
+      "by_stage": {
+        "clarification": {
+          "n": 3,
+          "accuracy": 0.8571428571428571,
+          "accepted_probability_mass": 0.3660350427741096
+        },
+        "knowledge_update": {
+          "n": 4,
+          "accuracy": 0.21428571428571427,
+          "accepted_probability_mass": 0.25390210268752916
+        },
+        "operation": {
+          "n": 9,
+          "accuracy": 0.2857142857142857,
+          "accepted_probability_mass": 0.23569357871181434
+        },
+        "output": {
+          "n": 33,
+          "accuracy": 0.3593073593073593,
+          "accepted_probability_mass": 0.3191268113300656
+        },
+        "plan": {
+          "n": 12,
+          "accuracy": 0.7619047619047619,
+          "accepted_probability_mass": 0.4184283335648832
+        },
+        "requirement": {
+          "n": 20,
+          "accuracy": 0.7071428571428572,
+          "accepted_probability_mass": 0.3540628033024924
+        }
+      },
+      "by_rule": {
+        "POL2-R001": {
+          "n_case_rule_links": 3,
+          "accuracy": 1
+        },
+        "POL2-R002": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.09523809523809523
+        },
+        "POL2-R003": {
+          "n_case_rule_links": 1,
+          "accuracy": 1
+        },
+        "POL2-R004": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.7857142857142857
+        },
+        "POL2-R005": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.4642857142857143
+        },
+        "POL2-R006": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.6190476190476191
+        },
+        "POL2-R007": {
+          "n_case_rule_links": 9,
+          "accuracy": 0.06349206349206349
+        },
+        "POL2-R008": {
+          "n_case_rule_links": 2,
+          "accuracy": 1
+        },
+        "POL2-R010": {
+          "n_case_rule_links": 30,
+          "accuracy": 0.6
+        },
+        "POL2-R011": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.11428571428571428
+        },
+        "POL2-R012": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.35714285714285715
+        },
+        "POL2-R014": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.5
+        },
+        "POL2-R015": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.14285714285714285
+        },
+        "POL2-R016": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.4857142857142857
+        },
+        "POL2-R017": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.23809523809523808
+        },
+        "POL2-R018": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.6071428571428571
+        },
+        "POL2-R019": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.8979591836734694
+        },
+        "POL2-R020": {
+          "n_case_rule_links": 11,
+          "accuracy": 0.4675324675324675
+        },
+        "POL2-R021": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.21428571428571427
+        },
+        "POL2-R022": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.5714285714285714
+        },
+        "POL2-R023": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.8928571428571428
+        },
+        "POL2-R024": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.6428571428571429
+        },
+        "POL2-R025": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.7551020408163265
+        },
+        "POL2-R026": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.5
+        },
+        "POL2-R027": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.21428571428571427
+        },
+        "POL2-R028": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.8928571428571428
+        }
+      }
+    },
+    "retrieval": {
+      "n_cases": 81,
+      "case_accuracy": 0.5061728395061729,
+      "accepted_probability_mass": 0.35785675538963324,
+      "order_stable_case_rate": 0.6172839506172839,
+      "by_stage": {
+        "clarification": {
+          "n": 3,
+          "accuracy": 0.5714285714285714,
+          "accepted_probability_mass": 0.31199007765168235
+        },
+        "knowledge_update": {
+          "n": 4,
+          "accuracy": 0,
+          "accepted_probability_mass": 0.3003713113388845
+        },
+        "operation": {
+          "n": 9,
+          "accuracy": 0.5714285714285714,
+          "accepted_probability_mass": 0.3141369100305296
+        },
+        "output": {
+          "n": 33,
+          "accuracy": 0.4935064935064935,
+          "accepted_probability_mass": 0.3453486604188686
+        },
+        "plan": {
+          "n": 12,
+          "accuracy": 0.7619047619047619,
+          "accepted_probability_mass": 0.46631655613670037
+        },
+        "requirement": {
+          "n": 20,
+          "accuracy": 0.4357142857142857,
+          "accepted_probability_mass": 0.35147025252559355
+        }
+      },
+      "by_rule": {
+        "POL2-R001": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.7142857142857143
+        },
+        "POL2-R002": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.19047619047619047
+        },
+        "POL2-R003": {
+          "n_case_rule_links": 1,
+          "accuracy": 1
+        },
+        "POL2-R004": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.5
+        },
+        "POL2-R005": {
+          "n_case_rule_links": 4,
+          "accuracy": 0
+        },
+        "POL2-R006": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.8095238095238095
+        },
+        "POL2-R007": {
+          "n_case_rule_links": 9,
+          "accuracy": 0.7619047619047619
+        },
+        "POL2-R008": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.8571428571428572
+        },
+        "POL2-R010": {
+          "n_case_rule_links": 30,
+          "accuracy": 0.7285714285714285
+        },
+        "POL2-R011": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.08571428571428572
+        },
+        "POL2-R012": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.4464285714285714
+        },
+        "POL2-R014": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.25
+        },
+        "POL2-R015": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.2857142857142857
+        },
+        "POL2-R016": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.4
+        },
+        "POL2-R017": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.7142857142857143
+        },
+        "POL2-R018": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.25
+        },
+        "POL2-R019": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.5510204081632653
+        },
+        "POL2-R020": {
+          "n_case_rule_links": 11,
+          "accuracy": 0.5454545454545454
+        },
+        "POL2-R021": {
+          "n_case_rule_links": 4,
+          "accuracy": 0
+        },
+        "POL2-R022": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.14285714285714285
+        },
+        "POL2-R023": {
+          "n_case_rule_links": 4,
+          "accuracy": 1
+        },
+        "POL2-R024": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.5535714285714286
+        },
+        "POL2-R025": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.40816326530612246
+        },
+        "POL2-R026": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.3333333333333333
+        },
+        "POL2-R027": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.5
+        },
+        "POL2-R028": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.7142857142857143
+        }
+      }
+    },
+    "sft_seed_20261026": {
+      "n_cases": 81,
+      "case_accuracy": 0.6613756613756614,
+      "accepted_probability_mass": 0.4199536657289354,
+      "order_stable_case_rate": 0.6790123456790124,
+      "by_stage": {
+        "clarification": {
+          "n": 3,
+          "accuracy": 0.7619047619047619,
+          "accepted_probability_mass": 0.4273499399423599
+        },
+        "knowledge_update": {
+          "n": 4,
+          "accuracy": 0.25,
+          "accepted_probability_mass": 0.3481040559709072
+        },
+        "operation": {
+          "n": 9,
+          "accuracy": 0.6825396825396826,
+          "accepted_probability_mass": 0.3779338715479724
+        },
+        "output": {
+          "n": 33,
+          "accuracy": 0.6623376623376623,
+          "accepted_probability_mass": 0.40882547490008464
+        },
+        "plan": {
+          "n": 12,
+          "accuracy": 0.9642857142857143,
+          "accepted_probability_mass": 0.5361856941932014
+        },
+        "requirement": {
+          "n": 20,
+          "accuracy": 0.5357142857142857,
+          "accepted_probability_mass": 0.40074535171900477
+        }
+      },
+      "by_rule": {
+        "POL2-R001": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.6666666666666666
+        },
+        "POL2-R002": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.5714285714285714
+        },
+        "POL2-R003": {
+          "n_case_rule_links": 1,
+          "accuracy": 1
+        },
+        "POL2-R004": {
+          "n_case_rule_links": 2,
+          "accuracy": 1
+        },
+        "POL2-R005": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.21428571428571427
+        },
+        "POL2-R006": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.6666666666666666
+        },
+        "POL2-R007": {
+          "n_case_rule_links": 9,
+          "accuracy": 0.7777777777777778
+        },
+        "POL2-R008": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.6428571428571428
+        },
+        "POL2-R010": {
+          "n_case_rule_links": 30,
+          "accuracy": 0.919047619047619
+        },
+        "POL2-R011": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.3142857142857143
+        },
+        "POL2-R012": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.6607142857142857
+        },
+        "POL2-R014": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.42857142857142855
+        },
+        "POL2-R015": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.3877551020408163
+        },
+        "POL2-R016": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.5714285714285714
+        },
+        "POL2-R017": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.7380952380952381
+        },
+        "POL2-R018": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.4642857142857143
+        },
+        "POL2-R019": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.7346938775510204
+        },
+        "POL2-R020": {
+          "n_case_rule_links": 11,
+          "accuracy": 0.6363636363636364
+        },
+        "POL2-R021": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.25
+        },
+        "POL2-R022": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.22857142857142856
+        },
+        "POL2-R023": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.9642857142857143
+        },
+        "POL2-R024": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.9464285714285714
+        },
+        "POL2-R025": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.5918367346938775
+        },
+        "POL2-R026": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.5
+        },
+        "POL2-R027": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.8571428571428572
+        },
+        "POL2-R028": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.9642857142857143
+        }
+      }
+    },
+    "sft_head_plus_initial_lora_seed_20261026": {
+      "n_cases": 81,
+      "case_accuracy": 0.5167548500881834,
+      "accepted_probability_mass": 0.3442897043294377,
+      "order_stable_case_rate": 0.5925925925925926,
+      "by_stage": {
+        "clarification": {
+          "n": 3,
+          "accuracy": 0.9047619047619048,
+          "accepted_probability_mass": 0.395391756934779
+        },
+        "knowledge_update": {
+          "n": 4,
+          "accuracy": 0.25,
+          "accepted_probability_mass": 0.25197581946849823
+        },
+        "operation": {
+          "n": 9,
+          "accuracy": 0.2857142857142857,
+          "accepted_probability_mass": 0.23848612106863468
+        },
+        "output": {
+          "n": 33,
+          "accuracy": 0.35064935064935066,
+          "accepted_probability_mass": 0.32735720484868275
+        },
+        "plan": {
+          "n": 12,
+          "accuracy": 0.7976190476190477,
+          "accepted_probability_mass": 0.4370658387917848
+        },
+        "requirement": {
+          "n": 20,
+          "accuracy": 0.7214285714285714,
+          "accepted_probability_mass": 0.3749717293440231
+        }
+      },
+      "by_rule": {
+        "POL2-R001": {
+          "n_case_rule_links": 3,
+          "accuracy": 1
+        },
+        "POL2-R002": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.09523809523809523
+        },
+        "POL2-R003": {
+          "n_case_rule_links": 1,
+          "accuracy": 1
+        },
+        "POL2-R004": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.8571428571428572
+        },
+        "POL2-R005": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.4642857142857143
+        },
+        "POL2-R006": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.6190476190476191
+        },
+        "POL2-R007": {
+          "n_case_rule_links": 9,
+          "accuracy": 0.07936507936507936
+        },
+        "POL2-R008": {
+          "n_case_rule_links": 2,
+          "accuracy": 1
+        },
+        "POL2-R010": {
+          "n_case_rule_links": 30,
+          "accuracy": 0.6190476190476191
+        },
+        "POL2-R011": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.11428571428571428
+        },
+        "POL2-R012": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.35714285714285715
+        },
+        "POL2-R014": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.5
+        },
+        "POL2-R015": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.14285714285714285
+        },
+        "POL2-R016": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.5142857142857142
+        },
+        "POL2-R017": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.23809523809523808
+        },
+        "POL2-R018": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.6428571428571428
+        },
+        "POL2-R019": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.9183673469387755
+        },
+        "POL2-R020": {
+          "n_case_rule_links": 11,
+          "accuracy": 0.4675324675324675
+        },
+        "POL2-R021": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.25
+        },
+        "POL2-R022": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.5714285714285714
+        },
+        "POL2-R023": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.8571428571428571
+        },
+        "POL2-R024": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.6428571428571429
+        },
+        "POL2-R025": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.7755102040816326
+        },
+        "POL2-R026": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.5
+        },
+        "POL2-R027": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.35714285714285715
+        },
+        "POL2-R028": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.8571428571428571
+        }
+      }
+    },
+    "sft_seed_20261027": {
+      "n_cases": 81,
+      "case_accuracy": 0.6525573192239859,
+      "accepted_probability_mass": 0.41159473217668985,
+      "order_stable_case_rate": 0.7160493827160493,
+      "by_stage": {
+        "clarification": {
+          "n": 3,
+          "accuracy": 0.8095238095238095,
+          "accepted_probability_mass": 0.43544727138110567
+        },
+        "knowledge_update": {
+          "n": 4,
+          "accuracy": 0.25,
+          "accepted_probability_mass": 0.3528157273041351
+        },
+        "operation": {
+          "n": 9,
+          "accuracy": 0.6666666666666666,
+          "accepted_probability_mass": 0.3688634557146875
+        },
+        "output": {
+          "n": 33,
+          "accuracy": 0.6320346320346321,
+          "accepted_probability_mass": 0.39861285301062455
+        },
+        "plan": {
+          "n": 12,
+          "accuracy": 0.9761904761904762,
+          "accepted_probability_mass": 0.5215513955446935
+        },
+        "requirement": {
+          "n": 20,
+          "accuracy": 0.5428571428571428,
+          "accepted_probability_mass": 0.3944478292816452
+        }
+      },
+      "by_rule": {
+        "POL2-R001": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.6666666666666666
+        },
+        "POL2-R002": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.5714285714285714
+        },
+        "POL2-R003": {
+          "n_case_rule_links": 1,
+          "accuracy": 1
+        },
+        "POL2-R004": {
+          "n_case_rule_links": 2,
+          "accuracy": 1
+        },
+        "POL2-R005": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.14285714285714285
+        },
+        "POL2-R006": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.6666666666666666
+        },
+        "POL2-R007": {
+          "n_case_rule_links": 9,
+          "accuracy": 0.7777777777777778
+        },
+        "POL2-R008": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.7142857142857143
+        },
+        "POL2-R010": {
+          "n_case_rule_links": 30,
+          "accuracy": 0.9238095238095239
+        },
+        "POL2-R011": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.2571428571428571
+        },
+        "POL2-R012": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.6428571428571428
+        },
+        "POL2-R014": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.25
+        },
+        "POL2-R015": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.2857142857142857
+        },
+        "POL2-R016": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.5714285714285714
+        },
+        "POL2-R017": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.7380952380952381
+        },
+        "POL2-R018": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.4642857142857143
+        },
+        "POL2-R019": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.7551020408163265
+        },
+        "POL2-R020": {
+          "n_case_rule_links": 11,
+          "accuracy": 0.6363636363636364
+        },
+        "POL2-R021": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.25
+        },
+        "POL2-R022": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.19999999999999998
+        },
+        "POL2-R023": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.9642857142857143
+        },
+        "POL2-R024": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.9642857142857143
+        },
+        "POL2-R025": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.6122448979591837
+        },
+        "POL2-R026": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.5238095238095238
+        },
+        "POL2-R027": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.7857142857142857
+        },
+        "POL2-R028": {
+          "n_case_rule_links": 4,
+          "accuracy": 1
+        }
+      }
+    },
+    "sft_head_plus_initial_lora_seed_20261027": {
+      "n_cases": 81,
+      "case_accuracy": 0.5238095238095238,
+      "accepted_probability_mass": 0.3427709854902729,
+      "order_stable_case_rate": 0.5925925925925926,
+      "by_stage": {
+        "clarification": {
+          "n": 3,
+          "accuracy": 0.9047619047619048,
+          "accepted_probability_mass": 0.3917804853547187
+        },
+        "knowledge_update": {
+          "n": 4,
+          "accuracy": 0.25,
+          "accepted_probability_mass": 0.2517480014690331
+        },
+        "operation": {
+          "n": 9,
+          "accuracy": 0.2857142857142857,
+          "accepted_probability_mass": 0.23790315177942079
+        },
+        "output": {
+          "n": 33,
+          "accuracy": 0.36363636363636365,
+          "accepted_probability_mass": 0.32683787422327254
+        },
+        "plan": {
+          "n": 12,
+          "accuracy": 0.7976190476190477,
+          "accepted_probability_mass": 0.43383186195223106
+        },
+        "requirement": {
+          "n": 20,
+          "accuracy": 0.7285714285714285,
+          "accepted_probability_mass": 0.3724677901981132
+        }
+      },
+      "by_rule": {
+        "POL2-R001": {
+          "n_case_rule_links": 3,
+          "accuracy": 1
+        },
+        "POL2-R002": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.14285714285714285
+        },
+        "POL2-R003": {
+          "n_case_rule_links": 1,
+          "accuracy": 1
+        },
+        "POL2-R004": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.8571428571428572
+        },
+        "POL2-R005": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.4642857142857143
+        },
+        "POL2-R006": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.7142857142857143
+        },
+        "POL2-R007": {
+          "n_case_rule_links": 9,
+          "accuracy": 0.07936507936507936
+        },
+        "POL2-R008": {
+          "n_case_rule_links": 2,
+          "accuracy": 1
+        },
+        "POL2-R010": {
+          "n_case_rule_links": 30,
+          "accuracy": 0.6285714285714286
+        },
+        "POL2-R011": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.11428571428571428
+        },
+        "POL2-R012": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.375
+        },
+        "POL2-R014": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.5
+        },
+        "POL2-R015": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.14285714285714285
+        },
+        "POL2-R016": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.5142857142857142
+        },
+        "POL2-R017": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.23809523809523808
+        },
+        "POL2-R018": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.6428571428571428
+        },
+        "POL2-R019": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.9183673469387755
+        },
+        "POL2-R020": {
+          "n_case_rule_links": 11,
+          "accuracy": 0.4675324675324675
+        },
+        "POL2-R021": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.25
+        },
+        "POL2-R022": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.5714285714285714
+        },
+        "POL2-R023": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.8571428571428571
+        },
+        "POL2-R024": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.6428571428571429
+        },
+        "POL2-R025": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.7755102040816326
+        },
+        "POL2-R026": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.5
+        },
+        "POL2-R027": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.35714285714285715
+        },
+        "POL2-R028": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.8571428571428571
+        }
+      }
+    },
+    "sft_seed_20261028": {
+      "n_cases": 81,
+      "case_accuracy": 0.6684303350970018,
+      "accepted_probability_mass": 0.41848462316284785,
+      "order_stable_case_rate": 0.7407407407407407,
+      "by_stage": {
+        "clarification": {
+          "n": 3,
+          "accuracy": 0.8095238095238095,
+          "accepted_probability_mass": 0.4357458140168871
+        },
+        "knowledge_update": {
+          "n": 4,
+          "accuracy": 0.25,
+          "accepted_probability_mass": 0.35848034053508726
+        },
+        "operation": {
+          "n": 9,
+          "accuracy": 0.7142857142857143,
+          "accepted_probability_mass": 0.37919693240629776
+        },
+        "output": {
+          "n": 33,
+          "accuracy": 0.658008658008658,
+          "accepted_probability_mass": 0.4059130044017003
+        },
+        "plan": {
+          "n": 12,
+          "accuracy": 0.9761904761904762,
+          "accepted_probability_mass": 0.5308806191065482
+        },
+        "requirement": {
+          "n": 20,
+          "accuracy": 0.5428571428571428,
+          "accepted_probability_mass": 0.3988813352904149
+        }
+      },
+      "by_rule": {
+        "POL2-R001": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.6666666666666666
+        },
+        "POL2-R002": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.5238095238095238
+        },
+        "POL2-R003": {
+          "n_case_rule_links": 1,
+          "accuracy": 1
+        },
+        "POL2-R004": {
+          "n_case_rule_links": 2,
+          "accuracy": 1
+        },
+        "POL2-R005": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.3214285714285714
+        },
+        "POL2-R006": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.6666666666666666
+        },
+        "POL2-R007": {
+          "n_case_rule_links": 9,
+          "accuracy": 0.7777777777777778
+        },
+        "POL2-R008": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.7142857142857143
+        },
+        "POL2-R010": {
+          "n_case_rule_links": 30,
+          "accuracy": 0.919047619047619
+        },
+        "POL2-R011": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.2857142857142857
+        },
+        "POL2-R012": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.6607142857142857
+        },
+        "POL2-R014": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.42857142857142855
+        },
+        "POL2-R015": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.3877551020408163
+        },
+        "POL2-R016": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.5714285714285714
+        },
+        "POL2-R017": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.7380952380952381
+        },
+        "POL2-R018": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.4642857142857143
+        },
+        "POL2-R019": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.7755102040816326
+        },
+        "POL2-R020": {
+          "n_case_rule_links": 11,
+          "accuracy": 0.6103896103896104
+        },
+        "POL2-R021": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.25
+        },
+        "POL2-R022": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.34285714285714286
+        },
+        "POL2-R023": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.9642857142857143
+        },
+        "POL2-R024": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.9642857142857143
+        },
+        "POL2-R025": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.6326530612244898
+        },
+        "POL2-R026": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.5238095238095238
+        },
+        "POL2-R027": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.7857142857142857
+        },
+        "POL2-R028": {
+          "n_case_rule_links": 4,
+          "accuracy": 1
+        }
+      }
+    },
+    "sft_head_plus_initial_lora_seed_20261028": {
+      "n_cases": 81,
+      "case_accuracy": 0.5167548500881834,
+      "accepted_probability_mass": 0.34474458138752445,
+      "order_stable_case_rate": 0.5925925925925926,
+      "by_stage": {
+        "clarification": {
+          "n": 3,
+          "accuracy": 0.9047619047619048,
+          "accepted_probability_mass": 0.39565946800368174
+        },
+        "knowledge_update": {
+          "n": 4,
+          "accuracy": 0.25,
+          "accepted_probability_mass": 0.2515155122216259
+        },
+        "operation": {
+          "n": 9,
+          "accuracy": 0.2857142857142857,
+          "accepted_probability_mass": 0.23799586798700076
+        },
+        "output": {
+          "n": 33,
+          "accuracy": 0.35497835497835495,
+          "accepted_probability_mass": 0.328026294143814
+        },
+        "plan": {
+          "n": 12,
+          "accuracy": 0.7857142857142857,
+          "accepted_probability_mass": 0.43800481364485766
+        },
+        "requirement": {
+          "n": 20,
+          "accuracy": 0.7214285714285714,
+          "accepted_probability_mass": 0.37541911785623855
+        }
+      },
+      "by_rule": {
+        "POL2-R001": {
+          "n_case_rule_links": 3,
+          "accuracy": 1
+        },
+        "POL2-R002": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.09523809523809523
+        },
+        "POL2-R003": {
+          "n_case_rule_links": 1,
+          "accuracy": 1
+        },
+        "POL2-R004": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.8571428571428572
+        },
+        "POL2-R005": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.4642857142857143
+        },
+        "POL2-R006": {
+          "n_case_rule_links": 3,
+          "accuracy": 0.6666666666666666
+        },
+        "POL2-R007": {
+          "n_case_rule_links": 9,
+          "accuracy": 0.07936507936507936
+        },
+        "POL2-R008": {
+          "n_case_rule_links": 2,
+          "accuracy": 1
+        },
+        "POL2-R010": {
+          "n_case_rule_links": 30,
+          "accuracy": 0.6142857142857143
+        },
+        "POL2-R011": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.11428571428571428
+        },
+        "POL2-R012": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.35714285714285715
+        },
+        "POL2-R014": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.5
+        },
+        "POL2-R015": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.14285714285714285
+        },
+        "POL2-R016": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.5142857142857142
+        },
+        "POL2-R017": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.23809523809523808
+        },
+        "POL2-R018": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.6428571428571428
+        },
+        "POL2-R019": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.9183673469387755
+        },
+        "POL2-R020": {
+          "n_case_rule_links": 11,
+          "accuracy": 0.4675324675324675
+        },
+        "POL2-R021": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.25
+        },
+        "POL2-R022": {
+          "n_case_rule_links": 5,
+          "accuracy": 0.5714285714285714
+        },
+        "POL2-R023": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.8571428571428571
+        },
+        "POL2-R024": {
+          "n_case_rule_links": 8,
+          "accuracy": 0.6428571428571429
+        },
+        "POL2-R025": {
+          "n_case_rule_links": 7,
+          "accuracy": 0.7755102040816326
+        },
+        "POL2-R026": {
+          "n_case_rule_links": 6,
+          "accuracy": 0.5
+        },
+        "POL2-R027": {
+          "n_case_rule_links": 2,
+          "accuracy": 0.2857142857142857
+        },
+        "POL2-R028": {
+          "n_case_rule_links": 4,
+          "accuracy": 0.8571428571428571
+        }
+      }
+    }
+  },
+  "paired_bootstrap": {
+    "full_sft_vs_initial": {
+      "mean_difference": 0.15285126396237508,
+      "case_bootstrap_95_ci": [
+        0.04644326866549088,
+        0.26102292768959434
+      ],
+      "bootstrap_unit": "case, averaged over 7 candidate-order rotations and (where applicable) 3 seeds"
+    },
+    "full_sft_vs_rule_retrieval": {
+      "mean_difference": 0.15461493239271018,
+      "case_bootstrap_95_ci": [
+        0.07407407407407407,
+        0.23750734861845973
+      ],
+      "bootstrap_unit": "case, averaged over 7 candidate-order rotations and (where applicable) 3 seeds"
+    },
+    "full_sft_vs_sft_head_plus_initial_lora": {
+      "mean_difference": 0.14168136390358613,
+      "case_bootstrap_95_ci": [
+        0.035861258083480306,
+        0.24750146972369194
+      ],
+      "bootstrap_unit": "case, averaged over 7 candidate-order rotations and (where applicable) 3 seeds"
+    }
+  },
+  "model": {
+    "initial_checkpoint": "jaredpalmer/kev-0.8b@bf75a6a8848ea6960ff2ed108d9ed44c2941174f",
+    "base_model": "Qwen/Qwen3.5-0.8B-Base",
+    "base_revision": "dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68",
+    "adapter_sha256": {
+      "20261026": "56f70d6fd63dc6370420196a7c60eb15d721d503c3b337403c497855545b4970",
+      "20261027": "9a6736d02ea999e1211d6b1c666c69d16c87e6d49f10679f33a044ea94c08584",
+      "20261028": "37cce357a024f9bb2103193727793b66b72a8f04187d5dbde711478c61dd6658"
+    },
+    "head_sha256": {
+      "20261026": "71fab075a25640b6e5b59ca5c43fd93486fbb9aaf561ab4328a9492a2cf42d11",
+      "20261027": "324d4f9b7b8879410c2b2929e18d334f4f36d51e8f0ef4adaea24eaec2e42213",
+      "20261028": "907ea9f4d8d14aeae8a446c1eb2a9f4f62834ab360bdc94595fceb04126e9042"
+    },
+    "source_runner_sha256": "0fd2eb8fd67ab59eccf5225a9bb53d9adf8cf6a4e4e0bde5907a6859c0c10609",
+    "checkpoint_temperature": 2.3510958125672174
+  },
+  "runtime": {
+    "device": "NVIDIA GeForce RTX 5070",
+    "torch": "2.9.1+cu128",
+    "max_cuda_memory_gib": 2.098182201385498,
+    "elapsed_seconds": 315.2276117000147,
+    "evaluation_files_sha256": {
+      "dev.jsonl": "31b2820348b6ba5a1f06ee29d6eb6994248934b40ef51a992a3a9e3d773a0647",
+      "boundaries.jsonl": "28487f7b596f8a66195570ae4979eb2ca81cdfdc5a50eaa1b384adcdeb2471e7",
+      "love-languages.jsonl": "ae161c071f71233dffbdc395518fb3c5ab596a6aaefb364e3562eeabf8606a68",
+      "holdout.jsonl": "cb3084962801b29424151651b547678e086a5a04406f9bb7a7573bec956f9cf9",
+      "sealed.jsonl": "91c1583bafc795b02410be8fafe5dfcbee5e98cca4cd3d252e86a1c570a5290d",
+      "final-confirmation.jsonl": "bddd41366ad25bd1741c7a3aa6e3a5950ae63ee390043ad00034d57e55d20d36",
+      "final-confirmation-v2.jsonl": "0d3b6a7ec2add6b5184133a36e7f1653fcd50fd121011d77385a0f6c92b291a3",
+      "final-confirmation-v3.jsonl": "a699c7f62d1485bb28bc2c722587fac2c65037a21132fb1e77f3462567cd8a67"
+    },
+    "rule_mapping_sha256": "e446c09124310d531a23e09d360224733fb179e96a686085f7d24c8ec7a450e9"
+  },
+  "limitations": [
+    "This is a post-hoc mechanistic ablation on an already used evaluation set, not independent confirmation.",
+    "The intervention isolates the fine-tuned LoRA delta conditional on the SFT head; it does not prove that the model internally represents the complete PoL2 theory.",
+    "The 81 cases reuse rule families from training and cover only 26/28 mapped rule IDs.",
+    "Candidate labels were authored under the same evolving theory mapping and are not independently adjudicated gold labels.",
+    "The evaluator measures typed verdict selection, not faithful reasoning traces, citation correctness, open-ended generalization, or physical outcomes.",
+    "A case bootstrap interval is descriptive because cases may share rule families; it is not a population-level safety guarantee."
+  ]
+}

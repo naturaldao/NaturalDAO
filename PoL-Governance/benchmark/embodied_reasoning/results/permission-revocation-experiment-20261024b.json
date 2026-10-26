@@ -1,0 +1,243 @@
+{
+  "experiment": "PoL2 embodied permission-revocation boundary fault injection",
+  "created_at_utc": "2026-10-24T04:46:37.409250+00:00",
+  "runtime": {
+    "python": "3.12.10",
+    "mujoco": "3.4.0"
+  },
+  "policy": "pol2-embodied-contract-v0.2",
+  "policy_sha256": "8492917fc9723adc1e0044a5d690a0955526da6e8f020d18ae7e694cd5e0cccb",
+  "robot": "Franka Emika Panda (MuJoCo Menagerie)",
+  "design": "one deterministic trajectory per permission schedule; checks at transfer start, pre-grasp, and pre-place",
+  "cases": [
+    {
+      "case": "revoked_after_approach_before_grasp",
+      "permission_schedule": [
+        "GRANTED",
+        "DENIED"
+      ],
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "DENIED"
+        }
+      ],
+      "permission_reader_values": [
+        "GRANTED",
+        "DENIED"
+      ],
+      "outcome": "blocked",
+      "reason": "permission_not_granted_before_grasp",
+      "phase_names": [
+        "approach"
+      ],
+      "initial_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "box_moved_more_than_1cm": false,
+      "box_on_source": true,
+      "box_in_target": false,
+      "gripper_contact": {
+        "left": false,
+        "right": false
+      },
+      "object_still_held": false,
+      "simulated_seconds": 1.4,
+      "revision": 1,
+      "interpretation": "revocation_detected_before_object_contact; object remains at source"
+    },
+    {
+      "case": "revoked_at_pre_place_check",
+      "permission_schedule": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "DENIED"
+        }
+      ],
+      "permission_reader_values": [
+        "GRANTED",
+        "GRANTED",
+        "DENIED"
+      ],
+      "outcome": "blocked",
+      "reason": "permission_not_granted_before_place",
+      "phase_names": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport"
+      ],
+      "initial_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_position_m": [
+        0.4304,
+        -0.2283,
+        0.5154
+      ],
+      "box_moved_more_than_1cm": true,
+      "box_on_source": false,
+      "box_in_target": false,
+      "gripper_contact": {
+        "left": true,
+        "right": true
+      },
+      "object_still_held": true,
+      "simulated_seconds": 4.46,
+      "revision": 4,
+      "interpretation": "revocation detected, but object remains held after lift/transport; recovery is not implemented"
+    },
+    {
+      "case": "ledger_read_failure_before_grasp",
+      "permission_schedule": [
+        "GRANTED",
+        "LEDGER_ERROR"
+      ],
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "UNKNOWN",
+          "read_error": "TimeoutError"
+        }
+      ],
+      "permission_reader_values": [
+        "GRANTED",
+        "LEDGER_ERROR"
+      ],
+      "outcome": "blocked",
+      "reason": "permission_not_granted_before_grasp",
+      "phase_names": [
+        "approach"
+      ],
+      "initial_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "box_moved_more_than_1cm": false,
+      "box_on_source": true,
+      "box_in_target": false,
+      "gripper_contact": {
+        "left": false,
+        "right": false
+      },
+      "object_still_held": false,
+      "simulated_seconds": 1.4,
+      "revision": 1,
+      "interpretation": "ledger read error became UNKNOWN; motion stopped before object contact"
+    },
+    {
+      "case": "control_permission_remains_granted",
+      "permission_schedule": [
+        "GRANTED"
+      ],
+      "permission_checks": [
+        {
+          "checkpoint": "transfer_start",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_grasp",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "before_place",
+          "permission": "GRANTED"
+        },
+        {
+          "checkpoint": "after_release",
+          "permission": "GRANTED"
+        }
+      ],
+      "permission_reader_values": [
+        "GRANTED",
+        "GRANTED",
+        "GRANTED",
+        "GRANTED"
+      ],
+      "outcome": "executed",
+      "reason": null,
+      "phase_names": [
+        "approach",
+        "descend",
+        "close_gripper",
+        "lift",
+        "transport",
+        "place",
+        "release",
+        "retreat"
+      ],
+      "initial_box_position_m": [
+        0.55,
+        0.0,
+        0.4219
+      ],
+      "final_box_position_m": [
+        0.4285,
+        -0.2345,
+        0.4329
+      ],
+      "box_moved_more_than_1cm": true,
+      "box_on_source": false,
+      "box_in_target": true,
+      "gripper_contact": {
+        "left": false,
+        "right": false
+      },
+      "object_still_held": false,
+      "simulated_seconds": 7.1,
+      "revision": 7,
+      "interpretation": "positive control completes under continuously granted permission"
+    }
+  ],
+  "summary": {
+    "pre_grasp_revocation_prevented_box_motion": true,
+    "pre_place_revocation_detected": true,
+    "pre_place_revocation_left_object_held": true,
+    "ledger_read_failure_failed_closed": true,
+    "continuous_grant_control_completed": true
+  },
+  "limits": [
+    "synthetic permission ledger and synchronous fault injection; no natural-language or visual sensing",
+    "one trajectory per schedule; no statistical inference",
+    "the injected revocation is observed at its named checkpoint, not asynchronously at every physics step",
+    "rollback/recovery after in-flight revocation is not implemented"
+  ],
+  "figure": "Research/figures/pol2-permission-revocation-20261024b.png"
+}

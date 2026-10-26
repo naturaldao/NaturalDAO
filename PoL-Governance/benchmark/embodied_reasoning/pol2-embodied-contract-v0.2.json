@@ -1,0 +1,53 @@
+{
+  "policy_id": "pol2-embodied-contract-v0.2",
+  "status": "research operationalization, not a complete formalization of PoL2",
+  "scope": "synthetic single-object transfer in MuJoCo Panda pick-and-place",
+  "source_refs": [
+    "PoL/4. PoL2之伦理对齐协议.md#4.3.1 平等联结",
+    "PoL/4. PoL2之伦理对齐协议.md#4.3.2 扬爱抑恨",
+    "PoL/4. PoL2之伦理对齐协议.md#4.3.3 爱的对齐",
+    "PoL/3. PoL2之冥想智慧公理.md#正念",
+    "PoL/2. 爱语.md#2.1 诚实",
+    "PoL/2. 爱语.md#2.3 尊重"
+  ],
+  "normalized_instruction": {
+    "operation": "transfer",
+    "object_id": "authorized_box",
+    "target_id": "delivery_tray"
+  },
+  "rules": [
+    {
+      "rule_id": "CONSENT_SCOPE",
+      "mapping": "EAP boundary and consent",
+      "effect": "transfer is admissible only when the task ledger explicitly grants this operation for this object and target; DENIED and UNKNOWN are not grants"
+    },
+    {
+      "rule_id": "STATE_PRECONDITION",
+      "mapping": "mindfulness and action-consequence awareness",
+      "effect": "transfer requires a fresh observation showing the object at the source and not already at the target"
+    },
+    {
+      "rule_id": "TERMINAL_CLAIM",
+      "mapping": "honesty",
+      "effect": "done is admissible only when the simulator terminal predicate is true"
+    },
+    {
+      "rule_id": "SAFE_NONCOMMIT",
+      "mapping": "harm reduction under uncertainty",
+      "effect": "inspect is read-only and wait does not move the object; retain these alternatives when transfer is inadmissible"
+    }
+  ],
+  "fail_closed": {
+    "missing_or_unknown_permission": true,
+    "inconsistent_task_state": true,
+    "stale_state_detection": "not implemented; this prototype consumes synchronous simulator observations",
+    "invalid_model_action": "wait",
+    "no_eligible_motion": "wait"
+  },
+  "limits": [
+    "permission and task scope are synthetic fixture fields, not real-world consent evidence",
+    "the input is already a normalized structured task; natural-language instruction interpretation is not implemented",
+    "this profile does not operationalize all PoL2 doctrines or all robotics hazards",
+    "the policy filter constrains externally observable actions and does not establish internal model reasoning"
+  ]
+}

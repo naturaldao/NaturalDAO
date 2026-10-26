@@ -44,5 +44,17 @@
     "manifest": "datasets/general/data/MANIFEST.json",
     "manifest_sha256": null,
     "host_note": "数据实体不入库：train/validation/test、jev-probs、target-types、中文补充公开托管；benchmark 私有保留集单独私有托管。见 datasets/general/HF.md（状态 READY / NOT UPLOADED）与 datasets/general/data/MANIFEST.json。"
+  },
+  {
+    "id": "pol2-score-v2",
+    "card": "datasets/pol2/score-v2/README.md",
+    "data": "datasets/pol2/score-v2/manifests/full-release.json",
+    "external_url": "https://github.com/naturaldao/NaturalDAO/releases/download/pol2-score-v2-v1.0.0/pol2-score-v2-data-v1.zip",
+    "status": "release_candidate_holdout_external",
+    "split": "experiment train/validation/calibration/score-dev; sealed blind excluded",
+    "license": "Proof of Love2; MRI-derived replay under MIT",
+    "notes": "Laya/Kev training exports plus paired public samples; canonical PoL2 four-layer conversion is still pending; sealed/fresh blind is not included.",
+    "eligible_for_ranking": false
+
   }
 ]

@@ -1,0 +1,53 @@
+{
+  "experiment": "PoL2 full-theory machine-adjudicated challenge set",
+  "created_at_utc": "2026-10-25T19:21:10Z",
+  "scope": "all source-linked items in the 9 PoL2 chapters from six structured knowledge files; deduplicated by statement",
+  "atom_count": 1,
+  "train_n": 3,
+  "test_n": 3,
+  "covered_atoms": 1,
+  "uncovered_atoms": [],
+  "label_source": "programmatic class assignment by Llama 3.1 8B generator, retained only when Qwen 2.5 7B independent adjudicator agrees",
+  "limitations": [
+    "AI agreement is not independent normative ground truth; both models see the same structured claim and source excerpts.",
+    "Only atoms with two accepted cases per class enter both splits; coverage gaps remain explicit.",
+    "The knowledge pack contains candidate rule mappings and researcher interpretations in addition to direct source excerpts.",
+    "This evaluates version-bounded scenario consistency, not subjective belief or future theory versions."
+  ],
+  "input_sha256": {
+    "concepts.jsonl": "bc31a72f572ab4ff335cb9aa8a457ff771b99b8da9b60384020af5bd164a83c7",
+    "relations.jsonl": "3dc49f221c58aadb1bcaada01e72bef47c84aa409526c3fd5aec7a6e7be3b2d9",
+    "propositions.jsonl": "c087926533bd8977e2f35d054727512f2edf903c670f08870708653a29b285f9",
+    "love-languages.jsonl": "42d7a265b1ebfd84ddc6e44ad57a82110c5e5e020e0eba0d51e57d6f8f5c8022",
+    "rule-mapping.jsonl": "e446c09124310d531a23e09d360224733fb179e96a686085f7d24c8ec7a450e9",
+    "interpretations.jsonl": "44ae8a154bff4c42449fddb441b640b220beff89d7d1ad40ddaa1db6cfd9917c"
+  },
+  "atom_audit": [
+    {
+      "atom_id": "love2",
+      "kind": "concept",
+      "source_refs": [
+        {
+          "source_path": "PoL/1. 爱2、恨2、爱2证明、恨2证明、富爱文明.md",
+          "paragraph": 8,
+          "excerpt": "爱，是人类为实现自身平安与健康发展"
+        },
+        {
+          "source_path": "PoL/1. 爱2、恨2、爱2证明、恨2证明、富爱文明.md",
+          "paragraph": 12,
+          "excerpt": "心智行三合一"
+        }
+      ],
+      "generated_n": 6,
+      "accepted_n": 6,
+      "accepted_by_label": {
+        "insufficient": 2,
+        "conflicting": 2,
+        "consistent": 2
+      },
+      "covered": true
+    }
+  ],
+  "pilot_limit_atoms": 1,
+  "generation_script_sha256": "fceefe76bd2e66364f7eac6a182a7a0f2da4d007e7e6e7a7fce885ff6d5a6f48"
+}

@@ -10,6 +10,8 @@
 | MODEL-01 | 深入调研并更新候选清单 | models/CATALOG.md |
 | MODEL-02 | 自选模型适配与控制遗忘（可多队） | models/；results/ |
 | EVAL-01 | 正式 benchmark、通用及主流安全对照 | benchmark/；results/ |
+| EVAL-02 | PoL2 × 类型决策模型的具身任务执行验证（Kev + VirtualHome 单场景闭环；16 案例三条件长度匹配筛查，扩展可执行基准） | benchmark/embodied_reasoning/；Research/Embodied/03-策略与决策实验/PoL2具身推理过程初步验证.md |
+| EVAL-03 | 完整 PoL2 理论内在化验证：建立全章节、可失败的挑战评测与训练对照 | PoL-Governance/benchmark/pol2/；Research/Embodied/02-实验设计与审计/PoL2完整理论内在化挑战集生成质量先导.md |
 | APP-01 | 插件接入、试运行与端到端验证 | integrations/ |
 | LIT-01 | Jev 类型化决策模型文献综述，对照 PoL2 治理条款 | research/PoL2-Jev-Typed-Literature-Survey/ |
 | GOV-01 | PoL2 × DAO 治理机制实验室：条款落地、模拟、反事实与基线筛查评测 | research/PoL2-DAO-Governance-Lab/ |

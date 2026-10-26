@@ -1,0 +1,28 @@
+{
+  "common": {
+    "retention_days": 365,
+    "indexed_fraction": 0.1,
+    "vectors_per_indexed_event": 8,
+    "dimensions": 1024,
+    "float_bytes": 2,
+    "graph_degree": 32,
+    "neighbor_bytes": 8,
+    "node_overhead_bytes": 64,
+    "pq_code_bytes": 64,
+    "compression_ratio": 0.5,
+    "archive_ec_factor": 1.5,
+    "vector_replicas": 2,
+    "ann_replicas": 2,
+    "metadata_bytes": 1024,
+    "metadata_replicas": 2,
+    "hot_days": 7,
+    "cache_copies": 1,
+    "rebuild_temp_factor": 1,
+    "free_reserve_fraction": 0.25
+  },
+  "scenarios": {
+    "E0": {"events_per_day": 1000000, "payload_bytes": 2048},
+    "E1": {"events_per_day": 100000000, "payload_bytes": 8192},
+    "E2": {"events_per_day": 10000000000, "payload_bytes": 16384}
+  }
+}
