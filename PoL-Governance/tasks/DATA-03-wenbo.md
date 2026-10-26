@@ -2,7 +2,7 @@
 
 | 领取人 / Agent | 状态 / 最近进展（Agent 更新） |
 |---|---|
-| Wenbo / DSH Agent Team | 完成；**v5 已交付并经 PR #43 并入 main**（公开三区 71,519 条 / 78,001 问题；保留集 6,541 条库外）；HF 导出/离线校验就绪，**NOT UPLOADED（待 token）**；仓库整理已收尾（PR #44 已关闭，等 owner 新集成意见） |
+| Wenbo / DSH Agent Team | 完成；**v5 已交付并经 PR #43 并入 main**（公开三区 71,519 条 / 78,001 问题；保留集 6,541 条库外）；HF 已上传（公开 revision `52bfdca…` / 私有保留集 `146ae46…`，远程+下载回验通过）；仓库整理已收尾（PR #44 已关闭，等 owner 新集成意见） |
 
 - 更新时间：2026-10-23 UTC+8
 - 分支：pol/DATA-02/wenbo（阶段一收尾 PR 之后，模型适配线另开 pol/MODEL-02/wenbo）
@@ -30,7 +30,7 @@
 ## 交付或交接
 
 - 已交付并合入 main：`datasets/general/` v5（数据集卡、契约、来源、训练路由、切分报告、target 溯源、目录索引）；概率旁挂件 jev-probs（44,740 行）与 target-types（74,853 行），两者与保留集交集均为 0
-- 托管整理中：数据实体 → Hugging Face（公开三区公开仓库；保留集私有仓库），仓库留 `data/MANIFEST.json` 与 [HF.md](../datasets/general/HF.md)；状态 READY / NOT UPLOADED
+- 托管整理中：数据实体 → Hugging Face（公开三区公开仓库；保留集私有仓库），仓库留 `data/MANIFEST.json` 与 [HF.md](../datasets/general/HF.md)；状态 UPLOADED（2026-10-27，revision 见 [HF.md](../datasets/general/HF.md)）
 - 库外保留：保留集包 v0.5（6,541 条）在 `datasets/general/data/splits/benchmark-dataset/`（gitignore），由用户/维护者上传私有仓库，独立评测者统一评测
 - 复现与检查：`uv run --no-project --offline python tools/check.py`；`split.py --audit-public-surface`；`benchmark-dataset/verify.py`；`readme_stats.py --check`
 - 未完成：HF 上传（需用户操作）；P8 补源；模板命题线退役；第二阶段模型适配另立 MODEL-02 任务页

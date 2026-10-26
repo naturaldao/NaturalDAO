@@ -25,7 +25,7 @@
 | 来源 | 13 个独立来源，最大一家 33.78% |
 | 格式 | JSONL（UTF-8，一条一行） |
 
-> **数据实体已托管到 Hugging Face（状态 READY / NOT UPLOADED）。** 本仓库只保留数据卡、清单与校验脚本；
+> **数据实体已托管到 Hugging Face（状态 UPLOADED；公开 revision `52bfdca…`，私有保留集 `146ae46…`）。** 本仓库只保留数据卡、清单与校验脚本；
 > 分区文件与旁挂件的下载、校验和上传步骤见 [HF.md](HF.md)，逐文件 sha256 / 行数 / 可见性见
 > [data/MANIFEST.json](data/MANIFEST.json)。内部保留集不在此仓库，也不在公开仓库（见 HF.md §6）。
 

@@ -233,6 +233,16 @@ def run(args: argparse.Namespace) -> int:
         token = os.environ.get(args.token_env) or None
         if not token:
             raise RemoteVerifyError(f"环境变量 {args.token_env} 为空")
+    elif args.token_cache:
+        try:
+            from huggingface_hub import get_token  # 可选依赖，仅 --token-cache 时导入
+        except ImportError as error:
+            raise RemoteVerifyError(
+                "--token-cache 需要 huggingface_hub；可用 uv run --with huggingface_hub python ..."
+            ) from error
+        token = get_token()
+        if not token:
+            raise RemoteVerifyError("HF 缓存中没有 token；先运行 hf auth login 或改用 --token-file")
     tree = fetch_tree(args.repo_id, args.revision, token)
     raw_fetcher = None
     if not args.skip_raw:
@@ -256,6 +266,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--token-file", help="HF token 文件（必须在仓库外）")
     parser.add_argument("--token-env", default=None,
                         help="从该环境变量读取 token（默认不读取，匿名请求公开仓库）")
+    parser.add_argument("--token-cache", action="store_true",
+                        help="从本机 HF 缓存读取 token（需 huggingface_hub；可用 uv run --with huggingface_hub）")
     parser.add_argument("--skip-raw", action="store_true",
                         help="只读 tree 清单，不下载小文件复算 sha256")
     parser.add_argument("--max-download-bytes", type=int, default=MAX_DOWNLOAD_BYTES,

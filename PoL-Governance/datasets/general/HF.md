@@ -1,6 +1,6 @@
 # Hugging Face 托管手册（general 决策数据集 v5）
 
-**状态：READY / NOT UPLOADED**（2026-10-22：本地导出与自检全部通过；尚未上传，当前环境没有 HF token，上传由维护者执行）。
+**状态：UPLOADED（2026-10-27 复核）**：公开仓库 revision `52bfdcae2cfcd4927b0a37d8ef29ea001d818b0d`，私有保留集 revision `146ae4604e67c93805f6bf468449b45c205ca7da`；远程校验（公开 7/7、私有 6/6 全部 sha256/bytes 匹配）与下载回验/包自校验均通过。
 
 本文件是**托管方案 + 操作手册**。数据实体不入库：仓库只保留数据卡、清单（`data/MANIFEST.json`）、
 生成/校验脚本（`export_hf.py`）与本手册。上传前后的每一步都以本文件为准。
@@ -88,8 +88,8 @@ python datasets/general/export_hf.py verify --dir /tmp/pol-public
 
 | 用途 | 仓库 ID（org 可配置，默认 `NaturalDAO`） | 可见性 | 内容 | 状态 |
 |---|---|---|---|---|
-| 公开三区 + 旁挂件 | `NaturalDAO/pol-decision-general-v5` | public | train / validation / test、jev-probs、target-types、中文补充、数据卡、清单 | **READY / NOT UPLOADED** |
-| 内部保留集 | `NaturalDAO/pol-decision-general-v5-holdout` | **private** | benchmark 私有包（benchmark.jsonl / .gz、包清单、数据卡、USAGE、verify.py） | **READY / NOT UPLOADED** |
+| 公开三区 + 旁挂件 | `NaturalDAO/pol-decision-general-v5` | public | train / validation / test、jev-probs、target-types、中文补充、数据卡、清单 | **UPLOADED @ 52bfdca…** |
+| 内部保留集 | `NaturalDAO/pol-decision-general-v5-holdout` | **private** | benchmark 私有包（benchmark.jsonl / .gz、包清单、数据卡、USAGE、verify.py） | **UPLOADED @ 146ae46…** |
 
 org 用环境变量 `HF_ORG` 覆盖（默认 `NaturalDAO`；命名空间需先在 HF 创建，或用个人用户名后重建导出）：
 
@@ -260,9 +260,9 @@ Get-FileHash ./train.jsonl.gz -Algorithm SHA256
 
 校验通过后才算 UPLOADED；任何 sha256 不一致都按"重新下载 → 重新上传该文件"处理，不要静默接受。
 
-## 6. 谁上传、何时上传、权限与访问控制
+## 6. 上传记录、权限与访问控制
 
-- **谁上传**：项目维护者（持有 HF 账号与 org 写权限的人）。本仓库的 Agent 不带 token、不做上传；
+- **谁上传**：2026-10-26/27 由 owner 使用自己的 HF 账号上传到 `NaturalDAO` 命名空间；Agent 只做校验与回填，不保存 token。一般规则仍是：只有维护者上传；
   上传是人工动作，凭据只留在上传者本机（`hf auth login` 的缓存）。
 - **何时上传**：本任务验收通过、PR 合并之后；或用户明确指示时。上传前先跑 §3 的 `all` 并确认
   `status=pass`。数据或生成器有任何改动后要**重新导出、重新上传并更新 revision**。
@@ -379,3 +379,4 @@ uv run --no-project --offline python datasets/general/export_hf.py inventory
 | 日期 | 版本 | 状态 | 变更 |
 |---|---|---|---|
 | 2026-10-22 | v0.5 | READY / NOT UPLOADED | 建立 HF 导出（public 7 文件 / private-holdout 6 文件）、仓库清单 `data/MANIFEST.json` 与托管手册；两次构建树哈希一致；公开面 benchmark id 零命中；私有包 verify.py 通过；尚未上传 |
+| 2026-10-27 | v0.5 | **UPLOADED** | owner 上传至 `NaturalDAO`；公开 revision `52bfdcae2cfcd4927b0a37d8ef29ea001d818b0d`、私有 revision `146ae4604e67c93805f6bf468449b45c205ca7da`；`verify_hf_remote.py` 远程校验 7/7 与 6/6 全部 match；下载回验 `export_hf.py verify` pass、私有包 verify.py exit 0 |

@@ -50,7 +50,7 @@
 数据托管与交付（v5）：
 
     export_hf.py            确定性 HF 导出 + 仓库清单 + 全量校验      → data/hf-export/ 与 data/MANIFEST.json
-    HF.md                   托管方案与上传/校验手册                    → HF 公共/私有仓库（状态 READY / NOT UPLOADED）
+    HF.md                   托管方案与上传/校验手册                    → HF 公共/私有仓库（状态 UPLOADED）
 
 概率补全与旁挂件：
 
