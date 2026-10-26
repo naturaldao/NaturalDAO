@@ -15,12 +15,28 @@
 > 前置：有 write 权限的 HF 账号/组织、token（write scope）；本机导出已通过 export_hf.py verify。
 > 详细说明与红线见 §1/§4/§5/§6。命令在 WSL bash 或 Windows PowerShell 均可执行（示例为 bash；PowerShell 用 $env:HF_HUB_ENABLE_HF_TRANSFER="1"）。
 
+> **Windows 上没有全局 pip/hf 时**：用 uv 的临时环境即可，不需要为此建项目环境：
+> `uv run --with huggingface_hub hf <command>`（每次命令自动装到临时隔离环境，不污染全局/项目）。
+> 注意 HF CLI 2.x 的建仓命令是 `hf repos create`（旧版是 `hf repo create`）。
+> 本机已确认 `uv 0.11.29` 可用；HF 命名空间 `NaturalDAO` **目前尚未创建**（API 404），需先在网页建 org 或改用个人用户名。
+>
+
+> Windows（PowerShell）等价命令：
+>
+> ```powershell
+> $env:HF_HUB_ENABLE_HF_TRANSFER = "1"
+> uv run --with huggingface_hub hf auth login --token <HF_TOKEN>
+> uv run --with huggingface_hub hf repos create NaturalDAO/pol-decision-general-v5 --type dataset
+> uv run --with huggingface_hub hf repos create NaturalDAO/pol-decision-general-v5-holdout --type dataset --private
+> uv run --with huggingface_hub hf upload NaturalDAO/pol-decision-general-v5 datasets/general/data/hf-export/public . --repo-type dataset
+> uv run --with huggingface_hub hf upload NaturalDAO/pol-decision-general-v5-holdout datasets/general/data/hf-export/private-holdout . --repo-type dataset --private
+> ```
 ~~~bash
 # 1) 安装客户端并登录（token 在 https://huggingface.co/settings/tokens 生成，选 write）
 pip install -U "huggingface_hub[hf_transfer]"
 hf auth login
 
-# 2) 确认命名空间（<org> 或你的用户名；本手册默认 naturaldao）
+# 2) 确认命名空间（<org> 或你的用户名；本手册默认 NaturalDAO，需先在 HF 创建）
 hf auth whoami
 
 # 3) 建两个仓库（已存在时加 --exist-ok）
@@ -70,18 +86,18 @@ python datasets/general/export_hf.py verify --dir /tmp/pol-public
 
 ## 1. 托管方案（两个仓库，公开与私有物理分开）
 
-| 用途 | 仓库 ID（org 可配置，默认 `naturaldao`） | 可见性 | 内容 | 状态 |
+| 用途 | 仓库 ID（org 可配置，默认 `NaturalDAO`） | 可见性 | 内容 | 状态 |
 |---|---|---|---|---|
-| 公开三区 + 旁挂件 | `naturaldao/pol-decision-general-v5` | public | train / validation / test、jev-probs、target-types、中文补充、数据卡、清单 | **READY / NOT UPLOADED** |
-| 内部保留集 | `naturaldao/pol-decision-general-v5-holdout` | **private** | benchmark 私有包（benchmark.jsonl / .gz、包清单、数据卡、USAGE、verify.py） | **READY / NOT UPLOADED** |
+| 公开三区 + 旁挂件 | `NaturalDAO/pol-decision-general-v5` | public | train / validation / test、jev-probs、target-types、中文补充、数据卡、清单 | **READY / NOT UPLOADED** |
+| 内部保留集 | `NaturalDAO/pol-decision-general-v5-holdout` | **private** | benchmark 私有包（benchmark.jsonl / .gz、包清单、数据卡、USAGE、verify.py） | **READY / NOT UPLOADED** |
 
-org 用环境变量 `HF_ORG` 覆盖（默认 `naturaldao`）：
+org 用环境变量 `HF_ORG` 覆盖（默认 `NaturalDAO`；命名空间需先在 HF 创建，或用个人用户名后重建导出）：
 
 ```
 # bash
-export HF_ORG=your-org
+export HF_ORG=NaturalDAO
 # PowerShell
-$env:HF_ORG = "your-org"
+$env:HF_ORG = "NaturalDAO"
 ```
 
 导出脚本会把 org 写进两份发布清单的 `hf` 字段与数据卡里的 URL；换 org 后重跑 `build` 即可。
@@ -148,7 +164,7 @@ uv run --no-project --offline python datasets/general/export_hf.py verify --dir 
 
 ## 4. 上传（维护者执行，按顺序）
 
-前置：有 `naturaldao` org（或 `HF_ORG` 指定的 org）的写权限；HF token 具 write scope；
+前置：有 `NaturalDAO` org（或 `HF_ORG` 指定的命名空间）的写权限；HF 上该 org 需先存在；HF token 具 write scope；
 本机数据目录已按 §3 生成并通过验收。
 
 ```

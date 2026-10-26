@@ -1110,15 +1110,15 @@
   "hf": {
     "holdout": {
       "private": true,
-      "repo": "naturaldao/pol-decision-general-v5-holdout",
+      "repo": "NaturalDAO/pol-decision-general-v5-holdout",
       "status": "ready_not_uploaded",
-      "url": "https://huggingface.co/datasets/naturaldao/pol-decision-general-v5-holdout"
+      "url": "https://huggingface.co/datasets/NaturalDAO/pol-decision-general-v5-holdout"
     },
-    "org": "naturaldao（HF_ORG 环境变量可覆盖）",
+    "org": "NaturalDAO（HF_ORG 环境变量可覆盖）",
     "public": {
-      "repo": "naturaldao/pol-decision-general-v5",
+      "repo": "NaturalDAO/pol-decision-general-v5",
       "status": "ready_not_uploaded",
-      "url": "https://huggingface.co/datasets/naturaldao/pol-decision-general-v5"
+      "url": "https://huggingface.co/datasets/NaturalDAO/pol-decision-general-v5"
     }
   },
   "inventory_command": "uv run --no-project --offline python datasets/general/export_hf.py inventory",
