@@ -1,4 +1,8 @@
-"""Check portable collaboration links, registries and tests; optionally compare a mirror."""
+"""Check collaboration links, registries and tests; optionally compare a mirror.
+
+Links may point inside this project (ROOT) or elsewhere inside the containing git
+repository (REPO_ROOT, e.g. Research/ reports in the monorepo); links escaping the
+repository are rejected as nonportable."""
 import argparse
 import hashlib
 import json
@@ -9,6 +13,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = ROOT.parent if (ROOT.parent / '.git').exists() else ROOT
 
 
 def files(root):
@@ -30,6 +35,7 @@ def main():
     parser.add_argument('--mirror', type=Path)
     args = parser.parse_args()
     links = 0
+    repo_links = 0
     try:
         for path in ROOT.rglob('*.md'):
             # .agent/ 是本机内部工作区（gitignore），不参与公开文档链接检查
@@ -39,9 +45,16 @@ def main():
                 if '://' in link or link.startswith('#'):
                     continue
                 target = (path.parent / unquote(link.split('#')[0])).resolve()
-                if not target.is_relative_to(ROOT) or not target.exists():
+                if target.is_relative_to(ROOT):
+                    if not target.exists():
+                        raise ValueError(f'Broken link: {path.relative_to(ROOT)} -> {link}')
+                    links += 1
+                elif REPO_ROOT != ROOT and target.is_relative_to(REPO_ROOT):
+                    if not target.exists():
+                        raise ValueError(f'Broken repository link: {path.relative_to(ROOT)} -> {link}')
+                    repo_links += 1
+                else:
                     raise ValueError(f'Broken/nonportable link: {path.relative_to(ROOT)} -> {link}')
-                links += 1
         for name in ('datasets', 'models'):
             rows = json.loads(local_path(f'{name}/registry.json').read_text(encoding='utf-8'))
             ids = [row['id'] for row in rows]
@@ -56,6 +69,8 @@ def main():
                             '-p', 'test_*.py', '-q'], cwd=ROOT, check=True)
         subprocess.run([sys.executable, 'benchmark/validate_pilot.py'], cwd=ROOT, check=True)
         report = {'status': 'pass', 'local_links': links, 'models_run': False}
+        if repo_links:
+            report['repo_links'] = repo_links
         if args.mirror:
             mirror = args.mirror.resolve()
             if not mirror.is_dir() or files(ROOT) != files(mirror):
