@@ -10,6 +10,62 @@
 - 生成器：`datasets/general/export_hf.py`（纯标准库、离线、确定性）
 - 数据卡：导出目录里的 `public/README.md`（由生成器产出，**不要手改**）
 
+## 0. 快速流程（TL;DR）
+
+> 前置：有 write 权限的 HF 账号/组织、token（write scope）；本机导出已通过 export_hf.py verify。
+> 详细说明与红线见 §1/§4/§5/§6。命令在 WSL bash 或 Windows PowerShell 均可执行（示例为 bash；PowerShell 用 $env:HF_HUB_ENABLE_HF_TRANSFER="1"）。
+
+~~~bash
+# 1) 安装客户端并登录（token 在 https://huggingface.co/settings/tokens 生成，选 write）
+pip install -U "huggingface_hub[hf_transfer]"
+hf auth login
+
+# 2) 确认命名空间（<org> 或你的用户名；本手册默认 naturaldao）
+hf auth whoami
+
+# 3) 建两个仓库（已存在时加 --exist-ok）
+hf repo create <org>/pol-decision-general-v5 --repo-type dataset
+hf repo create <org>/pol-decision-general-v5-holdout --repo-type dataset --private
+
+# 4) 上传（public/ 与 private-holdout/ 的内容分别作为两个仓库的根）
+HF_HUB_ENABLE_HF_TRANSFER=1 hf upload <org>/pol-decision-general-v5 \
+  datasets/general/data/hf-export/public . --repo-type dataset
+HF_HUB_ENABLE_HF_TRANSFER=1 hf upload <org>/pol-decision-general-v5-holdout \
+  datasets/general/data/hf-export/private-holdout . --repo-type dataset --private
+
+# 5) 取 commit sha 并固定 revision（上传完成立刻做）
+python -c "from huggingface_hub import HfApi; a=HfApi(); print('public', a.repo_info('<org>/pol-decision-general-v5', repo_type='dataset').sha); print('holdout', a.repo_info('<org>/pol-decision-general-v5-holdout', repo_type='dataset').sha)"
+
+# 6) 远程校验（公开匿名；私有 token 必须在仓库外，例如 ~/.hf_token）
+python datasets/general/verify_hf_remote.py \
+  --repo-id <org>/pol-decision-general-v5 \
+  --manifest datasets/general/data/hf-export/public/MANIFEST.json --revision <public-sha>
+python datasets/general/verify_hf_remote.py \
+  --repo-id <org>/pol-decision-general-v5-holdout \
+  --manifest datasets/general/data/hf-export/private-holdout/HF-MANIFEST.json \
+  --revision <holdout-sha> --token-file ~/.hf_token
+
+# 7) 下载回验（最后一道；固定 revision）
+hf download <org>/pol-decision-general-v5 --repo-type dataset --revision <public-sha> --local-dir /tmp/pol-public
+python datasets/general/export_hf.py verify --dir /tmp/pol-public
+~~~
+
+回填清单（上传成功后）：
+
+1. datasets/registry.json 的 general-decision-v0.5：hf_status=uploaded、hf_public_revision、hf_holdout_revision；
+2. 本文件 §9 更新记录（日期 / revision / 上传人）；
+3. 引用数据时使用 commit sha（不用 main）；结果卡记录 revision。
+
+常见失败处理：
+
+| 现象 | 处理 |
+|---|---|
+| 401 / 403 | token 无 write 权限或仓库私有：重新登录并检查权限；私有仓库要给 verify 脚本 --token-file |
+| 上传中断 | 重新执行同一条 hf upload（幂等增量）；注意 --repo-type dataset |
+| verify 报 sha/bytes 不匹配 | 本地导出过期：重跑 export_hf.py build 后再上传；不要手改导出目录 |
+| 仓库已有旧文件 | 在 HF 网页或 hf 客户端确认新 commit；必要时先 hf repo delete 重建（仅测试仓） |
+| 公开仓库误放保留集 | 立即删除文件并轮换保留集（参考 HISTORY 的泄漏处置），不要只删 commit |
+
 ---
 
 ## 1. 托管方案（两个仓库，公开与私有物理分开）
