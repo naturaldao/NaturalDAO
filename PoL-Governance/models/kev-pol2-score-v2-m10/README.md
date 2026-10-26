@@ -36,21 +36,21 @@ seed43 是看到全部结果后选出的唯一双门通过版本，必须保留�
 
 ## 安装
 
-模型权重不进入 Git 历史。由于 GitHub 网页/API 上传接口对大文件会间歇断流，模型归档按每个 seed 约 9 MB 分成 14 个 part；同一 Release 还提供 `SHA256SUMS.chunks` 和 `kev-pol2-score-v2-m10-reassemble.sh`。
+模型权重不进入 Git 历史。完整归档作为单个 Release 资产提供：
 
 ```text
 https://github.com/naturaldao/NaturalDAO/releases/tag/pol2-score-v2-v1.0.0
 ```
 
-下载全部 `kev-pol2-score-v2-m10-seed*.tar.gz.part-*`、`SHA256SUMS.chunks` 和重组脚本后，在下载目录运行：
+下载并校验：
 
 ```bash
-sha256sum -c SHA256SUMS.chunks
-bash kev-pol2-score-v2-m10-reassemble.sh
-sha256sum -c SHA256SUMS
+curl -LO https://github.com/naturaldao/NaturalDAO/releases/download/pol2-score-v2-v1.0.0/kev-pol2-score-v2-m10-all-seeds.tar.gz
+echo "28a8d407573c1cc26ce16e421c0bb825c8792ebf4a9fc8a759de656885821b4b  kev-pol2-score-v2-m10-all-seeds.tar.gz" | sha256sum -c -
+tar -xzf kev-pol2-score-v2-m10-all-seeds.tar.gz
 ```
 
-完整单文件归档的基准 SHA-256 为 `28a8d407573c1cc26ce16e421c0bb825c8792ebf4a9fc8a759de656885821b4b`，用于重组后核对。
+归档大小 `375,411,969` bytes，解开后包含 `seed-17/`、`seed-29/`、`seed-43/` 三套版本；运行时只选择其中一套。
 
 还需要按上游 revision 准备 Qwen3.5-4B-Base 与 Kev 运行依赖。底座不属于本 Release。
 
