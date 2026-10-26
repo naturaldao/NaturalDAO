@@ -2,7 +2,7 @@
 
 | 领取人 / Agent | 状态 / 最近进展（Agent 更新） |
 |---|---|
-| Codex | 待集成；完成单条目 AI 生成挑战集质量先导，质量门未达三标签覆盖，按规则停止训练；完整内在化尚未验证 |
+| Codex | 待集成；完成单条目生成质量与裁定稳定性先导：36/36 标签比较一致，但严格题目门 0/6；按规则停止训练，完整内在化尚未验证 |
 
 - 更新时间：2026-10-26 03:25 UTC+8
 - 分支：`pol/EVAL-03/codex-full-theory-internalization`
@@ -18,7 +18,7 @@
 
 日期｜留言人/Agent｜进展、问题或回复｜证据/相关分支｜下一步
 
-2026-10-26｜Codex｜清点出 114 个来源条目（26 概念、21 关系、5 命题、16 爱语、28 治理规则、18 解释）。love2 先导由 Llama 生成 6 例，Qwen 盲标签裁定同意 6/6；Qwen 盲质量门仅放行 2/6，且两例均为 consistent。缺少 conflicting/insufficient 合格案例，训练前停止。｜`PoL-Governance/benchmark/pol2/results/full-theory-challenge-generation-pilot-20261026/quality_audit.json`；[先导报告](../../Research/Embodied/02-实验设计与审计/PoL2完整理论内在化挑战集生成质量先导.md)｜先修复数据构造和审计，再启动模型实验
+2026-10-26｜Codex｜清点出 114 个来源条目（26 概念、21 关系、5 命题、16 爱语、28 治理规则、18 解释）。love2 先导由 Llama 生成 6 例，Qwen 标签裁定同意 6/6。两模型×两种提示顺序共 24 次盲裁定，标签两两比较 36/36 一致；但同一 Qwen 的质量门仅 8/12 逐项复核一致。事后词面/指控扫描发现理论词 4/6、未核实指控 2/6，严格放行 0/6。没有模型训练或模型分数。｜`PoL-Governance/benchmark/pol2/results/full-theory-challenge-generation-pilot-20261026/adjudicator_stability.json`；[先导报告](../../Research/Embodied/02-实验设计与审计/PoL2完整理论内在化挑战集生成质量先导.md)｜先修复数据构造和审计，再启动模型实验
 
 ## 交付或交接
 
