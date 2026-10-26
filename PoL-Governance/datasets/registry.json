@@ -36,5 +36,16 @@
     "license": "Proof of Love2",
     "notes": "中英双语通用决策数据集，三种封闭决策原语（noul / choice / score）；jev-probs 是概率旁挂件。完整分区文件体积大，按 datasets/README 第 2 条登记在托管站，本仓库只保留可复算的旁挂件与文档。",
     "eligible_for_ranking": false
+  },
+  {
+    "id": "pol2-score-v2",
+    "card": "datasets/pol2/score-v2/README.md",
+    "data": "datasets/pol2/score-v2/manifests/full-release.json",
+    "external_url": "https://github.com/naturaldao/NaturalDAO/releases/download/pol2-score-v2-v1.0.0/pol2-score-v2-data-v1.zip",
+    "status": "release_candidate_holdout_external",
+    "split": "experiment train/validation/calibration/score-dev; sealed blind excluded",
+    "license": "Proof of Love2; MRI-derived replay under MIT",
+    "notes": "Laya/Kev training exports plus paired public samples; canonical PoL2 four-layer conversion is still pending; sealed/fresh blind is not included.",
+    "eligible_for_ranking": false
   }
 ]
