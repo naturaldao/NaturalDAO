@@ -1,0 +1,23 @@
+{
+  "response_content": "{\"answers\": [{\"qid\": \"Q001\", \"answer\": \"POL2-R021\"}, {\"qid\": \"Q002\", \"answer\": \"POL2-R003\"}, {\"qid\": \"Q003\", \"answer\": \"POL2-R015\"}, {\"qid\": \"Q004\", \"answer\": \"POL2-R005\"}]}",
+  "parsed": {
+    "answers": [
+      {
+        "qid": "Q001",
+        "answer": "POL2-R021"
+      },
+      {
+        "qid": "Q002",
+        "answer": "POL2-R003"
+      },
+      {
+        "qid": "Q003",
+        "answer": "POL2-R015"
+      },
+      {
+        "qid": "Q004",
+        "answer": "POL2-R005"
+      }
+    ]
+  }
+}

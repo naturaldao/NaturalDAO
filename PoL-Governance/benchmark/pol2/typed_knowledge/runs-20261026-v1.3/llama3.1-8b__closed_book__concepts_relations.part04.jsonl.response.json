@@ -1,0 +1,39 @@
+{
+  "response_content": "{\"answers\": [{\"qid\": \"Q001\", \"answer\": \"eap\"}, {\"qid\": \"Q002\", \"answer\": \"non_duality\"}, {\"qid\": \"Q003\", \"answer\": \"pol2\"}, {\"qid\": \"Q004\", \"answer\": \"self_alignment\"}, {\"qid\": \"Q005\", \"answer\": \"barbarism2\"}, {\"qid\": \"Q006\", \"answer\": \"collaborative_alignment\"}, {\"qid\": \"Q007\", \"answer\": \"non_duality\"}, {\"qid\": \"Q008\", \"answer\": \"hate2\"}]}",
+  "parsed": {
+    "answers": [
+      {
+        "qid": "Q001",
+        "answer": "eap"
+      },
+      {
+        "qid": "Q002",
+        "answer": "non_duality"
+      },
+      {
+        "qid": "Q003",
+        "answer": "pol2"
+      },
+      {
+        "qid": "Q004",
+        "answer": "self_alignment"
+      },
+      {
+        "qid": "Q005",
+        "answer": "barbarism2"
+      },
+      {
+        "qid": "Q006",
+        "answer": "collaborative_alignment"
+      },
+      {
+        "qid": "Q007",
+        "answer": "non_duality"
+      },
+      {
+        "qid": "Q008",
+        "answer": "hate2"
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "response_content": "{\n\"answers\": [\n{\"qid\": \"Q001\", \"answer\": \"PoL/4. PoL2之伦理对齐协议.md#p22\"},\n{\"qid\": \"Q002\", \"answer\": \"PoL/2. 爱语.md#p5|PoL/2. 爱语.md#p6\"}\n]\n}",
+  "parsed": {
+    "answers": [
+      {
+        "qid": "Q001",
+        "answer": "PoL/4. PoL2之伦理对齐协议.md#p22"
+      },
+      {
+        "qid": "Q002",
+        "answer": "PoL/2. 爱语.md#p5|PoL/2. 爱语.md#p6"
+      }
+    ]
+  }
+}

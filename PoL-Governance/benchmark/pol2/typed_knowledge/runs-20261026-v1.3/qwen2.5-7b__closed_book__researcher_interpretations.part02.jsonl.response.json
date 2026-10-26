@@ -1,0 +1,39 @@
+{
+  "response_content": "{\n    \"answers\": [\n        {\"qid\": \"Q001\", \"answer\": \"PoL/5. AI和人类文明的治理：从恨2证明到爱2证明.md#p69\"},\n        {\"qid\": \"Q002\", \"answer\": \"PoL/7. 人类公共福利的治理协议.md#p7\"},\n        {\"qid\": \"Q003\", \"answer\": \"PoL/4. PoL2之伦理对齐协议.md#p12\"},\n        {\"qid\": \"Q004\", \"answer\": \"PoL/4. PoL2之伦理对齐协议.md#p20\"},\n        {\"qid\": \"Q005\", \"answer\": \"PoL/2. 爱语.md#p66|PoL/4. PoL2之伦理对齐协议.md#p29\"},\n        {\"qid\": \"Q006\", \"answer\": \"PoL/4. PoL2之伦理对齐协议.md#p15\"},\n        {\"qid\": \"Q007\", \"answer\": \"PoL/4. PoL2之伦理对齐协议.md#p35\"},\n        {\"qid\": \"Q008\", \"answer\": \"PoL/1. 爱2、恨2、爱2证明、恨2证明、富爱文明.md#p38|PoL/4. PoL2之伦理对齐协议.md#p22\"}\n    ]\n}",
+  "parsed": {
+    "answers": [
+      {
+        "qid": "Q001",
+        "answer": "PoL/5. AI和人类文明的治理：从恨2证明到爱2证明.md#p69"
+      },
+      {
+        "qid": "Q002",
+        "answer": "PoL/7. 人类公共福利的治理协议.md#p7"
+      },
+      {
+        "qid": "Q003",
+        "answer": "PoL/4. PoL2之伦理对齐协议.md#p12"
+      },
+      {
+        "qid": "Q004",
+        "answer": "PoL/4. PoL2之伦理对齐协议.md#p20"
+      },
+      {
+        "qid": "Q005",
+        "answer": "PoL/2. 爱语.md#p66|PoL/4. PoL2之伦理对齐协议.md#p29"
+      },
+      {
+        "qid": "Q006",
+        "answer": "PoL/4. PoL2之伦理对齐协议.md#p15"
+      },
+      {
+        "qid": "Q007",
+        "answer": "PoL/4. PoL2之伦理对齐协议.md#p35"
+      },
+      {
+        "qid": "Q008",
+        "answer": "PoL/1. 爱2、恨2、爱2证明、恨2证明、富爱文明.md#p38|PoL/4. PoL2之伦理对齐协议.md#p22"
+      }
+    ]
+  }
+}

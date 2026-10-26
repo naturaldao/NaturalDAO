@@ -1,0 +1,39 @@
+{
+  "response_content": "{\"answers\": [{\"qid\": \"Q001\", \"answer\": \"POL2-R001\"}, {\"qid\": \"Q002\", \"answer\": \"POL2-R013\"}, {\"qid\": \"Q003\", \"answer\": \"POL2-R023\"}, {\"qid\": \"Q004\", \"answer\": \"POL2-R002\"}, {\"qid\": \"Q005\", \"answer\": \"POL2-R025\"}, {\"qid\": \"Q006\", \"answer\": \"POL2-R005\"}, {\"qid\": \"Q007\", \"answer\": \"POL2-R010\"}, {\"qid\": \"Q008\", \"answer\": \"POL2-R007\"}]}",
+  "parsed": {
+    "answers": [
+      {
+        "qid": "Q001",
+        "answer": "POL2-R001"
+      },
+      {
+        "qid": "Q002",
+        "answer": "POL2-R013"
+      },
+      {
+        "qid": "Q003",
+        "answer": "POL2-R023"
+      },
+      {
+        "qid": "Q004",
+        "answer": "POL2-R002"
+      },
+      {
+        "qid": "Q005",
+        "answer": "POL2-R025"
+      },
+      {
+        "qid": "Q006",
+        "answer": "POL2-R005"
+      },
+      {
+        "qid": "Q007",
+        "answer": "POL2-R010"
+      },
+      {
+        "qid": "Q008",
+        "answer": "POL2-R007"
+      }
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "dataset_id": "pol2-typed-knowledge-v1.3",
+  "created_utc": "2026-10-26",
+  "seed": 20261026,
+  "source_manifest": "POL2-Steward/pol2-service/knowledge/source-manifest.json",
+  "source_manifest_sha256": "195b6571b58d0dc9237cffb14cb6714e5dc8eb33054c0a242f8068fd58487eaa",
+  "source_commit": "c70227fbc13b64f189c54efe2d45f2d77bc3babf",
+  "theory_source_sha256_normalized": {
+    "PoL/0. 前言.md": "b400699d0e65af1304f2dea8d91fd7bd3e2aba2e0ee25bdee72dd809a89d62ef",
+    "PoL/1. 爱2、恨2、爱2证明、恨2证明、富爱文明.md": "1e32ca8000997cf951c6a516e6f4215f89f10b97bac4156c4e3ff1443773acf5",
+    "PoL/2. 爱语.md": "2ddd9335569113a92312fada7b8a434d1ae98f131127b94349531165a24386b8",
+    "PoL/3. PoL2之冥想智慧公理.md": "46ddc30f3e784e6b08e7724d549124dc1e3c906a504c3945b7eb4edb167fa7b7",
+    "PoL/4. PoL2之伦理对齐协议.md": "b6978d982aa2fdeb519d6a5ada570782c5b2f20da8cc665a286a7531690edbf8",
+    "PoL/5. AI和人类文明的治理：从恨2证明到爱2证明.md": "0217310270879e44551bf043f61bb4c275baeffa7457154ace0aef89fb64956e",
+    "PoL/6. 富爱文明生产公共化协议.md": "194eb3469516a2e3b3d1b506a0ae8ed9b2ef795267ce00245199399b5c2aa9d6",
+    "PoL/7. 人类公共福利的治理协议.md": "29bd79f8528f6452d66577085bee85ec0399cb851b077c255dc5b98ce0a37c67",
+    "PoL/8. 总结.md": "dafa6b701698969d8c090dc328c28df627eef6663c8988745a118e1ba021715e",
+    "PoL/PoL共识的工程策略.md": "9157ad7b10a75b93cf697a2e337a400cf1f296ca5472a3046751dad2a7cde630",
+    "PoL/Readme.md": "0f6b74d934d3e07eba0b0c1dfd90b4d7290fc94ef2e8b355985029149d366dd5"
+  },
+  "input_sha256": {
+    "concepts.jsonl": "bc31a72f572ab4ff335cb9aa8a457ff771b99b8da9b60384020af5bd164a83c7",
+    "relations.jsonl": "3dc49f221c58aadb1bcaada01e72bef47c84aa409526c3fd5aec7a6e7be3b2d9",
+    "propositions.jsonl": "c087926533bd8977e2f35d054727512f2edf903c670f08870708653a29b285f9",
+    "love-languages.jsonl": "42d7a265b1ebfd84ddc6e44ad57a82110c5e5e020e0eba0d51e57d6f8f5c8022",
+    "rule-mapping.jsonl": "e446c09124310d531a23e09d360224733fb179e96a686085f7d24c8ec7a450e9",
+    "interpretations.jsonl": "44ae8a154bff4c42449fddb441b640b220beff89d7d1ad40ddaa1db6cfd9917c"
+  },
+  "item_sha256": "12987a6b7b67d28a8216abec9dbcb0d58fee257ba769329c1d183fdd2f7ecd8d",
+  "label_sha256": "2a62917cb8ccd6fa9080619f0606790534ee04c3f344a46128599be7d1506bed",
+  "n_items": 123,
+  "by_knowledge_type": {
+    "axioms_propositions": 13,
+    "concepts_relations": 48,
+    "explicit_governance_rules": 28,
+    "love_languages": 16,
+    "researcher_interpretations": 18
+  },
+  "label_status_by_type": {
+    "axioms_propositions": {
+      "reviewed": 13
+    },
+    "concepts_relations": {
+      "reviewed": 48
+    },
+    "explicit_governance_rules": {
+      "candidate": 28
+    },
+    "love_languages": {
+      "reviewed": 16
+    },
+    "researcher_interpretations": {
+      "validated_reference": 18
+    }
+  },
+  "conditions": [
+    "closed_book",
+    "source_context"
+  ],
+  "limits": [
+    "Public exploratory set; items and labels are not sealed and must not be used for confirmatory claims.",
+    "Knowledge-pack statuses and source anchors provide traceability, not complete normative gold labels.",
+    "Rule mappings retain candidate versus approved-boundary provenance; scores must be stratified by this status.",
+    "Interpretation source anchors measure curated provenance retrieval, not entailment or truth of the interpretation.",
+    "Source context contains source excerpts only; the structured target record is withheld.",
+    "No model is trained on this set; no aggregate score is computed across knowledge types."
+  ]
+}
