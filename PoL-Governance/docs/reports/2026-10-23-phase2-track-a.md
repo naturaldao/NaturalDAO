@@ -74,3 +74,17 @@ GPU 实验按 owner 要求暂停（设备调整，等待手动开启）。暂停
 - **预注册评测协议** [EVAL-PROTOCOL.md](../../finetune/EVAL-PROTOCOL.md)：决策/校准/通用能力代理/统计口径与阈值先声明（test 只回归、validation 固定切半、≥2–3 seed、报告 CI）。
 - **温度校准工具** `finetune/calibrate.py` + 7 个纯 CPU 测试：在 validation 的 calibration 半区拟合温度、selection 半区复算，输出 NLL/Brier/ECE/MCE。
 - **GPU 恢复清单**（内部）：恢复后先跑 test 的 base 0-shot 对照 → lm-eval → Track B → 校准 → 多 seed。
+
+## 7. 更新（2026-10-23 崩溃前落盘：test base 与 lm-eval base）
+
+在 2026-10-23 的 GPU 队列中（当日 17:27 系统崩溃之前）完成并落盘了两项此前缺失的对照：
+
+- **test 分区 base 0-shot 同口径**：整体 **0.5047**（7,859/15,573）vs adapter **0.7785**，差值 **+27.4pt**；
+  分层：choice 0.5283→0.7780、noul 0.4075→0.8450、score 0.2748→0.7069、en 0.4490→0.7514、zh 0.9445→0.9931；
+  base 与 adapter 跳过口径相同（>26 选项 656 行、超长 prompt 77 行）。
+- **lm-eval 通用能力代理 base 侧**（四任务组，limit 100，205 个子任务）：
+  ceval-valid **0.5847** / cmmlu **0.5624** / mmlu **0.5765** / agieval **0.4133**，均值 **0.5342**。
+- **adapter 侧 lm-eval 在 17:27 系统崩溃时被中断**（约 25%，未落盘），待环境稳定后重跑；崩溃后 T10 已移除，
+  owner 需先确认 PSU/内存/插槽配置，再恢复长时间 GPU 训练（单卡短任务优先）。
+
+结果卡已同步：results/MODEL-02-qwen3-1.7b-track-a-full/CARD.md。

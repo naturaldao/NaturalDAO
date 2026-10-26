@@ -49,12 +49,14 @@
 |---|---|---|
 | M2-1 | 模型选型：0.3B–8B、中文、封闭原语、许可清晰、有成熟微调案例 | **完成**：选型报告（内部）；推荐 Qwen3-1.7B 起步 / Qwen3-4B 主力 + LoRA + 候选评分头，文本单 token SFT 作最简基线；Laya 322M 作超廉价层 |
 | M2-2 | 训练数据适配：通用决策数据 + POL2 冻结数据 → 统一训练样本；软标签与 a/b 反事实对的用法 | **完成（general 部分）**：`build_training_view.py` 生成 train 50,033 / validation 7,887 / test 15,650 行统一视图（模板 tv-1，可复算）；PoL2 未批准训练前只做 schema，不进梯度：**pv-1 适配器已就绪**（`datasets/pol2/build_pol2_training_view.py` + `POL2-VIEW.md`），当前唯一允许 `--schema-preview`，写盘 build 在 `training_approved=false` 下 exit 2；preview 实测 train 5,900 行（choice 5,361 / score 539、skipped=0） |
-| M2-3 | 首个基线：LoRA/QLoRA 小模型 + 通用:PoL = 9:1 或 8:2 | **Track A 完成**：Qwen3-1.7B + LoRA 1 epoch（2.54h / 6.29GB）；validation 0-shot 0.5127 → **0.7883**，test adapter **0.7785**；**Track B 训练+独立评测代码就绪**（19+31 个 CPU 单测），待 GPU 训练；**混合视图 mix-1** 与 `pol2-mix` 一键链就绪（9:1/8:2）；GPU 实验暂停待 owner 开启 |
-| M2-4 | 防遗忘：replay 比例、通用智力代理评测、灾难性遗忘阈值 | **链路就绪**：lm-eval（ceval/cmmlu/mmlu/agieval）四任务可用（cmmlu 需 datasets<4 + trust_remote_code），真实底座+adapter CPU 冒烟通过；base vs adapter 正式对比待 GPU |
+| M2-3 | 首个基线：LoRA/QLoRA 小模型 + 通用:PoL = 9:1 或 8:2 | **Track A 完成**：Qwen3-1.7B + LoRA 1 epoch（2.54h / 6.29GB）；validation 0-shot 0.5127 → **0.7883**；test 同口径 **0.5047 → 0.7785（+27.4pt）**；**Track B 训练+独立评测代码就绪**（19+31 个 CPU 单测），待 GPU 训练；**混合视图 mix-1** 与 `pol2-mix` 一键链就绪（9:1/8:2）；GPU 实验暂停待 owner 开启 |
+| M2-4 | 防遗忘：replay 比例、通用智力代理评测、灾难性遗忘阈值 | **base 侧完成**：lm-eval 四任务（ceval/cmmlu/mmlu/agieval，limit 100，205 子任务）base 结果为 0.5847 / 0.5624 / 0.5765 / 0.4133（均值 **0.5342**）；**adapter 侧在 2026-10-23 17:27 系统崩溃时中断（约 25%）未落盘，待重跑**；恢复前需 owner 确认硬件（见下） |
 | M2-5 | 校准：温度缩放、ECE/Brier、软标签一致子集偏差的降权 | **工具与协议就绪**：`calibrate.py`（半 B 拟合/半 A 复算，NLL/Brier/ECE/MCE，7 个 CPU 测试）；待 GPU 生成 adapter 概率后出报告 |
 | M2-6 | 评测 harness：internal / external / 保留集统一口径 | **基本就绪**：Track A / Track B 同键名 JSON 评测、`collect_results.py` 汇总（分层/配对 bootstrap/多 seed CI/lm-eval 目录）、预注册协议 [EVAL-PROTOCOL](finetune/EVAL-PROTOCOL.md)；正式数字待 GPU |
 
 硬件约束：**主卡 Radeon RX 7900 XT 20GB**（WSL2 Ubuntu 24.04 + ROCm 7.2.1 + PyTorch 2.9.1+rocm7.2.1；GPU 静默时段 00:30–09:30 / 12:30–15:30）；Tesla T10 16GB 仅作备用（Turing，fp16，无 bf16）。首选 LoRA/QLoRA + PEFT；全参与更大模型需要另议算力。
+
+> **2026-10-23 系统崩溃事故**：14:40 启动的 GPU 队列在 17:27 发生内核 bugcheck（0x3B），随后系统反复重启；拆下 T10 后恢复。证据指向「双 GPU 供电/瞬态」与「内存混插（疑似单通道）」两类风险（详见内部取证笔记）。**恢复长时间 GPU 训练前需 owner 确认 PSU/内存/插槽配置**；恢复后先做单卡短任务（≤25 分钟）验证，监测 Kernel-Power 41 / BugCheck 1001 / WHEA；T10 不再与 7900 XT 同时满载。
 
 ## 协作工作线（2026-10-26 合并 main；与主线并行，**不混表比较**）
 

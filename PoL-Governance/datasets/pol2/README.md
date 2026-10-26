@@ -156,6 +156,17 @@ uv run --no-project --offline python datasets/pol2/splits.py verify --assign <�
 训练授权前必须完成 [APPROVAL-CHECKLIST.md](APPROVAL-CHECKLIST.md) 的 A 项 owner 书面确认；
 当前所有解禁步骤（training_approved 置真、生成 pv-1 视图、混合训练）均未执行。
 
+### 5.2 POL2 score-v2（协作线，数据在外部 Release）
+
+与冻结集（本目录 `FREEZE-8705-V1` 的 8,705 units）**不是同一份数据**：
+
+| 项 | 内容 |
+|---|---|
+| 数据 | `pol2-score-v2` v1.0.0-rc1：Laya/Kev 训练导出（train-M0 各 6,166 / validation 1,162 / calibration 1,051 / score-dev 354 / 新增 score 875）+ MRI 回放 M10/M25/M40 |
+| 位置 | 数据卡与样例在 [score-v2](score-v2/README.md)；完整数据在 GitHub Release（不在 Git 历史） |
+| 边界 | 非专家金标（LLM 标注）；sealed/fresh blind 不在包内；不得当作 canonical 四层数据使用 |
+
+> `datasets/pol2/v0.1-pilot/` 是 2026-10-20 的早期 pilot 取证材料（历史），不代表当前冻结集或 score-v2；保留供追溯。
 ## 6. 目录与文件归属
 
 | 路径 | 内容 | 归属 |

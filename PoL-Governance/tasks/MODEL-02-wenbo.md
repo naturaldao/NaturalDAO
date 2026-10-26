@@ -40,3 +40,7 @@
 - 待交付：训练视图生成脚本、Track A/B 训练入口与配置、结果卡（模型版本/数据 fingerprint/硬件/预算/指标区间）、失败与限制记录
 - 复现与检查：`uv run --no-project --offline python tools/check.py`；训练与评测命令写入任务页与结果卡
 - 纪律：不使用 test 调参；不把 PoL2 冻结集用于训练/教师造数/tokenizer 拟合/阈值选择，直到获得训练批准；通用能力下降只陈述所选代理上的非劣效区间，不宣称"通用智力不降"
+
+2026-10-26｜Wenbo / DSH Agent Team｜**合并协作者更新（main 前进 45 提交）**：新增 EVAL-02 具身推理先导、EVAL-03 完整理论内在化先导、POL2 score-v2 数据与 Kev-4B pointer-head 模型（研究预发布）。本项目 Track A 线（Qwen3-1.7B 字母 SFT）与其数据/规模/口径不同，**不混表比较**；摘要见 `docs/reports/2026-10-26-collaborator-update.md`。
+
+2026-10-26｜Wenbo / DSH Agent Team｜test base 0-shot 与 lm-eval base 侧结果已在 10-23 崩溃前落盘（test 0.5047→0.7785；lm-eval base 均值 0.5342），adapter 侧被崩溃中断待重跑；详见结果卡与 `docs/reports/2026-10-23-phase2-track-a.md` §7。

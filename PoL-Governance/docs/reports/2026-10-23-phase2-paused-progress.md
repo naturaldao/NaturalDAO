@@ -70,3 +70,11 @@ GPU 恢复时间；PR 集成方式（#44/#45 已关闭）；HF 上传；PoL2 训
   - 校准链路：真实 adapter 在 validation 前 120 行（device=cpu）导出逐行候选概率 → calibration 半区拟合温度 → selection 半区复算（NLL/Brier/ECE/MCE），全链路跑通（仅管线验证，样本太小不作结论）；
   - 通用能力链路：ceval-valid / cmmlu / mmlu / agieval 四任务家族在 CPU 上以真实 Qwen3-1.7B 各 limit=1 端到端跑通（含 cmmlu 的 datasets<4 + trust_remote_code 路径）；此前 datasets 5.x 预取缓存与 3.6 编码不兼容的问题已定位并清理缓存解决。
 - 本轮仍**无新增 GPU 结果**；GPU 暂停令继续生效。
+
+## 8. 更新（2026-10-23 崩溃与结果落盘）
+
+- 当日 GPU 队列在崩溃前完成两项对照并落盘：test base 0-shot **0.5047**（vs adapter 0.7785，+27.4pt）、
+  lm-eval base 四任务组（ceval 0.5847 / cmmlu 0.5624 / mmlu 0.5765 / agieval 0.4133，均值 0.5342）；
+- **17:27 系统内核崩溃**（0x3B），adapter 侧 lm-eval 被中断（约 25%，未落盘）；T10 随后从系统移除。
+- 崩溃取证与恢复约束属内部材料（硬件细节不公开）；对外结论：**adapter 侧对照待重跑，恢复长时间训练前需 owner 确认硬件**。
+- 本节之后不再有新增 GPU 结果。
