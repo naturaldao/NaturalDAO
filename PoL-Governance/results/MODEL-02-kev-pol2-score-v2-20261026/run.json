@@ -1,0 +1,19 @@
+{
+  "data_version": "pol2-score-v2-v1.0.0",
+  "model": "kev-4b-pol2-score-v2-m10",
+  "base": "Qwen/Qwen3.5-4B-Base",
+  "init": "/workspace/models/pol2-kev/kev-4b",
+  "seeds": [
+    17,
+    29,
+    43
+  ],
+  "epochs": 1,
+  "batch": 1,
+  "grad_accum": 4,
+  "dtype": "bf16",
+  "max_state": 4096,
+  "gpu": "NVIDIA GB10",
+  "fresh_blind_read_once": true,
+  "training_approved": false
+}
