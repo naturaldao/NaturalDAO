@@ -6,7 +6,7 @@
 > 语料：`datasets/general/data/items.final.jsonl`（明文不入库，见 .gitignore；只读，未改动）
 >
 > ⚠️ **语料版本说明**：第一阶段抽样基于 plan 记录的语料版本（sha256 前缀 `21f11fe3dc39edd9`）；**会话期间语料被其他任务重建**，当前版本 sha256 前缀 `47df533ec00bc94d`、target 数 82,843（旧版 31,786）。已核对：**旧版 target 0 缺失**（第一阶段 300 条抽样、jev-router 1,883 条、mercury 7,907 条全部仍能对上冻结语料），因此第一阶段的结论不受影响；但 8.4 的形态构成表按**当前版本**统计。
-> 凭据：[datasets/jev.yaml](../jev.yaml)（model=typesafe/jev-router，endpoint 主机 openrouter.ai）；密钥只记录指纹。
+> 凭据配置为仓外/本机的 `datasets/jev.yaml`（未提交到仓库）；model=typesafe/jev-router，endpoint 主机 openrouter.ai；密钥只记录指纹。
 
 ## 0. 结论摘要
 

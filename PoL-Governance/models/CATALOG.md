@@ -27,6 +27,15 @@
 | 官方 Jev | [文档](https://docs.typesafe.ai/models)；不提供客户微调/LoRA，排除可训练短名单，可作外部基线 |
 | openjev/openjev | [模型卡](https://huggingface.co/openjev/openjev)；非商业权重，不作为默认公共工程底座 |
 
+## 本工程公开推理基线
+
+以下仅为 EVAL-04 的未适配推理基线，不是 PoL2 训练候选结论，也未发布权重。该次运行记录了 Ollama tag，未保存不可变模型 digest；结果仅供公开探索性比较。
+
+| 模型 tag | 上游入口 | 本工程记录 |
+|---|---|---|
+| `qwen2.5:7b` | [Ollama Qwen2.5](https://ollama.com/library/qwen2.5) | [EVAL-04 分类型评测结果卡](../results/EVAL-04-qwen25-llama31-typed-knowledge-20261026/result-card.zh-CN.md) |
+| `llama3.1:8b` | [Ollama Llama 3.1](https://ollama.com/library/llama3.1) | [EVAL-04 分类型评测结果卡](../results/EVAL-04-qwen25-llama31-typed-knowledge-20261026/result-card.zh-CN.md) |
+
 ## 如何补充
 
 一条新记录回答：模型/版本、许可、本地运行条件、适配代码、中文/PoL 证据、速度测试条件、已知失败和来源日期。区分作者宣称、独立复现与本工程实测；找不到就写未知。

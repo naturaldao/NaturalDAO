@@ -1,0 +1,39 @@
+{
+  "response_content": "{ \"answers\": [ { \"qid\": \"Q001\", \"answer\": \"love2_connection\" }, { \"qid\": \"Q002\", \"answer\": \"eap\" }, { \"qid\": \"Q003\", \"answer\": \"public_ai\" }, { \"qid\": \"Q004\", \"answer\": \"emptiness\" }, { \"qid\": \"Q005\", \"answer\": \"governance_layer\" }, { \"qid\": \"Q006\", \"answer\": \"emptiness\" }, { \"qid\": \"Q007\", \"answer\": \"eap\" }, { \"qid\": \"Q008\", \"answer\": \"public_ai\" } ] }",
+  "parsed": {
+    "answers": [
+      {
+        "qid": "Q001",
+        "answer": "love2_connection"
+      },
+      {
+        "qid": "Q002",
+        "answer": "eap"
+      },
+      {
+        "qid": "Q003",
+        "answer": "public_ai"
+      },
+      {
+        "qid": "Q004",
+        "answer": "emptiness"
+      },
+      {
+        "qid": "Q005",
+        "answer": "governance_layer"
+      },
+      {
+        "qid": "Q006",
+        "answer": "emptiness"
+      },
+      {
+        "qid": "Q007",
+        "answer": "eap"
+      },
+      {
+        "qid": "Q008",
+        "answer": "public_ai"
+      }
+    ]
+  }
+}
