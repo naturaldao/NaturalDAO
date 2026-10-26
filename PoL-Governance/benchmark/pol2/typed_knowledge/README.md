@@ -44,4 +44,4 @@ python PoL-Governance/benchmark/pol2/typed_knowledge/score_runs.py
 python PoL-Governance/benchmark/pol2/typed_knowledge/plot_typed_eval.py
 ```
 
-The checked-in data and result files represent the completed 2026-10-26 run, not a promise of bit-identical generation across Ollama/model revisions. Models were run locally through CPU inference. See [the result card](../../../../Research/Embodied/02-实验设计与审计/PoL2分类型知识评测先导.md) for the full protocol, score tables, leakage audit, and limitations.
+The checked-in data and result files represent the completed 2026-10-26 run, not a promise of bit-identical generation across Ollama/model revisions. Models were run locally through CPU inference. See [the full Research report](../../../../Research/Embodied/02-实验设计与审计/PoL2分类型知识评测先导.md) for the protocol, score tables, leakage audit, and limitations, and the [standard governance result card](../../../results/EVAL-04-qwen25-llama31-typed-knowledge-20261026/result-card.zh-CN.md) for the run config and combined predictions.

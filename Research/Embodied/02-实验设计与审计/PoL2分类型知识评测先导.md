@@ -3,6 +3,9 @@
 **日期：** 2026-10-26（香港时间）
 
 **状态：** 公开探索性基线；不是确认性检验
+
+PoL-Governance 结果区也提供了[标准结果卡、运行配置与汇总预测文件](../../PoL-Governance/results/EVAL-04-qwen25-llama31-typed-knowledge-20261026/result-card.zh-CN.md)；本页保留完整研究设计、结果解释和证据限制。
+
 **任务：** EVAL-04，PoL2 理论知识的类型化评测
 
 ## 结论先行

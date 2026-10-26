@@ -372,9 +372,9 @@ C9 有 **2 个 config 是刻意偏离接入时标签的**：`known_unknowns`（�
 
 | 文件 | 内容 | 用途 |
 |---|---|---|
-| [data/splits/train.jsonl](data/splits/train.jsonl)（[.gz](data/splits/train.jsonl.gz)） | 48,728 条 | 训练（含 3,148 条只进 train 的中文安全补充） |
-| [data/splits/validation.jsonl](data/splits/validation.jsonl)（[.gz](data/splits/validation.jsonl.gz)） | 7,597 条 | 选模型、调超参 |
-| [data/splits/test.jsonl](data/splits/test.jsonl)（[.gz](data/splits/test.jsonl.gz)） | 15,194 条 | 回归测试 |
+| [data/splits/train.jsonl.gz](data/splits/train.jsonl.gz) | 48,728 条 | 训练（含 3,148 条只进 train 的中文安全补充） |
+| [data/splits/validation.jsonl.gz](data/splits/validation.jsonl.gz) | 7,597 条 | 选模型、调超参 |
+| [data/splits/test.jsonl.gz](data/splits/test.jsonl.gz) | 15,194 条 | 回归测试 |
 | [data/jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) | 旁挂概率 44,740 行 | 软蒸馏目标（有选择偏差，见 §4.4） |
 | [data/target-types.jsonl.gz](data/target-types.jsonl.gz) | target 形态与训练路由 74,853 行 | 决定 drop / classification / distillation |
 | [data/splits/split-manifest.json](data/splits/split-manifest.json) | 哈希与聚合清单 | 校验下载完整性 |

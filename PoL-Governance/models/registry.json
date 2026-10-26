@@ -3,5 +3,7 @@
   {"id":"kev","card":"models/CATALOG.md","url":"https://github.com/jaredpalmer/kev","status":"adapter_tested_model_not_run"},
   {"id":"intern-decision","card":"models/CATALOG.md","url":"https://github.com/InternLM/Intern-Decision","status":"candidate_not_tested"},
   {"id":"laya-multilingual","card":"models/CATALOG.md","url":"https://huggingface.co/convaiinnovations/laya-multilingual","status":"conditional_candidate_not_tested"},
-  {"id":"kev-pol2-score-v2-m10","card":"models/kev-pol2-score-v2-m10/README.md","url":"https://github.com/naturaldao/NaturalDAO/releases/tag/pol2-score-v2-v1.0.0","status":"research_release_candidate_2_of_3"}
+  {"id":"kev-pol2-score-v2-m10","card":"models/kev-pol2-score-v2-m10/README.md","url":"https://github.com/naturaldao/NaturalDAO/releases/tag/pol2-score-v2-v1.0.0","status":"research_release_candidate_2_of_3"},
+  {"id":"qwen2.5-7b-baseline","card":"models/CATALOG.md","url":"https://ollama.com/library/qwen2.5","status":"public_inference_baseline_unadapted"},
+  {"id":"llama3.1-8b-baseline","card":"models/CATALOG.md","url":"https://ollama.com/library/llama3.1","status":"public_inference_baseline_unadapted"}
 ]

@@ -18,9 +18,8 @@
 
 ## 1. 复算口径
 
-**冻结语料**：`D:\pol2-raw\general-private\data\items.final.jsonl.gz`（仓外，23,855 条），
-解压后 sha256 = `21f11fe3dc39edd9d82680b7461b45883bb73d15a1d9611f3b2e80f4bd7e9f9f`，
-与本仓 [data/items.final.jsonl](data/items.final.jsonl) **逐字节相同**（同 sha256，同为 82,605,456 B）。
+**冻结语料**：`D:\pol2-raw\general-private\data\items.final.jsonl.gz`（仓外，23,855 条；不随仓库分发）。
+该分析记录的历史明文副本 sha256 为 `21f11fe3dc39edd9d82680b7461b45883bb73d15a1d9611f3b2e80f4bd7e9f9f`、大小为 82,605,456 B；当前公开 checkout 不含该语料，无法在此独立复算该文件哈希。
 四分区来自 [data/splits/](data/splits/split-manifest.json)（train 17,984 / test 4,946 / validation 2,473 / benchmark 1,600）。
 
 ```powershell
