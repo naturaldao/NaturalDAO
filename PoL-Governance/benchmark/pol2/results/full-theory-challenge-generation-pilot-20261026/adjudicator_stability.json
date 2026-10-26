@@ -1,0 +1,559 @@
+{
+  "experiment": "PoL2 challenge pilot adjudicator stability audit",
+  "pilot_scope": "one source atom; six candidate cases; all judges blind to generation labels",
+  "models": [
+    "qwen2.5:7b",
+    "llama3.1:8b"
+  ],
+  "prompt_styles": [
+    "rule_first",
+    "case_first"
+  ],
+  "n_cases": 6,
+  "adjudications": 24,
+  "pairwise_label_agreement": 1.0,
+  "pairwise_label_comparisons": 36,
+  "pairwise_label_agreements": 36,
+  "initial_vs_repeat_same_model_quality_gate_agreement_n": 4,
+  "initial_vs_repeat_same_model_quality_gate_agreements": 8,
+  "initial_vs_repeat_same_model_quality_gate_comparisons": 12,
+  "quality_gate_stability_by_case": {
+    "love2-conflicting-1": {
+      "initial_qwen_gate": false,
+      "repeat_qwen_gates": [
+        true,
+        true
+      ],
+      "initial_agrees_with_both_repeats": false
+    },
+    "love2-conflicting-2": {
+      "initial_qwen_gate": false,
+      "repeat_qwen_gates": [
+        true,
+        true
+      ],
+      "initial_agrees_with_both_repeats": false
+    },
+    "love2-consistent-1": {
+      "initial_qwen_gate": true,
+      "repeat_qwen_gates": [
+        true,
+        true
+      ],
+      "initial_agrees_with_both_repeats": true
+    },
+    "love2-consistent-2": {
+      "initial_qwen_gate": true,
+      "repeat_qwen_gates": [
+        true,
+        true
+      ],
+      "initial_agrees_with_both_repeats": true
+    },
+    "love2-insufficient-1": {
+      "initial_qwen_gate": false,
+      "repeat_qwen_gates": [
+        false,
+        false
+      ],
+      "initial_agrees_with_both_repeats": true
+    },
+    "love2-insufficient-2": {
+      "initial_qwen_gate": false,
+      "repeat_qwen_gates": [
+        false,
+        false
+      ],
+      "initial_agrees_with_both_repeats": true
+    }
+  },
+  "all_four_labels_agree_n": 6,
+  "all_four_quality_gates_pass_n": 4,
+  "all_four_strict_gates_pass_n": 0,
+  "cases_with_theory_lexical_cues_n": 4,
+  "cases_with_unverified_attribution_cues_n": 2,
+  "theory_cue_lexicon": [
+    "爱2",
+    "爱",
+    "恨",
+    "平等",
+    "互利",
+    "公平",
+    "公正",
+    "普惠",
+    "正义",
+    "责任",
+    "协作",
+    "情感体验",
+    "智慧",
+    "三位一体",
+    "慈悲",
+    "对齐",
+    "治理"
+  ],
+  "unverified_attribution_cue_lexicon": [
+    "被指控",
+    "指控为",
+    "被指为",
+    "炫耀财富",
+    "自我宣传",
+    "利用弱势群体"
+  ],
+  "all_four_labels_match_generator_n": 6,
+  "decision": "Pilot is not training-ready: source coverage is one atom and adjudication stability is not established across theory items.",
+  "limitations": [
+    "Two local model families only; both are general-purpose models, not normative PoL2 authorities.",
+    "Prompt variants and repeat outputs on six cases do not estimate reliability across the 114-item theory inventory.",
+    "Agreement is not evidence that an interpretation is correct; source lineage and ambiguity remain decisive."
+  ],
+  "script_sha256": "bb9a874dd9acf825f9c0b3471a35dc6081914f28a6c4cfbf6e45438ed86623b3",
+  "builder_sha256": "fceefe76bd2e66364f7eac6a182a7a0f2da4d007e7e6e7a7fce885ff6d5a6f48",
+  "case_summaries": [
+    {
+      "id": "love2-conflicting-1",
+      "generator_label": "conflicting",
+      "all_four_labels_agree": true,
+      "all_four_quality_gates_pass": true,
+      "theory_lexical_cues": [],
+      "unverified_attribution_cues": [
+        "被指控",
+        "指控为",
+        "炫耀财富",
+        "自我宣传"
+      ],
+      "all_four_strict_gates_pass": false,
+      "all_four_match_generator_label": true,
+      "label_predictions": [
+        "conflicting",
+        "conflicting",
+        "conflicting",
+        "conflicting"
+      ],
+      "quality_gate_predictions": [
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": "love2-conflicting-2",
+      "generator_label": "conflicting",
+      "all_four_labels_agree": true,
+      "all_four_quality_gates_pass": true,
+      "theory_lexical_cues": [],
+      "unverified_attribution_cues": [
+        "被指控",
+        "指控为",
+        "利用弱势群体"
+      ],
+      "all_four_strict_gates_pass": false,
+      "all_four_match_generator_label": true,
+      "label_predictions": [
+        "conflicting",
+        "conflicting",
+        "conflicting",
+        "conflicting"
+      ],
+      "quality_gate_predictions": [
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": "love2-consistent-1",
+      "generator_label": "consistent",
+      "all_four_labels_agree": true,
+      "all_four_quality_gates_pass": true,
+      "theory_lexical_cues": [
+        "平等"
+      ],
+      "unverified_attribution_cues": [],
+      "all_four_strict_gates_pass": false,
+      "all_four_match_generator_label": true,
+      "label_predictions": [
+        "consistent",
+        "consistent",
+        "consistent",
+        "consistent"
+      ],
+      "quality_gate_predictions": [
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": "love2-consistent-2",
+      "generator_label": "consistent",
+      "all_four_labels_agree": true,
+      "all_four_quality_gates_pass": true,
+      "theory_lexical_cues": [
+        "爱",
+        "责任"
+      ],
+      "unverified_attribution_cues": [],
+      "all_four_strict_gates_pass": false,
+      "all_four_match_generator_label": true,
+      "label_predictions": [
+        "consistent",
+        "consistent",
+        "consistent",
+        "consistent"
+      ],
+      "quality_gate_predictions": [
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": "love2-insufficient-1",
+      "generator_label": "insufficient",
+      "all_four_labels_agree": true,
+      "all_four_quality_gates_pass": false,
+      "theory_lexical_cues": [
+        "公平",
+        "公正",
+        "情感体验",
+        "治理"
+      ],
+      "unverified_attribution_cues": [],
+      "all_four_strict_gates_pass": false,
+      "all_four_match_generator_label": true,
+      "label_predictions": [
+        "insufficient",
+        "insufficient",
+        "insufficient",
+        "insufficient"
+      ],
+      "quality_gate_predictions": [
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "love2-insufficient-2",
+      "generator_label": "insufficient",
+      "all_four_labels_agree": true,
+      "all_four_quality_gates_pass": false,
+      "theory_lexical_cues": [
+        "公平",
+        "公正",
+        "情感体验",
+        "治理"
+      ],
+      "unverified_attribution_cues": [],
+      "all_four_strict_gates_pass": false,
+      "all_four_match_generator_label": true,
+      "label_predictions": [
+        "insufficient",
+        "insufficient",
+        "insufficient",
+        "insufficient"
+      ],
+      "quality_gate_predictions": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  ],
+  "raw_adjudications": [
+    {
+      "id": "love2-insufficient-1",
+      "label": "insufficient",
+      "grounded": false,
+      "decidable": false,
+      "cue_leakage": false,
+      "reason": "案例中没有明确说明行为是否符合来源条目中关于平等互利和公平公正的社会治理层面的要求。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "rule_first",
+      "generator_label": "insufficient",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-conflicting-1",
+      "label": "conflicting",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "案例中行为被指控为炫耀财富和自我宣传，这与来源条目中关于平等互利和公平公正的社会治理层面的要求相冲突。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "rule_first",
+      "generator_label": "conflicting",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-consistent-1",
+      "label": "consistent",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "案例中描述的行为体现了平等互利和公平公正的社会治理层面的要求。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "rule_first",
+      "generator_label": "consistent",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-insufficient-2",
+      "label": "insufficient",
+      "grounded": false,
+      "decidable": false,
+      "cue_leakage": false,
+      "reason": "案例中没有明确说明行为是否符合来源条目中关于平等互利和公平公正的社会治理层面的要求。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "rule_first",
+      "generator_label": "insufficient",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-conflicting-2",
+      "label": "conflicting",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "案例中行为被指控为利用弱势群体的需求来获取政治支持，这与来源条目中关于平等互利和公平公正的社会治理层面的要求相冲突。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "rule_first",
+      "generator_label": "conflicting",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-consistent-2",
+      "label": "consistent",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "案例中描述的行为体现了平等互利和公平公正的社会治理层面的要求。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "rule_first",
+      "generator_label": "consistent",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-insufficient-1",
+      "label": "insufficient",
+      "grounded": false,
+      "decidable": false,
+      "cue_leakage": false,
+      "reason": "案例中没有明确指出行为是否与来源条目一致，缺乏足够的信息进行判断。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "case_first",
+      "generator_label": "insufficient",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-conflicting-1",
+      "label": "conflicting",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "行为被指控为炫耀财富和自我宣传，这与来源条目中关于平等互利和公平公正的动机相矛盾。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "case_first",
+      "generator_label": "conflicting",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-consistent-1",
+      "label": "consistent",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "案例中描述的行为体现了平等互利的关系，符合来源条目中的动机描述。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "case_first",
+      "generator_label": "consistent",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-insufficient-2",
+      "label": "insufficient",
+      "grounded": false,
+      "decidable": false,
+      "cue_leakage": false,
+      "reason": "案例中没有明确指出行为是否与来源条目一致，缺乏足够的信息进行判断。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "case_first",
+      "generator_label": "insufficient",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-conflicting-2",
+      "label": "conflicting",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "行为被指控为利用弱势群体的需求来获取政治支持，这与来源条目中关于公平公正的动机相矛盾。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "case_first",
+      "generator_label": "conflicting",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-consistent-2",
+      "label": "consistent",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "案例中描述的行为体现了出于爱和责任的动机，符合来源条目中的动机描述。",
+      "model": "qwen2.5:7b",
+      "prompt_style": "case_first",
+      "generator_label": "consistent",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-insufficient-1",
+      "label": "insufficient",
+      "grounded": false,
+      "decidable": false,
+      "cue_leakage": false,
+      "reason": "来源没有规定或案例缺关键事实",
+      "model": "llama3.1:8b",
+      "prompt_style": "rule_first",
+      "generator_label": "insufficient",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-conflicting-1",
+      "label": "conflicting",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "可观察事实明确违反来源条目",
+      "model": "llama3.1:8b",
+      "prompt_style": "rule_first",
+      "generator_label": "conflicting",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-consistent-1",
+      "label": "consistent",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "行为与来源条目一致",
+      "model": "llama3.1:8b",
+      "prompt_style": "rule_first",
+      "generator_label": "consistent",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-insufficient-2",
+      "label": "insufficient",
+      "grounded": false,
+      "decidable": false,
+      "cue_leakage": false,
+      "reason": "来源没有规定或案例缺关键事实",
+      "model": "llama3.1:8b",
+      "prompt_style": "rule_first",
+      "generator_label": "insufficient",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-conflicting-2",
+      "label": "conflicting",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "可观察事实明确违反来源条目",
+      "model": "llama3.1:8b",
+      "prompt_style": "rule_first",
+      "generator_label": "conflicting",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-consistent-2",
+      "label": "consistent",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "行为与来源条目一致",
+      "model": "llama3.1:8b",
+      "prompt_style": "rule_first",
+      "generator_label": "consistent",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-insufficient-1",
+      "label": "insufficient",
+      "grounded": false,
+      "decidable": false,
+      "cue_leakage": false,
+      "reason": "缺少关键事实",
+      "model": "llama3.1:8b",
+      "prompt_style": "case_first",
+      "generator_label": "insufficient",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-conflicting-1",
+      "label": "conflicting",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "行为与来源条目不一致",
+      "model": "llama3.1:8b",
+      "prompt_style": "case_first",
+      "generator_label": "conflicting",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-consistent-1",
+      "label": "consistent",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "行为与来源条目一致",
+      "model": "llama3.1:8b",
+      "prompt_style": "case_first",
+      "generator_label": "consistent",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-insufficient-2",
+      "label": "insufficient",
+      "grounded": false,
+      "decidable": false,
+      "cue_leakage": false,
+      "reason": "缺少关键事实",
+      "model": "llama3.1:8b",
+      "prompt_style": "case_first",
+      "generator_label": "insufficient",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-conflicting-2",
+      "label": "conflicting",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "行为与来源条目不一致",
+      "model": "llama3.1:8b",
+      "prompt_style": "case_first",
+      "generator_label": "conflicting",
+      "atom_id": "love2"
+    },
+    {
+      "id": "love2-consistent-2",
+      "label": "consistent",
+      "grounded": true,
+      "decidable": true,
+      "cue_leakage": false,
+      "reason": "行为与来源条目一致",
+      "model": "llama3.1:8b",
+      "prompt_style": "case_first",
+      "generator_label": "consistent",
+      "atom_id": "love2"
+    }
+  ]
+}
