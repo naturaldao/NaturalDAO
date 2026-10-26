@@ -1,0 +1,27 @@
+{
+  "id": "kev-4b-pol2-score-v2-m10",
+  "base_model": "Qwen/Qwen3.5-4B-Base",
+  "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+  "format": "kev-checkpoint",
+  "default_seed": 43,
+  "available_seeds": [17, 29, 43],
+  "inference_context": {
+    "max_state": 4096,
+    "max_branch": 4096,
+    "max_packed": 8192
+  },
+  "training": {
+    "epochs": 1,
+    "batch": 1,
+    "gradient_accumulation": 4,
+    "learning_rate": 0.00002,
+    "dtype": "bf16",
+    "lora_rank": 16,
+    "lora_alpha": 32,
+    "head_dim": 256,
+    "max_state": 4096
+  },
+  "status": "research_candidate",
+  "training_approved": false,
+  "expert_gold": false
+}
