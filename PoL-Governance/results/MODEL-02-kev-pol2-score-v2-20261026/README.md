@@ -1,6 +1,6 @@
 # Kev POL2 score-v2 M10 结果卡
 
-- 任务 / 分支 / 领取人：MODEL-02 / `pol/MODEL-02/kev-pol2-m10` / w609641894 + Codex
+- 任务 / 分支 / 领取人：MODEL-02 / `main` / w609641894 + Codex
 - 模型：`kev-4b-pol2-score-v2-m10`
 - 底座：`Qwen/Qwen3.5-4B-Base@1001bb4d826a52d1f399e183466143f4da7b741b`
 - 方法：Kev LoRA + pointer head，1 epoch

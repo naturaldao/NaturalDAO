@@ -1,11 +1,11 @@
 # Kev-4B POL2 Score-v2 M10
 
 - ID：`kev-4b-pol2-score-v2-m10`
-- 状态：**研究候选（release review）**，不是生产认证
+- 状态：**GitHub 研究预发布**（`pol2-score-v2-v1.0.0`），不是生产认证
 - 底座：`Qwen/Qwen3.5-4B-Base`，revision `1001bb4d826a52d1f399e183466143f4da7b741b`
 - 起点：Kev-4B adapter/pointer head
 - 适配方式：LoRA + pointer head
-- 训练数据：`pol2-score-v2`（随 `pol/DATA-02/score-v2` 分支提交）
+- 训练数据：`pol2-score-v2`（数据卡、样例与清单随 `main` 提交；完整数据见 GitHub Release）
 - 权重：GitHub Release `pol2-score-v2-v1.0.0`
 - 结果：[结果卡](../../results/MODEL-02-kev-pol2-score-v2-20261026/README.md)
 

@@ -1,8 +1,8 @@
 # DATA-02 · POL2 score-v2 数据发布
 
 - 领取人：w609641894 / Codex
-- 状态：待集成
-- 分支：`pol/DATA-02/score-v2`
+- 状态：已集成到 `main`；GitHub 研究预发布
+- 分支：`main`
 - 数据：`datasets/pol2/score-v2/`
 - 完整数据：GitHub Release `pol2-score-v2-v1.0.0`
 
@@ -22,6 +22,6 @@
 
 ## 下一步
 
-1. 维护者审核数据卡、许可和公开发布包；
-2. 需要时补 canonical 转换；
-3. 合并后把 Release 状态从候选改为正式。
+1. 后续需要时补 canonical 转换；
+2. 维持研究预发布边界，未经再次评审不得改成生产批准；
+3. 若修改数据包，必须同步更新 Release 资产、SHA-256 和完整清单。

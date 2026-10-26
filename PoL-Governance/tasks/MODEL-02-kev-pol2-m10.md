@@ -1,8 +1,8 @@
 # MODEL-02 · Kev POL2 score-v2 M10
 
 - 领取人：w609641894 / Codex
-- 状态：待集成 / 发布评审
-- 分支：`pol/MODEL-02/kev-pol2-m10`
+- 状态：已集成到 `main`；GitHub 研究预发布
+- 分支：`main`
 - 模型：`models/kev-pol2-score-v2-m10/`
 - 结果：`results/MODEL-02-kev-pol2-score-v2-20261026/`
 
@@ -22,4 +22,4 @@
 
 ## 交付判断
 
-允许进入发布评审；正式训练/生产门禁保持关闭。
+允许作为研究预发布公开；正式训练/生产门禁保持关闭。

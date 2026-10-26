@@ -69,7 +69,7 @@ sha256sum -c CHECKSUMS.sha256
 python3 scripts/validate_public_release.py
 ```
 
-训练结果随 `pol/MODEL-02/kev-pol2-m10` 分支提交到 `results/MODEL-02-kev-pol2-score-v2-20261026/`。
+训练结果已随 `main` 提交到 `results/MODEL-02-kev-pol2-score-v2-20261026/`。
 
 ## 已知限制
 
