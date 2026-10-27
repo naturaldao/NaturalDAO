@@ -1,4 +1,4 @@
-# 具身智能与治理
+# PoL2-EG (Proof of Love2 Embodied Governance)
 
 [返回研究总入口](../README.md)
 
