@@ -128,6 +128,8 @@ cd results/MODEL-02-final-eval/eval-package && sha256sum -c CHECKSUMS.sha256
 
 **同日复核**（2026-10-27 15:48–16:02，agieval 单任务重跑）：base **0.4133**（与 10-23 完全一致）、adapter **0.3057**（一致）→ -10.8pt 为可复现真实差异，非环境漂移。
 
+**逐子任务拆解**（[lm-eval-subtask-deltas.json](../../results/MODEL-02-final-eval/lm-eval-subtask-deltas.json)）：agieval 21 个子任务 16 降 5 升，降幅集中在英文阅读/逻辑（LSAT-LR -38pt、SAT-EN -37pt、gaokao-EN -27pt、LSAT-RC -20pt、logiqa_en -19pt）；ceval/cmmlu/mmlu 分别 32/52/39 个子任务上升，12/12/18 下降 → 副作用集中在英文长文本阅读，非普遍退化。
+
 ### 10.3 温度拟合与校准（完成）
 
 - 冻结温度 **T=0.992077**（validation calibration 半区 3,950 行拟合，NLL 0.530488；selection 半区 3,901 行复核）。
@@ -172,7 +174,7 @@ cd results/MODEL-02-final-eval/eval-package && sha256sum -c CHECKSUMS.sha256
 | 数据集 | base | adapter | 差值 | 配对 CI |
 |---|---:|---:|---:|---|
 | public test（15,573） | 0.5043 | **0.7785** | **+27.42 pt** | item [26.58, 28.34]；簇 [26.49, 28.36]（G=14,202，reliability ok） |
-| public validation（7,851） | 0.5136 | 0.7895 | +27.6 pt | （未单独聚合；逐行预测在仓库外） |
+| public validation（7,851） | 0.5136 | 0.7895 | +27.6 pt | 簇 [26.31, 28.88]（G=7,141，reliability ok） |
 
 test 校准（T=0.992077 只 apply）：raw NLL 0.54808 / Brier 0.28317 / ECE 0.00695；calibrated NLL 0.54816 / Brier 0.28320 / ECE 0.00665。
 

@@ -524,6 +524,20 @@ class CheckAggregateExportV2Test(unittest.TestCase):
             self.assertIn(needle, violation_text(report))
         return report
 
+    def test_ece_ci_without_containing_point_passes(self):
+        """ECE 是比值估计：簇 bootstrap 百分位区间不保证包含点估计。
+
+        真实案例（2026-10-27 validation）：ece=0.005765，cluster CI [0.008096, 0.017519]；
+        旧检查会误判为违规——这是合法的统计输出，必须接受；区间结构仍需合法。
+        """
+        block = self.document["calibration"]["raw"]
+        block["ece"] = 0.005765
+        block["ece_ci95_group"] = [0.008096, 0.017519]
+        report = checker.check_bytes(dump(self.document))
+        self.assertTrue(report.ok, violation_text(report))
+        block["ece_ci95_group"] = [0.3, 0.2]
+        self.assert_fails(self.document, "ece_ci95_group")
+
     # ---- 合法 v2 样例 ----
     def test_v2_sample_passes(self):
         report = checker.check_bytes(dump(self.document))

@@ -69,6 +69,7 @@
 
 - **test（15,573 行，batch 8）**：base **0.5043**（7,854/15,573）→ adapter **0.7785**（12,124/15,573），**+27.42 pt**；配对 item bootstrap 95% CI [26.58, 28.34]，**group-cluster bootstrap 95% CI [26.49, 28.36]**（G=14,202，reliability ok）。与历史 0.5047/0.7785 差异 0.0004/0.0000（fp16 + batch 顺序的数值抖动，5 行）；结论不变。
 - **validation（7,851 行）**：base 0.5136 → adapter 0.7895（+27.6 pt；历史 0.5127→0.7883，差 +0.1pt 来自本轮多跳过 36 行超长 prompt）。
+  配对簇 bootstrap 95% CI **[+26.31, +28.88]**（G=7,141，reliability ok；item CI [26.30, 28.80]）。
 - 失败记录：test 预测首次以 batch 32 运行时把显存推到 ~19.4GB、dxg 报 ENOMEM 并抖动，终止后以 batch 8 完成（见 §5/§8）。
 
 ## 4 通用能力代理（防遗忘）—— 完成
@@ -86,6 +87,8 @@ lm-eval 0.4.13 + datasets 3.6.0，ceval-valid / cmmlu / mmlu / agieval，`--limi
 **按预注册阈值判定**：均值降 0.7 pt ＜ 2 pt → **未触发**均值警戒；**单任务 agieval 降 10.8 pt ≥ 5 pt → 触发「任一任务降≥5pt」警戒**。按协议应「降 LoRA rank/epoch 重新训练」；但本轮模型已冻结、只做最终评测，**该发现留 owner 决策，不在本轮改模型**。正式结论写「在所选代理上：中文两类与 mmlu 小幅上升、agieval 明显下降；均值未触发警戒但单任务触发」，不写「通用能力不降」。
 
 复算入口：仓库外 `~/src/polgov/evals/lm-eval-track-a/<task>/`；紧凑汇总 [lm-eval-adapter.json](lm-eval-adapter.json)。**同日复核（2026-10-27 15:48–16:02，agieval 单独重跑）**：base **0.4133**（与 10-23 记录完全一致）、adapter **0.3057**（一致）→ **agieval 的 -10.8 pt 是可复现的真实差异，不是环境漂移**。
+
+**逐子任务拆解**（205 个结果键 → 201 个子任务；[lm-eval-subtask-deltas.json](lm-eval-subtask-deltas.json)）：agieval 的 21 个子任务中 **16 个变差、5 个变好**，降幅集中在**英文语言/阅读理解类**——LSAT logical reasoning **-38 pt**（0.51→0.13）、SAT English **-37 pt**（0.71→0.34）、gaokao English -27 pt、LSAT reading comprehension -20 pt、logiqa_en -19 pt；而 ceval（中文）52 个子任务 32 升 12 降、cmmlu 67 个 52 升 12 降、mmlu 61 个 39 升 18 降。**结论：字母 SFT 的副作用集中在英文长文本阅读/逻辑，而非普遍性退化；中文与知识类基本不受损。**
 ## 5 成本与延迟 —— 完成
 
 **保留集评测（batch 8，7,740 行）**：base **225.9 s（34.3 行/s）** / adapter **271.6 s（28.5 行/s）**。

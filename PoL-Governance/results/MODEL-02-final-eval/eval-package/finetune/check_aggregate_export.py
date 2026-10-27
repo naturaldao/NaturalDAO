@@ -1118,8 +1118,11 @@ def _check_calibration_metric_block(
         bins_counts = _check_bins(report, block.get("bins"), f"{path}.bins")
     _check_low_sample_fields(report, block, path, bins_counts)
     if "ece_ci95_group" in block:
+        # ECE 是比值估计（Σ gap·n / N）；簇 bootstrap 的百分位区间**不保证包含**
+        # 全样本点估计（ratio estimator 的有限样本偏差，簇大小不均时更明显）。
+        # 因此这里只校验区间结构（两个 [0,1] 内、单调），不强制包含 ece 点估计。
         _check_ci_pair(
-            report, block.get("ece_ci95_group"), f"{path}.ece_ci95_group", ece, (0.0, 1.0)
+            report, block.get("ece_ci95_group"), f"{path}.ece_ci95_group", None, (0.0, 1.0)
         )
     if "ece_rounds" in block:
         _int_value(report, block.get("ece_rounds"), f"{path}.ece_rounds", minimum=1)
