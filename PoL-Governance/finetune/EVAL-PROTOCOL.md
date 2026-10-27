@@ -105,10 +105,10 @@
 - 分族相关：general v5 按组切分，视图行同族/同 state 存在相关性；item-level bootstrap 会低估 CI，结果卡必须注明「近似 CI，未做 group-cluster bootstrap」；
 - 不做事后挑选（不能先看 test 再决定报告哪个 seed/任务/阈值）。
 
-## 6. 执行顺序（GPU 恢复后按此顺序）
+## 6. 执行顺序（评测可在授权时段使用 GPU；训练需 owner 重开）
 
 ~~~powershell
-# 0) 解冻：确认 owner 已开启 GPU，检查静默时段与温度
+# 0) 确认评测授权（已获）与静默时段/温度；训练不在本协议授权内
 # 1) test 的 base 0-shot（同口径）
 wsl -d Ubuntu-24.04 -- bash <仓库>/.agent/scratch/run_eval.sh "" <数据>/general-test-view.jsonl <输出>/base-test.json
 # 2) adapter 的 test（若尚未跑）
@@ -119,6 +119,13 @@ lm_eval --model hf --model_args pretrained=<模型>,peft=<adapter>,dtype=float16
 # 4) 校准：导出 predictions（--predictions），在半 B 拟合温度，半 A 复核
 # 5) 多 seed 重训（Track A / Track B 各 2–3 seed）
 ~~~
+
+### 6.1 执行授权与 GPU 时间窗（2026-10-27/28）
+
+- **私有保留集**：已授权**方式 2（本机隔离执行）**（owner 2026-10-27 14:06；2026-10-28 再次确认持续有效）。私有数据只在仓库外，只回传聚合 JSON，执行后删除临时副本；不进入仓库/日志/截图/训练上下文。
+- **GPU 评测**：owner 授权可用于评测（adapter lm-eval、validation 逐行预测/校准、延迟、保留集推理）。约束：北京时间 **00:30–09:30 与 12:30–15:30 不启动 GPU**；单卡、一次一个任务；每次 run 前后检查温度与 Kernel-Power 41 / BugCheck 1001 / WHEA；T10 已物理移除，不开双卡。
+- **训练不在授权内**：2026-10-27 起本阶段训练线收尾；多 seed 重训与 rank-8 处置实验已由 owner 停止（单 seed 交付）。Track B 未训练；agieval 单任务警戒（adapter -10.8pt，已复现）为已知限制，待 owner 决定处置。
+- 最终评测执行与数字见 [results/MODEL-02-final-eval/CARD.md](../results/MODEL-02-final-eval/CARD.md)。
 
 ## 7. 报告模板（结果卡必须包含）
 

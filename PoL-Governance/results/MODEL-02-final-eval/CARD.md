@@ -4,6 +4,7 @@
 > **base 0-shot 0.3996 → adapter 0.7034（+30.37 pt，配对簇 bootstrap 95% CI [28.94, 31.75]）**。
 > adapter lm-eval 四任务、温度拟合并冻结（T=0.992077）、正式延迟实测均已完成；未测项见 §8。
 > 执行授权：owner 2026-10-27 14:06 CST（方式 2 + GPU 用于本次评测系列）；私有数据未写入仓库/日志/训练上下文，评测后临时副本已删除。
+> 2026-10-28 补充确认：owner 再次确认评测可用 GPU（须守静默时段 00:30–09:30 / 12:30–15:30）且方式 2 持续授权；训练不在授权内。
 
 - **任务 / 分支 / 领取人 / Agent**：EVAL-01 × MODEL-02 / `pol/MODEL-02/wenbo` / Wenbo / DSH Agent Team（独立评测 session）
 - **评测协议**：[finetune/EVAL-PROTOCOL.md](../../finetune/EVAL-PROTOCOL.md) v1（2026-10-23 预注册冻结；2026-10-27 确认默认范围 = 仅 general v5 的 pre/post）
