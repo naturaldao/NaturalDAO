@@ -1,6 +1,6 @@
 {
   "schema": "pol-final-eval-package-v1",
-  "git_commit": "7dab9b4451520cd07231c43d4097a143d49ce2d5",
+  "git_commit": "8fc8085",
   "versions": {
     "schema": "pol-final-eval-versions-v1",
     "release": "MODEL-02-final-eval-2026-10-27",
@@ -216,5 +216,5 @@
       "bytes": 30333
     }
   ],
-  "package_sha256": "aec47d6b2bcf0a801251b203c9d18c6f31bfacdd46ae4878695aab9efc1f48ad"
+  "package_sha256": "1103a3cac0029c62e4b2f19ff56e98cafffa7be72ee4ea46c283d1c98e450a77"
 }
