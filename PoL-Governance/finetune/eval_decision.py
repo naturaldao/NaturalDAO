@@ -98,7 +98,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         "--predictions",
         type=str,
         default=None,
-        help="输出逐行预测结果 JSONL 路径 (必须在仓库外，例如 D:/pol2-train/runs/.../preds.jsonl)",
+        help="输出逐行预测结果 JSONL 路径 (必须在仓库外，例如 <仓库外目录>/runs/.../preds.jsonl)",
     )
     parser.add_argument(
         "--json",
@@ -126,7 +126,7 @@ def run_evaluation(args: argparse.Namespace) -> Dict[str, Any]:
     if not TORCH_AVAILABLE:
         sys.stderr.write(
             "Error: 当前环境未安装 torch / transformers / peft！\n"
-            "真实评测请在装有推理环境的 Python 下运行 (例如 D:/pol2-train/.venv)。\n"
+            "真实评测请在装有推理环境的 Python 下运行（项目仓库外的 venv）。\n"
         )
         sys.exit(1)
 

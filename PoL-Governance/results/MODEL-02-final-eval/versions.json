@@ -1,0 +1,153 @@
+{
+  "schema": "pol-final-eval-versions-v1",
+  "release": "MODEL-02-final-eval-2026-10-27",
+  "protocol": {
+    "file": "finetune/EVAL-PROTOCOL.md",
+    "version": "v1",
+    "frozen_at": "2026-10-23",
+    "scope": "general v5 pre/post 对比：public test 回归 + validation 校准 + 私有保留集独立评测；POL2/协作者专项数据不在默认范围"
+  },
+  "base_model": {
+    "id": "Qwen/Qwen3-1.7B",
+    "revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+    "files_sha256": {
+      "config.json": "1ddb5b89ebc90dcb417a45c213d818577e65976454d29385c8f6140771d95197",
+      "generation_config.json": "2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2",
+      "model.safetensors.index.json": "0d660e94b165eb912669a5249dff44b83188c4777a07ddb9611fb78d91b0578d",
+      "tokenizer_config.json": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101",
+      "tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"
+    }
+  },
+  "adapter": {
+    "id": "track-a-e1-rocm/adapter",
+    "format": "peft-lora",
+    "lora": {
+      "r": 16,
+      "alpha": 32,
+      "dropout": 0.05,
+      "target_modules": [
+        "up_proj",
+        "q_proj",
+        "k_proj",
+        "gate_proj",
+        "down_proj",
+        "v_proj",
+        "o_proj"
+      ]
+    },
+    "files_sha256": {
+      "README.md": "07282f3930528cbe0f6083b6286b5916967811f6dbccb3519b0c277534d846c5",
+      "adapter_config.json": "16cea619624eefac54b15a70205354030bcdd40eb8970f5bed36bea1f9700460",
+      "adapter_model.safetensors": "ad88db90f140a2c6c1fe08c0cc06cd4c8117e9d8c0a7c429a007bf73c432a6d3",
+      "chat_template.jinja": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
+      "tokenizer.json": "be75606093db2094d7cd20f3c2f385c212750648bd6ea4fb2bf507a6a4c55506",
+      "tokenizer_config.json": "2e3bd3cb5055f7a903a54e7062b2fd14d21b70f4174c3ffcd9fc81ec50a25631"
+    },
+    "training": {
+      "seed": 20261023,
+      "epochs": 1,
+      "steps": 1564,
+      "duration_seconds": 9135.24,
+      "peak_vram_mb": 6286,
+      "train_view_sha256": "a136c2a1f731bbff0565f5e6e0bb7dc62689745c8ff9e550ce433274a581c0dd",
+      "train_git_commit": "1a37c1735b2e228a9172153d2b89363d9fd12616"
+    }
+  },
+  "views": {
+    "train": {
+      "split": "train",
+      "rows": 51947,
+      "sha256": "a136c2a1f731bbff0565f5e6e0bb7dc62689745c8ff9e550ce433274a581c0dd",
+      "template_version": "tv-1",
+      "manifest": "general-train-view.jsonl.manifest.json"
+    },
+    "validation": {
+      "split": "validation",
+      "rows": 8177,
+      "sha256": "b936c61812ab41337462b528fbbeeecd7bf63e2b7951db8f362c3b6437f4ee81",
+      "template_version": "tv-1",
+      "manifest": "general-validation-view.jsonl.manifest.json",
+      "evaluated_rows": 7887,
+      "skipped": {
+        "options_gt_26": 290
+      }
+    },
+    "test": {
+      "split": "test",
+      "rows": 16306,
+      "sha256": "2235f0b74444194ab427a5536e5e89e4afc3e63d89a2bc23412d60beb80ec661",
+      "template_version": "tv-1",
+      "manifest": "general-test-view.jsonl.manifest.json",
+      "evaluated_rows": 15573,
+      "skipped": {
+        "options_gt_26": 656,
+        "prompt_too_long": 77
+      }
+    }
+  },
+  "private_holdout": {
+    "hf_repo": "NaturalDAO/pol-decision-general-v5-holdout",
+    "revision": "146ae4604e67c93805f6bf468449b45c205ca7da",
+    "rows": 6541,
+    "custody": "库外独立保管；内容、逐例答案与可反推 id 不进仓库/分支/日志/截图/训练上下文；仅导出聚合结果"
+  },
+  "software": {
+    "python": "3.12.13",
+    "torch": "2.9.1+rocm7.2.1",
+    "transformers": "5.20.2",
+    "peft": "0.21.2",
+    "lm_eval": "0.4.13",
+    "datasets": "3.6.0"
+  },
+  "hardware": {
+    "gpu": "AMD Radeon RX 7900 XT 20GB (gfx1100)",
+    "env": "WSL2 Ubuntu-24.04 + ROCm 7.2.1 + PyTorch 2.9.1+rocm7.2.1"
+  },
+  "public_regression": {
+    "test": {
+      "base_0shot": {
+        "accuracy": 0.5047,
+        "correct": 7859,
+        "total": 15573,
+        "duration_seconds": 433.8
+      },
+      "adapter": {
+        "accuracy": 0.7785,
+        "correct": 12124,
+        "total": 15573,
+        "duration_seconds": 561.14
+      },
+      "source": "仓库外产物 ~/src/polgov/evals/{base,track-a}-test.json（2026-10-22/23）"
+    },
+    "validation": {
+      "base_0shot": {
+        "accuracy": 0.5127,
+        "correct": 4044,
+        "total": 7887
+      },
+      "adapter": {
+        "accuracy": 0.7883,
+        "correct": 6217,
+        "total": 7887
+      }
+    }
+  },
+  "lm_eval": {
+    "tasks": [
+      "ceval-valid",
+      "cmmlu",
+      "mmlu",
+      "agieval"
+    ],
+    "limit": 100,
+    "fewshot": 0,
+    "base": {
+      "ceval-valid": 0.5847,
+      "cmmlu": 0.5624,
+      "mmlu": 0.5765,
+      "agieval": 0.4133,
+      "mean": 0.5342
+    },
+    "adapter": "PENDING（2026-10-23 崩溃中断，未落盘）"
+  }
+}

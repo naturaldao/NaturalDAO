@@ -56,7 +56,7 @@ def check_output_dir_guard(
     if is_path_inside_repo(output_dir, repo_root):
         msg = (
             f"[GUARD ERROR] output-dir '{output_dir}' 落在仓库内 ({repo_root})！\n"
-            f"根据项目安全规范，训练与评测产物必须存放在仓库外部目录（例如 D:/pol2-train/runs/...）。\n"
+            f"根据项目安全规范，训练与评测产物必须存放在仓库外部目录（例如 <仓库外目录>/runs/...）。\n"
         )
         sys.stderr.write(msg)
         sys.exit(2)

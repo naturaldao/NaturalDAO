@@ -2,7 +2,7 @@
 
 一行 = 一个问题；只读公开分区文件 + 训练路由旁挂件，离线、仅标准库、确定性。
 
-    python datasets/general/build_training_view.py --split train --out D:/pol2-train/data/general-train-view.jsonl
+    python datasets/general/build_training_view.py --split train --out <仓库外目录>/general-train-view.jsonl
 
 输出行 schema 与渲染模板见 TRAINING-VIEW.md。
 """
