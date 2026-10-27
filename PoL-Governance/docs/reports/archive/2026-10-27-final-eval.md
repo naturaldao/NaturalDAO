@@ -1,7 +1,7 @@
 # 阶段报告：最终评测包与结果卡（Session B，2026-10-27）
 
 > 范围：阶段三「校准盲测」的**执行准备**。本报告不含私有保留集的任何内容、逐例结果或可反推 id；保留集评测本轮**未执行**。
-> 数据边界与协议见 [datasets/README](../../datasets/README.md)、[finetune/EVAL-PROTOCOL](../../finetune/EVAL-PROTOCOL.md)；执行方式见内部任务书 Task Book §5（`.agent/prompts/SESSION-B-final-eval.md`，不进公开仓库）。
+> 数据边界与协议见 [datasets/README](../../../datasets/README.md)、[finetune/EVAL-PROTOCOL](../../../finetune/EVAL-PROTOCOL.md)；执行方式见内部任务书 Task Book §5（`.agent/prompts/SESSION-B-final-eval.md`，不进公开仓库）。
 
 ## 0 结论摘要（2026-10-27 定稿）
 
@@ -23,14 +23,14 @@
 
 | 交付 | 路径 | 状态 |
 |---|---|---|
-| 评测结果卡 | [results/MODEL-02-final-eval/CARD.md](../../results/MODEL-02-final-eval/CARD.md) | 完成（含未测项与门禁） |
-| 版本清单（base rev / adapter sha / 视图 sha / holdout rev） | [results/MODEL-02-final-eval/versions.json](../../results/MODEL-02-final-eval/versions.json) | 完成（视图 sha 已复算一致） |
-| 评测包（可交独立评测者） | [results/MODEL-02-final-eval/eval-package/](../../results/MODEL-02-final-eval/eval-package/README.md) | 完成（MANIFEST + CHECKSUMS + 手册；代码提交 `8fc8085`） |
-| 聚合脚本（隔离环境内） | [finetune/final_eval_aggregate.py](../../finetune/final_eval_aggregate.py) | 完成（配对 item + group-cluster bootstrap、校准分箱、覆盖率口径） |
-| 导出前检查器（唯一出口） | [finetune/check_aggregate_export.py](../../finetune/check_aggregate_export.py) | 完成（结构白名单 / 禁键 / 数值自洽 / 文本扫描） |
-| 延迟基准（成本） | [finetune/bench_latency.py](../../finetune/bench_latency.py) | 完成（CPU 可跑；GPU 实测待启用） |
-| 打包器（可复现包 + 漂移检查） | [finetune/prepare_eval_package.py](../../finetune/prepare_eval_package.py) | 完成（`--check` 作为集成门禁） |
-| 公开 test 回归汇总（脚本生成） | [results/MODEL-02-final-eval/public-test-regression.md](../../results/MODEL-02-final-eval/public-test-regression.md) | 完成（0.5047→0.7785 逐位一致） |
+| 评测结果卡 | [results/MODEL-02-final-eval/CARD.md](../../../results/MODEL-02-final-eval/CARD.md) | 完成（含未测项与门禁） |
+| 版本清单（base rev / adapter sha / 视图 sha / holdout rev） | [results/MODEL-02-final-eval/versions.json](../../../results/MODEL-02-final-eval/versions.json) | 完成（视图 sha 已复算一致） |
+| 评测包（可交独立评测者） | [results/MODEL-02-final-eval/eval-package/](../../../results/MODEL-02-final-eval/eval-package/README.md) | 完成（MANIFEST + CHECKSUMS + 手册；代码提交 `8fc8085`） |
+| 聚合脚本（隔离环境内） | [finetune/final_eval_aggregate.py](../../../finetune/final_eval_aggregate.py) | 完成（配对 item + group-cluster bootstrap、校准分箱、覆盖率口径） |
+| 导出前检查器（唯一出口） | [finetune/check_aggregate_export.py](../../../finetune/check_aggregate_export.py) | 完成（结构白名单 / 禁键 / 数值自洽 / 文本扫描） |
+| 延迟基准（成本） | [finetune/bench_latency.py](../../../finetune/bench_latency.py) | 完成（CPU 可跑；GPU 实测待启用） |
+| 打包器（可复现包 + 漂移检查） | [finetune/prepare_eval_package.py](../../../finetune/prepare_eval_package.py) | 完成（`--check` 作为集成门禁） |
+| 公开 test 回归汇总（脚本生成） | [results/MODEL-02-final-eval/public-test-regression.md](../../../results/MODEL-02-final-eval/public-test-regression.md) | 完成（0.5047→0.7785 逐位一致） |
 
 ### 2.1 独立审计与修复（本轮实际发生的最有价值的一步）
 
@@ -136,7 +136,7 @@ cd results/MODEL-02-final-eval/eval-package && sha256sum -c CHECKSUMS.sha256
 
 **同日复核**（2026-10-27 15:48–16:02，agieval 单任务重跑）：base **0.4133**（与 10-23 完全一致）、adapter **0.3057**（一致）→ -10.8pt 为可复现真实差异，非环境漂移。
 
-**逐子任务拆解**（[lm-eval-subtask-deltas.json](../../results/MODEL-02-final-eval/lm-eval-subtask-deltas.json)）：agieval 21 个子任务 16 降 5 升，降幅集中在英文阅读/逻辑（LSAT-LR -38pt、SAT-EN -37pt、gaokao-EN -27pt、LSAT-RC -20pt、logiqa_en -19pt）；ceval/cmmlu/mmlu 分别 32/52/39 个子任务上升，12/12/18 下降 → 副作用集中在英文长文本阅读，非普遍退化。
+**逐子任务拆解**（[lm-eval-subtask-deltas.json](../../../results/MODEL-02-final-eval/lm-eval-subtask-deltas.json)）：agieval 21 个子任务 16 降 5 升，降幅集中在英文阅读/逻辑（LSAT-LR -38pt、SAT-EN -37pt、gaokao-EN -27pt、LSAT-RC -20pt、logiqa_en -19pt）；ceval/cmmlu/mmlu 分别 32/52/39 个子任务上升，12/12/18 下降 → 副作用集中在英文长文本阅读，非普遍退化。
 
 ### 10.3 温度拟合与校准（完成）
 
@@ -189,4 +189,4 @@ test 校准（T=0.992077 只 apply）：raw NLL 0.54808 / Brier 0.28317 / ECE 0.
 
 ### 10.8 产物
 
-结果卡：[results/MODEL-02-final-eval/CARD.md](../../results/MODEL-02-final-eval/CARD.md)；聚合：[private-holdout-aggregate.json](../../results/MODEL-02-final-eval/private-holdout-aggregate.json)；运行元数据：[private-holdout-run.json](../../results/MODEL-02-final-eval/private-holdout-run.json)；温度：[temperature.json](../../results/MODEL-02-final-eval/temperature.json)；lm-eval：[lm-eval-adapter.json](../../results/MODEL-02-final-eval/lm-eval-adapter.json)；延迟：[latency-base.json](../../results/MODEL-02-final-eval/latency-base.json) / [latency-adapter.json](../../results/MODEL-02-final-eval/latency-adapter.json)。
+结果卡：[results/MODEL-02-final-eval/CARD.md](../../../results/MODEL-02-final-eval/CARD.md)；聚合：[private-holdout-aggregate.json](../../../results/MODEL-02-final-eval/private-holdout-aggregate.json)；运行元数据：[private-holdout-run.json](../../../results/MODEL-02-final-eval/private-holdout-run.json)；温度：[temperature.json](../../../results/MODEL-02-final-eval/temperature.json)；lm-eval：[lm-eval-adapter.json](../../../results/MODEL-02-final-eval/lm-eval-adapter.json)；延迟：[latency-base.json](../../../results/MODEL-02-final-eval/latency-base.json) / [latency-adapter.json](../../../results/MODEL-02-final-eval/latency-adapter.json)。

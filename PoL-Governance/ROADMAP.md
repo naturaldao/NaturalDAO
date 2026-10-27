@@ -10,8 +10,8 @@
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | 1 | 准备数据：通用底座 + PoL 专项 + 独立标注 + 共享划分 | **完成**（数据收尾 + HF 托管 2026-10-27；集成方式待 owner 决定） |
-| 2 | 模型适配：可复现配方、首个基线、控制遗忘 | **进行中**：Track A 基线完成（test base/adapter 同口径）；lm-eval base 完成、adapter 待重跑；评测/校准/混合视图就绪；GPU 暂停（2026-10-23 崩溃后硬件待确认） |
-| 3 | 校准盲测：同口径评测、效果与成本、保留集统一评测 | **主体完成（2026-10-27，方式 2）**：保留集 base 0.3996 → adapter 0.7034（+30.37pt，簇 CI [28.94,31.75]）；校准 T=0.992（NLL 未降→字面判据未满足）；adapter lm-eval 完成（均值 -0.7pt，agieval -10.8pt 触发单任务警戒）；延迟实测完成（batch=1 45–65ms）。余：多 seed、Track B、agieval 警戒处置 |
+| 2 | 模型适配：可复现配方、首个基线、控制遗忘 | **完成**：Track A 基线（test 0.5047→0.7785）；lm-eval base+adapter 均完成（均值 0.5342→0.5270，agieval 触发单任务警戒）；评测/校准/混合视图就绪；Track B 未训练 |
+| 3 | 校准盲测：同口径评测、效果与成本、保留集统一评测 | **主体完成（2026-10-27，方式 2）**：保留集 base 0.3996 → adapter 0.7034（+30.37pt，簇 CI [28.94,31.75]）；校准 T=0.992（NLL 未降→字面判据未满足）；adapter lm-eval 完成（均值 -0.7pt，agieval -10.8pt 触发单任务警戒）；延迟实测完成（batch=1 45–65ms）。2026-10-27 收尾：本地训练/评测线结束（见第三阶段说明） |
 | 4 | 插件与验证：接入 DSH、试运行、端到端 | 未开始 |
 
 ## 第一阶段：数据（收尾）
@@ -71,9 +71,11 @@
 - 协作材料位置：benchmark/embodied_reasoning、benchmark/pol2、datasets/pol2/score-v2、models/kev-pol2-score-v2-m10、results/MODEL-02-kev-pol2-score-v2-20261026；
 - 合并摘要见 [阶段报告](docs/reports/2026-10-26-collaborator-update.md)。
 
-## 第三阶段：校准盲测（主体完成；多 seed/Track B 待 GPU 排期）
+## 第三阶段：校准盲测（2026-10-27 收尾）
 
 统一输入、标签含义与测试版本；阈值与校准只用预留校验数据；私有保留集由独立评测者统一运行。比较项：PoL benchmark（更准、误拦更少）、通用能力（不明显下降）、主流安全 benchmark（有证据的提升），同时报告延迟与成本。
+
+> **收尾说明（2026-10-27，owner 决定）**：本仓库的本地训练/评测线到此结束，之后不再在本地独立训练外部模型。本阶段以**单 seed** 交付；多 seed 与 Track B 未做，agieval 单任务警戒作为已知限制记录（已同日复现，处置需改模型重训）。结果与评测包保持可复现。
 
 | 子项 | 内容 | 状态 / 验收 |
 |---|---|---|
@@ -85,7 +87,7 @@
 | E3-6 | 成本/延迟（p50/p95、tokens/s、峰值显存） | **完成**：batch=1 p50 44.9/65.0 ms（base/adapter）、tokens/s 6,039/4,582、峰值 4.0/4.1 GB；batch=16 更差（p50 77.6/95.1 ms，峰值 14.6 GB）→ **部署建议 batch=1**；保留集推理 base 225.9 s / adapter 271.6 s（7,740 行） |
 | E3-7 | 统计（配对 CI、多 seed） | **CI 完成**（簇 bootstrap 见 E3-3；item bootstrap 近似 [+29.03,+31.56]）；**多 seed 未做**：owner 2026-10-27 决定停止额外重训（GPU 机时），本轮按单 seed 交付、不宣称跨 seed 稳定；Track B 未训练 |
 
-结果卡：[results/MODEL-02-final-eval/CARD.md](results/MODEL-02-final-eval/CARD.md)；阶段报告见 [docs/reports](docs/reports/2026-10-27-final-eval-package.md)。
+结果卡：[results/MODEL-02-final-eval/CARD.md](results/MODEL-02-final-eval/CARD.md)；阶段报告已归档：[docs/reports/archive/2026-10-27-final-eval.md](docs/reports/archive/2026-10-27-final-eval.md)。
 
 ## 第四阶段：插件与验证
 

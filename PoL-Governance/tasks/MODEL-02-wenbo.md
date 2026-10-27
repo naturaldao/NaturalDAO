@@ -2,7 +2,7 @@
 
 | 领取人 / Agent | 状态 / 最近进展（Agent 更新） |
 |---|---|
-| Wenbo / DSH Agent Team | 进行中（GPU 暂停）；Track A 基线完成：validation 0.5127→0.7883、test 0.5047→0.7785；lm-eval base 完成（均值 0.5342）、adapter 侧被 10-23 崩溃中断待重跑；PoL2 未批准训练前零梯度 |
+| Wenbo / DSH Agent Team | **暂停（阶段收尾，2026-10-27）**：最终评测完成（保留集 base 0.3996→adapter 0.7034，+30.37pt，簇 CI [28.94,31.75]）；adapter lm-eval 完成（agieval 触发单任务警戒）；延迟实测完成；owner 决定不再本地独立训练，多 seed/Track B 未做 |
 
 - 更新时间：2026-10-23 UTC+8
 - 分支：pol/MODEL-02/wenbo（阶段一数据收尾 PR 后另开）
@@ -44,11 +44,12 @@
 2026-10-26｜Wenbo / DSH Agent Team｜**合并协作者更新（main 前进 45 提交）**：新增 EVAL-02 具身推理先导、EVAL-03 完整理论内在化先导、POL2 score-v2 数据与 Kev-4B pointer-head 模型（研究预发布）。本项目 Track A 线（Qwen3-1.7B 字母 SFT）与其数据/规模/口径不同，**不混表比较**；摘要见 `docs/reports/2026-10-26-collaborator-update.md`。
 
 2026-10-26｜Wenbo / DSH Agent Team｜test base 0-shot 与 lm-eval base 侧结果已在 10-23 崩溃前落盘（test 0.5047→0.7785；lm-eval base 均值 0.5342），adapter 侧被崩溃中断待重跑；详见结果卡与 `docs/reports/2026-10-23-phase2-track-a.md` §7。
-2026-10-27｜Wenbo / DSH Agent Team｜**最终评测执行链（阶段三准备）交付**：新增 `finetune/final_eval_aggregate.py`（隔离环境内聚合：整体/分层准确率 + Wilson CI、配对 item 与 **group-cluster bootstrap**（簇 = rid # 前缀，10,000 次）、校准 raw/calibrated + 15 箱分箱与样本不足标记、覆盖率/缺失口径）、`finetune/check_aggregate_export.py`（导出前唯一闸门：结构白名单/禁键/数值自洽/体积与文本扫描）、`finetune/bench_latency.py`（batch=1/16 延迟与峰值显存）、`finetune/prepare_eval_package.py`（可复现打包 + `--check` 漂移门禁），均带纯 CPU 单测。产出 `results/MODEL-02-final-eval/`：CARD（公开 test 回归 0.5047→0.7785 逐位一致；保留集/校准/adapter lm-eval/延迟逐项标「未测 + 门禁」）、versions.json（base@70d244cc、adapter 6 文件 sha256、三视图 sha 复算一致、holdout revision）、eval-package/（脚本 + MANIFEST + CHECKSUMS + 评测者手册）。阶段报告：docs/reports/2026-10-27-final-eval-package.md。
+2026-10-27｜Wenbo / DSH Agent Team｜**最终评测执行链（阶段三准备）交付**：新增 `finetune/final_eval_aggregate.py`（隔离环境内聚合：整体/分层准确率 + Wilson CI、配对 item 与 **group-cluster bootstrap**（簇 = rid # 前缀，10,000 次）、校准 raw/calibrated + 15 箱分箱与样本不足标记、覆盖率/缺失口径）、`finetune/check_aggregate_export.py`（导出前唯一闸门：结构白名单/禁键/数值自洽/体积与文本扫描）、`finetune/bench_latency.py`（batch=1/16 延迟与峰值显存）、`finetune/prepare_eval_package.py`（可复现打包 + `--check` 漂移门禁），均带纯 CPU 单测。产出 `results/MODEL-02-final-eval/`：CARD（公开 test 回归 0.5047→0.7785 逐位一致；保留集/校准/adapter lm-eval/延迟逐项标「未测 + 门禁」）、versions.json（base@70d244cc、adapter 6 文件 sha256、三视图 sha 复算一致、holdout revision）、eval-package/（脚本 + MANIFEST + CHECKSUMS + 评测者手册）。阶段报告（已归档）：docs/reports/archive/2026-10-27-final-eval.md。
 2026-10-27｜Wenbo / DSH Agent Team｜**未执行项与门禁**：私有保留集评测（需 owner 定方式 1 独立评测者 / 方式 2 授权隔离执行）；温度拟合（需 adapter 逐行预测，GPU）；adapter lm-eval（GPU 恢复后 ~30–60 分钟）；正式延迟实测（GPU）。**GPU 仍暂停，本轮只做 CPU 工作，未触碰私有数据。**
 2026-10-27｜Wenbo / DSH Agent Team｜**独立审计与修复**：对抗性审计 6 条发现全部处理——导出闸门「delta 双舍入假拒」（合法的 7859/12124/15573 聚合被唯一出口误拒）已修并加回归测试；`coverage.skipped` 键改为 15 个已知原因枚举（堵住把 rid 伪装成跳过原因带出）、模型标签强制 `[A-Za-z0-9._-]{1,24}`、`paired.seed` 加范围、交付脚本本机路径清理。审计记录：`.agent/notes/2026-10-27-final-eval-audit.md`（内部）。
 
 2026-10-27｜Wenbo / DSH Agent Team｜**最终评测完成（方式 2）**：owner 授权后本 session 作为独立评测者在仓库外隔离目录执行私有保留集（6,541 items / 7,990 问题行，en-only；跳过 250、缺失 0）。**base 0-shot 0.3996 → adapter 0.7034（+30.37 pt）**；配对 group-cluster bootstrap 95% CI **[+28.94, +31.75]**（G=6,321，reliability ok）；分层：choice 0.6860 / noul 0.7795 / score 0.6866。只导出聚合（检查器 1,004 项 pass），临时副本已删除。
 2026-10-27｜Wenbo / DSH Agent Team｜**校准与防遗忘、成本**：温度 T=0.992077（validation calibration 半区拟合，保留集只 apply）；raw ECE 0.0221 / calibrated 0.0225、NLL 0.75009→0.75050 → 预注册「NLL 下降」未满足（原始概率已校准良好）。adapter lm-eval：ceval 0.6189 / cmmlu 0.5922 / mmlu 0.5911 / agieval 0.3057，均值 **0.5270（-0.7pt）**；**agieval -10.8pt 触发单任务警戒**，处置留 owner。延迟实测：batch=1 p50 44.9/65.0 ms、峰值 4.0/4.1GB；batch=16 更差且 14.6GB → 部署建议 batch=1。
 2026-10-27｜Wenbo / DSH Agent Team｜**工程记录**：WSL/ROCm 必须 `HSA_ENABLE_DXG_DETECTION=1`；test 逐行预测 batch 32 触发 dxg ENOMEM（~19.4GB）抖动，改 batch 8 完成。余项：多 seed（20261024/25）、Track B、agieval 警戒处置。
-2026-10-27 17:04｜Wenbo / DSH Agent Team｜owner 决定**停止额外重训**（多 seed 20261024/25 与 agieval rank-8 处置实验在 16:14–17:04 进行过一部分，随后终止、半成品删除）。最终交付按**单 seed**：保留集 +30.37 pt（簇 CI [28.94,31.75]）、校准 T=0.992（NLL 未降）、lm-eval 均值 −0.7pt 且 agieval 触发单任务警戒、batch=1 延迟 45–65ms。完整报告见 docs/reports/2026-10-27-final-eval-package.md 与 CARD。
+2026-10-27 17:04｜Wenbo / DSH Agent Team｜owner 决定**停止额外重训**（多 seed 20261024/25 与 agieval rank-8 处置实验在 16:14–17:04 进行过一部分，随后终止、半成品删除）。最终交付按**单 seed**：保留集 +30.37 pt（簇 CI [28.94,31.75]）、校准 T=0.992（NLL 未降）、lm-eval 均值 −0.7pt 且 agieval 触发单任务警戒、batch=1 延迟 45–65ms。完整报告见 docs/reports/archive/2026-10-27-final-eval.md 与 results/MODEL-02-final-eval/CARD.md。
+2026-10-27 21:20｜Wenbo / DSH Agent Team｜**阶段收尾**：owner 决定本仓库本地训练/评测线结束，之后不再在本地独立训练外部模型。结果与经验保留（results/MODEL-02-final-eval、评测包、脚本/测试、内部记录），中间/临时文件已清理，阶段报告归档至 docs/reports/archive/。任务状态改为暂停（阶段收尾）。
