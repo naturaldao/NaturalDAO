@@ -3,6 +3,14 @@
 > 范围：阶段三「校准盲测」的**执行准备**。本报告不含私有保留集的任何内容、逐例结果或可反推 id；保留集评测本轮**未执行**。
 > 数据边界与协议见 [datasets/README](../../datasets/README.md)、[finetune/EVAL-PROTOCOL](../../finetune/EVAL-PROTOCOL.md)；执行方式见内部任务书 Task Book §5（`.agent/prompts/SESSION-B-final-eval.md`，不进公开仓库）。
 
+## 0 结论摘要（2026-10-27 定稿）
+
+- **主结论**：私有保留集上 base 0-shot **0.3996** → 我们的 Track A adapter **0.7034（+30.37 pt）**，配对 group-cluster bootstrap 95% CI **[+28.94, +31.75]**（7,740 行、0 缺失、en-only）→ 微调带来巨大且统计上明确的提升；但**单 seed**，不宣称跨 seed 稳定。
+- **校准**：T=0.992（validation 拟合、保留集只 apply）；raw ECE **0.0221**、Brier 0.383；NLL 未因缩放下降 → 预注册「可讨论自动处置」判据**字面未满足**，但原始概率已校准良好。
+- **通用能力（lm-eval）**：ceval +3.4 / cmmlu +3.0 / mmlu +1.5 / **agieval −10.8 pt**；均值 −0.7 pt → **agieval 触发单任务警戒**（同日复现、集中在英文阅读/逻辑），按协议应降 rank/epoch 重训，本轮未做（owner 决定停止）。
+- **成本**：batch=1 单题 p50 44.9 ms（base）/65.0 ms（adapter），峰值 4.0/4.1 GB；batch=16 更差且 14.6 GB → 部署建议 batch=1；保留集全量推理 base 225.9 s / adapter 271.6 s。
+- **边界**：私有数据只在仓库外、只回传聚合；导出闸门 pass；未使用保留集结果做任何调参。
+
 ## 1 目标与判断
 
 **任务**（Session B）：在私有保留集（6,541 条）上按预注册协议完成 base vs 微调后的最终评测，只发布聚合结果。
@@ -164,8 +172,7 @@ cd results/MODEL-02-final-eval/eval-package && sha256sum -c CHECKSUMS.sha256
 
 ### 10.7 仍未完成
 
-- 多 seed（20261024/25）与 Track B：需 GPU 重训，本轮未做；单 seed 不宣称跨 seed 稳定。
-- agieval 单任务警戒的处置（降 rank/epoch 重训）需 owner 决策；若重训，属新模型 revision、需新一轮评测。
+- 多 seed（20261024/25）、Track B 与 agieval rank-8 处置实验：owner 2026-10-27 17:04 决定**停止额外重训（节省 GPU 机时）**。已启动的 seed 20261024/25 与 rank-8 运行在 16:14–17:04 间进行过一部分，随后终止、半成品已删除；本报告与结果卡**不引用任何半成品数字**。结论按**单 seed** 交付，不宣称跨 seed 稳定；agieval 警戒作为已知限制记录（已同日复现）。
 - PoL2 专项与外部安全基准不在默认范围。
 
 

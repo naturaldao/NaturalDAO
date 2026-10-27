@@ -136,7 +136,7 @@ lm-eval 0.4.13 + datasets 3.6.0，ceval-valid / cmmlu / mmlu / agieval，`--limi
 | 2 | 温度校准（validation 拟合 → 保留集只 apply） | ✅ 完成 | T=0.992077；NLL 未下降 → 字面判据「可讨论自动处置」不成立（§2） |
 | 3 | adapter lm-eval 四任务 | ✅ 完成 | agieval -10.8 pt 触发单任务警戒，留 owner 决策（§4） |
 | 4 | 正式延迟（batch=1/16、tokens/s、峰值显存） | ✅ 完成 | batch=1 p50 45–65 ms；batch=16 更差且 14.6GB（§5） |
-| 5 | 多 seed（20261024/25）与 Track B | ❌ 未测 | 需 GPU 重训；单 seed 不宣称跨 seed 稳定 |
+| 5 | 多 seed（20261024/25）与 Track B | ❌ 未做（owner 决定） | owner 2026-10-27 17:04 决定停止额外重训（节省 GPU 机时）：按**单 seed** 交付，不宣称跨 seed 稳定；Track B 未训练 |
 | 6 | PoL2 专项 / 外部安全基准（XSTest 误拦） | ❌ 不在范围 | 需 owner/协作者授权 |
 | 7 | >26 选项题 | ❌ 未测（按设计跳过） | 保留集跳 201 行、test 跳 656 行；该子集能力未知 |
 | 8 | test 逐行预测 / 配对 CI | ✅ 完成 | batch 32 触发显存 ENOMEM 后改 batch 8 完成：+27.42 pt，簇 CI [26.49, 28.36]（§3） |
@@ -144,6 +144,7 @@ lm-eval 0.4.13 + datasets 3.6.0，ceval-valid / cmmlu / mmlu / agieval，`--limi
 **失败记录（如实）**：
 - 2026-10-27 15:00–15:20：test 逐行预测（batch 32）在 15.5k 行上把显存推到约 19.4GB，dxg 报 `dxgkio_make_resident: Ioctl failed: -12 (ENOMEM)`，进程进入抖动、23 分钟未完成 → 终止并以 batch 8 重跑；该记录就是 §5 部署建议的依据。
 - GPU 接入：WSL2 下 ROCm 必须 `HSA_ENABLE_DXG_DETECTION=1`，否则 `torch.cuda.is_available()` 可能为 False（dxg ioctl -2）；本次评测全部脚本都导出了该变量。
+- **已启动但按 owner 决定停止的实验（无结果、不报告）**：多 seed 20261024/25 重训与 agieval 的 rank-8 处置实验在 2026-10-27 16:14–17:04 运行过一部分，owner 于 17:04 决定停止；相关半成品已删除，本卡不引用任何中间数字。
 
 ## 9 验收清单（对应任务书 §7）
 

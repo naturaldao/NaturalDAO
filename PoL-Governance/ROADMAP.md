@@ -83,7 +83,7 @@
 | E3-4 | 温度校准（validation 拟合 → test/保留集只 apply） | **完成**：T=**0.992077**（validation calibration 半区 3,950 行拟合）冻结后保留集只 apply；raw/calibrated ECE 0.0221/0.0225、NLL 0.75009/0.75050 → **预注册「NLL 下降」未满足**（原始概率已校准良好；T≈1 无需缩放） |
 | E3-5 | 通用能力保持（lm-eval base vs adapter） | **完成（含警戒）**：adapter ceval 0.6189 / cmmlu 0.5922 / mmlu 0.5911 / agieval 0.3057，均值 **0.5270**（-0.7 pt）；**agieval -10.8 pt 触发「任一任务降≥5pt」警戒**，处置（降 rank/epoch 重训）留 owner 决策 |
 | E3-6 | 成本/延迟（p50/p95、tokens/s、峰值显存） | **完成**：batch=1 p50 44.9/65.0 ms（base/adapter）、tokens/s 6,039/4,582、峰值 4.0/4.1 GB；batch=16 更差（p50 77.6/95.1 ms，峰值 14.6 GB）→ **部署建议 batch=1**；保留集推理 base 225.9 s / adapter 271.6 s（7,740 行） |
-| E3-7 | 统计（配对 CI、多 seed） | **CI 完成**（簇 bootstrap 见 E3-3；item bootstrap 近似 [+29.03,+31.56]）；**多 seed 未做**（需 GPU 重训 20261024/25，单 seed 不宣称跨 seed 稳定） |
+| E3-7 | 统计（配对 CI、多 seed） | **CI 完成**（簇 bootstrap 见 E3-3；item bootstrap 近似 [+29.03,+31.56]）；**多 seed 未做**：owner 2026-10-27 决定停止额外重训（GPU 机时），本轮按单 seed 交付、不宣称跨 seed 稳定；Track B 未训练 |
 
 结果卡：[results/MODEL-02-final-eval/CARD.md](results/MODEL-02-final-eval/CARD.md)；阶段报告见 [docs/reports](docs/reports/2026-10-27-final-eval-package.md)。
 
