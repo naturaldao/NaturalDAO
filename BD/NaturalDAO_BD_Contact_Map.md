@@ -53,7 +53,7 @@
 1. Pick 8–10 A+/A contacts for the first batch.
 2. Read one recent paper/post from each person before writing.
 3. Make the first ask small and specific; do not begin with “strategic cooperation”.
-4. Track status, next action, and follow-up date in the Excel CRM.
+4. Track status, next action, and follow-up date in the [BD outreach tracker](NaturalDAO_BD_Outreach_Tracker.csv).
 5. Treat external criticism as useful evidence; update the pitch and evaluation design.
 
 ## Verification notes
