@@ -39,3 +39,6 @@ datasets/pol2/data/
 # PoL2 冒烟/试点生成物（可由流水线重跑，不再跟踪）
 datasets/pol2/pipeline/smoke/anchor-migration-report.json
 datasets/pol2/v0.1-pilot/train.cases.jsonl
+
+# JevBench local cache (Session B runtime; not tracked)
+.jevbench-cache/

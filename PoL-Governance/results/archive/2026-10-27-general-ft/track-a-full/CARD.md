@@ -1,5 +1,8 @@
 # 实验结果：Track A 完整基线（Qwen3-1.7B + LoRA 字母 SFT，1 epoch）
 
+> **归档说明（2026-10-28）**：本卡属于**通用数据（general v5）FT** 线，不是目标所需的**专有治理数据（POL2）微调**；
+> 它只记录“通用 FT 基线/工程管线”的历史数字，**不能作为专有微调在任何评测上的结论**。背景见 [归档 README](../README.md)。
+
 - **任务 / 分支 / 领取人 / Agent**：MODEL-02 / `pol/MODEL-02/wenbo` / Wenbo / DSH Agent Team
 - **模型与方法**：Qwen/Qwen3-1.7B + PEFT LoRA（r16 / alpha32 / dropout 0.05 / all-linear）；completion-only 单字母 SFT（A..Z ↔ 选项下标，>26 选项跳过）；**只训练答案位**（末位 token 轻量损失，只对该位置过 lm_head）
 - **数据版本 / 划分**：general v5 训练视图（`build_training_view.py`，模板 tv-1）；train 视图 sha256 `a136c2a1…`（51,947 行，有效 50,033 行；1,914 行 >26 选项被训练脚本跳过）；validation 视图 sha256 `b936c618…`（8,177 行，评测 7,887 行，跳过 290 行 >26 选项）。**未使用 PoL2 冻结数据**（`training_approved=false`）。

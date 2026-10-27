@@ -1,5 +1,8 @@
 # 最终评测结果卡：general v5 上的 pre/post（MODEL-02-final-eval）
 
+> **归档说明（2026-10-28）**：本卡属于**通用数据（general v5）FT** 线，不是目标所需的**专有治理数据（POL2）微调**；
+> 它只记录“通用 FT 基线/工程管线”的历史数字，**不能作为专有微调在任何评测上的结论**。背景见 [归档 README](../README.md)。
+
 > **状态：完成（2026-10-27，方式 2 隔离评测）。** 私有保留集（6,541 items / 7,990 question rows）已由本独立评测 session 在仓库外隔离目录执行：
 > **base 0-shot 0.3996 → adapter 0.7034（+30.37 pt，配对簇 bootstrap 95% CI [28.94, 31.75]）**。
 > adapter lm-eval 四任务、温度拟合并冻结（T=0.992077）、正式延迟实测均已完成；未测项见 §8。
@@ -7,7 +10,7 @@
 > 2026-10-28 补充确认：owner 再次确认评测可用 GPU（须守静默时段 00:30–09:30 / 12:30–15:30）且方式 2 持续授权；训练不在授权内。
 
 - **任务 / 分支 / 领取人 / Agent**：EVAL-01 × MODEL-02 / `pol/MODEL-02/wenbo` / Wenbo / DSH Agent Team（独立评测 session）
-- **评测协议**：[finetune/EVAL-PROTOCOL.md](../../finetune/EVAL-PROTOCOL.md) v1（2026-10-23 预注册冻结；2026-10-27 确认默认范围 = 仅 general v5 的 pre/post）
+- **评测协议**：[finetune/EVAL-PROTOCOL.md](../../../../finetune/EVAL-PROTOCOL.md) v1（2026-10-23 预注册冻结；2026-10-27 确认默认范围 = 仅 general v5 的 pre/post）
 - **冻结 revision**：base `Qwen/Qwen3-1.7B@70d244cc86ccca08cf5af4e1e306ecf908b1ad5e`；adapter `track-a-e1-rocm/adapter`（`adapter_model.safetensors` sha256 `ad88db90f140a2c6c1fe08c0cc06cd4c8117e9d8c0a7c429a007bf73c432a6d3`）；完整版本清单见 [versions.json](versions.json)
 - **视图（sha256 见括号）**：train 51,947（`a136c2a1…`）/ validation 8,177（`b936c618…`）/ test 16,306（`2235f0b7…`），模板 tv-1；评测视图与预测均在仓库外
 - **私有保留集**：`NaturalDAO/pol-decision-general-v5-holdout@146ae46…`，**6,541 items / 7,990 question rows**（en-only；问题级 kind：choice 5,501 / noul 1,446 / score 1,043）；本卡只含聚合
@@ -94,7 +97,7 @@ lm-eval 0.4.13 + datasets 3.6.0，ceval-valid / cmmlu / mmlu / agieval，`--limi
 
 **保留集评测（batch 8，7,740 行）**：base **225.9 s（34.3 行/s）** / adapter **271.6 s（28.5 行/s）**。
 
-**正式延迟基准**（[bench_latency.py](../../finetune/bench_latency.py)，test view 前 200 行，warmup 2，RX 7900 XT fp16）：
+**正式延迟基准**（[bench_latency.py](../../../../finetune/archive/2026-10-27-general-ft-eval/bench_latency.py)，test view 前 200 行，warmup 2，RX 7900 XT fp16）：
 
 | 模型 | batch | p50 | p95 | mean | tokens/s | 峰值显存 |
 |---|---:|---:|---:|---:|---:|---:|
@@ -179,8 +182,8 @@ python -u finetune/eval_decision.py --eval-view ~/src/polgov/data/general-test-v
 
 **版本与包校验**：
 ```bash
-python finetune/prepare_eval_package.py --versions results/MODEL-02-final-eval/versions.json \
-  --out results/MODEL-02-final-eval/eval-package --check
+python finetune/archive/2026-10-27-general-ft-eval/prepare_eval_package.py --versions results/archive/2026-10-27-general-ft/final-eval/versions.json \
+  --out results/archive/2026-10-27-general-ft/final-eval/eval-package --check
 cd results/MODEL-02-final-eval/eval-package && sha256sum -c CHECKSUMS.sha256
 ```
 

@@ -125,7 +125,7 @@ lm_eval --model hf --model_args pretrained=<模型>,peft=<adapter>,dtype=float16
 - **私有保留集**：已授权**方式 2（本机隔离执行）**（owner 2026-10-27 14:06；2026-10-28 再次确认持续有效）。私有数据只在仓库外，只回传聚合 JSON，执行后删除临时副本；不进入仓库/日志/截图/训练上下文。
 - **GPU 评测**：owner 授权可用于评测（adapter lm-eval、validation 逐行预测/校准、延迟、保留集推理）。约束：北京时间 **00:30–09:30 与 12:30–15:30 不启动 GPU**；单卡、一次一个任务；每次 run 前后检查温度与 Kernel-Power 41 / BugCheck 1001 / WHEA；T10 已物理移除，不开双卡。
 - **训练不在授权内**：2026-10-27 起本阶段训练线收尾；多 seed 重训与 rank-8 处置实验已由 owner 停止（单 seed 交付）。Track B 未训练；agieval 单任务警戒（adapter -10.8pt，已复现）为已知限制，待 owner 决定处置。
-- 最终评测执行与数字见 [results/MODEL-02-final-eval/CARD.md](../results/MODEL-02-final-eval/CARD.md)。
+- 最终评测执行与数字见 [results/archive/2026-10-27-general-ft/final-eval/CARD.md](../results/archive/2026-10-27-general-ft/final-eval/CARD.md)（**该线为 general v5 通用 FT，已归档；不是专有微调结论**）。
 
 ## 7. 报告模板（结果卡必须包含）
 

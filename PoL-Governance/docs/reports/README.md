@@ -12,7 +12,7 @@
 | 2026-10-23 | [暂停期进展](2026-10-23-phase2-paused-progress.md) | GPU 暂停期间的评测/校准/多 seed/评测器集成/混合视图与恢复链（无新增 GPU 结果） |
 | 2026-10-26 | [协作者更新合并](2026-10-26-collaborator-update.md) | main 前进 45 提交：POL2 score-v2 数据/模型、EVAL-02 具身先导、EVAL-03 理论先导；合并冲突与链接策略处理 |
 | 2026-10-27 | [HF 托管完成](2026-10-27-hf-upload.md) | v5 公开/私有仓库上传完成；远程校验 7/7、6/6 与下载回验通过；registry/HF.md 回填 revision |
-| 2026-10-27 | [最终评测（已归档）](archive/2026-10-27-final-eval.md) | 阶段三最终评测：保留集 base 0.3996→adapter 0.7034（+30.37pt，簇 CI [28.94,31.75]）、校准 T=0.992、lm-eval（agieval 警戒）、延迟；方式 2 隔离执行，结果卡见 results/MODEL-02-final-eval/CARD.md |
+| 2026-10-27 | [通用 FT 最终评测（已归档）](archive/2026-10-27-final-eval.md) | **历史/已归档（通用 FT，非专有微调）**：保留集 0.3996→0.7034（+30.37pt，CI [28.94,31.75]）、T=0.992、lm-eval（agieval 警戒）、延迟；结果卡见 results/archive/2026-10-27-general-ft/final-eval/CARD.md |
 
 ## 报告约定
 

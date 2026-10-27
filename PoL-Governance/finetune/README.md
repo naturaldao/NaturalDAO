@@ -354,28 +354,30 @@ python finetune/eval_decision_scorer.py --eval-view <validation/test-view.jsonl>
   --batch-size 16 --device cuda --json --predictions <仓库外>/track-b-preds.jsonl
 ~~~
 
-## 18. 最终评测包（阶段三，2026-10-27，CPU-only 工具链）
+## 18. 最终评测包（阶段三，2026-10-27；**历史，已归档 2026-10-28**）
+
+> **归档说明**：该评测链服务于 **general v5 通用 FT** 线（非目标所需的 POL2 专有微调），已随该线归档；脚本移到 `finetune/archive/2026-10-27-general-ft-eval/`，结果在 `results/archive/2026-10-27-general-ft/`。以下内容仅作工程参考，不再作为当前主线维护。
 
 retained-holdout 最终评测的执行链全部是纯标准库脚本，GPU 只用于模型推理：
 
 - `final_eval_aggregate.py`：吃 base/tuned 两个逐行预测 JSONL（`eval_decision.py --predictions` 的输出），产出**只含聚合数字**的 `aggregate.json`（schema `pol-final-eval-aggregate-v1`）：整体/分层准确率 + Wilson CI、配对 bootstrap（item 与 **group-cluster** 两种，簇 = rid 的 `#` 前缀）、校准（raw / calibrated 的 NLL/Brier/ECE/MCE + 15 箱分箱与样本不足标记）、覆盖率与缺失行口径；
 - `check_aggregate_export.py`：隔离环境的**唯一出口闸门**——对聚合 JSON 做结构白名单 / 禁键 / 枚举 / 数值自洽 / 体积与文本扫描，未通过不得带出；
 - `bench_latency.py`：batch=1/16 的单题 p50/p95、tokens/s、峰值显存（CPU 可跑，GPU 实测待 owner 开启）；
-- `prepare_eval_package.py`：把评测所需脚本按原目录布局复制到 `results/MODEL-02-final-eval/eval-package/`，生成 `MANIFEST.json` + `CHECKSUMS.sha256`；`--check` 可用于集成前漂移检查。
+- `prepare_eval_package.py`（已归档）：把评测所需脚本按原目录布局复制到 `results/archive/2026-10-27-general-ft/final-eval/eval-package/`，生成 `MANIFEST.json` + `CHECKSUMS.sha256`；`--check` 可用于集成前漂移检查。
 
 ~~~bash
 # 1) 包生成 / 漂移检查（在仓库根执行）
-python finetune/prepare_eval_package.py --versions results/MODEL-02-final-eval/versions.json \
-  --out results/MODEL-02-final-eval/eval-package --force     # 生成
+python finetune/archive/2026-10-27-general-ft-eval/prepare_eval_package.py --versions results/archive/2026-10-27-general-ft/final-eval/versions.json \
+  --out results/archive/2026-10-27-general-ft/final-eval/eval-package --force     # 生成
 python finetune/prepare_eval_package.py --versions results/MODEL-02-final-eval/versions.json \
   --out results/MODEL-02-final-eval/eval-package --check     # 集成门禁：pass 才允许提交
 # 2) 隔离环境内聚合（评测者在库外执行；输出只有聚合数字）
-python -m finetune.final_eval_aggregate --preds base=/tmp/priv-eval/base-preds.jsonl \
+python -m finetune.archive.2026-10-27-general-ft-eval.final_eval_aggregate --preds base=/tmp/priv-eval/base-preds.jsonl \
   --preds tuned=/tmp/priv-eval/tuned-preds.jsonl --view-rows <视图行数> \
   --fit-preds /tmp/priv-eval/val-preds.jsonl --fit-half calibration \
   --cluster-rounds 10000 --out /tmp/priv-eval/aggregate.json
 # 3) 导出前检查（唯一允许带出隔离环境的文件）
-python -m finetune.check_aggregate_export --in /tmp/priv-eval/aggregate.json --json
+python -m finetune.archive.2026-10-27-general-ft-eval.check_aggregate_export --in /tmp/priv-eval/aggregate.json --json
 ~~~
 
-评测口径、执行方式与验收清单见 [results/MODEL-02-final-eval/eval-package/README.md](../results/MODEL-02-final-eval/eval-package/README.md)；数据边界见 [datasets/README.md](../datasets/README.md)。**保留集内容不进仓库、日志或训练上下文；温度只在 validation 拟合，保留集只 apply。**
+评测口径、执行方式与验收清单见 [归档评测包 README](../results/archive/2026-10-27-general-ft/final-eval/eval-package/README.md)；数据边界见 [datasets/README.md](../datasets/README.md)。**保留集内容不进仓库、日志或训练上下文；温度只在 validation 拟合，保留集只 apply。**

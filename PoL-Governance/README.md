@@ -2,13 +2,16 @@
 
 用 PoL 改善 AI 运行时治理：少伤害、少误拦，保留帮助能力，成本可接受。
 
-## 当前进度（2026-10-27）
+## 当前进度（2026-10-28 方向修正）
 
-- **第一阶段 · 数据（收尾完成，分支已推送）**：通用决策数据集 **v5** 已由 PR #43 并入 main（公开三区 71,519 条 / 78,001 问题，私有保留集 6,541 条库外）；协作者交付的**专用 PoL2 冻结数据** POL2-accepted-8705-v1（8,705 单元 / 75 场景族）已完成校验、四区切分与数据卡，**尚未批准训练**。阶段一改动在 `pol/DATA-02/wenbo` 分支（PR #44 已关闭，集成方式待维护者确认）。
-- **HF 托管（已完成，2026-10-27）**：公开三区与私有保留集已上传到 Hugging Face（公开 revision `52bfdca…`、私有 `146ae46…`），远程校验与下载回验通过；仓库只保留数据卡、清单与校验脚本，流程见 [datasets/general/HF.md](datasets/general/HF.md)。
-- **第二阶段 · 模型适配（已完成）**：训练视图 + **Track A 基线**（Qwen3-1.7B + LoRA 字母 SFT，1 epoch）：validation 0-shot **0.5127 → 0.7883**、test 同口径 **0.5047 → 0.7785（+27.4pt）**；通用能力代理 lm-eval 四任务 base/adapter 均完成（adapter：ceval 0.6189 / cmmlu 0.5922 / mmlu 0.5911 / agieval 0.3057，均值 **0.5270（-0.7pt）**，其中 agieval −10.8pt 触发单任务警戒）。Track B（候选评分头）代码就绪但未训练。阶段报告见 [docs/reports](docs/reports/2026-10-23-phase2-track-a.md)，计划见 [ROADMAP](ROADMAP.md)。
-- **第三阶段 · 最终评测（已完成，2026-10-27；报告已归档）**：按 owner 授权以**方式 2** 在隔离环境完成私有保留集评测（6,541 items / 7,990 问题行、en-only、0 缺失）：**base 0.3996 → adapter 0.7034（+30.37pt，配对簇 bootstrap 95% CI [28.94, 31.75]）**；校准温度 T=0.992（原始 ECE≈0.02，NLL 未因缩放下降）；正式延迟 batch=1 p50 45–65 ms（batch=16 更差且 14.6 GB → 部署建议 batch=1）。结果卡与可复现产物见 [results/MODEL-02-final-eval](results/MODEL-02-final-eval/CARD.md)，阶段报告已归档：[docs/reports/archive/2026-10-27-final-eval.md](docs/reports/archive/2026-10-27-final-eval.md)。
-- **本阶段收尾（owner 2026-10-27 决定）**：本仓库的本地训练/评测线到此结束，之后不再在本地独立训练外部模型；已交付的数据、模型卡与评测产物保持可复现；多 seed 与 Track B 未做。
+> **方向修正（owner 2026-10-28）**：此前 Track A 是**通用数据（general v5）的普通 FT**，用于打通工程管线；它**不是**目标所需的**专有治理数据（POL2）微调**。该线与最终评测已归档（[results/archive/2026-10-27-general-ft](results/archive/2026-10-27-general-ft/README.md)），数字只作“通用 FT 基线”记录，**不能回答专有微调后在治理+通用上的表现**。
+> 项目目标不变：**用专有治理数据微调后，在专有治理评测与通用智力评测上都取得良好成绩**；POL2 训练仍需 owner 授权（`training_approved=false`）。
+
+- **第一阶段 · 数据（完成，2026-10-27）**：通用决策数据集 **v5** 已由 PR #43 并入 main（公开三区 71,519 条 / 78,001 问题，私有保留集 6,541 条库外）；协作者交付的**专用 PoL2 冻结数据** POL2-accepted-8705-v1（8,705 单元 / 75 场景族）已完成校验、四区切分与数据卡，**尚未批准训练**。阶段一改动在 `pol/DATA-02/wenbo` 分支（PR #44 已关闭，集成方式待维护者确认）。
+- **HF 托管（完成，2026-10-27）**：公开三区与私有保留集已上传到 Hugging Face（公开 revision `52bfdca…`、私有 `146ae46…`），远程校验与下载回验通过；仓库只保留数据卡、清单与校验脚本，流程见 [datasets/general/HF.md](datasets/general/HF.md)。
+- **第二阶段 · 通用 FT 基线（历史，已归档）**：Qwen3-1.7B + LoRA 在 general v5 上训练（validation 0.5127→0.7883；test 0.5047→0.7785）。**这是通用 FT 基线，不是专有微调**；结果卡与代码保留在归档目录供工程参考。
+- **第三阶段 · 通用 FT 最终评测（历史，已归档）**：按 owner 授权以方式 2 在隔离环境完成私有保留集评测（base 0.3996→adapter 0.7034，+30.37pt；校准 T≈0.992；lm-eval 均值 -0.7pt 且 agieval 触发警戒；batch=1 p50 45–65ms）。归档：[results/archive/2026-10-27-general-ft/final-eval](results/archive/2026-10-27-general-ft/final-eval/CARD.md)、阶段报告 [已归档](docs/reports/archive/2026-10-27-final-eval.md)。
+- **当前主线（2026-10-28）**：① **专有微调待启动**——等 PoL2 训练授权后，用 POL2 专有数据微调，并同时评专有治理与通用智力；② 评测 session 正在做 **Kev 原版 vs Kev 微调版** 的对照与 Jev 类基准调研（外部参考线，不混表）。
 - **协作线合并（2026-10-26）**：main 前进 45 个提交，新增 **EVAL-02 具身推理先导**（16 案例三条件筛查、Kev+VirtualHome 符号闭环、MuJoCo 单任务 n=1）、**EVAL-03 完整理论内在化先导**（严格质量门 0/6，按规则停止训练）、**POL2 score-v2 数据**（外部 Release）与 **Kev-4B pointer-head 模型**（3 seed 研究预发布，作者明确不能宣称平均提升）。我们的分支已合并 main；摘要见 [阶段报告](docs/reports/2026-10-26-collaborator-update.md)。两条模型线口径不同，**不能混表比较**。
 
 **Agent 从这里开始：**读 [SPEC](SPEC.md) → 在 [任务表](TASKS.md) 选任务 → 推送任务分支认领 → 在任务页更新进度。日常协作不需要 PR 或 fork，具体见 [AGENTS.md](AGENTS.md)。

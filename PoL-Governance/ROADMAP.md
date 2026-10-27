@@ -4,14 +4,15 @@
 当前主线是**决策模型**：只做封闭选择（noul 是/否、choice 从候选选一个、score 序数打分）的小模型，要求**不拖累通用智力**，同时更准、更少误拦、可校准、成本可接受。
 
 > 判据是「不拖累」，不是「样样都强」。任何「越大越好 / 越全越好」的表述都是方向错误。
+> **方向修正（2026-10-28，owner）**：真正的目标是**用专有治理数据（POL2）微调，并在专有治理评测 + 通用智力评测上都取得良好成绩**。此前的 Track A 是**通用数据（general v5）的普通 FT**，只用于打通工程管线，**不等于目标微调**；该线与第三阶段评测已归档（见下方各节标注）。专有微调尚未执行（POL2 `training_approved=false`，需授权 + APPROVAL-CHECKLIST）。
 
 ## 总体阶段（对齐 [SPEC](SPEC.md)）
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | 1 | 准备数据：通用底座 + PoL 专项 + 独立标注 + 共享划分 | **完成**（数据收尾 + HF 托管 2026-10-27；集成方式待 owner 决定） |
-| 2 | 模型适配：可复现配方、首个基线、控制遗忘 | **完成**：Track A 基线（test 0.5047→0.7785）；lm-eval base+adapter 均完成（均值 0.5342→0.5270，agieval 触发单任务警戒）；评测/校准/混合视图就绪；Track B 未训练 |
-| 3 | 校准盲测：同口径评测、效果与成本、保留集统一评测 | **主体完成（2026-10-27，方式 2）**：保留集 base 0.3996 → adapter 0.7034（+30.37pt，簇 CI [28.94,31.75]）；校准 T=0.992（NLL 未降→字面判据未满足）；adapter lm-eval 完成（均值 -0.7pt，agieval -10.8pt 触发单任务警戒）；延迟实测完成（batch=1 45–65ms）。2026-10-27 收尾：本地训练/评测线结束（见第三阶段说明） |
+| 2 | 模型适配：可复现配方、首个基线、控制遗忘 | **历史（通用 FT 基线，已归档）**：Track A 为 general v5 普通 FT（test 0.5047→0.7785），仅证明工程管线可用；**不是专有微调**，结果卡归档到 `results/archive/2026-10-27-general-ft/` |
+| 3 | 校准盲测：同口径评测、效果与成本、保留集统一评测 | **历史（通用 FT 评测，已归档）**：保留集 0.3996→0.7034（+30.37pt，CI [28.94,31.75]），T=0.992，lm-eval -0.7pt（agieval 警戒），延迟完成；**只适用于 general v5 通用 FT**。专有微调双评测尚未开始（需 POL2 授权） |
 | 4 | 插件与验证：接入 DSH、试运行、端到端 | 未开始 |
 
 ## 第一阶段：数据（收尾）
@@ -43,7 +44,9 @@
 
 **硬约束**：单一来源 ≤ 25%（折算后）；保留集 en-only；排行榜基准只能当外部评测、不得进训练；任何补源都会触发「重切 → 保留集轮换 → 派生件重生成 → 审计重跑 → 数字重算」。
 
-## 第二阶段：模型适配（当前重点）
+## 第二阶段：模型适配（通用 FT 基线；历史，已归档 2026-10-28）
+
+> **归档说明**：本阶段 Track A 使用 **general v5** 数据，是通用 FT 基线，**不是目标所需的 POL2 专有微调**；数字保留作工程参考，不再作为当前主线。
 
 | 子项 | 内容 | 验收 |
 |---|---|---|
@@ -71,7 +74,9 @@
 - 协作材料位置：benchmark/embodied_reasoning、benchmark/pol2、datasets/pol2/score-v2、models/kev-pol2-score-v2-m10、results/MODEL-02-kev-pol2-score-v2-20261026；
 - 合并摘要见 [阶段报告](docs/reports/2026-10-26-collaborator-update.md)。
 
-## 第三阶段：校准盲测（2026-10-27 收尾）
+## 第三阶段：校准盲测（通用 FT 评测；历史，已归档 2026-10-28）
+
+> **归档说明**：本节数字均来自 general v5 通用 FT 的评测，**不能推断专有微调后的治理/通用表现**；专有微调双评测待 POL2 授权后另行预注册。
 
 统一输入、标签含义与测试版本；阈值与校准只用预留校验数据；私有保留集由独立评测者统一运行。比较项：PoL benchmark（更准、误拦更少）、通用能力（不明显下降）、主流安全 benchmark（有证据的提升），同时报告延迟与成本。
 
@@ -79,7 +84,7 @@
 
 | 子项 | 内容 | 状态 / 验收 |
 |---|---|---|
-| E3-1 | 最终评测包（可交第三方执行） | **完成**：`results/MODEL-02-final-eval/eval-package/`（聚合脚本 + 导出检查器 + 延迟基准 + MANIFEST/CHECKSUMS + 评测者手册）；`--check` 与 CPU 端到端冒烟通过 |
+| E3-1 | 最终评测包（可交第三方执行） | **完成**：`results/archive/2026-10-27-general-ft/final-eval/eval-package/`（聚合脚本 + 导出检查器 + 延迟基准 + MANIFEST/CHECKSUMS + 评测者手册）；`--check` 与 CPU 端到端冒烟通过 |
 | E3-2 | 公开 test 回归 + validation 口径 | **完成**：test 0.5047→0.7785（15,573 行同口径）；validation 0.5127→0.7883；版本 sha 复算一致 |
 | E3-3 | 私有保留集 base vs adapter（6,541 items / 7,990 问题行，只出聚合） | **完成（2026-10-27，方式 2）**：base 0.3996 → adapter **0.7034（+30.37 pt）**，配对 group-cluster bootstrap 95% CI **[+28.94, +31.75]**（G=6,321，reliability ok）；7,740 行有效、0 缺失；只导出聚合（检查器 1,004 项 pass） |
 | E3-4 | 温度校准（validation 拟合 → test/保留集只 apply） | **完成**：T=**0.992077**（validation calibration 半区 3,950 行拟合）冻结后保留集只 apply；raw/calibrated ECE 0.0221/0.0225、NLL 0.75009/0.75050 → **预注册「NLL 下降」未满足**（原始概率已校准良好；T≈1 无需缩放） |
@@ -87,7 +92,17 @@
 | E3-6 | 成本/延迟（p50/p95、tokens/s、峰值显存） | **完成**：batch=1 p50 44.9/65.0 ms（base/adapter）、tokens/s 6,039/4,582、峰值 4.0/4.1 GB；batch=16 更差（p50 77.6/95.1 ms，峰值 14.6 GB）→ **部署建议 batch=1**；保留集推理 base 225.9 s / adapter 271.6 s（7,740 行） |
 | E3-7 | 统计（配对 CI、多 seed） | **CI 完成**（簇 bootstrap 见 E3-3；item bootstrap 近似 [+29.03,+31.56]）；**多 seed 未做**：owner 2026-10-27 决定停止额外重训（GPU 机时），本轮按单 seed 交付、不宣称跨 seed 稳定；Track B 未训练 |
 
-结果卡：[results/MODEL-02-final-eval/CARD.md](results/MODEL-02-final-eval/CARD.md)；阶段报告已归档：[docs/reports/archive/2026-10-27-final-eval.md](docs/reports/archive/2026-10-27-final-eval.md)。
+结果卡：[results/archive/2026-10-27-general-ft/final-eval/CARD.md](results/archive/2026-10-27-general-ft/final-eval/CARD.md)；阶段报告已归档：[docs/reports/archive/2026-10-27-final-eval.md](docs/reports/archive/2026-10-27-final-eval.md)。
+
+## 修正后的目标路径（2026-10-28）
+
+1. **等待授权**：POL2 训练授权 + 许可（APPROVAL-CHECKLIST A1–A7）；`training_approved=false` 前零梯度；
+2. **专有微调**：用 POL2 专有治理数据（必要时与 general 做小比例 replay）微调，记录数据版本/混合比例/授权；这是目标模型，不是通用 FT；
+3. **双评测**：
+   - **专有治理评测**：POL2 冻结集/专项评测协议（预注册、只聚合）；
+   - **通用智力评测**：lm-eval 等代理（防遗忘阈值预注册），不得用 test/保留集调参；
+4. **达标判据**：只有“治理专项提升 + 通用智力非劣（预注册阈值内）”同时成立，才作为目标达成证据；任一不达标如实报告；
+5. **外部参考线**（Kev/Jev 类）可作对照与榜单调研，但与本项目专有微调结果分表、不混表。
 
 ## 第四阶段：插件与验证
 
