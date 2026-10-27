@@ -17,7 +17,7 @@
 |---|---|---|
 | 评测结果卡 | [results/MODEL-02-final-eval/CARD.md](../../results/MODEL-02-final-eval/CARD.md) | 完成（含未测项与门禁） |
 | 版本清单（base rev / adapter sha / 视图 sha / holdout rev） | [results/MODEL-02-final-eval/versions.json](../../results/MODEL-02-final-eval/versions.json) | 完成（视图 sha 已复算一致） |
-| 评测包（可交独立评测者） | [results/MODEL-02-final-eval/eval-package/](../../results/MODEL-02-final-eval/eval-package/README.md) | 完成（MANIFEST + CHECKSUMS + 手册） |
+| 评测包（可交独立评测者） | [results/MODEL-02-final-eval/eval-package/](../../results/MODEL-02-final-eval/eval-package/README.md) | 完成（MANIFEST + CHECKSUMS + 手册；代码提交 `8fc8085`） |
 | 聚合脚本（隔离环境内） | [finetune/final_eval_aggregate.py](../../finetune/final_eval_aggregate.py) | 完成（配对 item + group-cluster bootstrap、校准分箱、覆盖率口径） |
 | 导出前检查器（唯一出口） | [finetune/check_aggregate_export.py](../../finetune/check_aggregate_export.py) | 完成（结构白名单 / 禁键 / 数值自洽 / 文本扫描） |
 | 延迟基准（成本） | [finetune/bench_latency.py](../../finetune/bench_latency.py) | 完成（CPU 可跑；GPU 实测待启用） |

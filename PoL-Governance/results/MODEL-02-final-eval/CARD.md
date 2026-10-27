@@ -9,7 +9,7 @@
 - **冻结 revision**：base `Qwen/Qwen3-1.7B@70d244cc86ccca08cf5af4e1e306ecf908b1ad5e`；adapter `track-a-e1-rocm/adapter`（`adapter_model.safetensors` sha256 `ad88db90f140a2c6c1fe08c0cc06cd4c8117e9d8c0a7c429a007bf73c432a6d3`）；完整版本清单见 [versions.json](versions.json)
 - **视图（sha256 见括号）**：train 51,947（`a136c2a1…`）/ validation 8,177（`b936c618…`）/ test 16,306（`2235f0b7…`），模板 tv-1；视图文件在仓库外
 - **私有保留集**：`NaturalDAO/pol-decision-general-v5-holdout@146ae460…`，6,541 条，库外独立保管；**本卡不含任何保留集内容/逐例结果**
-- **评测包（可交给独立评测者执行）**：[eval-package/](eval-package/README.md)（脚本 + MANIFEST + CHECKSUMS + 运行手册）
+- **评测包（可交给独立评测者执行）**：[eval-package/](eval-package/README.md)（脚本 + MANIFEST + CHECKSUMS + 运行手册）；代码提交 `8fc8085`（MANIFEST.git_commit 同值），本卡随 `2057d1e` 落库
 
 ## 1 保留集决策准确率（主指标）—— 未测
 
