@@ -103,3 +103,81 @@ python finetune/prepare_eval_package.py --versions results/MODEL-02-final-eval/v
   --out results/MODEL-02-final-eval/eval-package --check                 # 评测包漂移检查
 cd results/MODEL-02-final-eval/eval-package && sha256sum -c CHECKSUMS.sha256
 ```
+
+---
+
+## 10 追加：方式 2 实际执行结果（2026-10-27 14:06–15:45 CST）
+
+**授权**：owner 当日 14:06 明确「方式2，我们就是独立评测 session」且「本次评测系列可以使用 GPU」。据此在仓库外隔离目录执行私有保留集评测；私有数据未进仓库/日志/训练上下文，运行后临时副本已删除（`.agent/notes/2026-10-27-owner-authorization-gpu-mode2.md`，内部）。
+
+### 10.1 关键技术前提：WSL/ROCm 必须开 HSA_ENABLE_DXG_DETECTION=1
+
+首次检查 `torch.cuda.is_available()=False`（dxg ioctl -2，偶发）；设 `HSA_ENABLE_DXG_DETECTION=1` 后稳定可用（AMD RX 7900 XT / gfx1100 / 21.41GB）。所有 GPU 脚本均已内置该变量；`wsl --shutdown` 可修复偶发 dxg 枚举失败。
+
+### 10.2 adapter 侧 lm-eval（完成）
+
+| 任务组 | base | adapter | 差值 |
+|---|---:|---:|---:|
+| ceval-valid | 0.5847 | 0.6189 | +3.4 pt |
+| cmmlu | 0.5624 | 0.5922 | +3.0 pt |
+| mmlu | 0.5765 | 0.5911 | +1.5 pt |
+| agieval | 0.4133 | 0.3057 | -10.8 pt |
+| 均值 | 0.5342 | 0.5270 | -0.7 pt |
+
+预注册判定：均值警戒（≥2pt）未触发；**单任务 agieval 降 10.8pt 触发「任一任务降≥5pt」警戒** → 按协议应降 rank/epoch 重训；本轮模型已冻结，留 owner 决策。
+
+**同日复核**（2026-10-27 15:48–16:02，agieval 单任务重跑）：base **0.4133**（与 10-23 完全一致）、adapter **0.3057**（一致）→ -10.8pt 为可复现真实差异，非环境漂移。
+
+### 10.3 温度拟合与校准（完成）
+
+- 冻结温度 **T=0.992077**（validation calibration 半区 3,950 行拟合，NLL 0.530488；selection 半区 3,901 行复核）。
+- selection 半区：raw ECE 0.00957 / NLL 0.55111；calibrated ECE 0.01057 / NLL 0.55122。
+- 保留集：raw ECE **0.02208**（簇 CI [0.01997, 0.03358]）/ NLL 0.75009；calibrated ECE 0.02245 / NLL 0.75050。
+- **预注册判据字面未满足**（NLL 未下降），但原始概率本就校准良好（ECE≈0.02），T≈1 说明无需缩放；15 箱中 2 箱样本<20，已披露。
+
+### 10.4 私有保留集 base vs adapter（主结果，完成）
+
+- 数据：6,541 items → **7,990 question rows**（en-only）；跳过 250 行（>26 选项 201、>4,000 字符 49）；**缺失 0 行**。
+- **base 0-shot 0.3996（3,093/7,740）→ adapter 0.7034（5,444/7,740），+30.37 pt**；配对簇 bootstrap 95% CI **[+28.94, +31.75]**（G=6,321，reliability ok），item bootstrap [+29.03, +31.56]。
+- 分层（adapter）：choice 0.6860 / noul 0.7795 / score 0.6866；选项 2/3-4/5-8/9-26：0.7816 / 0.7984 / 0.6272 / 0.3409。
+- 运行时长（batch 8）：base 225.9 s、adapter 271.6 s（7,740 行）。
+- 导出闸门：`check_aggregate_export` pass（1,004 项检查，12.2 KB）；只导出聚合 JSON。
+
+### 10.5 正式延迟（完成）
+
+| 模型 | batch | p50 | p95 | tokens/s | 峰值显存 |
+|---|---:|---:|---:|---:|---:|
+| base | 1 | 44.9 ms | 95.7 ms | 6,039 | 4.02 GB |
+| base | 16 | 77.6 ms | 928.6 ms | 2,278 | 14.58 GB |
+| adapter | 1 | 65.0 ms | 104.1 ms | 4,582 | 4.09 GB |
+| adapter | 16 | 95.1 ms | 245.8 ms | 3,147 | 14.64 GB |
+
+结论：**本工作负载下 batch=1 更优**（提示长度异质 + 显存压力）；部署不要按行数固定大 batch。
+
+### 10.6 失败与教训
+
+- test 逐行预测（batch 32）在 15.5k 行把显存推到约 19.4GB，dxg 报 `dxgkio_make_resident: Ioctl failed: -12 (ENOMEM)`，进程抖动 23 分钟未完成 → 终止并以 batch 8 重跑。教训：**评测 batch 上限应按 token 预算而非行数设定**；本次以 batch 8 完成保留集与 test 重跑。
+- 保留集 items（6,541）与问题行（7,990）是两种口径；聚合分母必须用视图行数，文档已改。
+- 私有包无 target-types：route 全为 classification 兜底；route/lang 分层不构成跨路由/跨语言证据。
+
+### 10.7 仍未完成
+
+- 多 seed（20261024/25）与 Track B：需 GPU 重训，本轮未做；单 seed 不宣称跨 seed 稳定。
+- agieval 单任务警戒的处置（降 rank/epoch 重训）需 owner 决策；若重训，属新模型 revision、需新一轮评测。
+- PoL2 专项与外部安全基准不在默认范围。
+
+
+### 10.9 test 回归 CI（batch 8 重跑完成）
+
+| 数据集 | base | adapter | 差值 | 配对 CI |
+|---|---:|---:|---:|---|
+| public test（15,573） | 0.5043 | **0.7785** | **+27.42 pt** | item [26.58, 28.34]；簇 [26.49, 28.36]（G=14,202，reliability ok） |
+| public validation（7,851） | 0.5136 | 0.7895 | +27.6 pt | （未单独聚合；逐行预测在仓库外） |
+
+test 校准（T=0.992077 只 apply）：raw NLL 0.54808 / Brier 0.28317 / ECE 0.00695；calibrated NLL 0.54816 / Brier 0.28320 / ECE 0.00665。
+
+与历史 0.5047/0.7785 的差异为 0.0004/0.0000（fp16 与 batch 顺序抖动，5 行），结论不变。
+
+### 10.8 产物
+
+结果卡：[results/MODEL-02-final-eval/CARD.md](../../results/MODEL-02-final-eval/CARD.md)；聚合：[private-holdout-aggregate.json](../../results/MODEL-02-final-eval/private-holdout-aggregate.json)；运行元数据：[private-holdout-run.json](../../results/MODEL-02-final-eval/private-holdout-run.json)；温度：[temperature.json](../../results/MODEL-02-final-eval/temperature.json)；lm-eval：[lm-eval-adapter.json](../../results/MODEL-02-final-eval/lm-eval-adapter.json)；延迟：[latency-base.json](../../results/MODEL-02-final-eval/latency-base.json) / [latency-adapter.json](../../results/MODEL-02-final-eval/latency-adapter.json)。

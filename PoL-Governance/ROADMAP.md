@@ -11,7 +11,7 @@
 |---|---|---|
 | 1 | 准备数据：通用底座 + PoL 专项 + 独立标注 + 共享划分 | **完成**（数据收尾 + HF 托管 2026-10-27；集成方式待 owner 决定） |
 | 2 | 模型适配：可复现配方、首个基线、控制遗忘 | **进行中**：Track A 基线完成（test base/adapter 同口径）；lm-eval base 完成、adapter 待重跑；评测/校准/混合视图就绪；GPU 暂停（2026-10-23 崩溃后硬件待确认） |
-| 3 | 校准盲测：同口径评测、效果与成本、保留集统一评测 | **进行中**：评测包（聚合/导出检查/延迟基准/版本清单）与结果卡就绪，可交独立评测者；公开 test 回归完成；**保留集评测待 owner 定执行方式、adapter lm-eval 待 GPU** |
+| 3 | 校准盲测：同口径评测、效果与成本、保留集统一评测 | **主体完成（2026-10-27，方式 2）**：保留集 base 0.3996 → adapter 0.7034（+30.37pt，簇 CI [28.94,31.75]）；校准 T=0.992（NLL 未降→字面判据未满足）；adapter lm-eval 完成（均值 -0.7pt，agieval -10.8pt 触发单任务警戒）；延迟实测完成（batch=1 45–65ms）。余：多 seed、Track B、agieval 警戒处置 |
 | 4 | 插件与验证：接入 DSH、试运行、端到端 | 未开始 |
 
 ## 第一阶段：数据（收尾）
@@ -71,7 +71,7 @@
 - 协作材料位置：benchmark/embodied_reasoning、benchmark/pol2、datasets/pol2/score-v2、models/kev-pol2-score-v2-m10、results/MODEL-02-kev-pol2-score-v2-20261026；
 - 合并摘要见 [阶段报告](docs/reports/2026-10-26-collaborator-update.md)。
 
-## 第三阶段：校准盲测（进行中）
+## 第三阶段：校准盲测（主体完成；多 seed/Track B 待 GPU 排期）
 
 统一输入、标签含义与测试版本；阈值与校准只用预留校验数据；私有保留集由独立评测者统一运行。比较项：PoL benchmark（更准、误拦更少）、通用能力（不明显下降）、主流安全 benchmark（有证据的提升），同时报告延迟与成本。
 
@@ -79,11 +79,11 @@
 |---|---|---|
 | E3-1 | 最终评测包（可交第三方执行） | **完成**：`results/MODEL-02-final-eval/eval-package/`（聚合脚本 + 导出检查器 + 延迟基准 + MANIFEST/CHECKSUMS + 评测者手册）；`--check` 与 CPU 端到端冒烟通过 |
 | E3-2 | 公开 test 回归 + validation 口径 | **完成**：test 0.5047→0.7785（15,573 行同口径）；validation 0.5127→0.7883；版本 sha 复算一致 |
-| E3-3 | 私有保留集 base vs adapter（6,541 条，只出聚合） | **待执行**：需 owner 决定方式 1（独立评测者）/方式 2（授权隔离执行）；聚合脚本支持配对 group-cluster bootstrap（簇=rid 前缀） |
-| E3-4 | 温度校准（validation 拟合 → test/保留集只 apply） | **未拟合**：需 adapter 逐行预测（GPU）；拟合后冻结进评测包 |
-| E3-5 | 通用能力保持（lm-eval base vs adapter） | base 完成（均值 0.5342）；**adapter 待 GPU 重跑** |
-| E3-6 | 成本/延迟（p50/p95、tokens/s、峰值显存） | 工具就绪（`finetune/bench_latency.py`）；**实测待 GPU** |
-| E3-7 | 统计（配对 CI、多 seed） | 簇 bootstrap 已内建；多 seed 需 GPU 重训（预注册 20261024/25） |
+| E3-3 | 私有保留集 base vs adapter（6,541 items / 7,990 问题行，只出聚合） | **完成（2026-10-27，方式 2）**：base 0.3996 → adapter **0.7034（+30.37 pt）**，配对 group-cluster bootstrap 95% CI **[+28.94, +31.75]**（G=6,321，reliability ok）；7,740 行有效、0 缺失；只导出聚合（检查器 1,004 项 pass） |
+| E3-4 | 温度校准（validation 拟合 → test/保留集只 apply） | **完成**：T=**0.992077**（validation calibration 半区 3,950 行拟合）冻结后保留集只 apply；raw/calibrated ECE 0.0221/0.0225、NLL 0.75009/0.75050 → **预注册「NLL 下降」未满足**（原始概率已校准良好；T≈1 无需缩放） |
+| E3-5 | 通用能力保持（lm-eval base vs adapter） | **完成（含警戒）**：adapter ceval 0.6189 / cmmlu 0.5922 / mmlu 0.5911 / agieval 0.3057，均值 **0.5270**（-0.7 pt）；**agieval -10.8 pt 触发「任一任务降≥5pt」警戒**，处置（降 rank/epoch 重训）留 owner 决策 |
+| E3-6 | 成本/延迟（p50/p95、tokens/s、峰值显存） | **完成**：batch=1 p50 44.9/65.0 ms（base/adapter）、tokens/s 6,039/4,582、峰值 4.0/4.1 GB；batch=16 更差（p50 77.6/95.1 ms，峰值 14.6 GB）→ **部署建议 batch=1**；保留集推理 base 225.9 s / adapter 271.6 s（7,740 行） |
+| E3-7 | 统计（配对 CI、多 seed） | **CI 完成**（簇 bootstrap 见 E3-3；item bootstrap 近似 [+29.03,+31.56]）；**多 seed 未做**（需 GPU 重训 20261024/25，单 seed 不宣称跨 seed 稳定） |
 
 结果卡：[results/MODEL-02-final-eval/CARD.md](results/MODEL-02-final-eval/CARD.md)；阶段报告见 [docs/reports](docs/reports/2026-10-27-final-eval-package.md)。
 

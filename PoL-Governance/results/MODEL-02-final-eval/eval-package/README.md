@@ -167,8 +167,10 @@ python datasets/general/build_training_view.py --split test \
 ```bash
 VIEW_ROWS=$(wc -l < /tmp/priv-eval/private-eval-view.jsonl)
 echo "Generated view rows: $VIEW_ROWS"
-# 保留集声明规模 6,541；实际视图行数以构建结果为准（builder 会按 drop 路由与 schema 规则筛行）
 ```
+
+> 口径提醒：私有包声明 "6,541 条" 是 **items** 数；builder 一行 = 一个问题，本包 6,541 items 展开为 **7,990 个问题行**（本项目 2026-10-27 方式 2 实测构建结果，en-only、无 dropped 行）。**聚合分母用视图行数（问题行），不是 items 数**；若私有包版本不同，以 `wc -l` 实测为准。
+> 该 holdout 未随包提供 target-types，builder 走 no_route 兜底 → 全部行的 route 记为 `classification`（route 分层因此不含 distillation；letter accuracy 不受影响）。
 
 ### 4.3 模型推理评测 (Base 与 Adapter)
 
@@ -200,9 +202,10 @@ echo "Generated view rows: $VIEW_ROWS"
 评测者根据自身环境在以下两条路径中选择其一（推荐路径 A）：
 
 - **路径 A（推荐：直接传入已冻结的温度值）**：
-  温度由研发团队在**公开 validation 集**的 `calibration` 半区（`sha256(rid)` 为奇）拟合并冻结，随结果卡/发布说明提供；拿到冻结值后在聚合阶段直接传入：
-  `--temperature <FROZEN_TEMP>`（占位符，不是示例数字）。
-  **若冻结值尚未提供，请不要自行在保留集上拟合**：改用路径 B，或在聚合时省略温度（输出会标 `calibration.status = pending_temperature`，不得报告校准结论）。
+  温度由研发团队在**公开 validation 集**的 `calibration` 半区（`sha256(rid)` 为奇）拟合并冻结，文件为：
+  `results/MODEL-02-final-eval/temperature.json`（字段 `temperature`；本次冻结值 = 1.xxxx，见该文件，不在本文硬编码）。
+  在聚合阶段直接传入：`--temperature "$FROZEN_TEMP"`。
+  **若冻结值缺失，请不要自行在保留集上拟合**：改用路径 B，或在聚合时省略温度（输出会标 `calibration.status = pending_temperature`，不得报告校准结论）。
 
 - **路径 B（评测者独立拟合验证集温度）**：
   若评测者同时复跑了公开 `validation` 集的模型预测（例如生成了 `/tmp/priv-eval/val-preds.jsonl`），则可以在聚合命令中指定：

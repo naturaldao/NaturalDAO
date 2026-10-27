@@ -1,0 +1,18 @@
+{
+  "schema": "pol-lm-eval-adapter-summary-v1",
+  "tasks": {
+    "agieval": 0.305714,
+    "ceval-valid": 0.618871,
+    "cmmlu": 0.592239,
+    "mmlu": 0.591053
+  },
+  "n_subtasks": 68,
+  "limit": 100,
+  "files": [
+    "results_2026-10-27T14-45-39.277341.json",
+    "results_2026-10-27T14-28-23.215500.json",
+    "results_2026-10-27T14-33-05.632033.json",
+    "results_2026-10-27T14-37-15.833924.json"
+  ],
+  "mean": 0.526969
+}

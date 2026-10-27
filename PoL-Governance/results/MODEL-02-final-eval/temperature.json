@@ -1,0 +1,10 @@
+{
+  "schema": "pol-temperature-fit-v1",
+  "temperature": 0.992077,
+  "nll": 0.530488,
+  "rows": 3950,
+  "fit_half": "calibration",
+  "fit_data": "general v5 validation view / adapter per-row predictions",
+  "fit_rule": "sha256(rid) parity; selection half held out",
+  "applied_only_on_eval": true
+}

@@ -92,7 +92,19 @@
       "hf_repo": "NaturalDAO/pol-decision-general-v5-holdout",
       "revision": "146ae4604e67c93805f6bf468449b45c205ca7da",
       "rows": 6541,
-      "custody": "库外独立保管；内容、逐例答案与可反推 id 不进仓库/分支/日志/截图/训练上下文；仅导出聚合结果"
+      "custody": "库外独立保管；内容、逐例答案与可反推 id 不进仓库/分支/日志/截图/训练上下文；仅导出聚合结果",
+      "eval_view": {
+        "items": 6541,
+        "question_rows": 7990,
+        "evaluated": 7740,
+        "skipped": {
+          "options_gt_26": 201,
+          "prompt_too_long": 49
+        },
+        "template_version": "tv-1",
+        "route_fallback": "classification_without_route",
+        "lang": "en-only"
+      }
     },
     "software": {
       "python": "3.12.13",
@@ -151,14 +163,47 @@
         "agieval": 0.4133,
         "mean": 0.5342
       },
-      "adapter": "PENDING（2026-10-23 崩溃中断，未落盘）"
+      "adapter": {
+        "ceval-valid": 0.618871,
+        "cmmlu": 0.592239,
+        "mmlu": 0.591053,
+        "agieval": 0.305714,
+        "mean": 0.526969,
+        "n_subtasks": 201,
+        "run": "2026-10-27, limit 100, batch 8, fp16, RX 7900 XT (ROCm 7.2.1)"
+      },
+      "delta_adapter_minus_base": {
+        "ceval-valid": 0.034171,
+        "cmmlu": 0.029839,
+        "mmlu": 0.014553,
+        "agieval": -0.107619,
+        "mean": -0.007231
+      },
+      "recheck_2026_10_27": {
+        "agieval": {
+          "base": 0.4133,
+          "adapter": 0.3057,
+          "note": "same-day single-task rerun; reproduces 10-23 base and confirms adapter drop"
+        }
+      }
+    },
+    "calibration": {
+      "status": "fitted",
+      "temperature": 0.992077,
+      "fit_half": "calibration",
+      "fit_rows": 3950,
+      "fit_nll": 0.530488,
+      "fit_rule": "sha256(rid) parity split of public validation view; adapter per-row predictions",
+      "applied_only_on_eval": true,
+      "file": "temperature.json",
+      "fitted_at": "2026-10-27"
     }
   },
   "files": [
     {
       "path": "README.md",
-      "sha256": "b6c93045d99a24e29470d1f2e2bf68818953762d0803b82a22786a8325fb8c83",
-      "bytes": 25405
+      "sha256": "960adc350a74bb6253f26a2751a9d2938ca165a8e3deef110e84a92656f529dd",
+      "bytes": 25895
     },
     {
       "path": "datasets/__init__.py",
@@ -216,5 +261,5 @@
       "bytes": 30333
     }
   ],
-  "package_sha256": "1103a3cac0029c62e4b2f19ff56e98cafffa7be72ee4ea46c283d1c98e450a77"
+  "package_sha256": "4dd041d9be932948b5314ed7118e1c73aece5f16d063feb9f2038bff31b95ef8"
 }
