@@ -1,0 +1,74 @@
+{
+  "schema": "jevbench-summary/1",
+  "models": [
+    {
+      "name": "kev-original",
+      "report_name": "kev-original",
+      "suite": "jevbench-mini",
+      "suite_version": "1",
+      "jevbench_version": "0.1.0",
+      "run_date": "2026-10-28",
+      "errors": 0,
+      "overall": 0.7218954248366013,
+      "pillars": {
+        "REP": 0.7472222222222222,
+        "BAT": 1.0,
+        "MEA": 0.303921568627451,
+        "LOG": 0.6833333333333333,
+        "CHO": 0.875
+      },
+      "accuracy": null,
+      "overall_ci": [
+        0.7016354198399077,
+        0.7416621928899699
+      ],
+      "min_n": 5,
+      "n_cases": 240,
+      "n_checks": 50,
+      "n_outcomes": 1468,
+      "bootstrap": 1000
+    },
+    {
+      "name": "seed43",
+      "report_name": "seed43",
+      "suite": "jevbench-mini",
+      "suite_version": "1",
+      "jevbench_version": "0.1.0",
+      "run_date": "2026-10-28",
+      "errors": 0,
+      "overall": 0.8090686274509804,
+      "pillars": {
+        "REP": 0.8083333333333333,
+        "BAT": 1.0,
+        "MEA": 0.5661764705882353,
+        "LOG": 0.8791666666666667,
+        "CHO": 0.7916666666666667
+      },
+      "accuracy": null,
+      "overall_ci": [
+        0.7866153122636801,
+        0.8315420047928362
+      ],
+      "min_n": 5,
+      "n_cases": 240,
+      "n_checks": 50,
+      "n_outcomes": 1468,
+      "bootstrap": 1000
+    }
+  ],
+  "comparisons": [
+    {
+      "kind": "reference",
+      "model": "seed43",
+      "reference": "kev-original",
+      "delta": {
+        "overall": 0.08717320261437911,
+        "REP": 0.061111111111111116,
+        "BAT": 0.0,
+        "MEA": 0.26225490196078427,
+        "LOG": 0.1958333333333333,
+        "CHO": -0.08333333333333326
+      }
+    }
+  ]
+}

@@ -74,6 +74,17 @@
 - 协作材料位置：benchmark/embodied_reasoning、benchmark/pol2、datasets/pol2/score-v2、models/kev-pol2-score-v2-m10、results/MODEL-02-kev-pol2-score-v2-20261026；
 - 合并摘要见 [阶段报告](docs/reports/2026-10-26-collaborator-update.md)。
 
+## 评测线（Session B，2026-10-28；独立评测，不训练）
+
+| 子项 | 内容 | 状态 / 验收 |
+|---|---|---|
+| EB-1 | **Kev 前后对照**：原版 `jaredpalmer/kev-4b@v1.0` vs POL2 score-v2 M10（seed43 主 / seed17/29 变体）在 general v5 私有保留视图上的规范配对评测（共同上下文 384/1024/2048 主口径；serving 全量为敏感性） | **完成**：主口径 6,299 records / 7,347 questions；配对 cluster bootstrap（G=6,299）CI；accuracy/Brier/NLL/ECE/automation/分层/变体/延迟齐全；结果卡 [results/MODEL-02-kev-prefix-eval/CARD.md](results/MODEL-02-kev-prefix-eval/CARD.md) |
+| EB-2 | **JevBench coherence**（第三方，无 gold）对照 | **完成**：kev-original 72.19 [70.16,74.17] vs seed43 80.91 [78.66,83.15]（mini v1）；注明第三方、coherence≠accuracy、不能与 accuracy 榜混读 |
+| EB-3 | **Jev 类榜单/基准调研** | **完成**：[docs/reports/2026-10-27-jev-benchmarks.md](docs/reports/2026-10-27-jev-benchmarks.md)（JevBench / Kev suites / Decision Index / TypeSafe / OpenJev / Laya / OpenDecider / System One Bench；许可与可收集性） |
+| EB-4 | **评测工程与复现** | **完成**：`benchmark/kev_prefix/`（转换/套件/筛查/聚合/独立核对/表生成/驱动脚本，85+ 单测）；数据重叠审计 0 精确重叠；底座 revision 固定；私有保留集只回传聚合、执行后删除临时副本 |
+
+边界：本线**不训练**、不改模型/数据、不为保留集调 prompt/阈值；Kev 表与 Qwen3-1.7B 线分表；seed43 属事后选择的探索性比较；结论仅限该冻结视图/配置。
+
 ## 第三阶段：校准盲测（通用 FT 评测；历史，已归档 2026-10-28）
 
 > **归档说明**：本节数字均来自 general v5 通用 FT 的评测，**不能推断专有微调后的治理/通用表现**；专有微调双评测待 POL2 授权后另行预注册。

@@ -9,6 +9,10 @@
 私有保留集只发布汇总；不提交逐例内容、答案、模型响应或能反推案例的日志。
 
 
+## 当前结果（2026-10-28）
+
+- `MODEL-02-kev-prefix-eval/`：Session B 的 Kev 前后对照（原版 Kev-4B vs POL2 score-v2 M10，seed43/17/29）与 JevBench coherence（第三方）；私有保留集**只发布聚合**；seed43 属事后选择、结果探索性；与 Qwen3-1.7B 线分表；结论边界见该目录 CARD.md。
+
 ## 归档
 
 - `archive/2026-10-27-general-ft/`：2026-10-27 的 Track A（general v5 通用 FT）与最终评测；**这不是目标所需的 POL2 专有微调**，仅作历史/工程参考，引用时必须注明“通用 FT 基线”，不得当作专有微调结论。

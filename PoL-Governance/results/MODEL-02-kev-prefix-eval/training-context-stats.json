@@ -1,0 +1,41 @@
+{
+  "context": {
+    "max_state": 384,
+    "max_branch": 1024,
+    "max_packed": 2048
+  },
+  "clean_records": 6541,
+  "clean_questions": 7990,
+  "admitted_records": 6299,
+  "admitted_questions": 7347,
+  "admitted_questions_not_overlong": 7347,
+  "rejected_records": 242,
+  "rejected_questions": 643,
+  "rejected": {
+    "state": 228,
+    "branch": 14
+  },
+  "state_tokens": {
+    "n": 6299,
+    "min": 10,
+    "p50": 74,
+    "p90": 165,
+    "p99": 329,
+    "max": 383
+  },
+  "packed_tokens": {
+    "n": 6299,
+    "min": 47,
+    "p50": 162,
+    "p90": 399,
+    "p99": 788,
+    "max": 1022
+  },
+  "state_tokens_buckets": {
+    "<=384": 6299
+  },
+  "packed_tokens_buckets": {
+    "<=384": 5612,
+    "385-1024": 687
+  }
+}

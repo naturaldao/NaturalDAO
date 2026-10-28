@@ -1,0 +1,43 @@
+{
+  "schema": "kev-prefix-overlap-audit/1",
+  "summary": {
+    "any_exact_overlap": false
+  },
+  "holdout": {
+    "rows": 6541
+  },
+  "candidates": {
+    "/home/wenbo/src/polgov/pol2-release/v1.0.0/data/POL2_GitHub_Release_v1/data/mixed-training/kev-m10.jsonl": {
+      "rows": 6827,
+      "sha256": "9f3ffaac0d456514e4d7ba3be739e03c5f1a89fc4226443d1b0b8c98d4f06fae",
+      "holdout_states_matched": 0,
+      "holdout_questions_matched": 0,
+      "holdout_item_ids_matched": 0,
+      "candidate_rows_sha256_unique": 6636
+    },
+    "/home/wenbo/src/polgov/pol2-release/v1.0.0/data/POL2_GitHub_Release_v1/data/general-replay/kev/train-m10.jsonl": {
+      "rows": 661,
+      "sha256": "05c241030ca09c4f9dcbc099188b951515ccd3c2f1733982354fdac1f2f7a513",
+      "holdout_states_matched": 0,
+      "holdout_questions_matched": 0,
+      "holdout_item_ids_matched": 0,
+      "candidate_rows_sha256_unique": 320
+    },
+    "/home/wenbo/src/polgov/pol2-release/v1.0.0/data/POL2_GitHub_Release_v1/data/general-replay/kev/validation.jsonl": {
+      "rows": 288,
+      "sha256": "c8a7a1db6fb9dc0150d31d356a1e296d05edd9b8c0eb7b59f24462975644dbec",
+      "holdout_states_matched": 0,
+      "holdout_questions_matched": 0,
+      "holdout_item_ids_matched": 0,
+      "candidate_rows_sha256_unique": 140
+    },
+    "/home/wenbo/src/polgov/pol2-release/v1.0.0/data/POL2_GitHub_Release_v1/data/general-replay/kev/guard.jsonl": {
+      "rows": 244,
+      "sha256": "72b2955a6835cb5271d62a62c5db34e403cbbb22895601dd9df1dd13c04688dc",
+      "holdout_states_matched": 0,
+      "holdout_questions_matched": 0,
+      "holdout_item_ids_matched": 0,
+      "candidate_rows_sha256_unique": 120
+    }
+  }
+}

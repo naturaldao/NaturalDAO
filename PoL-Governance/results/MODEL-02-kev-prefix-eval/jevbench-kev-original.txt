@@ -1,0 +1,19 @@
+kev-original: overall 72.2 [70-74]  (240 cases, 50 scored relations, tolerance 0.05)
+  REP         74.7  Representation consistency
+  BAT        100.0  Batch independence
+  MEA         30.4  Probability measure coherence
+  LOG         68.3  Logical coherence
+  CHO         87.5  Choice-set coherence
+kev-original: overall 72.2 [70-74]  (240 cases, 50 scored relations, tolerance 0.05)
+  REP.invariance         78.6  Invariance
+  REP.equivariance       69.4  Equivariance
+  REP.binding            62.5  Binding
+  REP.type               87.5  Answer type
+  BAT.isolation         100.0  Isolation
+  MEA.complement         10.8  Complement
+  MEA.partition          48.4  Partition
+  MEA.marginalisation    18.8  Marginalisation
+  LOG.bounds             61.9  Bounds
+  LOG.monotonicity       83.3  Monotonicity
+  CHO.conditioning       87.5  Conditioning
+wrote /home/wenbo/jev-runs/kev-original-jevbench-mini.json

@@ -1,0 +1,197 @@
+{
+  "schema": "kev-prefix-versions/1",
+  "base_revision_pinned": "1001bb4d826a52d1f399e183466143f4da7b741b",
+  "base": "Qwen/Qwen3.5-4B-Base",
+  "checkpoints": {
+    "seed-43": {
+      "head_sha256_before": "9603292b850fd9b21413476ea7f0f49a085c5febe0f2be541cd39b998f6dafb7",
+      "head_sha256_after": "42cd433a4b1f59804f319e2b6509103b09d75847b136c9d3178836d10eee0ac2",
+      "base_revision_before": null,
+      "base_revision_after": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "base_revision_effective": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "patched": true,
+      "meta": {
+        "base": "Qwen/Qwen3.5-4B-Base",
+        "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+        "lora": 16,
+        "head_dim": 256,
+        "option_isolation": false,
+        "special_embeddings": false,
+        "weights_dtype": "fp32",
+        "temperature": 1.0,
+        "weights": "lora"
+      },
+      "head_tensors": {
+        "q.weight": [
+          256,
+          2560
+        ],
+        "q.bias": [
+          256
+        ],
+        "k.weight": [
+          256,
+          2560
+        ],
+        "k.bias": [
+          256
+        ]
+      },
+      "files": {
+        "adapter_config.json": "5bf3d2d30de867c8fde574389443dd2fdbd5b33ea3f9f9dbc3dccb7d112fb482",
+        "adapter_model.safetensors": "c05a982e70d8596d436d1dc4dc6475452802ad638d5e36f5a952035596c47eb1",
+        "head.pt": "42cd433a4b1f59804f319e2b6509103b09d75847b136c9d3178836d10eee0ac2",
+        "training_config.json": "65a7049c75839ba40240d07edcfff11a08a8f8c9308b143ab40c8e472c5e32e7",
+        "training_metrics.json": "bf69f8057850745d1515ed513e9d5970369c44ee4c437819b3bcd6866956ac0d",
+        "trial-result.json": "d02f5981db0b78c2f7fffdb267627499d8130adc5985417f664e51865b1e7cbf"
+      },
+      "source": "/home/wenbo/src/polgov/pol2-release/v1.0.0/weights/seed-43"
+    },
+    "seed-17": {
+      "head_sha256_before": "1095dccdf1d417febde7645374f2628cb65cf715e6f9751afc7af5799a79713c",
+      "head_sha256_after": "bdcd994321c854ce03ec466b0de67c3138f7cf2a3f41a594f53b0a722a96759d",
+      "base_revision_before": null,
+      "base_revision_after": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "base_revision_effective": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "patched": true,
+      "meta": {
+        "base": "Qwen/Qwen3.5-4B-Base",
+        "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+        "lora": 16,
+        "head_dim": 256,
+        "option_isolation": false,
+        "special_embeddings": false,
+        "weights_dtype": "fp32",
+        "temperature": 1.0,
+        "weights": "lora"
+      },
+      "head_tensors": {
+        "q.weight": [
+          256,
+          2560
+        ],
+        "q.bias": [
+          256
+        ],
+        "k.weight": [
+          256,
+          2560
+        ],
+        "k.bias": [
+          256
+        ]
+      },
+      "files": {
+        "adapter_config.json": "948a206c4771f24fd606a45fb21b92795b395632174b2dc0e8128ea0a0559083",
+        "adapter_model.safetensors": "d43511fc72724170f9be7888e9a5aa9e4be7a53ccbda9e6f57673eff04ab1eae",
+        "head.pt": "bdcd994321c854ce03ec466b0de67c3138f7cf2a3f41a594f53b0a722a96759d",
+        "training_config.json": "7a224fb70f82123f36d00f35f015db437bf9790d4e8766710860cd45f0af87c3",
+        "training_metrics.json": "38bc211922c09e76a069a6e1a3d6b0f7aa03984e2cc2f53eae359802fc9875c7",
+        "trial-result.json": "f4ed78d134af60186437cda18a0bf45d6d8ff68aefe6614b5fafe3930761fded"
+      },
+      "source": "/home/wenbo/src/polgov/pol2-release/v1.0.0/weights/seed-17"
+    },
+    "seed-29": {
+      "head_sha256_before": "62e9f5278f58d3ecb32d2dd1fa4ec3df6697ce9f87ed99ad04cd06299c0e3d53",
+      "head_sha256_after": "1d51f95f8dc6082d1c1a8bc90783a2ba72e7a0102abd6d1f54e556690eb988a9",
+      "base_revision_before": null,
+      "base_revision_after": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "base_revision_effective": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "patched": true,
+      "meta": {
+        "base": "Qwen/Qwen3.5-4B-Base",
+        "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+        "lora": 16,
+        "head_dim": 256,
+        "option_isolation": false,
+        "special_embeddings": false,
+        "weights_dtype": "fp32",
+        "temperature": 1.0,
+        "weights": "lora"
+      },
+      "head_tensors": {
+        "q.weight": [
+          256,
+          2560
+        ],
+        "q.bias": [
+          256
+        ],
+        "k.weight": [
+          256,
+          2560
+        ],
+        "k.bias": [
+          256
+        ]
+      },
+      "files": {
+        "adapter_config.json": "39acc9778d42eb896d6748a4864c19e7dafba0db94e70712285ed32405d65046",
+        "adapter_model.safetensors": "93ab8136c410692eb69ed403549da30500499652ba7adb2574ec5cb571575a0c",
+        "head.pt": "1d51f95f8dc6082d1c1a8bc90783a2ba72e7a0102abd6d1f54e556690eb988a9",
+        "training_config.json": "7e0f152e8b3b3306ad073618b5d631862e06e0640e869c21912b4e60cd6ad969",
+        "training_metrics.json": "309ef06c1509a362c330ec55d824a1a431875b3248897483afaf3b7173f21d34",
+        "trial-result.json": "27571f53245e7b4691ed59346c291c9e1267467c23ae2ceee699abf14a2360cf"
+      },
+      "source": "/home/wenbo/src/polgov/pol2-release/v1.0.0/weights/seed-29"
+    },
+    "kev-original": {
+      "head_sha256_before": "dd633435998ecc751ac538717a3742e32149500fabf7d7276287dbf0693f347c",
+      "head_sha256_after": "dd633435998ecc751ac538717a3742e32149500fabf7d7276287dbf0693f347c",
+      "base_revision_before": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "base_revision_after": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "base_revision_effective": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "patched": false,
+      "meta": {
+        "base": "Qwen/Qwen3.5-4B-Base",
+        "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+        "lora": 16,
+        "head_dim": 256,
+        "option_isolation": false,
+        "special_embeddings": false,
+        "weights_dtype": "fp32",
+        "temperature": 2.406050072164233,
+        "weights": null
+      },
+      "head_tensors": {
+        "q.weight": [
+          256,
+          2560
+        ],
+        "q.bias": [
+          256
+        ],
+        "k.weight": [
+          256,
+          2560
+        ],
+        "k.bias": [
+          256
+        ]
+      },
+      "files": {
+        ".gitattributes": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930",
+        "README.md": "e423ce0e3caf0a1e6ff996a58522946a97711e0439c5fea332a8861b02498435",
+        "adapter_config.json": "8a05dfd6c5e7f61a62e6db5d8de8093a8dbbd105aa7ee7b5e7b73f6249f45617",
+        "adapter_model.safetensors": "90e817356246e7f18bfa7ca3d31794cd4fbeb3332a66a84cb51d9ceae925f2b2",
+        "added_tokens.json": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680",
+        "head.pt": "dd633435998ecc751ac538717a3742e32149500fabf7d7276287dbf0693f347c",
+        "merges.txt": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+        "provenance.json": "7aa999a629f25d93713950d6fb39d0b4c37fe8a9f43d2673a79c4c455d42b26a",
+        "result.json": "c28c365684ebc739d93c51d7ee881e3c589e2633deb3b42f4818b149b4c43ab2",
+        "special_tokens_map.json": "6676f091c8bc4d1b50146427cfde92073402866b87b6e39223227931b70083e9",
+        "tokenizer.json": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523",
+        "tokenizer_config.json": "8671bed7c852ce9e661be94f179a7b4ffd091c2a65aea0363e5501c20318ee45",
+        "train.log": "28fa8dd2d35401e811cceaab1be831d365dbeefc635ed1b51ddf578813b16126",
+        "training_config.json": "005f939bef00274f49f15282dfa60543f5f82e781268f3c12d8ceeacb9f61f30",
+        "training_metrics.json": "a75fa00aa5b365b042c16d7b164b14b667d06183a6c6b4c14e8a81b017b57729",
+        "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+      },
+      "source": {
+        "hub": "jaredpalmer/kev-4b",
+        "revision_arg": "v1.0",
+        "snapshot": "/home/wenbo/.cache/huggingface/hub/models--jaredpalmer--kev-4b/snapshots/6cfce5c2fa4b4bd64026336ab649c5ca78857d52"
+      }
+    }
+  }
+}

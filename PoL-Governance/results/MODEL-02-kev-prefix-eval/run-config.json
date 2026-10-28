@@ -1,0 +1,92 @@
+{
+  "schema": "kev-prefix-run-config/1",
+  "kev_commit": "2074cc44256200bb37540103fa4572901faa10f3",
+  "kev_base": "Qwen/Qwen3.5-4B-Base",
+  "kev_base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+  "original_hub": {
+    "repo": "jaredpalmer/kev-4b",
+    "revision": "v1.0",
+    "commit": "6cfce5c2fa4b4bd64026336ab649c5ca78857d52"
+  },
+  "m10_release": "pol2-score-v2-v1.0.0 (GitHub Release; research pre-release)",
+  "environment": {
+    "packages": {
+      "torch": "2.9.1+rocm7.2.1.gitff65f5bc",
+      "transformers": "5.20.2",
+      "peft": "0.21.2",
+      "flash-linear-attention": null,
+      "triton": "3.5.1+rocm7.2.1.gita272dfa8",
+      "causal-conv1d": null,
+      "mlx": null,
+      "mlx-lm": null
+    },
+    "device": "cuda",
+    "gpu": "AMD Radeon RX 7900 XT",
+    "backend": "torch",
+    "dtype": "bfloat16",
+    "triton_f32_default": null,
+    "attention": "eager",
+    "deltanet": {
+      "forward": "transformers.models.qwen3_5.modeling_qwen3_5.Qwen3_5GatedDeltaNet.forward",
+      "causal_conv1d_fn": "transformers.models.qwen3_5.modeling_qwen3_5.causal_conv1d_fn",
+      "torch_chunk_gated_delta_rule": "transformers.models.qwen3_5.modeling_qwen3_5.torch_chunk_gated_delta_rule"
+    }
+  },
+  "context": {
+    "suite_manifest_sha256": "372947299271b46059026183bba4b6b77a5643b6ca1f40cce0bc41b8a720c68c",
+    "screened_max_row_tokens": 2048,
+    "rows_excluded": 18,
+    "training_context_384_1024_2048": {
+      "max_state": 384,
+      "max_branch": 1024,
+      "max_packed": 2048
+    }
+  },
+  "suite": "372947299271b46059026183bba4b6b77a5643b6ca1f40cce0bc41b8a720c68c",
+  "checkpoints": {
+    "seed-43": {
+      "temperature": 1.0,
+      "lora": 16,
+      "head_dim": 256,
+      "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "head_sha256": "42cd433a4b1f59804f319e2b6509103b09d75847b136c9d3178836d10eee0ac2",
+      "adapter_sha256": "c05a982e70d8596d436d1dc4dc6475452802ad638d5e36f5a952035596c47eb1",
+      "patched_base_revision": true
+    },
+    "seed-17": {
+      "temperature": 1.0,
+      "lora": 16,
+      "head_dim": 256,
+      "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "head_sha256": "bdcd994321c854ce03ec466b0de67c3138f7cf2a3f41a594f53b0a722a96759d",
+      "adapter_sha256": "d43511fc72724170f9be7888e9a5aa9e4be7a53ccbda9e6f57673eff04ab1eae",
+      "patched_base_revision": true
+    },
+    "seed-29": {
+      "temperature": 1.0,
+      "lora": 16,
+      "head_dim": 256,
+      "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "head_sha256": "1d51f95f8dc6082d1c1a8bc90783a2ba72e7a0102abd6d1f54e556690eb988a9",
+      "adapter_sha256": "93ab8136c410692eb69ed403549da30500499652ba7adb2574ec5cb571575a0c",
+      "patched_base_revision": true
+    },
+    "kev-original": {
+      "temperature": 2.406050072164233,
+      "lora": 16,
+      "head_dim": 256,
+      "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "head_sha256": "dd633435998ecc751ac538717a3742e32149500fabf7d7276287dbf0693f347c",
+      "adapter_sha256": "90e817356246e7f18bfa7ca3d31794cd4fbeb3332a66a84cb51d9ceae925f2b2",
+      "patched_base_revision": false
+    }
+  },
+  "commands": {
+    "prepare": "bash benchmark/kev_prefix/prepare_eval.sh",
+    "pin": "python benchmark/kev_prefix/pin_checkpoints.py --src-root <weights> --out-root <仓库外>/ckpt --seeds 43 17 29",
+    "screen": "python benchmark/kev_prefix/screen_suite.py --suite-dir <仓库外>/suite --join <仓库外>/join.jsonl --out-suite <仓库外>/suite-eval --out-join <仓库外>/join-eval.jsonl --max-row-tokens 2048",
+    "gpu": "bash benchmark/kev_prefix/run_models.sh",
+    "analysis": "bash benchmark/kev_prefix/analyze.sh",
+    "jevbench": "bash benchmark/kev_prefix/run_jevbench.sh kev-original seed43"
+  }
+}
