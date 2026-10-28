@@ -1,6 +1,6 @@
 {
   "schema": "kev-prefix-aggregate/1",
-  "generated_at": "2026-10-28T09:15:00.574099+00:00",
+  "generated_at": "2026-10-28T13:53:05.806453+00:00",
   "note": "",
   "settings": {
     "exclude_overlong": true,
@@ -435,8 +435,8 @@
       "run_metadata": {
         "temperature": 2.406050072164233,
         "latency_ms": {
-          "median": 81.6241339998669,
-          "p95": 388.31430275012747
+          "median": 83.84704750000083,
+          "p95": 361.8170801999722
         },
         "coverage": {
           "requested_records": 9052,
@@ -469,7 +469,7 @@
             "torch_chunk_gated_delta_rule": "transformers.models.qwen3_5.modeling_qwen3_5.torch_chunk_gated_delta_rule"
           }
         },
-        "suite_sha256": "372947299271b46059026183bba4b6b77a5643b6ca1f40cce0bc41b8a720c68c",
+        "suite_sha256": "4f0e56c1455bc7a4bcc6b39c39aad3bcfac13891bed8a9a1521dc8b30623f057",
         "date_facts": false,
         "rotations": 1
       },
@@ -923,8 +923,8 @@
       "run_metadata": {
         "temperature": 1.0,
         "latency_ms": {
-          "median": 83.08124300037889,
-          "p95": 363.09560905001365
+          "median": 77.70594149997123,
+          "p95": 360.05633800005967
         },
         "coverage": {
           "requested_records": 9052,
@@ -957,7 +957,7 @@
             "torch_chunk_gated_delta_rule": "transformers.models.qwen3_5.modeling_qwen3_5.torch_chunk_gated_delta_rule"
           }
         },
-        "suite_sha256": "372947299271b46059026183bba4b6b77a5643b6ca1f40cce0bc41b8a720c68c",
+        "suite_sha256": "4f0e56c1455bc7a4bcc6b39c39aad3bcfac13891bed8a9a1521dc8b30623f057",
         "date_facts": false,
         "rotations": 1
       },
@@ -1411,8 +1411,8 @@
       "run_metadata": {
         "temperature": 1.0,
         "latency_ms": {
-          "median": 80.22462149983767,
-          "p95": 362.7794939006884
+          "median": 82.55726300012611,
+          "p95": 343.00812589992694
         },
         "coverage": {
           "requested_records": 9052,
@@ -1445,7 +1445,7 @@
             "torch_chunk_gated_delta_rule": "transformers.models.qwen3_5.modeling_qwen3_5.torch_chunk_gated_delta_rule"
           }
         },
-        "suite_sha256": "372947299271b46059026183bba4b6b77a5643b6ca1f40cce0bc41b8a720c68c",
+        "suite_sha256": "4f0e56c1455bc7a4bcc6b39c39aad3bcfac13891bed8a9a1521dc8b30623f057",
         "date_facts": false,
         "rotations": 1
       },
@@ -1899,8 +1899,8 @@
       "run_metadata": {
         "temperature": 1.0,
         "latency_ms": {
-          "median": 80.25459900090937,
-          "p95": 362.0102329494329
+          "median": 78.64173200005098,
+          "p95": 353.8771430502488
         },
         "coverage": {
           "requested_records": 9052,
@@ -1933,7 +1933,7 @@
             "torch_chunk_gated_delta_rule": "transformers.models.qwen3_5.modeling_qwen3_5.torch_chunk_gated_delta_rule"
           }
         },
-        "suite_sha256": "372947299271b46059026183bba4b6b77a5643b6ca1f40cce0bc41b8a720c68c",
+        "suite_sha256": "4f0e56c1455bc7a4bcc6b39c39aad3bcfac13891bed8a9a1521dc8b30623f057",
         "date_facts": false,
         "rotations": 1
       },

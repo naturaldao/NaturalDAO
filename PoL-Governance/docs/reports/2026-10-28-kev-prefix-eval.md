@@ -1,6 +1,6 @@
 # Kev 前后对照评测（Session B，2026-10-28）
 
-> 状态：**进行中/待填最终数字**（GPU 评测窗口 15:30 后执行）。最终结果卡见 [results/MODEL-02-kev-prefix-eval/CARD.md](../../results/MODEL-02-kev-prefix-eval/CARD.md)。
+> 状态：**已完成（2026-10-28）**。最终结果卡见 [results/MODEL-02-kev-prefix-eval/CARD.md](../../results/MODEL-02-kev-prefix-eval/CARD.md)；可视化单页见 [HTML 报告](2026-10-28-kev-prefix-eval.html)。
 > 边界：本报告只描述冻结视图、指定 checkpoint 与配置下的观察性配对比较；不训练、不调参、不为保留集调 prompt/阈值；私有保留集只在仓库外隔离执行、只回传聚合。
 
 ## 0. 一句话结论

@@ -11,7 +11,7 @@
 
 ## 当前结果（2026-10-28）
 
-- `MODEL-02-kev-prefix-eval/`：Session B 的 Kev 前后对照（原版 Kev-4B vs POL2 score-v2 M10，seed43/17/29）与 JevBench coherence（第三方）；私有保留集**只发布聚合**；seed43 属事后选择、结果探索性；与 Qwen3-1.7B 线分表；结论边界见该目录 CARD.md。
+- `MODEL-02-kev-prefix-eval/`：Session B 的 Kev 前后对照（原版 Kev-4B vs POL2 score-v2 M10，seed43/17/29）与 JevBench coherence（第三方）；私有保留集**只发布聚合**；seed43 属事后选择、结果探索性；与 Qwen3-1.7B 线分表；结论边界见该目录 CARD.md。可视化单页：[HTML 报告](../docs/reports/2026-10-28-kev-prefix-eval.html)。
 
 ## 归档
 

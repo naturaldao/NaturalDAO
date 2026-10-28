@@ -5,8 +5,8 @@
   "records_kept": 9052,
   "records_excluded": 18,
   "excluded_by_variant": {
-    "clean": 5,
-    "isolation": 13
+    "isolation": 13,
+    "clean": 5
   },
   "excluded_clean_records": 5,
   "excluded_clean_questions": 14,
@@ -24,6 +24,6 @@
     4733,
     5828
   ],
-  "suite_manifest_sha256": "372947299271b46059026183bba4b6b77a5643b6ca1f40cce0bc41b8a720c68c",
+  "suite_manifest_sha256": "4f0e56c1455bc7a4bcc6b39c39aad3bcfac13891bed8a9a1521dc8b30623f057",
   "join_sha256": "e34d601b592755d0533d342d8ea80dee53065a273ffbdbba851f097bc45c1c90"
 }

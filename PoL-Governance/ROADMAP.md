@@ -82,6 +82,7 @@
 | EB-2 | **JevBench coherence**（第三方，无 gold）对照 | **完成**：kev-original 72.19 [70.16,74.17] vs seed43 80.91 [78.66,83.15]（mini v1）；注明第三方、coherence≠accuracy、不能与 accuracy 榜混读 |
 | EB-3 | **Jev 类榜单/基准调研** | **完成**：[docs/reports/2026-10-27-jev-benchmarks.md](docs/reports/2026-10-27-jev-benchmarks.md)（JevBench / Kev suites / Decision Index / TypeSafe / OpenJev / Laya / OpenDecider / System One Bench；许可与可收集性） |
 | EB-4 | **评测工程与复现** | **完成**：`benchmark/kev_prefix/`（转换/套件/筛查/聚合/独立核对/表生成/驱动脚本，85+ 单测）；数据重叠审计 0 精确重叠；底座 revision 固定；私有保留集只回传聚合、执行后删除临时副本 |
+| EB-5 | **最终单页报告改版**（面向不熟悉项目的读者；只保留一个自包含 HTML） | **完成**：[docs/reports/2026-10-28-kev-prefix-eval.html](docs/reports/2026-10-28-kev-prefix-eval.html)（单文件、无外部依赖；22 张图；逐指标公式与读法；配对 bootstrap/McNemar/置换/Holm；校准与风险-覆盖；JevBench 官方 CI 显著性对照；安全/伦理候选清单；失败与经验置末） |
 
 边界：本线**不训练**、不改模型/数据、不为保留集调 prompt/阈值；Kev 表与 Qwen3-1.7B 线分表；seed43 属事后选择的探索性比较；结论仅限该冻结视图/配置。
 

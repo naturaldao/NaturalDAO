@@ -1,5 +1,7 @@
 # 结果卡：Kev 前后对照（原版 Kev-4B vs POL2 score-v2 M10）+ JevBench coherence
 
+> 最终单页报告（唯一版本）：[2026-10-28-kev-prefix-eval.html](../../docs/reports/2026-10-28-kev-prefix-eval.html)（单文件自包含，内嵌 22 张图，无外部依赖）。
+
 - 任务 / 分支 / 领取人 / Agent：Session B 独立评测（`.agent/prompts/SESSION-B-final-eval.md`）/ `pol/MODEL-02/wenbo` / lead（独立评测 Agent，未参与训练）
 - 日期 / 执行方式：2026-10-28；私有保留集**方式 2（本机隔离执行）**；只回传聚合，评测后删除临时副本
 - 模型与底座 revision / 方法：见 §2；**不训练、不改模型/数据、不为保留集调 prompt/阈值**
@@ -19,7 +21,7 @@
 | overlong（>4,000 chars，view 规则标记） | 53 题 | 不删记录，仅在 sidecar 标记；主表排除 |
 | 组装 suite 记录（含变体） | 9,070 | clean 6,541 + permuted 600 + isolation 1,929 |
 | 本机不可评测（row > 2,048 tokens） | 5 clean records / 14 题 + 13 isolation | 20GB 卡 + exact eager 路径放不下 L×L attention（首轮实测 HIP OOM，见 §9）；**单列，不做静默截断** |
-| 评测 suite（screened） | 9,052 记录（clean 6,536 / permuted 600 / isolation 1,916） | suite manifest sha256 `37294729…` |
+| 评测 suite（screened） | 9,052 记录（clean 6,536 / permuted 600 / isolation 1,916） | suite manifest sha256 `4f0e56c1…`（本次重跑；manifest 含构建时间戳，故每次重建的哈希不同） |
 | **主口径：共同支持上下文** | **6,299 records / 7,347 questions** | 原版训练 384/1024/2048；M10 训练 max_state=4096；共同范围取 384/1024/2048（= Kev 官方 suite CONTEXT） |
 | ├ 整条拒绝 | 242 records / 643 questions | state 228 / branch 14；按 strict encode 整条拒绝（不是逐题裁剪） |
 | └ overlong（主口径内） | 43 题 | view 规则排除 |
@@ -116,7 +118,7 @@ serving 敏感性（不改变主结论）：extended n=7,933：acc original 0.64
 | GPU | AMD Radeon RX 7900 XT 20GB（WSL2 Ubuntu-24.04，ROCm 7.2.1） |
 | 软件 | torch 2.9.1+rocm7.2.1（**超出 Kev 声明 `torch<2.9`，披露**）、transformers 5.20.2、peft 0.21.2、triton 3.5.1+rocm；无 FLA / causal-conv1d |
 | 精度 / 后端 | bf16、backend=torch、merge=1、attn=eager、cuda_graphs=0、fused=0；`HSA_ENABLE_DXG_DETECTION=1` |
-| GPU 单记录延迟（median / p95，9,052 记录） | original 81.6 / 388.3 ms；seed43 83.1 / 363.1 ms；seed17 80.2 / 362.8 ms；seed29 80.3 / 362.0 ms |
+| GPU 单记录延迟（median / p95，9,052 记录） | original 83.8 / 361.8 ms；seed43 77.7 / 360.1 ms；seed17 82.6 / 343.0 ms；seed29 78.6 / 353.9 ms（同配置重跑；延迟随系统负载波动，±5 ms 内不具区分意义） |
 | 每 checkpoint 总时长 | 约 16–17 min（9,052 记录；含加载与评测） |
 | CPU 旁表（公开 validation smoke 43 条，Ryzen 5700X，fp32） | original p50 6,627 ms / p95 20,933 ms / ~41 tokens/s；seed43 p50 5,722 ms / p95 18,904 ms / ~46 tokens/s（**仅 smoke，不作部署基准**） |
 | 显存峰值 | **未测**（WSL 无 amdgpu 模块；仅据 OOM 行为推断 attention 缓冲约为限制因素） |
