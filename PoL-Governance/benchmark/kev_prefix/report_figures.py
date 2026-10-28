@@ -336,7 +336,8 @@ def fig_option_curve(deep):
 
 
 def fig_length_bars(deep):
-    buckets = sorted(deep["per_model"][MODELS[0]]["state_chars_bucket"].keys())
+    available = deep["per_model"][MODELS[0]]["state_chars_bucket"].keys()
+    buckets = [b for b in ["<=400", "401-1200", "1201-3000", ">3000"] if b in available]
     fig, ax = plt.subplots(figsize=(7.2, 2.9))
     x = np.arange(len(buckets))
     width = 0.19
