@@ -13,7 +13,7 @@
 | 2026-10-26 | [协作者更新合并](2026-10-26-collaborator-update.md) | main 前进 45 提交：POL2 score-v2 数据/模型、EVAL-02 具身先导、EVAL-03 理论先导；合并冲突与链接策略处理 |
 | 2026-10-27 | [HF 托管完成](2026-10-27-hf-upload.md) | v5 公开/私有仓库上传完成；远程校验 7/7、6/6 与下载回验通过；registry/HF.md 回填 revision |
 | 2026-10-27 | [通用 FT 最终评测（已归档）](archive/2026-10-27-final-eval.md) | **历史/已归档（通用 FT，非专有微调）**：保留集 0.3996→0.7034（+30.37pt，CI [28.94,31.75]）、T=0.992、lm-eval（agieval 警戒）、延迟；结果卡见 results/archive/2026-10-27-general-ft/final-eval/CARD.md |
-| 2026-10-28 | [Kev 前后对照评测（Session B）](2026-10-28-kev-prefix-eval.md) · [可视化 HTML](2026-10-28-kev-prefix-eval.html) · [论坛副本](2026-10-28-kev-prefix-eval-forum.html) · [PDF](2026-10-28-kev-prefix-eval.pdf) | 原版 Kev-4B vs POL2 score-v2 M10（seed43/17/29）在 general v5 私有保留视图的配对评测（共同上下文 7,347 题）+ JevBench coherence；结果卡 results/MODEL-02-kev-prefix-eval/CARD.md；论坛副本为无 CSS/SVG 的纯标签+PNG 版本（fallback 图见 kev-forum-figures/） |
+| 2026-10-28 | [Kev 前后对照评测（Session B）](2026-10-28-kev-prefix-eval.md) · [可视化 HTML](2026-10-28-kev-prefix-eval.html) | 原版 Kev-4B vs POL2 score-v2 M10（seed43/17/29）在 general v5 私有保留视图的配对评测（共同上下文 7,347 题）+ JevBench coherence；最终单页报告为 `2026-10-28-kev-prefix-eval.html`（单文件自包含）；结果卡 results/MODEL-02-kev-prefix-eval/CARD.md |
 | 2026-10-27 | [Jev 类公开评测/排行榜调研](2026-10-27-jev-benchmarks.md) | JevBench（第三方 coherence，可离线；mini=1,248 请求）、Kev suites/Decision Index、TypeSafe/OpenJev/Laya/OpenDecider、System One Bench 等清单与许可/可收集性；含 Kev 跑 JevBench 的精确 runbook |
 
 ## 报告约定
