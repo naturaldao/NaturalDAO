@@ -1,4 +1,8 @@
-"""Check portable collaboration links, registries and tests; optionally compare a mirror."""
+"""Check collaboration links, registries and tests; optionally compare a mirror.
+
+Links may point inside this project (ROOT) or elsewhere inside the containing git
+repository (REPO_ROOT, e.g. Research/ reports in the monorepo); links escaping the
+repository are rejected as nonportable."""
 import argparse
 import hashlib
 import json
@@ -9,11 +13,11 @@ from pathlib import Path
 from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = ROOT.parent
+REPO_ROOT = ROOT.parent if (ROOT.parent / '.git').exists() else ROOT
 
 
 def files(root):
-    skip = {'__pycache__', '.git', '.venv', '.cache'}
+    skip = {'__pycache__', '.git', '.venv', '.cache', '.agent'}
     return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in root.rglob('*') if p.is_file() and not (set(p.relative_to(root).parts) & skip)
             and p.suffix not in ('.pyc', '.pyo')}
@@ -31,20 +35,26 @@ def main():
     parser.add_argument('--mirror', type=Path)
     args = parser.parse_args()
     links = 0
+    repo_links = 0
     try:
         for path in ROOT.rglob('*.md'):
-            if set(path.relative_to(ROOT).parts) & {'__pycache__', '.git', '.venv', '.cache'}:
+            # .agent/ 是本机内部工作区（gitignore），不参与公开文档链接检查
+            if set(path.relative_to(ROOT).parts) & {'__pycache__', '.git', '.venv', '.cache', '.agent'}:
                 continue
             for link in re.findall(r'\]\(([^)]+)\)', path.read_text(encoding='utf-8')):
                 if '://' in link or link.startswith('#'):
                     continue
                 target = (path.parent / unquote(link.split('#')[0])).resolve()
-                # Markdown in PoL-Governance may link to sibling repo folders
-                # such as Research; keep links inside the checkout, not only
-                # inside this subproject.
-                if not target.is_relative_to(REPO_ROOT) or not target.exists():
+                if target.is_relative_to(ROOT):
+                    if not target.exists():
+                        raise ValueError(f'Broken link: {path.relative_to(ROOT)} -> {link}')
+                    links += 1
+                elif REPO_ROOT != ROOT and target.is_relative_to(REPO_ROOT):
+                    if not target.exists():
+                        raise ValueError(f'Broken repository link: {path.relative_to(ROOT)} -> {link}')
+                    repo_links += 1
+                else:
                     raise ValueError(f'Broken/nonportable link: {path.relative_to(ROOT)} -> {link}')
-                links += 1
         for name in ('datasets', 'models'):
             rows = json.loads(local_path(f'{name}/registry.json').read_text(encoding='utf-8'))
             ids = [row['id'] for row in rows]
@@ -54,11 +64,13 @@ def main():
                 local_path(row['card'])
                 if 'data' in row:
                     local_path(row['data'])
-        for suite in ('benchmark', 'tools', 'datasets'):
+        for suite in ('benchmark', 'tools', 'datasets', 'finetune'):
             subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', suite,
                             '-p', 'test_*.py', '-q'], cwd=ROOT, check=True)
         subprocess.run([sys.executable, 'benchmark/validate_pilot.py'], cwd=ROOT, check=True)
         report = {'status': 'pass', 'local_links': links, 'models_run': False}
+        if repo_links:
+            report['repo_links'] = repo_links
         if args.mirror:
             mirror = args.mirror.resolve()
             if not mirror.is_dir() or files(ROOT) != files(mirror):

@@ -1,0 +1,37 @@
+{
+  "schema": "pol-latency-bench-v1",
+  "hardware": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-AMD-Radeon-RX-7900-XT",
+  "device": "cuda",
+  "model": "/home/wenbo/src/polgov/models/Qwen3-1.7B",
+  "adapter": null,
+  "limit": 200,
+  "max_prompt_chars": 4000,
+  "phases": [
+    {
+      "batch_size": 1,
+      "items": 200,
+      "batches": 200,
+      "warmup_batches": 2,
+      "p50_ms": 44.906,
+      "p95_ms": 95.723,
+      "mean_ms": 53.724,
+      "tokens_per_sec": 6039.339,
+      "peak_mem_mb": 4018.583
+    },
+    {
+      "batch_size": 16,
+      "items": 200,
+      "batches": 13,
+      "warmup_batches": 2,
+      "p50_ms": 77.589,
+      "p95_ms": 928.588,
+      "mean_ms": 139.875,
+      "tokens_per_sec": 2278.126,
+      "peak_mem_mb": 14575.303
+    }
+  ],
+  "skipped": {
+    "options_gt_26": 27,
+    "prompt_too_long": 2
+  }
+}

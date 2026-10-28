@@ -1,0 +1,467 @@
+{
+  "docs": {
+    "data_card": "FREEZE-8705-V1.md",
+    "readme": "README.md",
+    "script": "prepare_freeze.py",
+    "test": "test_prepare_freeze.py"
+  },
+  "export": {
+    "private": {
+      "files": {
+        "private_holdout.units.jsonl": {
+          "bytes": 3226097,
+          "freeze_region": "blind_test",
+          "lines": 687,
+          "path": "data/hf-export/pol2-freeze-8705-v1/private/private_holdout.units.jsonl",
+          "project_region": "private_holdout",
+          "sha256": "6c562c48b71410121f096aa9f8348d6903618b1ffdb121339c299c5cc2905eb2"
+        }
+      },
+      "manifest": {
+        "bytes": 3604,
+        "path": "data/hf-export/pol2-freeze-8705-v1/private/MANIFEST.json",
+        "sha256": "f0249667b83237bc36f01facfa9ee4ad26d14dd50f1b688692556430e86c7d13"
+      },
+      "readme": {
+        "bytes": 1699,
+        "path": "data/hf-export/pol2-freeze-8705-v1/private/README.md",
+        "sha256": "b855e229e60c75cbd71783551833ac88e0a5fb5076c80dc267dd2ed8dfbb6dfb"
+      }
+    },
+    "public": {
+      "files": {
+        "public_test.units.jsonl": {
+          "bytes": 4828677,
+          "freeze_region": "validation",
+          "lines": 1110,
+          "path": "data/hf-export/pol2-freeze-8705-v1/public/public_test.units.jsonl",
+          "project_region": "public_test",
+          "sha256": "e48c046ab7c616f20aa807eb238fafc7f266418ba149ee93a32b7534d622cf45"
+        },
+        "train.units.jsonl": {
+          "bytes": 27989777,
+          "freeze_region": "train",
+          "lines": 5900,
+          "path": "data/hf-export/pol2-freeze-8705-v1/public/train.units.jsonl",
+          "project_region": "train",
+          "sha256": "f4a4b827e858f8ad04685b950ab47761689e52fac481c9bd62a1b5a34dc07f23"
+        },
+        "validation.units.jsonl": {
+          "bytes": 5004403,
+          "freeze_region": "calibration",
+          "lines": 1008,
+          "path": "data/hf-export/pol2-freeze-8705-v1/public/validation.units.jsonl",
+          "project_region": "validation",
+          "sha256": "b1615723247639e7c977d9a1a7878e49e0c8f47c17c81dc91e28aa83d7310a05"
+        }
+      },
+      "manifest": {
+        "bytes": 5310,
+        "path": "data/hf-export/pol2-freeze-8705-v1/public/MANIFEST.json",
+        "sha256": "d40d64d37b400a6432bb99c74cc4950c8e9cf3d3903f37feec045e1a5303f868"
+      },
+      "readme": {
+        "bytes": 4214,
+        "path": "data/hf-export/pol2-freeze-8705-v1/public/README.md",
+        "sha256": "df6ade7ea9ff1444714a11862e9c919c1c37a230e73ddb502efcb00606b2afa1"
+      }
+    },
+    "root": "data/hf-export/pol2-freeze-8705-v1"
+  },
+  "flags": {
+    "expert_gold": false,
+    "freeze_status": "FROZEN_READ_ONLY_NOT_TRAINING_APPROVED",
+    "hf_upload": "NOT_UPLOADED",
+    "split_status": "PROVISIONAL_FAMILY_LEVEL_PROPOSAL_MATERIALIZED",
+    "training_approved": false,
+    "training_gate": "training_approved=true（owner 书面签字）之前不得用于训练"
+  },
+  "freeze_id": "POL2-accepted-8705-v1",
+  "generator": "datasets/pol2/prepare_freeze.py",
+  "labeling": {
+    "gates": {
+      "bulk_enabled": false,
+      "calibration_policy_enabled": true,
+      "engineering_pass": true,
+      "handbook_frozen": true,
+      "test_only": true,
+      "training_enabled": false
+    },
+    "handbook": {
+      "path": "data/pack-1022/handbook.md",
+      "sha256": "d32d56222adcc11c6421dce3ccddfd703a77c7c7edef96459b1125ad61c35a5b",
+      "version": "v0.8"
+    },
+    "models": {
+      "annotator-a": "deepseek-flash",
+      "annotator-b": "deepseek-v4-pro",
+      "auditor": "deepseek-flash",
+      "coordinator": "deepseek-v4-pro",
+      "standard-guardian": "deepseek-flash"
+    },
+    "question_policy": {
+      "entries": 18,
+      "path": "data/pack-1022/question-policy.json",
+      "sha256": "2d9f0ef40288bc4ce45b0a9e553dd82c48ec61cc481159e47f0481774e6609cc",
+      "version": "POL2-question-policy-v0.8.1"
+    },
+    "roles": [
+      "annotator-a",
+      "annotator-b",
+      "auditor",
+      "coordinator",
+      "standard-guardian"
+    ]
+  },
+  "limitations": [
+    "未批准训练：freeze 状态 FROZEN_READ_ONLY_NOT_TRAINING_APPROVED，training_approved=false；owner 书面签字前不得用于训练、蒸馏或教师生成。",
+    "非专家金标：expert_gold=false；标注来自 Agent 团队（models 见 labeling），人工审计只做抽检。",
+    "审计覆盖低：pass 1,703 / 8,705（19.6%），not_sampled 不等于无问题。",
+    "标签异质：15 种 label 取值、3 种 choice 选项键集 + 0-4 score；adapter 必须按 mapping_id 建输出头。",
+    "无选项短标签：choice 的选项只有键名，判定条件在 question.criteria 的长文本里。",
+    "answer_a / answer_b 的 checks 与 check_evidence 类型不统一（字符串 / 对象 / 数组 / 布尔），不是稳定机器 schema；580 条带 original_label / label_adapter 归一化记录。",
+    "只有中文，无翻译；原文没有 public_test 区，四区到项目区的映射是项目侧 provisional 安排。",
+    "3,817 / 4,888 个 case 有 a/b 反事实对，1,071 个单条；对子共享事实模板，统计上不构成独立样本。",
+    "语义近重复与跨族内容重叠未检测；族级切分只保证 family_id 粒度。",
+    "18 个 question 模板的 question-policy v0.8.1 以 sha256(source_question) 为键；7 个模板已修订，unit 使用修订后的 question 文本。",
+    "源包未声明再分发许可；上传任何托管前必须由数据所有者确认许可与训练授权。",
+    "blind_test 只以计数与 sha256 出现在 tracked 文件；其内容、unit_id、family_id 不进入公开路径。"
+  ],
+  "line_order": "unit_id ascending (Unicode code point; ids are ASCII)",
+  "manifest_version": 1,
+  "paths_relative_to": "datasets/pol2",
+  "region_mapping": {
+    "blind_test": "private_holdout",
+    "calibration": "validation",
+    "train": "train",
+    "validation": "public_test"
+  },
+  "regions": {
+    "blind_test": {
+      "audit_pass": 132,
+      "bytes": 3226097,
+      "cases": 373,
+      "choice": 579,
+      "families": 5,
+      "freeze_region": "blind_test",
+      "lines": 687,
+      "path": "data/freeze-8705-v1/splits/blind_test.units.jsonl",
+      "project_region": "private_holdout",
+      "score": 108,
+      "sha256": "6c562c48b71410121f096aa9f8348d6903618b1ffdb121339c299c5cc2905eb2",
+      "units": 687
+    },
+    "calibration": {
+      "audit_pass": 190,
+      "bytes": 5004403,
+      "cases": 548,
+      "choice": 884,
+      "families": 9,
+      "freeze_region": "calibration",
+      "lines": 1008,
+      "path": "data/freeze-8705-v1/splits/calibration.units.jsonl",
+      "project_region": "validation",
+      "score": 124,
+      "sha256": "b1615723247639e7c977d9a1a7878e49e0c8f47c17c81dc91e28aa83d7310a05",
+      "units": 1008
+    },
+    "train": {
+      "audit_pass": 1175,
+      "bytes": 27989777,
+      "cases": 3383,
+      "choice": 5361,
+      "families": 52,
+      "freeze_region": "train",
+      "lines": 5900,
+      "path": "data/freeze-8705-v1/splits/train.units.jsonl",
+      "project_region": "train",
+      "score": 539,
+      "sha256": "f4a4b827e858f8ad04685b950ab47761689e52fac481c9bd62a1b5a34dc07f23",
+      "units": 5900
+    },
+    "validation": {
+      "audit_pass": 206,
+      "bytes": 4828677,
+      "cases": 584,
+      "choice": 1086,
+      "families": 9,
+      "freeze_region": "validation",
+      "lines": 1110,
+      "path": "data/freeze-8705-v1/splits/validation.units.jsonl",
+      "project_region": "public_test",
+      "score": 24,
+      "sha256": "e48c046ab7c616f20aa807eb238fafc7f266418ba149ee93a32b7534d622cf45",
+      "units": 1110
+    }
+  },
+  "schema": {
+    "ab_pair_cases": 3817,
+    "answers": {
+      "label_agreement": {
+        "a_equals_b": 8705,
+        "a_equals_unit": 8705
+      },
+      "status": {
+        "ANSWER": 8705
+      }
+    },
+    "audit": {
+      "coverage": 0.195635,
+      "not_sampled": 7002,
+      "pass": 1703
+    },
+    "cases": 4888,
+    "choice_option_keysets": [
+      {
+        "keys": [
+          "hate2",
+          "love2",
+          "mixed",
+          "neither",
+          "unknown"
+        ],
+        "units": 619
+      },
+      {
+        "keys": [
+          "necessary",
+          "not_applicable",
+          "unknown",
+          "unnecessary"
+        ],
+        "units": 598
+      },
+      {
+        "keys": [
+          "no",
+          "not_applicable",
+          "unknown",
+          "yes"
+        ],
+        "units": 6693
+      }
+    ],
+    "extra_answer_fields": {
+      "answer_a": {
+        "check_evidence": 8690,
+        "check_evidence_adapter": 1,
+        "checks": 8690,
+        "label_adapter": 580,
+        "missing_conditions": 7,
+        "original_label": 580,
+        "rubric_assessment": 2,
+        "turns": 9,
+        "unresolved_kind": 18
+      },
+      "answer_b": {
+        "check_evidence": 8705,
+        "checks": 8705,
+        "label_adapter": 434,
+        "missing_conditions": 1,
+        "original_label": 434,
+        "rubric_assessment": 2,
+        "unresolved_kind": 10
+      }
+    },
+    "label_values": {
+      "0": 129,
+      "1": 107,
+      "2": 154,
+      "3": 387,
+      "4": 18,
+      "hate2": 233,
+      "love2": 234,
+      "mixed": 78,
+      "necessary": 387,
+      "neither": 74,
+      "no": 2809,
+      "not_applicable": 87,
+      "unknown": 454,
+      "unnecessary": 211,
+      "yes": 3343
+    },
+    "label_values_by_question_type": {
+      "choice": {
+        "hate2": 233,
+        "love2": 234,
+        "mixed": 78,
+        "necessary": 387,
+        "neither": 74,
+        "no": 2809,
+        "not_applicable": 87,
+        "unknown": 454,
+        "unnecessary": 211,
+        "yes": 3343
+      },
+      "score": {
+        "0": 129,
+        "1": 107,
+        "2": 154,
+        "3": 387,
+        "4": 18
+      }
+    },
+    "mappings": 64,
+    "output_spaces": [
+      {
+        "option_keys": [
+          "hate2",
+          "love2",
+          "mixed",
+          "neither",
+          "unknown"
+        ],
+        "question_type": "choice",
+        "units": 619
+      },
+      {
+        "option_keys": [
+          "necessary",
+          "not_applicable",
+          "unknown",
+          "unnecessary"
+        ],
+        "question_type": "choice",
+        "units": 598
+      },
+      {
+        "option_keys": [
+          "no",
+          "not_applicable",
+          "unknown",
+          "yes"
+        ],
+        "question_type": "choice",
+        "units": 6693
+      },
+      {
+        "levels": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "question_type": "score",
+        "units": 795
+      }
+    ],
+    "question_templates": 18,
+    "question_types": {
+      "choice": 7910,
+      "score": 795
+    },
+    "single_world_cases": 1071,
+    "templates": {
+      "05fa25f907eab8a1c4aad1f53981fc3f017f6252dea5953bc19b26c10123bed8": 155,
+      "10d5fb282138fc6ba99e96559a9b8f82a6f4f12f178b81821223e5dd39140f80": 152,
+      "23552427ba66f80b6ce3e977814401b75c480bb50364932b13845eb4ffc4ab68": 482,
+      "236507ea678c26ef8fdfb02d71e0098a93fd8fe7ebf185ea883886e2157c08f9": 404,
+      "251b09a5cfeca7154dc68083607743e46915df2628bcfdb910be2df1b1898855": 617,
+      "596c09d831e5e4b57ef6009f4b96cfc9eaf054b163cf01abb13e7d27bb0f3490": 474,
+      "5af0432fe727d390c7fb4443dd890e51bccc4fc06af2a51eaee51dd3b5eeec3b": 591,
+      "6594a6ce254072587c5bf2d576e9b92d2934ce2f758f2c0242240dec7d745ef9": 619,
+      "70f014030e35df040578f2b38baf74b5fd0dbd93943cc22d5ec1e42018dd2903": 353,
+      "7f0e7c8454cda650dec654b2e15d07c58c319e349bca1c0a8599abe256cbad4e": 598,
+      "818f16cb5808cfd416213cd5714a719c8e8034c7da2165617356ea1981e31462": 607,
+      "91313da726298e4eac3150bbe805e8fc8d2f00b5d6e6424618fd25f9d1caa463": 537,
+      "a9ee15eccb302340de80775a6e0b7a0d8de6e9d5feef453a56dae6364f56b589": 623,
+      "b0456d2d1caee01508f2b564fccb6698fe8143f8407524c273413ea11562b17e": 442,
+      "bf811778940dca22b30cf45d600fa030f273af1c9149dfe71c56aab5cde1a999": 508,
+      "c4ab6f3a4f3cbf4f81bf10941122ce1e694d0bd64f925fa950fd0c7e2a929ef4": 566,
+      "ce44acadcdaf2872ba7917b1e39ab3f9dd22204ffe8740c0731cd870aca46000": 516,
+      "faf9cfc889cd11277b34c13f90076279bc1e26ee0ad7a8d4c8484182ddf1eb4b": 461
+    },
+    "theory_refs": 25,
+    "unit_keys": [
+      "answer_a",
+      "answer_b",
+      "audit_status",
+      "case_id",
+      "family_id",
+      "label",
+      "mapping_id",
+      "question",
+      "question_sha",
+      "source_batch",
+      "source_run",
+      "source_sha",
+      "split_proposal",
+      "state",
+      "status",
+      "unit_id",
+      "world"
+    ]
+  },
+  "source": {
+    "freeze_created_at": "2026-10-20T02:29:08Z",
+    "freeze_manifest": {
+      "bytes": 17534,
+      "path": "data/freeze-8705-v1/manifest.json",
+      "sha256": "a4391ab02044b6caf295aa4d8e77d6c1003011b2037f3e0715e259e718e5d2f8"
+    },
+    "freeze_status": "FROZEN_READ_ONLY_NOT_TRAINING_APPROVED",
+    "freeze_units": {
+      "bytes": 41048954,
+      "lines": 8705,
+      "path": "data/freeze-8705-v1/accepted-units.jsonl",
+      "sha256": "773a3d236b48edb576bb2cf9a4cc9798b77447a808dfe7e151e9db246ab51ec1"
+    },
+    "frozen_files": {
+      "accepted-units.jsonl": "773a3d236b48edb576bb2cf9a4cc9798b77447a808dfe7e151e9db246ab51ec1",
+      "inputs/cases.json": "76d1d6de57c9285745ac2408410ed5351c1216d9b6c4c4e40a84590946c605eb",
+      "inputs/theory-index.md": "b2555ee4c7fc0350356bdfb0899025a7a164d68c42511cc23b1b5d06435f68c0",
+      "inputs/theory.md": "0dc681a71ec2c4cb62a65a340c52e23558c1d6df37ce252df852d921ea8ab7c8"
+    },
+    "labeling": {
+      "gates": {
+        "bulk_enabled": false,
+        "calibration_policy_enabled": true,
+        "engineering_pass": true,
+        "handbook_frozen": true,
+        "test_only": true,
+        "training_enabled": false
+      },
+      "handbook": {
+        "path": "data/pack-1022/handbook.md",
+        "sha256": "d32d56222adcc11c6421dce3ccddfd703a77c7c7edef96459b1125ad61c35a5b",
+        "version": "v0.8"
+      },
+      "models": {
+        "annotator-a": "deepseek-flash",
+        "annotator-b": "deepseek-v4-pro",
+        "auditor": "deepseek-flash",
+        "coordinator": "deepseek-v4-pro",
+        "standard-guardian": "deepseek-flash"
+      },
+      "question_policy": {
+        "entries": 18,
+        "path": "data/pack-1022/question-policy.json",
+        "sha256": "2d9f0ef40288bc4ce45b0a9e553dd82c48ec61cc481159e47f0481774e6609cc",
+        "version": "POL2-question-policy-v0.8.1"
+      },
+      "roles": [
+        "annotator-a",
+        "annotator-b",
+        "auditor",
+        "coordinator",
+        "standard-guardian"
+      ]
+    },
+    "pack": {
+      "bytes": 119500628,
+      "path": "pack-1022.tar.gz",
+      "sha256": "9b9ae1cbc3ed1788a0f4e5ccd998fe4dc713ccd121af88077f68c8f56241001e"
+    },
+    "pack_extract": "data/pack-1022/EXTRACT-MANIFEST.json",
+    "paths_relative_to": "datasets/pol2",
+    "source_runs": 26
+  },
+  "split_rule": {
+    "new_salt": false,
+    "note": "不重新切分、不引入新盐；仅按冻结提案物化四区，项目区映射为 provisional。",
+    "proposed_split_rule": "sha256(family_id) 70/10/10/10; proposal only, no split files",
+    "recomputed": false,
+    "source": "freeze-8705-v1/manifest.json 的 split_proposal 字段"
+  }
+}

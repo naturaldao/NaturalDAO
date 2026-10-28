@@ -23,3 +23,22 @@ datasets/general/data/**/__pycache__/
 **/*.gguf
 **/*.pt
 **/*.bin
+
+# 外部送来的项目包（含标注产物，不得进公开仓库）
+datasets/pol2/*.tar.gz
+
+# 内部 Agent 工作区：状态快照、交接文档、接手 prompt、过程笔记与阶段报告（只在本机）
+.agent/
+
+# 数据集大文件不入库：托管在 Hugging Face，仓库只保留数据卡、清单与校验脚本
+datasets/general/data/**/*.gz
+# Hugging Face 导出目录是生成物（含数据实体），由 export_hf.py 复算
+datasets/general/data/hf-export/
+# 专用数据集解压与切分产物（含 blind_test，绝不入库）
+datasets/pol2/data/
+# PoL2 冒烟/试点生成物（可由流水线重跑，不再跟踪）
+datasets/pol2/pipeline/smoke/anchor-migration-report.json
+datasets/pol2/v0.1-pilot/train.cases.jsonl
+
+# JevBench local cache (Session B runtime; not tracked)
+.jevbench-cache/

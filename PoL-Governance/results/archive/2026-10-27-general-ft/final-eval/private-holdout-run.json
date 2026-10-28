@@ -1,0 +1,36 @@
+{
+  "schema": "pol-private-holdout-run-v1",
+  "execution_mode": "mode2-isolated-independent-eval-session",
+  "authorization": "owner 2026-10-27 14:06 CST (方式2 + GPU)",
+  "holdout": {
+    "items": 6541,
+    "view_rows": 7990,
+    "template_version": "tv-1",
+    "route_fallback": "classification_without_route (no target-types for holdout)",
+    "lang": "en-only"
+  },
+  "model": {
+    "base": "Qwen/Qwen3-1.7B@70d244cc",
+    "adapter_sha256": "ad88db90f140a2c6c1fe08c0cc06cd4c8117e9d8c0a7c429a007bf73c432a6d3"
+  },
+  "temperature": {
+    "value": 0.992077,
+    "fit": "validation calibration half (sha256(rid) parity)",
+    "applied_only": true
+  },
+  "hardware": "AMD Radeon RX 7900 XT 20GB (gfx1100), WSL2 Ubuntu-24.04, ROCm 7.2.1, PyTorch 2.9.1+rocm7.2.1",
+  "base": {
+    "total": 7740,
+    "correct": 3093,
+    "accuracy": 0.3996,
+    "duration_seconds": 225.88,
+    "samples_per_second": 34.27
+  },
+  "tuned": {
+    "total": 7740,
+    "correct": 5444,
+    "accuracy": 0.7034,
+    "duration_seconds": 271.62,
+    "samples_per_second": 28.5
+  }
+}

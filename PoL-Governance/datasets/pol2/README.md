@@ -126,12 +126,62 @@ uv run --no-project --offline python datasets/pol2/splits.py verify --assign <�
 - `private_holdout` 的族由独立保管者生成，直接写入仓库外目录，本仓库不提交内容、逐例答案或生成提示。
 - 公开测试一旦被用于改方案，必须在结果卡披露，不再称盲测。
 
+### 5.1 专用冻结集 POL2-accepted-8705-v1 的四区物化（provisional）
+
+协作者交付的冻结集自带族级切分提案，**不重切、不引新盐**，按 `split_proposal` 原样物化，再给项目区临时映射：
+
+| 冻结区 | 项目区 | units | 用途 |
+|---|---|---:|---|
+| `train` | `train` | 5,900 | 训练 |
+| `validation` | `public_test` | 1,110 | 公开回归（非盲测） |
+| `calibration` | `validation` | 1,008 | 选模型 / 校准 |
+| `blind_test` | `private_holdout` | 687 | 私有保留（内容不进入公开路径） |
+
+- 状态 `PROVISIONAL_FAMILY_LEVEL_PROPOSAL_MATERIALIZED`：映射待 owner 签字；冻结状态 `FROZEN_READ_ONLY_NOT_TRAINING_APPROVED`，即**未批准训练、非专家金标**。
+- 落位与复算：`datasets/pol2/data/`（gitignore）由 [prepare_freeze.py](prepare_freeze.py) 生成，tracked 清单见 [freeze-8705-v1/SPLIT-MANIFEST.json](freeze-8705-v1/SPLIT-MANIFEST.json)，完整说明见 [FREEZE-8705-V1.md](FREEZE-8705-V1.md)。
+- `blind_test` 的 unit_id / family_id / 内容不进 tracked 文件；写盘前有硬断言。
+- 该冻结集**不使用**上面 `splits.py` 的私盐流程；`splits.py` 继续管通用族清单，两套体系互不引用。
+
+#### 5.1.1 训练/评测视图适配（pv-1，schema 层，未批准训练）
+
+冻结集到「一行 = 一个决策问题」的适配器 [build_pol2_training_view.py](build_pol2_training_view.py) 已就绪，
+口径冻结为 `template_version="pv-1"`（[POL2-VIEW.md](POL2-VIEW.md)）：
+
+- 当前 `training_approved=false`，**唯一允许运行方式是 `--schema-preview`**（只打印 schema/stats，不写文件）；
+- 写仓库外视图的 build 模式在 owner 书面确认 `training_approved=true` 之前一律 exit 2；
+- `blind_test`/`private_holdout` 一律拒绝；输出按 `unit_id` 排序、逐字节确定性；
+- 实测（只读 train split，preview）：`rows=5,900`（choice 5,361 / score 539）、`skipped=0`、
+  view sha256 `4414bc17…`（would-be，13,104,579 bytes）。
+
+训练授权前必须完成 [APPROVAL-CHECKLIST.md](APPROVAL-CHECKLIST.md) 的 A 项 owner 书面确认；
+当前所有解禁步骤（training_approved 置真、生成 pv-1 视图、混合训练）均未执行。
+
+### 5.2 POL2 score-v2（协作线，数据在外部 Release）
+
+与冻结集（本目录 `FREEZE-8705-V1` 的 8,705 units）**不是同一份数据**：
+
+| 项 | 内容 |
+|---|---|
+| 数据 | `pol2-score-v2` v1.0.0-rc1：Laya/Kev 训练导出（train-M0 各 6,166 / validation 1,162 / calibration 1,051 / score-dev 354 / 新增 score 875）+ MRI 回放 M10/M25/M40 |
+| 位置 | 数据卡与样例在 [score-v2](score-v2/README.md)；完整数据在 GitHub Release（不在 Git 历史） |
+| 边界 | 非专家金标（LLM 标注）；sealed/fresh blind 不在包内；不得当作 canonical 四层数据使用 |
+
+> `datasets/pol2/v0.1-pilot/` 是 2026-10-20 的早期 pilot 取证材料（历史），不代表当前冻结集或 score-v2；保留供追溯。
 ## 6. 目录与文件归属
 
 | 路径 | 内容 | 归属 |
 |---|---|---|
 | `datasets/pol2/README.md` | 本契约 | DATA-02 lead |
 | `datasets/pol2/splits.py` | 族级分区与校验 | DATA-02 lead |
+| `datasets/pol2/prepare_freeze.py` | 冻结集 verify / build（解压、切分、HF 导出、清单） | DATA-02 数据集 |
+| `datasets/pol2/test_prepare_freeze.py` | 冻结集不变量测试（合成 fixture，不依赖大文件） | DATA-02 数据集 |
+| `datasets/pol2/FREEZE-8705-V1.md` | 冻结集数据卡（来源 / schema / 四区 / 限制 / 门禁） | DATA-02 数据集 |
+| `datasets/pol2/build_pol2_training_view.py` | 冻结集 → 决策视图适配（pv-1；schema-preview 门禁） | DATA-02 数据集 |
+| `datasets/pol2/test_build_pol2_training_view.py` | pv-1 适配器不变量测试（合成 fixture） | DATA-02 数据集 |
+| `datasets/pol2/POL2-VIEW.md` | pv-1 视图 schema / 安全门 / 实测统计 | DATA-02 数据集 |
+| `datasets/pol2/APPROVAL-CHECKLIST.md` | 训练授权前置清单（owner 确认项 / 解禁步骤 / 验收 / 回滚） | DATA-02 数据集 |
+| `datasets/pol2/freeze-8705-v1/SPLIT-MANIFEST.json` | 冻结集 tracked 清单（计数 + sha256） | DATA-02 数据集 |
+| `datasets/pol2/data/` | 冻结集数据实体（gitignore：解压、切分、HF 导出） | DATA-02 数据集 |
 | `datasets/pol2/ontology/` | 标签本体、判据、测试项矩阵 | DATA-02 本体 |
 | `datasets/pol2/pipeline/` | 生成、取答案、裁决流水线 | DATA-02 流水线 |
 | `benchmark/pol2/` | 正式评测入口与指标 | EVAL-01 |

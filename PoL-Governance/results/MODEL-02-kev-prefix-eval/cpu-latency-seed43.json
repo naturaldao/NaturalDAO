@@ -1,0 +1,18 @@
+{
+  "schema": "kev-prefix-latency/1",
+  "label": "seed43 CPU fp32 public-smoke",
+  "records": 43,
+  "latency_ms": {
+    "p50": 5722.245,
+    "p95": 18904.066,
+    "mean": 8286.339,
+    "min": 2301.099,
+    "max": 25060.478
+  },
+  "input_tokens": {
+    "mean": 381.7,
+    "p95": 908,
+    "max": 1175
+  },
+  "tokens_per_s": 46.1
+}

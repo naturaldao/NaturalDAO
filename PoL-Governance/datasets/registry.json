@@ -26,16 +26,25 @@
   {
     "id": "general-decision-v0.5",
     "card": "datasets/general/README.md",
-    "data": "datasets/general/data/jev-probs.jsonl.gz",
-    "status": "public_partitions_released_holdout_kept_external",
+    "data": "datasets/general/data/MANIFEST.json",
+    "status": "ready_not_uploaded",
     "split": "train / test / validation public; benchmark held outside the repository",
     "items": 74912,
     "targets": 82843,
     "public_partition_items": 71519,
     "holdout_items": 6541,
     "license": "Proof of Love2",
-    "notes": "中英双语通用决策数据集，三种封闭决策原语（noul / choice / score）；jev-probs 是概率旁挂件。完整分区文件体积大，按 datasets/README 第 2 条登记在托管站，本仓库只保留可复算的旁挂件与文档。",
-    "eligible_for_ranking": false
+    "notes": "中英双语通用决策数据集，三种封闭决策原语（noul / choice / score）；jev-probs 是概率旁挂件（一致子集偏差）。四区 train 48,728 / test 15,194 / validation 7,597（公开）+ benchmark 6,541（私有保留集，en-only）。大文件已改由 Hugging Face 托管，仓库只留数据卡、清单与校验脚本。",
+    "eligible_for_ranking": false,
+    "hf_status": "uploaded",
+    "hf_org": "NaturalDAO",
+    "hf_public": "https://huggingface.co/datasets/NaturalDAO/pol-decision-general-v5",
+    "hf_holdout": "https://huggingface.co/datasets/NaturalDAO/pol-decision-general-v5-holdout",
+    "hf_public_revision": "52bfdcae2cfcd4927b0a37d8ef29ea001d818b0d",
+    "hf_holdout_revision": "146ae4604e67c93805f6bf468449b45c205ca7da",
+    "manifest": "datasets/general/data/MANIFEST.json",
+    "manifest_sha256": null,
+    "host_note": "数据实体不入库：train/validation/test、jev-probs、target-types、中文补充公开托管；benchmark 私有保留集单独私有托管。见 datasets/general/HF.md（状态 UPLOADED，公开 revision 52bfdca… / 私有 146ae46…）与 datasets/general/data/MANIFEST.json。"
   },
   {
     "id": "pol2-score-v2",
@@ -47,5 +56,6 @@
     "license": "Proof of Love2; MRI-derived replay under MIT",
     "notes": "Laya/Kev training exports plus paired public samples; canonical PoL2 four-layer conversion is still pending; sealed/fresh blind is not included.",
     "eligible_for_ranking": false
+
   }
 ]

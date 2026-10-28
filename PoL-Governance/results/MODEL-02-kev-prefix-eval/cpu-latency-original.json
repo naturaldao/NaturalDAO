@@ -1,0 +1,18 @@
+{
+  "schema": "kev-prefix-latency/1",
+  "label": "original CPU fp32 public-smoke",
+  "records": 43,
+  "latency_ms": {
+    "p50": 6627.054,
+    "p95": 20933.172,
+    "mean": 9307.569,
+    "min": 2547.594,
+    "max": 27412.54
+  },
+  "input_tokens": {
+    "mean": 381.7,
+    "p95": 908,
+    "max": 1175
+  },
+  "tokens_per_s": 41.0
+}

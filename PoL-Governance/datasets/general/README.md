@@ -25,6 +25,10 @@
 | 来源 | 13 个独立来源，最大一家 33.78% |
 | 格式 | JSONL（UTF-8，一条一行） |
 
+> **数据实体已托管到 Hugging Face（状态 UPLOADED；公开 revision `52bfdca…`，私有保留集 `146ae46…`）。** 本仓库只保留数据卡、清单与校验脚本；
+> 分区文件与旁挂件的下载、校验和上传步骤见 [HF.md](HF.md)，逐文件 sha256 / 行数 / 可见性见
+> [data/MANIFEST.json](data/MANIFEST.json)。内部保留集不在此仓库，也不在公开仓库（见 HF.md §6）。
+
 ---
 
 ## 1. 这是什么
@@ -331,9 +335,9 @@ C9 有 **2 个 config 是刻意偏离接入时标签的**：`known_unknowns`（�
 | 只读分区文件（口径 A） | 5,945 | 7.62% |
 | **采用旁挂 probs（v5）** | **48,941** | **62.74%** |
 
-旁挂文件 [data/jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) 共 **44,740** 行，其中 **42,996** 条
+旁挂文件 `data/jev-probs.jsonl.gz`（HF 托管，见 [HF.md](HF.md)）共 **44,740** 行，其中 **42,996** 条
 把原本 answer-only / one-hot / uniform 的 target 变成可用软分布（其余落在本来就软的 target 上）。
-旁挂路由 [data/target-types.jsonl.gz](data/target-types.jsonl.gz) 把 74,853 条 target 分成三档：
+旁挂路由 `data/target-types.jsonl.gz`（HF 托管，见 [HF.md](HF.md)）把 74,853 条 target 分成三档：
 **drop 1,571**（无信息均匀等，建议剔除）、**classification 67,522**（硬标签）、
 **distillation 5,760**（软蒸馏目标，不用于校准）。
 
@@ -350,7 +354,7 @@ C9 有 **2 个 config 是刻意偏离接入时标签的**：`known_unknowns`（�
    low 表示该子集的语料标签没有被双方一致验证，训练时应降权。
 4. **剩下 3,148 条中文补充仍在口径 A 之外**（全为硬标签、无分布），只进 train、不污染评测区。
 
-**建议**：做 KL / 软交叉熵 / 校准这类分布类损失前，先按 [target-types](data/target-types.jsonl.gz)
+**建议**：做 KL / 软交叉熵 / 校准这类分布类损失前，先按 target-types（HF 托管，见 [HF.md](HF.md)）
 的 `training_route` 过滤（drop 掉 1,571 条无信息均匀目标），并对 distillation 目标
 按 label_confidence 加权；只用硬标签时一律取 `answer`。**"语料更通用了"和"软目标更多了"
 在本版同时成立，但后者带选择偏差——这个区别必须保留。**
@@ -372,13 +376,17 @@ C9 有 **2 个 config 是刻意偏离接入时标签的**：`known_unknowns`（�
 
 | 文件 | 内容 | 用途 |
 |---|---|---|
-| [data/splits/train.jsonl.gz](data/splits/train.jsonl.gz) | 48,728 条 | 训练（含 3,148 条只进 train 的中文安全补充） |
-| [data/splits/validation.jsonl.gz](data/splits/validation.jsonl.gz) | 7,597 条 | 选模型、调超参 |
-| [data/splits/test.jsonl.gz](data/splits/test.jsonl.gz) | 15,194 条 | 回归测试 |
-| [data/jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) | 旁挂概率 44,740 行 | 软蒸馏目标（有选择偏差，见 §4.4） |
-| [data/target-types.jsonl.gz](data/target-types.jsonl.gz) | target 形态与训练路由 74,853 行 | 决定 drop / classification / distillation |
-| [data/splits/split-manifest.json](data/splits/split-manifest.json) | 哈希与聚合清单 | 校验下载完整性 |
+| `train.jsonl.gz`（HF 公开仓库） | 48,728 条 | 训练（含 3,148 条只进 train 的中文安全补充） |
+| `validation.jsonl.gz`（HF 公开仓库） | 7,597 条 | 选模型、调超参 |
+| `test.jsonl.gz`（HF 公开仓库） | 15,194 条 | 回归测试 |
+| `jev-probs.jsonl.gz`（HF 公开仓库） | 旁挂概率 44,740 行 | 软蒸馏目标（有选择偏差，见 §4.4） |
+| `target-types.jsonl.gz`（HF 公开仓库） | target 形态与训练路由 74,853 行 | 决定 drop / classification / distillation |
+| `zh-supplement-items.jsonl.gz`（HF 公开仓库） | 中文补充 3,148 条（仅 train） | 与 train 尾部同源，供复算与溯源 |
+| [data/splits/split-manifest.json](data/splits/split-manifest.json)（仓库内） | 哈希与聚合清单 | 校验下载完整性 |
 | [split-report.md](split-report.md) | 切分报告 | 分区构成、泄漏检查 |
+
+上表前 6 个 `.gz` 不入仓库，下载与完整性校验见 [HF.md](HF.md)，逐文件 sha256 / bytes / 行数见
+[data/MANIFEST.json](data/MANIFEST.json)；本地明文（如 `data/splits/train.jsonl`）由这些 `.gz` 解压得到。
 
 切分按**请求分组**进行：同一请求的多个变体（情境逐字相同、只是候选顺序不同）整组进同一分区。
 三个分区两两之间的 id 重叠、组键重叠、归一化情境重叠**均为 0**（口径与复算见脚本第 6 节：
@@ -421,6 +429,9 @@ C9 有 **2 个 config 是刻意偏离接入时标签的**：`known_unknowns`（�
 
 ### 5.3 读入
 
+先把 HF 公开仓库的 `train.jsonl.gz` 等下载并解压回 `datasets/general/data/splits/`（见 [HF.md](HF.md)），
+下面按仓库内路径读。
+
     import json
     for line in open("datasets/general/data/splits/train.jsonl", encoding="utf-8"):
         item = json.loads(line)
@@ -447,8 +458,8 @@ C9 有 **2 个 config 是刻意偏离接入时标签的**：`known_unknowns`（�
 ## 6. 复算
 
 本页除**内部保留集的条数**（6,541）及由此相加得到的总量（78,060）——两者见
-[split-report.md](split-report.md)——外，每个分布数字都由同一个脚本算出。输入是仓库内
-公开的三个分区文件 + 两个旁挂件（旁挂件缺失时脚本会打印"本节跳过"）：
+[split-report.md](split-report.md)——外，每个分布数字都由同一个脚本算出。输入是本地 `data/` 下的
+公开三个分区文件 + 两个旁挂件（从 HF 下载后恢复；旁挂件缺失时脚本会打印"本节跳过"）：
 
     uv run --no-project --offline python datasets/general/readme_stats.py
 
@@ -466,6 +477,8 @@ C9 有 **2 个 config 是刻意偏离接入时标签的**：`known_unknowns`（�
 本页数字对应 `data/splits/` 与旁挂件的**当前版本（v5）**；若分区被重新切分，
 数字会随之变化，以重跑结果为准（[split-manifest.json](data/splits/split-manifest.json)
 记录了当次切分的哈希与清单）。
+
+下载副本的 sha256 校验与托管状态见 [HF.md](HF.md) §5；文件级哈希见 [data/MANIFEST.json](data/MANIFEST.json)。
 
 ---
 

@@ -394,7 +394,7 @@ KAIVOSS_CONTENT = {
 ZH_CONTENT = {"risk_harm": "safety_risk", "human_judgment": "safety_risk"}
 
 # ---- C9: tasksource/bigbench（32 个 config，按 config 细分）----
-# 依据 capability-sources.md P1-1/P2 的 config 级判读；config 名即来源原生任务名。
+# 依据 archive/2026-10-15-capability-sources.md P1-1/P2 的 config 级判读；config 名即来源原生任务名。
 # 与接入时写入 meta.capability 的口径相比，这里**刻意调整了 2 个 config**：
 #   known_unknowns（不可判定）、evaluating_information_essentiality（数据充分性/概率比较）
 #   -> causal_uncertainty。理由：题目本身就是"证据够不够 / 能否判定"，不是数值推演。

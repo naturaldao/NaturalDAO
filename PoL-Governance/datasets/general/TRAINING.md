@@ -5,8 +5,8 @@
 > 本页给出可直接复跑的过滤清单、分区剩余数与参考实现。
 >
 > 依据：[target 溯源报告](target-provenance.md) §6 的 R1–R15 规则表；机器可读路由见
-> [target-types.jsonl.gz](data/target-types.jsonl.gz)（**74,853 行**，每条 target 一行；**只含公开分区**，
-> 见 §1.1）。
+> `target-types.jsonl.gz`（**74,853 行**，每条 target 一行；**只含公开分区**，见 §1.1；
+> 文件托管在 HF，见 [HF.md](HF.md)）。
 > **本页不修改任何语料、不动任何划分。**
 
 ---
@@ -44,7 +44,7 @@ documented 精确概率键上的非退化取值（报告 §3.6 / §5）。其余
 
 | 交付物 | 说明 |
 |---|---|
-| [target-types.jsonl.gz](data/target-types.jsonl.gz) | 旁挂路由，**74,853 行**，每条 target 一行，**只含公开分区**（§1.1）；明文 `data/target-types.jsonl` 由脚本生成（见 §8 的 .gitignore 说明） |
+| `target-types.jsonl.gz`（HF 托管，见 [HF.md](HF.md)） | 旁挂路由，**74,853 行**，每条 target 一行，**只含公开分区**（§1.1）；明文 `data/target-types.jsonl` 由脚本生成（明文不入库） |
 | [target_types.py](target_types.py) | 生成器：实现 R1–R15；自检只断言可推导 / 内部一致的结论（v3 的 §6.3 基线不再当断言） |
 | [filter_targets.py](filter_targets.py) | 过滤与路由的参考实现：只读，打印各分区过滤前后条数 |
 | [test_target_types.py](test_target_types.py) | 不变量测试（`tools/check.py` 的 unittest discovery 会收进来） |
@@ -87,7 +87,7 @@ v5 分区（语料 v4：74,912 条 / 82,843 target）实测：全量扫描 82,84
 1. [target_types.py](target_types.py) 只认公开分区白名单，分区缺失即报错退出（fail closed），
    绝不退回「全量落盘」；
 2. [test_target_types.py](test_target_types.py) 的 `BenchmarkIsolationTest` 分两层断言：层 1
-   `item_id ⊆ 公开分区`（干净检出与 CI 都生效，因为公开分区是入库的 `.gz`），层 2 与
+   `item_id ⊆ 公开分区`（需要本地已按 [HF.md](HF.md) 下载并解压的公开分区 `.gz`），层 2 与
    `data/splits/benchmark.jsonl` 的 id 集合**交集为空**（保留集不在本机时跳过）；并用
    「注入必红、未注入必绿」的副本演练自证护栏真的会拦；
 3. [filter_targets.py](filter_targets.py) 扫到保留集分区时**不做兜底路由估算**，只要求旁挂文件
@@ -458,7 +458,7 @@ R12/R13 是**覆盖规则**且继承语义。落盘时用 `rule_id`（R1–R11�
 
 ## 8. 复算命令
 
-    # 0. 重新生成明文 + 入库的 .gz（只有改了规则 / 语料 / 分区才需要跑）
+    # 0. 重新生成明文 + HF 发布的 .gz（只有改了规则 / 语料 / 分区才需要跑）
     uv run --no-project --offline python datasets/general/target_types.py \
         --out datasets/general/data/target-types.jsonl \
         --gz-out datasets/general/data/target-types.jsonl.gz
@@ -488,16 +488,17 @@ R12/R13 是**覆盖规则**且继承语义。落盘时用 `rule_id`（R1–R11�
 `target-provenance.md` §0.2 的全量形态与 §6.3 的逐规则计数，看第 3 组命令输出里
 `partitions["全量（含保留集）"]` 的 `shape_class` / `rule_id` 两栏。
 
-**入库形态**：`datasets/general/data/*.jsonl` 被 `.gitignore` 第 13 行挡住（明文属可复算的大体积派生文件），
-所以明文 `data/target-types.jsonl` 本机保留、**压缩版 [target-types.jsonl.gz](data/target-types.jsonl.gz)
-入库**——与 `data/splits/*.jsonl(.gz)` 同一套规矩。两版内容逐字节同源（gzip mtime = 0，可复现）。
+**落盘与托管形态**：`datasets/general/data/*.jsonl` 与 `*.jsonl.gz` 都不入仓库（明文属可复算的
+大体积派生文件；压缩版由 [export_hf.py](export_hf.py) 发布到 HF 公开仓库，见 [HF.md](HF.md)）。
+所以明文 `data/target-types.jsonl` 与 `data/target-types.jsonl.gz` 都在本机保留、由 HF 托管；
+两版内容逐字节同源（gzip mtime = 0，可复现）。
 旁挂文件 **74,853 行**（只含公开分区，§1.1）、明文 35,419,424 字节（sha256 `87cfa670…`）、
 gzip 834,743 字节（sha256 `19f63155…`）；每行是 canonical JSON（键序排序、默认分隔符），
-所以 `--verify` 能与入库件**逐字节**比对。
+所以 `--verify` 能与本机旁挂件**逐字节**比对。
 
 **分区白名单**：`target_types.py` 默认从 `data/splits` 取 `train/test/validation` 的 item id 作白名单
 （`--splits` 可换目录）。任一公开分区缺失即报错退出，**不会**退回全量落盘；因此重算要求分区在位——
-干净检出上它们是入库的 `*.jsonl.gz`，读得到。
+先从 HF 公开仓库下载三个分区的 `.jsonl.gz` 并解压到 `data/splits/`（见 [HF.md](HF.md)）。
 
 **覆盖自检**（不写盘前就报错，不能用 `--skip-self-check` 绕过）：落盘件的连接键集合必须**恰好**等于
 「公开分区 target 键 ∩ 语料 target 键」——少一条说明有 target 没有路由（训练会静默落到兜底路由），
@@ -509,7 +510,7 @@ gzip 834,743 字节（sha256 `19f63155…`）；每行是 canonical JSON（键�
 
 > 本节由 Jev 补全线（2026-10-20）加入，只新增这一节 + 一行修订记录，不改本页其他内容。
 
-旁挂文件 `datasets/general/data/jev-probs.jsonl`（明文不入库；压缩版 [jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) 入库，
+旁挂文件 `datasets/general/data/jev-probs.jsonl`（明文不入库；压缩版 `jev-probs.jsonl.gz` 由 HF 公开仓库托管，见 [HF.md](HF.md)，
 **公开三区 44,740 行**（v5）；本地全量 48,503 行，剔除了 3,763 条 benchmark / 私有保留集成员——原因同 §1.1：
 sidecar 的 `id` 列等于成员名单）里，**两条 mercury 线**（noul 升级线 + answer-only choice 补全线）的条目都额外带三个字段：
 
@@ -558,3 +559,4 @@ n<10 → `insufficient_sample`。机器可读总表：[label-confidence.json](da
 | 2026-10-20 | **文档按 v4 语料重算（task-10）**：§4.2 / §4.4 / §4.6 / §6.2 / §7 全部换成 v4 实测（分区表 74,912 条 / 82,843 target；ties 口径 80,881 / 81,113；校准分区 218 / 89 / 34 / 91；label_trust 全量与落盘件两列；14 个 `(slug, native_source)` 组）。`items.final.report.json` 改由新脚本 [report_corpus.py](report_corpus.py) 现算重生成；生成器加 `--by-split`，使每个分区数字都有对应复算命令（§8）。|
 | 2026-10-20 | 新增「`label_confidence`（mercury 补全线的标签互证标记）」一节：说明旁挂 `data/jev-probs.jsonl` 里 choice 条目的 `label_confidence` / `consensus_agree` / `consensus_n` 字段与判定阈值，指向 [label-confidence.json](data/jev/label-confidence.json)。本节由 Jev 补全线加入，不改其他内容。 |
 | 2026-10-20 | **v5 分区轮换**（jev-probs 事故：1,621 个 benchmark id 写入仓外永久排除名单、v4 benchmark 作废；四区改为 train 48,728 / test 15,194 / validation 7,597 / benchmark 6,541）：按 v5 公开三区重生成旁挂件 → **74,853 行**，保留集 **7,990** 条未落盘（v4 的 8,394 作废）；口径恒等式 **74,853 + 3,148 = 78,001**。§4.2 分区表 / §4.4 ties / §4.6 校准分区 / label_trust 落盘件列 / §7 benchmark 行随 v5 更新；§8 指纹改为明文 `87cfa670…` / gz `19f63155…`。旧 v4 旁挂件曾与 v5 benchmark 相交 4,205 个 id，重生成后交集为 0。 |
+| 2026-10-22 | 大文件离仓：分区与旁挂件的 `.gz` 改由 Hugging Face 托管（[HF.md](HF.md)），本页指向本地文件的链接改为指向 [HF.md](HF.md) / 清单；数字未变。 |

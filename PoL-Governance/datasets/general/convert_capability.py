@@ -5,7 +5,7 @@ r"""候选接入准备（只接入、不合并）：tasksource/bigbench + allena
 定位
 ----
 本脚本**不参与**现有四区划分、不改 items.final、不跑 split.py。它只做一件事：
-把选型报告 datasets/general/capability-sources.md 推荐的 P1/P2 两个来源，按
+把选型报告 datasets/general/archive/2026-10-15-capability-sources.md 推荐的 P1/P2 两个来源，按
 datasets/general/CONTRACT.md 的字段契约转成**可直接合并的候选语料**：
 原始下载在 D:\pol2-raw\capability-raw\，最终候选语料与报告落 D:\pol2-raw\capability-final\。
 

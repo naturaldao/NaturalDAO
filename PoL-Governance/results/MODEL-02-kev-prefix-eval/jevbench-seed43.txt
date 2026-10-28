@@ -1,0 +1,19 @@
+seed43: overall 80.9 [79-83]  (240 cases, 50 scored relations, tolerance 0.05)
+  REP         80.8  Representation consistency
+  BAT        100.0  Batch independence
+  MEA         56.6  Probability measure coherence
+  LOG         87.9  Logical coherence
+  CHO         79.2  Choice-set coherence
+seed43: overall 80.9 [79-83]  (240 cases, 50 scored relations, tolerance 0.05)
+  REP.invariance         82.1  Invariance
+  REP.equivariance       73.6  Equivariance
+  REP.binding            79.2  Binding
+  REP.type               89.6  Answer type
+  BAT.isolation         100.0  Isolation
+  MEA.complement         25.8  Complement
+  MEA.partition          82.3  Partition
+  MEA.marginalisation    43.8  Marginalisation
+  LOG.bounds             83.9  Bounds
+  LOG.monotonicity       97.2  Monotonicity
+  CHO.conditioning       79.2  Conditioning
+wrote /home/wenbo/jev-runs/seed43-jevbench-mini.json

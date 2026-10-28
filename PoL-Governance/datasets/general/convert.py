@@ -1475,7 +1475,7 @@ NATIVE_CONVERTERS = {
 # --native（直接用来源原生 state/question/options/target）取代，不是训练首选。
 # 仍然保留的原因：items.jsonl（37,124 条模板版）作为对照产物存在，需要能复现；而且
 # coverage.py / ask.py / luna_clean.py / luna_gen.py / convert_zh.py 仍然 import taxonomy.py。
-# 整套删掉的前置条件见 ARCHIVE.md 的「清理提案」一节。
+# 整套删掉的前置条件见 INDEX.md 的「可退役候选」一节。
 CONVERTERS = {
     "jev_typed": convert_jev_typed,
     "open_jev": convert_open_jev,

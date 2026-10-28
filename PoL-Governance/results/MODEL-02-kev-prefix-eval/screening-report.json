@@ -1,0 +1,29 @@
+{
+  "schema": "kev-prefix-screening/1",
+  "max_row_tokens": 2048,
+  "records_in": 9070,
+  "records_kept": 9052,
+  "records_excluded": 18,
+  "excluded_by_variant": {
+    "isolation": 13,
+    "clean": 5
+  },
+  "excluded_clean_records": 5,
+  "excluded_clean_questions": 14,
+  "kept_by_variant": {
+    "clean": 6536,
+    "permuted": 600,
+    "isolation": 1916
+  },
+  "max_row_kept": 2048,
+  "max_packed_kept": 2098,
+  "excluded_max_row": [
+    2132,
+    2670,
+    3954,
+    4733,
+    5828
+  ],
+  "suite_manifest_sha256": "4f0e56c1455bc7a4bcc6b39c39aad3bcfac13891bed8a9a1521dc8b30623f057",
+  "join_sha256": "e34d601b592755d0533d342d8ea80dee53065a273ffbdbba851f097bc45c1c90"
+}

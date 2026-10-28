@@ -15,7 +15,7 @@
 ## 0. 全量来源登记表（v3 基座 23,855 条；v4 语料 = 本表 8 个抓取单元 + 2 个能力补源 = 74,912 条）
 
 抓取单元 = 一个 slug + 一个 config；同一数据集的多个 config 各算一个单元。本表条数实测于 **v3 基座**
-（2026-10-15）；v4 语料（2026-10-20 并入 bigbench / cosmos_qa，见 [capability-sources.md](capability-sources.md)）
+（2026-10-15）；v4 语料（2026-10-20 并入 bigbench / cosmos_qa，见 [capability-sources.md](archive/2026-10-15-capability-sources.md)）
 为 **74,912 条 / 82,843 target**，构成与指纹以现算的 [items.final.report.json](data/items.final.report.json) 为准。
 
 | # | 数据集（HF） | slug | 抓取单元（config / split / row_limit / 采样） | revision（40 位） | 许可 | 条目数 | 带来源自带答案 | 语种 |
@@ -31,7 +31,7 @@
 | **合计** | **7 个数据集** | **8 个抓取单元** | | | | **23,855** | **23,855（100%）** | en 15,983 / zh 7,872 |
 
 - 机器可读版本：英文侧 [sources.json](sources.json)（含 row_limit、采样参数、逐条 notes 与已排除来源）；
-  中文侧来源的判读与 row_limit 见 [zh-typed-survey.md](zh-typed-survey.md)、构建记录见 [zh-build-report.md](zh-build-report.md)，
+  中文侧来源的判读与 row_limit 见 [zh-typed-survey.md](archive/2026-10-05-zh-typed-survey.md)、构建记录见 [zh-build-report.md](archive/2026-10-05-zh-build-report.md)，
   模板线的中文登记在 [sources.zh.json](sources.zh.json)。
 - `sources.json` 的 `quotas` 段是**历史参考值**（总量 10,000 / 每域 1,200 / pol2_axis 0 / 单一来源 40%）：
   `coverage.py` 只把它打印出来对照，**不参与通过/不通过**。
@@ -199,4 +199,4 @@ default 配置一条：
 | Deepexi/openai-formate-function-calling-small | apache-2.0 | 保留 Deepexi 署名并注明来源（内容取材自阿里云公开 OpenAPI 文档，条款未逐条核对） | 7,872 |
 
 事实记录（非要求）：上表 7 个数据集没有 NC（非商业）或 SA（同许可传染）条目；全部固定在 40 位 commit sha 上。
-中文侧 Deepexi 的许可链说明见 [zh-build-report.md](zh-build-report.md) §许可链与 [zh-typed-survey.md](zh-typed-survey.md) §1。
+中文侧 Deepexi 的许可链说明见 [zh-build-report.md](archive/2026-10-05-zh-build-report.md) §许可链与 [zh-typed-survey.md](archive/2026-10-05-zh-typed-survey.md) §1。

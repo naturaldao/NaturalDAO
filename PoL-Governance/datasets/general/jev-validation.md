@@ -558,7 +558,7 @@ mercury choice 线本身**已跑完全部 51,057 条**，不再受额度限制�
 
 **两个「仅硬标签」不要混为一谈**：前者是**还没尝试补**，后者是**补了但 mercury 与我们分歧、按门禁不写**——训练价值不同，所以单列。
 
-**交付面（保密约束）**：入库的旁挂件只保留**公开面** 44,740 条（本地全量 48,503 条，剔除 3,763 条 benchmark / 私有保留集成员）。原因：sidecar 的 `id` 列等于一份**成员名单**，含 benchmark 成员的入库件会踩保密护栏（`test_split.SecrecyTest.test_tracked_files_contain_no_benchmark_records`）。本地全量保留在 `data/jev/jev-probs.full.jsonl`（gitignore），供内部审计。
+**交付面（保密约束）**：发布的旁挂件只保留**公开面** 44,740 条（本地全量 48,503 条，剔除 3,763 条 benchmark / 私有保留集成员）。原因：sidecar 的 `id` 列等于一份**成员名单**，含 benchmark 成员的入库件会踩保密护栏（`test_split.SecrecyTest.test_tracked_files_contain_no_benchmark_records`）。本地全量保留在 `data/jev/jev-probs.full.jsonl`（gitignore），供内部审计。
 
 **换个口径看训练价值**（README §4.4 口径：分母 = 公开件 74,853 + 补充集 3,148 = 78,001；「真概率分布」= shape_class ∈ {soft, tie_subset}）：
 
@@ -672,7 +672,7 @@ noul 线没有 `low_consensus` 子集：最差的来源仍高于 70% 门槛。�
 | `datasets/general/data/jev/fill-plan-dist-zh-choice.jsonl` | jev-router 线请求清单（7,872 条 zh choice） |
 | `datasets/general/data/jev/fill-calls-dist.jsonl` | jev-router 线逐次调用 journal |
 | `datasets/general/data/jev-probs.jsonl` | **交付文件**：三位一体合并后的旁挂概率（按 distribution_semantics 区分） |
-| `datasets/general/data/jev-probs.jsonl.gz` | **公开面**交付件的确定性压缩版（44,740 行；不入库的明文被 .gitignore 挡住） |
+| `datasets/general/data/jev-probs.jsonl.gz` | **公开面**交付件的确定性压缩版（44,740 行；HF 公开仓库托管，见 [HF.md](HF.md)；明文不入库） |
 | `datasets/general/data/jev/jev-probs.full.jsonl` | 本地全量旁挂件（48,503 行，含 benchmark/保留集成员，gitignore、不入库） |
 | `datasets/general/data/jev/label-confidence.json` | 两条线合并的 label_confidence 总表（按 source/ config） |
 

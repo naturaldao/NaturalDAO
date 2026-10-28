@@ -1,0 +1,23 @@
+# 阶段报告索引
+
+本目录保存阶段报告（≤ 每 10 轮一份），按时间顺序；历史报告保留原样，不追溯改口径。
+过时/已结案的历史材料移入 [archive/](archive/)，仍在使用的报告放在本目录。
+最新状态与待办以仓库根 [ROADMAP](../../ROADMAP.md) 与任务页为准。
+
+| 日期 | 报告 | 一句话 |
+|---|---|---|
+| 2026-10-20 | [v4 合并（归档）](archive/2026-10-20-v4-merge.md) | 通用决策数据集 v4 并入 main + 保留集泄漏事故处置记录（历史，保留追溯） |
+| 2026-10-23 | [第一阶段收尾](2026-10-23-phase1-wrap.md) | 数据离仓与 HF 托管就绪、POL2 冻结集落位、公开文档精简 |
+| 2026-10-23 | [第二阶段 Track A 基线](2026-10-23-phase2-track-a.md) | 训练视图 + Qwen3-1.7B LoRA 首个基线（validation 0.5127→0.7883；test 0.7785） |
+| 2026-10-23 | [暂停期进展](2026-10-23-phase2-paused-progress.md) | GPU 暂停期间的评测/校准/多 seed/评测器集成/混合视图与恢复链（无新增 GPU 结果） |
+| 2026-10-26 | [协作者更新合并](2026-10-26-collaborator-update.md) | main 前进 45 提交：POL2 score-v2 数据/模型、EVAL-02 具身先导、EVAL-03 理论先导；合并冲突与链接策略处理 |
+| 2026-10-27 | [HF 托管完成](2026-10-27-hf-upload.md) | v5 公开/私有仓库上传完成；远程校验 7/7、6/6 与下载回验通过；registry/HF.md 回填 revision |
+| 2026-10-27 | [通用 FT 最终评测（已归档）](archive/2026-10-27-final-eval.md) | **历史/已归档（通用 FT，非专有微调）**：保留集 0.3996→0.7034（+30.37pt，CI [28.94,31.75]）、T=0.992、lm-eval（agieval 警戒）、延迟；结果卡见 results/archive/2026-10-27-general-ft/final-eval/CARD.md |
+| 2026-10-28 | [Kev 前后对照评测（Session B）](2026-10-28-kev-prefix-eval.md) · [可视化 HTML](2026-10-28-kev-prefix-eval.html) | 原版 Kev-4B vs POL2 score-v2 M10（seed43/17/29）在 general v5 私有保留视图的配对评测（共同上下文 7,347 题）+ JevBench coherence；最终单页报告为 `2026-10-28-kev-prefix-eval.html`（单文件自包含）；结果卡 results/MODEL-02-kev-prefix-eval/CARD.md |
+| 2026-10-27 | [Jev 类公开评测/排行榜调研](2026-10-27-jev-benchmarks.md) | JevBench（第三方 coherence，可离线；mini=1,248 请求）、Kev suites/Decision Index、TypeSafe/OpenJev/Laya/OpenDecider、System One Bench 等清单与许可/可收集性；含 Kev 跑 JevBench 的精确 runbook |
+
+## 报告约定
+
+- 每份报告必须含：数据版本/视图 sha、硬件与预算、指标与对照、限制（不弱化）、失败与未测项、下一步；
+- 结果口径见 [finetune/EVAL-PROTOCOL.md](../../finetune/EVAL-PROTOCOL.md)（预注册协议）；
+- 报告里的数字必须能由仓库内脚本 + 仓库外产物复算（命令写进报告或结果卡）。

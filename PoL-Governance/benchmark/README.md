@@ -35,3 +35,10 @@ prepare 不访问模型；run 需要已启动的回环 Kev 服务，默认 `http
 **当前边界**：评估器仅接受公开 pilot，报告始终不具备排名资格。正式数据读取、保留集评测、通用及主流安全测试接入由 EVAL-01 实现，不能把现有工具称为完整 benchmark。
 
 外部入口：[WildGuard](https://github.com/allenai/wildguard)、[ToxicChat](https://huggingface.co/datasets/lmsys/toxic-chat)、[HarmBench](https://github.com/centerforaisafety/HarmBench)、[XSTest](https://github.com/paul-rottger/xstest)。
+
+## 子目录（协作线，2026-10-26 起）
+
+- [embodied_reasoning](embodied_reasoning/README.md)：EVAL-02 具身推理先导（16 案例三条件配对、Kev+VirtualHome 符号闭环、MuJoCo n=1）；探索性，不是正式排名。
+- [pol2](pol2/README.md)：EVAL-03 完整 PoL2 理论内在化挑战集先导（严格质量门 0/6 → 停止训练）；仅可行性材料。
+
+两个子目录的材料与主 benchmark（pilot 20 条公开合成试例）口径不同，**不要混表比较**。
