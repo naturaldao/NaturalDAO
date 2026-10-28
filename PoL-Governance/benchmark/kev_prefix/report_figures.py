@@ -10,6 +10,7 @@ from __future__ import annotations
 import io
 import json
 import math
+import re
 from pathlib import Path
 
 import matplotlib
@@ -27,6 +28,8 @@ COLORS = {"kev-original": "#1f7a8c", "seed43": "#e07a5f", "seed17": "#6b7c93", "
 LABELS = {"kev-original": "Kev-4B original", "seed43": "M10 seed-43", "seed17": "M10 seed-17", "seed29": "M10 seed-29"}
 MODELS = ["kev-original", "seed43", "seed17", "seed29"]
 
+_SVG_PNGS = []
+
 plt.rcParams.update({
     "font.family": "DejaVu Sans",
     "font.size": 9,
@@ -42,6 +45,7 @@ plt.rcParams.update({
     "axes.spines.right": False,
     "figure.dpi": 100,
     "svg.fonttype": "none",
+    "svg.hashsalt": "kev-report",
 })
 
 
@@ -49,11 +53,20 @@ def _svg(fig):
     buf = io.StringIO()
     fig.savefig(buf, format="svg", bbox_inches="tight", pad_inches=0.06, transparent=False,
                 facecolor="white")
+    png_buf = io.BytesIO()
+    fig.savefig(png_buf, format="png", dpi=130, bbox_inches="tight", pad_inches=0.08,
+                transparent=False, facecolor="white")
+    _SVG_PNGS.append(png_buf.getvalue())
     plt.close(fig)
     svg = buf.getvalue()
     svg = svg[svg.find("<svg"):]
+    svg = re.sub(r"<metadata>.*?</metadata>", "", svg, flags=re.S)
     svg = svg.replace("<svg ", '<svg style="max-width:100%;height:auto" ', 1)
     return svg
+
+
+def get_pngs():
+    return list(_SVG_PNGS)
 
 
 def _pct(x):
@@ -78,6 +91,10 @@ def fig_dataset(deep):
     axes[1].set_ylabel("Questions")
     axes[1].set_title("How many options must be compared?", fontsize=10)
     axes[1].set_xscale("log")
+    ticks = [2, 3, 5, 8, 13, 21, 34, 55, 68]
+    axes[1].set_xticks(ticks)
+    axes[1].set_xticklabels([str(t) for t in ticks], fontsize=7)
+    axes[1].minorticks_off()
     return _svg(fig)
 
 
@@ -550,24 +567,23 @@ def build_figures(deep, agg, leaderboard):
     figs["dataset"] = fig_dataset(deep)
     figs["accuracy"] = fig_accuracy(deep)
     figs["forest"] = fig_forest(deep, agg)
-    figs["reliability"] = fig_reliability(deep)
-    figs["noul_reliability"] = fig_noul_reliability(deep)
-    figs["risk_coverage"] = fig_risk_coverage(deep)
     figs["bootstrap"] = fig_bootstrap(deep)
     figs["permutation"] = fig_permutation(deep)
-    figs["confidence_deciles"] = fig_confidence_deciles(deep)
     figs["kind_bars"] = fig_kind_bars(deep)
     figs["length_bars"] = fig_length_bars(deep)
-    figs["kind_brier"] = fig_kind_brier(deep)
     figs["domain_bars"] = fig_domain_bars(deep)
     figs["option_curve"] = fig_option_curve(deep)
     figs["heatmap"] = fig_heatmap(deep)
+    figs["kind_brier"] = fig_kind_brier(deep)
+    figs["score_error_hist"] = fig_score_error_hist(deep)
     figs["sample_size"] = fig_sample_size(deep)
-    figs["variant_ecdf"] = fig_variant_ecdf(deep)
-    figs["score_confusion"] = fig_score_confusion(deep)
+    figs["reliability"] = fig_reliability(deep)
+    figs["noul_reliability"] = fig_noul_reliability(deep)
     figs["brier_decomp"] = fig_brier_decomp(deep)
+    figs["risk_coverage"] = fig_risk_coverage(deep)
+    figs["confidence_deciles"] = fig_confidence_deciles(deep)
+    figs["variant_ecdf"] = fig_variant_ecdf(deep)
     figs["jev_radar"] = fig_jev_radar(deep)
     figs["jev_leaderboard"] = fig_jev_leaderboard(deep, leaderboard)
     figs["latency"] = fig_latency(deep, agg)
-    figs["score_error_hist"] = fig_score_error_hist(deep)
     return figs
