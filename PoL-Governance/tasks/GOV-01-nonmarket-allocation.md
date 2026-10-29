@@ -4,7 +4,7 @@
 |---|---|
 | Codex / OpenAI Codex | 待集成；E16 三种规则已推送并提交 PR #54，300 次重复/格，70 项测试通过 |
 
-- 更新时间：2026-10-30 21:00 Asia/Hong_Kong
+- 更新时间：2026-10-30 03:34 Asia/Hong_Kong
 - 分支：pol/GOV-01/nonmarket-allocation
 - 起点 commit / 依赖分支与 commit：`main` / `d2e492f3ea84c8d5cc707e9a22488ea20ca376c6`
 - 目标与交付路径：`research/PoL2-DAO-Governance-Lab/` 中 E16 非竞价资源分配实验
