@@ -66,3 +66,48 @@ def test_needs_once_is_seeded_reproducible():
     r1 = a.needs_once(random.Random(3), 0.3, 2.0, 0.5)
     r2 = a.needs_once(random.Random(3), 0.3, 2.0, 0.5)
     assert r1 == r2
+
+
+def test_nonmarket_allocator_respects_claim_caps_and_supply():
+    needs = [2, 2, 2, 2]
+    claims = [2, 2, 2, 2]
+    tiers = [0, 0, 1, 2]
+    pointers = [0, 0, 0]
+    alloc, _ = a._allocate_e16(needs, claims, tiers, 3, True, pointers)
+    assert sum(alloc) == 3
+    assert all(x <= c for x, c in zip(alloc, claims))
+    assert alloc[0] + alloc[1] == 3  # critical tier is served before lower tiers
+
+
+def test_equal_priority_rotation_does_not_depend_on_need_tier():
+    needs = [3, 3, 3]
+    claims = [3, 3, 3]
+    tiers = [0, 1, 2]
+    pointers = [0, 0, 0]
+    alloc, _ = a._allocate_e16(needs, claims, tiers, 3, False, pointers)
+    assert alloc == [1, 1, 1]
+
+
+def test_basic_floor_then_priority_gives_one_before_extra_units():
+    needs = [4, 4, 4]
+    claims = [4, 4, 4]
+    tiers = [0, 1, 2]
+    alloc, _ = a._allocate_e16(needs, claims, tiers, 5, True, [0, 0, 0], basic_floor=True)
+    assert all(x >= 1 for x in alloc)
+    assert alloc[0] > alloc[1] >= alloc[2]
+
+
+def test_basic_floor_defers_to_urgent_needs_when_supply_cannot_cover_everyone():
+    needs = [3, 3, 3, 3]
+    claims = [3, 3, 3, 3]
+    tiers = [0, 0, 1, 2]
+    alloc, _ = a._allocate_e16(needs, claims, tiers, 2, True, [0, 0, 0], basic_floor=True)
+    assert alloc[:2] == [1, 1]
+    assert sum(alloc) == 2
+
+
+def test_e16_seeded_reproducible_and_bounded():
+    r1 = a.needs_priority_simulation(random.Random(19), 0.3, reps=3, n=30, rounds=8)
+    r2 = a.needs_priority_simulation(random.Random(19), 0.3, reps=3, n=30, rounds=8)
+    assert r1 == r2
+    assert all(0 <= v <= 1 for rule in r1.values() for v in rule.values())
