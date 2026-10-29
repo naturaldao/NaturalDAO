@@ -12,6 +12,7 @@ computations use only the standard library; E15 is closed-form (no Monte Carlo e
 from __future__ import annotations
 
 import math
+import heapq
 import random
 from pathlib import Path
 from statistics import NormalDist, mean, pstdev
@@ -241,3 +242,143 @@ def e15_reviewer_correlation(out: Path, reps: int, log) -> list[Path]:
     legend_panel(axes[0][3], h1 + h2, l1 + l2)
     log("E15 done")
     return finalize_figure(fig, fig_path(out, "e15_reviewer_correlation"))
+
+
+# ---------------------------------------------------------------------------
+# E16 non-market allocation across repeated rounds
+# ---------------------------------------------------------------------------
+
+E16_RULES = ("equal_rotation", "needs_priority", "floor_then_priority")
+E16_LABEL = {"equal_rotation": "Equal priority + rotation", "needs_priority": "Urgency tiers + rotation",
+             "floor_then_priority": "Basic floor + urgency tiers"}
+E16_STYLE = {"equal_rotation": PALETTE["neutral_dark"], "needs_priority": PALETTE["blue_main"],
+             "floor_then_priority": PALETTE["green_3"]}
+E16_ROUNDS = 24
+E16_N = 120
+E16_SHOCK_ROUNDS = (6, 12, 18, 24)
+
+
+def _rotating_queue(people: list[int], caps: list[int], allocated: list[int], needs: list[int],
+                    supply: int, pointer: int) -> tuple[int, int]:
+    """Allocate indivisible units by least reported-need fulfillment, rotating exact ties."""
+    if not people or supply <= 0:
+        return 0, pointer
+    order = people[pointer % len(people):] + people[:pointer % len(people)]
+    heap = [(allocated[i] / max(1, caps[i]), pos, i) for pos, i in enumerate(order)
+            if allocated[i] < caps[i]]
+    heapq.heapify(heap)
+    used = 0
+    while used < supply and heap:
+        # No money, bidding, transferable credits, or price signal: a transparent service queue.
+        _, pos, i = heapq.heappop(heap)
+        allocated[i] += 1
+        used += 1
+        if allocated[i] < caps[i]:
+            heapq.heappush(heap, (allocated[i] / max(1, caps[i]), pos, i))
+    next_pointer = (pointer + max(1, used)) % len(people)
+    return used, next_pointer
+
+
+def _allocate_e16(needs: list[int], claims: list[int], tiers: list[int], supply: int,
+                  prioritized: bool, pointers: list[int], basic_floor: bool = False) -> tuple[list[int], list[int]]:
+    allocation = [0] * len(needs)
+    left = supply
+    # Honor a universal first-unit floor only when this round has enough to cover
+    # every claimant. Under deeper scarcity, urgent needs take precedence.
+    if basic_floor and left >= sum(c > 0 for c in claims):
+        everyone = list(range(len(needs)))
+        used, pointers[0] = _rotating_queue(everyone, [min(c, 1) for c in claims],
+                                             allocation, needs, left, pointers[0])
+        left -= used
+    groups = sorted(set(tiers)) if prioritized else [0]
+    for tier in groups:
+        members = [i for i, t in enumerate(tiers) if t == tier] if prioritized else list(range(len(needs)))
+        used, pointers[tier if prioritized else 0] = _rotating_queue(
+            members, claims, allocation, needs, left, pointers[tier if prioritized else 0])
+        left -= used
+        if left <= 0:
+            break
+    return allocation, pointers
+
+
+def needs_priority_simulation(rng: random.Random, f: float, reps: int = 120,
+                              n: int = E16_N, rounds: int = E16_ROUNDS) -> dict[str, dict[str, float]]:
+    """Repeated synthetic rationing. Tier 0 is life-critical; tier 2 is ordinary need."""
+    totals = {r: {"weighted_fill": [], "critical_fill": [], "real_use": [], "overclaim_units": [],
+                  "shock_critical_fill": []} for r in E16_RULES}
+    for _ in range(reps):
+        tiers = [rng.choices([0, 1, 2], weights=[0.2, 0.35, 0.45])[0] for _ in range(n)]
+        inflated = [rng.random() < f for _ in range(n)]
+        ptrs = {r: [rng.randrange(n) for _ in range(3)] for r in E16_RULES}
+        need_sums = [0] * n
+        accum = {r: {"weighted_numerator": 0.0, "weighted_denominator": 0.0, "critical_num": 0,
+                     "critical_den": 0, "real_use": 0, "claims": 0, "allocated": 0,
+                     "shock_critical_num": 0, "shock_critical_den": 0} for r in E16_RULES}
+        for rd in range(1, rounds + 1):
+            needs = [rng.randint(1, 8) for _ in range(n)]
+            need_sums = [a + d for a, d in zip(need_sums, needs)]
+            claims = [d * (2 if bad else 1) for d, bad in zip(needs, inflated)]
+            shock = rd in E16_SHOCK_ROUNDS
+            supply = int(sum(needs) * (0.10 if shock else 0.65))
+            for rule in E16_RULES:
+                alloc, ptrs[rule] = _allocate_e16(needs, claims, tiers, supply,
+                                                  rule != "equal_rotation", ptrs[rule],
+                                                  basic_floor=rule == "floor_then_priority")
+                s = accum[rule]
+                for i, (d, x) in enumerate(zip(needs, alloc)):
+                    real = min(d, x)
+                    weight = 3 - tiers[i]
+                    s["weighted_numerator"] += weight * real
+                    s["weighted_denominator"] += weight * d
+                    if tiers[i] == 0:
+                        s["critical_num"] += real
+                        s["critical_den"] += d
+                        if shock:
+                            s["shock_critical_num"] += real
+                            s["shock_critical_den"] += d
+                    s["real_use"] += real
+                    s["claims"] += claims[i]
+                    s["allocated"] += x
+        for rule in E16_RULES:
+            s = accum[rule]
+            totals[rule]["weighted_fill"].append(s["weighted_numerator"] / s["weighted_denominator"])
+            totals[rule]["critical_fill"].append(s["critical_num"] / s["critical_den"])
+            totals[rule]["real_use"].append(s["real_use"] / s["allocated"] if s["allocated"] else 0.0)
+            totals[rule]["overclaim_units"].append((s["allocated"] - s["real_use"]) / max(1, s["allocated"]))
+            totals[rule]["shock_critical_fill"].append(
+                s["shock_critical_num"] / s["shock_critical_den"] if s["shock_critical_den"] else 0.0)
+    return {r: {k: mean(v) for k, v in values.items()} for r, values in totals.items()}
+
+
+def e16_nonmarket_allocation(out: Path, reps: int, log) -> list[Path]:
+    fs = [0.0, 0.1, 0.2, 0.3, 0.4]
+    rows, grid = [], {}
+    for f in fs:
+        rng = random.Random(seed("E16", f))
+        grid[f] = needs_priority_simulation(rng, f, reps=max(2, reps))
+        for rule in E16_RULES:
+            rows.append({"rule": rule, "inflation_share": f, "inflation_factor": 2,
+                         "agents": E16_N, "rounds": E16_ROUNDS, "reps": reps, **grid[f][rule]})
+        log(f"E16 inflation_share={f:.1f}")
+    write_csv(rows, out, "e16_nonmarket_allocation.csv")
+    fig, axes = new_figure(1, 4, panel=(6.0, 5.0))
+    xs = [100 * f for f in fs]
+    for rule in E16_RULES:
+        color = E16_STYLE[rule]
+        for ax, metric, label in ((axes[0][0], "critical_fill", "critical needs met ↑"),
+                                  (axes[0][1], "weighted_fill", "priority-weighted needs met ↑")):
+            plot_line(ax, xs, [grid[f][rule][metric] for f in fs], color=color, marker="o",
+                      label=E16_LABEL[rule])
+        plot_line(axes[0][2], xs, [grid[f][rule]["real_use"] for f in fs], color=color, marker="o",
+                  label=E16_LABEL[rule])
+        plot_line(axes[0][3], xs, [grid[f][rule]["shock_critical_fill"] for f in fs],
+                  color=color, marker="o", label=E16_LABEL[rule])
+    for ax, label in ((axes[0][0], "critical needs met ↑"),
+                      (axes[0][1], "priority-weighted needs met ↑"),
+                      (axes[0][2], "allocated units used for real need ↑"),
+                      (axes[0][3], "critical needs met during shocks ↑")):
+        ax.set_xlabel("share inflating need claims (%)")
+        ax.set_ylabel(label)
+        ax.set_ylim(0, 1.02)
+    axes[0][3].legend(frameon=False, fontsize=10, loc="lower left")
+    return finalize_figure(fig, fig_path(out, "e16_nonmarket_allocation"))
