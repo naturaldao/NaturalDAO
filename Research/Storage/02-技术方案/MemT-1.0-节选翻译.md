@@ -96,23 +96,26 @@ MemT-1.0-Flash 在相同噪声设置下平均表现与其 DeepSeek-V4-Flash 主�
 对于架构消融，我们评估了四个变体。首先，我们移除稳定机制以恢复 GDN-2 记忆更新（w/ GDN-2），直接使用：
 
 $$
-\tilde{\mathbf{M}}_{t,i,h}^{(l)}=\left[\mathbf{I}-\mathbf{K}_{t,i,h}^{(l)\top}\left(\bm{\beta}_{t,i,h}^{(l)}\odot\mathbf{K}_{t,i,h}^{(l)}\right)\right]\cdot\mathbf{D}_{t,i,h}^{(l)}\tilde{\mathbf{M}}_{t,i-1,h}^{(l)}+\mathbf{K}_{t,i,h}^{(l)\top}\left(\bm{\omega}_{t,i,h}^{(l)}\odot\mathbf{V}_{t,i,h}^{(l)}\right).
-\tag{1}
+\tilde{\mathbf{M}}_{t,i,h}^{(l)}=\left[\mathbf{I}-\mathbf{K}_{t,i,h}^{(l)\top}\left(\boldsymbol{\beta}_{t,i,h}^{(l)}\odot\mathbf{K}_{t,i,h}^{(l)}\right)\right]\cdot\mathbf{D}_{t,i,h}^{(l)}\tilde{\mathbf{M}}_{t,i-1,h}^{(l)}+\mathbf{K}_{t,i,h}^{(l)\top}\left(\boldsymbol{\omega}_{t,i,h}^{(l)}\odot\mathbf{V}_{t,i,h}^{(l)}\right).
 $$
+
+<div align="right">(1)</div>
 
 我们还将更新规则改为 GDN [57] 作为另一个消融基线（w/ GDN）。其次，我们将更新粒度从 token 级改为回合级（w/ TL）。存储过程可定义为：
 
 $$
-\mathbf{M}_{t+1,h}^{(l)}=\left[\mathbf{I}-\frac{1}{L_{t}}\mathbf{U}_{t,h}^{(l)\top}\mathbf{U}_{t,h}^{(l)}\right]\cdot\mathbf{D}_{t,h}^{(l)}\mathbf{M}_{t,h}^{(l)}+\frac{1}{L_{t}}\mathbf{U}_{t,h}^{(l)\top}\left(\bm{\omega}_{t,h}^{(l)}\odot\mathbf{V}_{t,h}^{(l)}\right),
-\tag{2}
+\mathbf{M}_{t+1,h}^{(l)}=\left[\mathbf{I}-\frac{1}{L_{t}}\mathbf{U}_{t,h}^{(l)\top}\mathbf{U}_{t,h}^{(l)}\right]\cdot\mathbf{D}_{t,h}^{(l)}\mathbf{M}_{t,h}^{(l)}+\frac{1}{L_{t}}\mathbf{U}_{t,h}^{(l)\top}\left(\boldsymbol{\omega}_{t,h}^{(l)}\odot\mathbf{V}_{t,h}^{(l)}\right),
 $$
+
+<div align="right">(2)</div>
 
 其中
 
 $$
-\mathbf{D}_{t,h}^{(l)}=\operatorname{Diag}\left[\exp\left(\frac{1}{L_{t}}\sum_{i=1}^{L_{t}}\bm{\lambda}_{t,i,h}^{(l)}\right)\right].
-\tag{3}
+\mathbf{D}_{t,h}^{(l)}=\mathrm{Diag}\left[\exp\left(\frac{1}{L_{t}}\sum_{i=1}^{L_{t}}\boldsymbol{\lambda}_{t,i,h}^{(l)}\right)\right].
 $$
+
+<div align="right">(3)</div>
 
 我们还评估了用于信息聚合的双向编码（w/ BE）。具体而言，在每回合的存储过程中，它首先将前注意力隐藏状态 $\tilde{\mathbf{H}}_{t}^{(l)}$ 投影到低维空间，并应用带旋转位置编码的多头自注意力（无因果掩码）。之后，通过残差连接将结果投影回主干维度。丰富后的表示用于预测擦除、写入和遗忘门，而记忆键和值仍从前注意力隐藏状态投影得到。
 
@@ -156,8 +159,9 @@ $$
 
 $$
 \mathbf{M}_{t,h}^{(l)}=U_{:,1:k}\Sigma_{1:k,1:k}V_{:,1:k}^{\top}.
-\tag{4}
 $$
+
+<div align="right">(4)</div>
 
 我们设置秩 $ k \in \{1, 2, 4, 8, 16, 32, 64, 128, 256\} $，其中全秩 $ k=256 $ 保留原始密集状态而不进行投影。评估在 PersonaMem 和 LoCoMo 上进行。对于每个保留比率，我们独立初始化记忆状态，写入完整历史，并在 $ k < 256 $ 时于每次记忆存储后应用低秩重建。
 
@@ -207,8 +211,9 @@ $$
 
 $$
 x_{b,j} = \left( \xi_{\leq b},\; g_{b,j},\; \hat{\xi}_{>b}^{+} \right),
-\tag{5}
 $$
+
+<div align="right">(5)</div>
 
 其中 $ b $ 索引选定的断点，$ j $ 索引候选经验子集。这里，$ \xi_{\leq b} $ 表示断点 $ b $ 之前（含断点）的原始轨迹前缀，$ g_{b,j} $ 表示注入的经验子集，$ \hat{\xi}_{>b}^{+} $ 表示经验注入后的成功续写。
 
