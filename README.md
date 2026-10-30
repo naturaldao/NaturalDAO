@@ -88,8 +88,8 @@ It represents the governance and application layer for the Proof-of-Love2 Civili
 
 | 语言 | 论文 |
 | :---: | :--- |
-| 🇬🇧 English | [Proof of Love: The Consensus of AI and Next Civilization](https://github.com/DAism2019/Proof-of-Love) |
-| 🇨🇳 中文 | [爱的证明：治理 AI 和人类文明的共识机制](https://github.com/DAism2019/Proof-of-Love/tree/main/chinese) |
+| 🇬🇧 English | 📄[Proof of Love: The Consensus of AI and Next Civilization (ResearchGate)](https://www.researchgate.net/publication/396699934_Proof_of_Love_The_Consensus_of_AI_and_Next_Civilization) or [Github](https://github.com/DAism2019/Proof-of-Love) |
+| 🇨🇳 中文 | 📄[爱的证明：治理 AI 和人类文明的共识机制（ResearchGate）](https://www.researchgate.net/publication/396701413_aidezhengmingzhili_AI_herenleiwenmingdegongshijizhi)，或[Github](https://github.com/DAism2019/Proof-of-Love/tree/main/chinese) |
 
 ---
 
