@@ -18,7 +18,7 @@ from pathlib import Path
 from statistics import NormalDist, mean, pstdev
 
 from ..plotstyle import DOWN, PALETTE, UP, finalize_figure, legend_panel, new_figure, plot_line
-from ._common import fig_path, seed, write_csv
+from ._common import fig_path, seed, write_csv, _ci
 
 _ND = NormalDist()
 
@@ -382,3 +382,165 @@ def e16_nonmarket_allocation(out: Path, reps: int, log) -> list[Path]:
         ax.set_ylim(0, 1.02)
     axes[0][3].legend(frameon=False, fontsize=10, loc="lower left")
     return finalize_figure(fig, fig_path(out, "e16_nonmarket_allocation"))
+
+
+# ---------------------------------------------------------------------------
+# E17 priority classification and an appeal process
+# ---------------------------------------------------------------------------
+
+E17_CAPACITIES = (0.0, 0.10, 0.25)
+E17_LABEL = {0.0: "no appeal", 0.10: "review up to 10%", 0.25: "review up to 25%"}
+E17_COLORS = {0.10: PALETTE["blue_main"], 0.25: PALETTE["green_3"]}
+E17_SENSITIVITY = 0.90
+E17_FALSE_ACCEPT = 0.05
+
+
+def classify_priority(true_tier: int, error_rate: float, rng: random.Random) -> int:
+    """Symmetric adjacent-tier classification error; tier 0 is most urgent."""
+    if true_tier not in (0, 1, 2):
+        raise ValueError("priority tier must be 0, 1, or 2")
+    if not 0 <= error_rate <= 1:
+        raise ValueError("error_rate must lie in [0, 1]")
+    if rng.random() >= error_rate:
+        return true_tier
+    if true_tier == 0:
+        return 1
+    if true_tier == 2:
+        return 1
+    return rng.choice((0, 2))
+
+
+def resolve_priority_appeals(true_tiers: list[int], assessed: list[int], false_claimants: list[bool],
+                             capacity_share: float, rng: random.Random,
+                             sensitivity: float = E17_SENSITIVITY,
+                             false_accept: float = E17_FALSE_ACCEPT) -> tuple[list[int], dict[str, float]]:
+    """Apply a capacity-limited lottery for independent review of upward appeals.
+
+    Valid appeals request the actual tier after an under-classification. False
+    claimants request tier 0. Review outcomes have assumed sensitivity and false
+    acceptance probability; these are scenario parameters, not empirical rates.
+    """
+    if not (len(true_tiers) == len(assessed) == len(false_claimants)):
+        raise ValueError("appeal inputs must have equal lengths")
+    if not 0 <= capacity_share <= 1:
+        raise ValueError("capacity_share must lie in [0, 1]")
+    effective = list(assessed)
+    if capacity_share == 0 or not true_tiers:
+        return effective, {"filed": 0, "reviewed": 0, "valid_filed": 0,
+                           "valid_corrected": 0, "false_accepted": 0}
+
+    appeals: list[tuple[int, int, bool]] = []
+    for i, (truth, label, false_claim) in enumerate(zip(true_tiers, assessed, false_claimants)):
+        if label > truth and rng.random() < 0.80:
+            appeals.append((i, truth, True))
+        elif false_claim and truth > 0 and label > 0 and rng.random() < 0.80:
+            appeals.append((i, 0, False))
+    cap = int(len(true_tiers) * capacity_share)
+    reviewed = rng.sample(appeals, min(cap, len(appeals))) if cap else []
+    valid_filed = sum(valid for _, _, valid in appeals)
+    corrected = false_accepted = 0
+    for i, requested_tier, valid in reviewed:
+        if valid:
+            if rng.random() < sensitivity:
+                effective[i] = requested_tier
+                corrected += 1
+        elif rng.random() < false_accept:
+            effective[i] = requested_tier
+            false_accepted += 1
+    return effective, {"filed": len(appeals), "reviewed": len(reviewed), "valid_filed": valid_filed,
+                       "valid_corrected": corrected, "false_accepted": false_accepted}
+
+
+def priority_appeal_cell(error_rate: float, false_share: float, capacity: float,
+                         reps: int, n: int = E16_N, rounds: int = E16_ROUNDS) -> dict[str, float]:
+    rng = random.Random(seed("E17", error_rate, false_share, capacity))
+    run_metrics = {k: [] for k in ("critical_fill", "weighted_fill", "mispriority_units",
+                                   "appeal_load", "valid_correction_rate", "false_accept_rate",
+                                   "shock_critical_fill")}
+    for _ in range(reps):
+        true_tiers = [rng.choices([0, 1, 2], weights=[0.2, 0.35, 0.45])[0] for _ in range(n)]
+        false_claimants = [rng.random() < false_share for _ in range(n)]
+        pointers = [rng.randrange(n) for _ in range(3)]
+        critical_num = critical_den = 0
+        weighted_num = weighted_den = 0.0
+        mispriority = allocated = 0
+        shock_num = shock_den = 0
+        filed_total = reviewed_total = valid_filed_total = corrected_total = false_accepted_total = 0
+        for rd in range(1, rounds + 1):
+            needs = [rng.randint(1, 8) for _ in range(n)]
+            assessed = [classify_priority(tier, error_rate, rng) for tier in true_tiers]
+            effective, appeals = resolve_priority_appeals(
+                true_tiers, assessed, false_claimants, capacity, rng)
+            claims = [d * (2 if bad else 1) for d, bad in zip(needs, false_claimants)]
+            shock = rd in E16_SHOCK_ROUNDS
+            supply = int(sum(needs) * (0.10 if shock else 0.65))
+            allocation, pointers = _allocate_e16(
+                needs, claims, effective, supply, True, pointers, basic_floor=True)
+            for i, (d, amount) in enumerate(zip(needs, allocation)):
+                real = min(d, amount)
+                tier = true_tiers[i]
+                weight = 3 - tier
+                weighted_num += weight * real
+                weighted_den += weight * d
+                if tier == 0:
+                    critical_num += real
+                    critical_den += d
+                    if shock:
+                        shock_num += real
+                        shock_den += d
+                if effective[i] < tier:
+                    mispriority += amount
+                allocated += amount
+            filed_total += appeals["filed"]
+            reviewed_total += appeals["reviewed"]
+            valid_filed_total += appeals["valid_filed"]
+            corrected_total += appeals["valid_corrected"]
+            false_accepted_total += appeals["false_accepted"]
+        run_metrics["critical_fill"].append(critical_num / critical_den)
+        run_metrics["weighted_fill"].append(weighted_num / weighted_den)
+        run_metrics["mispriority_units"].append(mispriority / allocated if allocated else 0.0)
+        run_metrics["appeal_load"].append(reviewed_total / (n * rounds))
+        run_metrics["valid_correction_rate"].append(
+            corrected_total / valid_filed_total if valid_filed_total else 0.0)
+        run_metrics["false_accept_rate"].append(
+            false_accepted_total / reviewed_total if reviewed_total else 0.0)
+        run_metrics["shock_critical_fill"].append(shock_num / shock_den if shock_den else 0.0)
+    out = {}
+    for metric, values in run_metrics.items():
+        out[metric] = mean(values)
+        out[f"{metric}_ci"] = _ci(values)
+    return out
+
+
+def e17_priority_appeals(out: Path, reps: int, log) -> list[Path]:
+    errors, false_shares = (0.10, 0.25), (0.0, 0.15, 0.30)
+    rows, grid = [], {}
+    for error_rate in errors:
+        for false_share in false_shares:
+            for capacity in E17_CAPACITIES:
+                result = priority_appeal_cell(error_rate, false_share, capacity, max(2, reps))
+                grid[(error_rate, false_share, capacity)] = result
+                rows.append({"classification_error": error_rate, "false_priority_claimants": false_share,
+                             "appeal_capacity": capacity, "review_sensitivity": E17_SENSITIVITY,
+                             "review_false_accept": E17_FALSE_ACCEPT, "agents": E16_N,
+                             "rounds": E16_ROUNDS, "reps": reps, **result})
+            log(f"E17 error={error_rate:.2f}, false_claims={false_share:.2f}")
+    write_csv(rows, out, "e17_priority_appeals.csv")
+    focus_false = 0.15
+    fig, axes = new_figure(1, 4, panel=(5.6, 4.8))
+    xs = [100 * capacity for capacity in E17_CAPACITIES]
+    metrics = (("critical_fill", "critical needs met ↑"),
+               ("weighted_fill", "priority-weighted needs met ↑"),
+               ("mispriority_units", "units given to lower-need claimants ↓"))
+    for error_rate in errors:
+        color = E17_COLORS[error_rate]
+        for ax, (metric, label) in zip((axes[0][0], axes[0][1], axes[0][2]), metrics):
+            plot_line(ax, xs, [grid[(error_rate, focus_false, c)][metric] for c in E17_CAPACITIES],
+                      err=[grid[(error_rate, focus_false, c)][f"{metric}_ci"] for c in E17_CAPACITIES],
+                      color=color, marker="o", label=f"classification error {error_rate:.0%}")
+            ax.set_xlabel("appeal review capacity (% of people per round)")
+            ax.set_ylabel(label)
+            ax.set_ylim(0, 1.02)
+    h, labels = axes[0][0].get_legend_handles_labels()
+    legend_panel(axes[0][3], h, labels)
+    return finalize_figure(fig, fig_path(out, "e17_priority_appeals"))

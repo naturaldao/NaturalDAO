@@ -111,3 +111,40 @@ def test_e16_seeded_reproducible_and_bounded():
     r2 = a.needs_priority_simulation(random.Random(19), 0.3, reps=3, n=30, rounds=8)
     assert r1 == r2
     assert all(0 <= v <= 1 for rule in r1.values() for v in rule.values())
+
+
+def test_priority_error_moves_one_adjacent_tier():
+    assert a.classify_priority(0, 1.0, random.Random(1)) == 1
+    assert a.classify_priority(2, 1.0, random.Random(1)) == 1
+    assert a.classify_priority(1, 1.0, random.Random(1)) in (0, 2)
+
+
+def test_valid_appeal_corrects_underclassification_with_perfect_reviewer():
+    effective, stats = a.resolve_priority_appeals([0], [1], [False], 1.0, random.Random(8),
+                                                  sensitivity=1.0, false_accept=0.0)
+    assert effective == [0]
+    assert stats["valid_corrected"] == 1
+
+
+def test_false_priority_appeal_is_rejected_when_false_acceptance_is_zero():
+    effective, stats = a.resolve_priority_appeals([2], [2], [True], 1.0, random.Random(3),
+                                                  sensitivity=1.0, false_accept=0.0)
+    assert effective == [2]
+    assert stats["false_accepted"] == 0
+
+
+def test_appeal_review_capacity_is_hard_capped():
+    truths = [0, 0, 0, 0]
+    labels = [2, 2, 2, 2]
+    effective, stats = a.resolve_priority_appeals(truths, labels, [False] * 4, 0.5,
+                                                  random.Random(4), sensitivity=1.0)
+    assert stats["filed"] == 4
+    assert stats["reviewed"] == 2
+    assert sum(t == 0 for t in effective) == 2
+
+
+def test_priority_appeal_simulation_is_seeded_and_bounded():
+    r1 = a.priority_appeal_cell(0.25, 0.15, 0.10, reps=3, n=30, rounds=8)
+    r2 = a.priority_appeal_cell(0.25, 0.15, 0.10, reps=3, n=30, rounds=8)
+    assert r1 == r2
+    assert all(0 <= v <= 1 for v in r1.values())

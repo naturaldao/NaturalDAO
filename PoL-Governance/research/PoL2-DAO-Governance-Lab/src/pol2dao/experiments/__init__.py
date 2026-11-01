@@ -28,6 +28,7 @@ REGISTRY: dict[str, tuple[str, Experiment, float]] = {
     "E14": ("needs reporting (ch. 6)", allocation_exp.e14_needs_report, 0.4),
     "E15": ("correlated reviewers and escalation", allocation_exp.e15_reviewer_correlation, 1.0),
     "E16": ("non-market allocation across repeated rounds", allocation_exp.e16_nonmarket_allocation, 0.6),
+    "E17": ("priority classification and appeals", allocation_exp.e17_priority_appeals, 0.4),
 }
 
 
