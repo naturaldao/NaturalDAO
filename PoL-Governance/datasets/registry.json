@@ -56,9 +56,10 @@
     "license": "Proof of Love2; MRI-derived replay under MIT",
     "notes": "Laya/Kev training exports plus paired public samples; canonical PoL2 four-layer conversion is still pending; sealed/fresh blind is not included.",
     "eligible_for_ranking": false,
-    "hf_status": "hold_boundary_review",
+    "hf_status": "uploaded",
     "hf_org": "NaturalDAO",
     "hf_repo": "https://huggingface.co/datasets/NaturalDAO/pol2-score-v2",
-    "hf_note": "2026-11-02 复核发现上游 Release 的 UNASSIGNED 池与 blind/holdout 声明不一致；HF 上传暂停、未传任何文件，待上游修正版 Release。导出/校验工具 datasets/pol2/export_score_v2_hf.py（默认拒绝边界不一致的发布包；严格/安全子集两模式）。"
+    "hf_revision": "6f8b6999364be3d70ba5ae1931b74d43f4d86cbe",
+    "hf_note": "2026-11-02 上传 GitHub Release v1.0.0 全量镜像（57 文件 / 82.7 MiB；remote + 下载回验通过）。UNASSIGNED 池中的 160 行/格式按 owner 确认作为公开 test 划分（内部评测曾称 fresh blind，已消费一次）；上游 Release 文档的 blind 表述以 HF 数据卡为准。工具：datasets/pol2/export_score_v2_hf.py；手册：datasets/pol2/score-v2/HF.md。"
   }
 ]

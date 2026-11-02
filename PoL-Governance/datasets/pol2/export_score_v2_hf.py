@@ -116,6 +116,15 @@ UNASSIGNED_POOL_RELS = (
 UNASSIGNED_MANIFEST_RELS = (NEW_UNITS_MANIFEST_REL,)
 SPECIALIST_SAMPLE_FORMATS = (("specialist-kev.jsonl", "kev"), ("specialist-laya.jsonl", "laya"))
 
+# 已知 v1.0.0 Release 的口径：UNASSIGNED 池中的 160 行为公开 test 划分（内部评测曾称
+# "fresh blind"，已消费一次；owner 2026-11-02 确认按公开 test 上传全量包）。签名不符时仍默认拒绝。
+PUBLIC_TEST_SIGNATURE = {
+    "unassigned_entries": 875,
+    "blind_entries": 144,
+    "blind_cases": 88,
+    "blind_family_count": 5,
+}
+
 # 数据卡与技术文档里固定出现的分组顺序与格式显示名。
 GROUP_ORDER = ("pol2-specialist", "general-replay", "mixed-training", "lineage")
 FORMAT_ORDER = ("laya", "kev", "none")
@@ -396,6 +405,7 @@ def _boundary_state(release_dir):
         "blind_label_total": sum(blind_label_counts.values()),
         "declared_blind_label_counts": declared,
         "label_counts_match": declared == blind_label_counts,
+        "split_counts": integrated.get("split_counts") or {},
         "blind_lines": sorted(blind_lines),
     }
 
@@ -404,6 +414,27 @@ def audit_release_boundaries(release_dir):
     """审计上游 Release 的 unassigned 池与 fresh-blind 族的重叠（只返回聚合值）。"""
     state = _boundary_state(release_dir)
     return {key: value for key, value in state.items() if key != "blind_lines"}
+
+
+def public_test_interpretation(boundary_audit):
+    """识别已确认的『unassigned 池 = 公开 test 划分』口径；签名不符返回 None。"""
+    if not boundary_audit.get("applicable") or not boundary_audit.get("label_counts_match"):
+        return None
+    for key, expected in PUBLIC_TEST_SIGNATURE.items():
+        if boundary_audit.get(key) != expected:
+            return None
+    split_counts = boundary_audit.get("split_counts") or {}
+    assigned_new = sum(int(split_counts.get(key) or 0) for key in
+                       ("new_train_rows", "new_validation_rows",
+                        "new_calibration_rows", "new_score_dev_rows"))
+    test_rows = int(split_counts.get("new_score_blind_rows") or 0)
+    return {
+        "interpretation": "public_test_split",
+        "test_rows_per_format": test_rows or None,
+        "assigned_new_rows_per_format": assigned_new or None,
+        "note": ("owner 2026-11-02 确认：unassigned 池中的未分配单元是公开 test 划分"
+                 "（内部评测曾称 fresh blind，已消费一次），按全量 Release 发布。"),
+    }
 
 
 def normalized_line_sha256(raw):
@@ -611,6 +642,102 @@ FENCE = BT * 3
 def code(text):
     """行内代码（反引号包裹），避免模板里出现裸反引号。"""
     return BT + text + BT
+
+
+def render_public_test_card(ctx):
+    """生成简洁 HF 数据卡（已确认 unassigned 池 = 公开 test 划分时使用）。"""
+    interpretation = ctx.get("interpretation") or {}
+    test_rows = interpretation.get("test_rows_per_format")
+    test_line = (num(test_rows) + " 行（Laya/Kev 各一份）" if test_rows
+                 else "见 unassigned 池（与 assigned splits 不重复的行）")
+    boundary = ctx.get("boundary") or {}
+    counts = (boundary.get("audit") or {}).get("counts") or {}
+    lines = []
+    add = lines.append
+
+    add("---")
+    add("license: other")
+    add("license_name: proof-of-love2-and-mit")
+    add("license_link: " + ctx["release_url"])
+    add("language: [zh]")
+    add('pretty_name: "POL2 Score-v2 决策数据（研究预发布）"')
+    add("size_categories: [10K<n<100K]")
+    add("tags: [decision-making, typed-decisions, jev, pol2, synthetic, research-preview, proof-of-love2]")
+    add("---")
+    add("")
+    add("# POL2 Score-v2 决策数据（研究预发布）")
+    add("")
+    add("中文类型化决策样本：每行一个 `state`，一个或多个问题（`choice` / `noul` / `score`），"
+        "外加已发布答案与 one-hot 目标；面向 Laya/Kev 结构化决策模型的微调、复现与审阅。"
+        "本仓库是 GitHub Release `" + RELEASE_TAG + "` 的逐字节镜像（"
+        + num(ctx["release_files"]) + " 个文件 / " + ctx["release_human"] + "），"
+        "并附公开样例与离线校验清单。")
+    add("")
+    add("## 来源与版本")
+    add("")
+    add("| 项 | 值 |")
+    add("|---|---|")
+    add("| Release | `" + RELEASE_TAG + "`（pre-release，2026-10-26） |")
+    add("| 资产 | `" + RELEASE_ASSET_NAME + "`（" + num(ctx["asset_bytes"]) + " B） |")
+    add("| sha256 | `" + ctx["asset_sha256"] + "` |")
+    add("| 发布页 | " + ctx["release_url"] + " |")
+    add("| 本仓库 | " + ctx["hf_url"] + "（dataset） |")
+    add("")
+    add("## 数据划分")
+    add("")
+    add("| 划分 | 文件 | 行数 |")
+    add("|---|---|---:|")
+    add("| train | `data/pol2-specialist/{laya,kev}/train-m0.jsonl` | " + num(ctx.get("train_m0_rows") or 0) + " |")
+    add("| validation | `data/pol2-specialist/{laya,kev}/validation.jsonl` | " + num(ctx.get("validation_rows") or 0) + " |")
+    add("| calibration | `data/pol2-specialist/{laya,kev}/calibration.jsonl` | " + num(ctx.get("calibration_rows") or 0) + " |")
+    add("| dev（已用于选模型，不是 blind） | `data/pol2-specialist/{laya,kev}/score-dev.jsonl` | " + num(ctx.get("score_dev_rows") or 0) + " |")
+    add("| test（公开） | `data/pol2-specialist/score-v2-new-units/{laya,kev}.jsonl` 中与上述 split 不重复的行 | " + test_line + " |")
+    add("| 通用回放 | `data/general-replay/`（M10 / M25 / M40 / validation / guard） | 见对应文件 |")
+    add("| M10 混合训练 | `data/mixed-training/{laya,kev}-m10.jsonl` | 见对应文件 |")
+    add("")
+    if counts.get("blind_entries"):
+        add("test 行数为 " + num(test_rows or 0) + "（Laya/Kev 各一份），取自 unassigned 池中与 "
+            "assigned splits 不重复的行；本卡与 `MANIFEST.json` 的公开 test 说明为准，"
+            "上游 Release 文档里的 blind 表述早于本次公开口径。")
+    else:
+        add("test 行取自 unassigned 池中与 assigned splits 不重复的部分。")
+    add("")
+    add("## 使用方式")
+    add("")
+    add("```python")
+    add("from huggingface_hub import hf_hub_download")
+    add('p = hf_hub_download("' + ctx["hf_repo"] + '",')
+    add('    "release/data/pol2-specialist/laya/train-m0.jsonl",')
+    add('    repo_type="dataset", revision="<commit sha>")')
+    add("```")
+    add("")
+    add("Laya 的 `state` / `questions` / `gold` 是 JSON 字符串，读取后需 `json.loads`；"
+        "Kev 的 `questions` 是嵌套 dict，可用同样方式下载。引用时固定 revision。")
+    add("")
+    add("## 重要说明")
+    add("")
+    add("1. `test` 已在内部 M10 对比中使用过一次，**不是未见 benchmark**。")
+    add("2. Laya/Kev 是同一批行的两种格式，不能当独立证据双计；`mixed_m10` = specialist train + 661 条通用回放；"
+        "M10 ⊂ M25 ⊂ M40；unassigned 池与 train/val/cal/dev 有 715 行重复，使用时按 `unit_id` 去重。")
+    add("3. 标签为模型辅助标注：`expert_gold=false`、`training_approved=false`；内容是合成场景，"
+        "不是专家金标、不是生产安全批准。")
+    add("4. 旧 sealed blind（268）、legacy blind（687）、MRI blind（264）不在本包。")
+    add("")
+    add("## 许可")
+    add("")
+    add("POL2 原创内容遵循 **Proof of Love2**；MRI 派生回放遵循 **MIT**；混合 M10 文件同时适用两份通知。"
+        "见 `release/LICENSE`、`release/LICENSES/` 与 `release/THIRD_PARTY_NOTICES.md`。")
+    add("")
+    add("## 校验")
+    add("")
+    add("```bash")
+    add("sha256sum -c CHECKSUMS.sha256                 # 导出根：覆盖全部文件")
+    add("cd release && sha256sum -c CHECKSUMS.sha256    # 上游整包清单（完整镜像，应通过）")
+    add("python3 release/scripts/validate_public_release.py")
+    add("```")
+    add("")
+    add("本卡由 `datasets/pol2/export_score_v2_hf.py build` 按实际文件现算（无时间戳），请勿手改。")
+    return "\n".join(lines) + "\n"
 
 
 def render_card(ctx):
@@ -1117,16 +1244,19 @@ def build(release_dir, out, samples_dir=None, org=DEFAULT_ORG,
     boundary_audit = audit_release_boundaries(release_dir)
     boundary_applicable = bool(boundary_audit.get("applicable"))
     blind_entries = boundary_audit.get("blind_entries", 0) if boundary_applicable else 0
+    interpretation = public_test_interpretation(boundary_audit) if boundary_applicable else None
+    public_test_mode = bool(interpretation) and not exclude_unassigned_pool
     sample_audit = (audit_samples(samples, release_dir) if has_samples
                     else _empty_sample_audit("未提供样例目录"))
 
-    if blind_entries and not exclude_unassigned_pool:
+    if blind_entries and not exclude_unassigned_pool and not public_test_mode:
         raise ExportError(
             "上游 unassigned 池含 " + num(blind_entries) + " 个 fresh-blind 单元（"
             + num(boundary_audit.get("blind_cases", 0)) + " 个案例），默认拒绝导出。修复路径："
             "1) 上游 Release 把 fresh-blind 单元移出 unassigned 池后重新发布；"
             "2) 或加 --exclude-unassigned-pool 只导出 assigned splits（样例命中盲测时再加 "
-            "--exclude-blind-samples）。")
+            "--exclude-blind-samples）；3) 若该池已确认是公开 test 划分，需 Release 签名与 "
+            "PUBLIC_TEST_SIGNATURE 一致（当前签名见脚本常量）。")
 
     excluded_release = set()
     excluded_upstream_files = []
@@ -1218,6 +1348,8 @@ def build(release_dir, out, samples_dir=None, org=DEFAULT_ORG,
                 "label_counts_match": boundary_audit.get("label_counts_match", False),
             },
             "safe_subset": bool(exclude_unassigned_pool),
+            "public_test": bool(public_test_mode),
+            "interpretation": interpretation,
             "excluded_upstream_files": [item["path"] for item in excluded_upstream_files],
             "excluded_samples": [item["path"] for item in excluded_samples],
             "included": included_paths,
@@ -1230,7 +1362,9 @@ def build(release_dir, out, samples_dir=None, org=DEFAULT_ORG,
             "excluded_upstream_files": excluded_upstream_files,
             "excluded_samples": excluded_samples,
         }
-        boundary_for_manifest = (boundary_ctx if (exclude_unassigned_pool or exclude_blind_samples)
+        boundary_for_manifest = (boundary_ctx
+                                 if (exclude_unassigned_pool or exclude_blind_samples
+                                     or public_test_mode)
                                  else None)
 
         prefix = RELEASE_DIRNAME + "/data/"
@@ -1253,13 +1387,18 @@ def build(release_dir, out, samples_dir=None, org=DEFAULT_ORG,
             "has_cross_check": has_cross_check,
             "largest_human": human_bytes(largest),
             "train_m0_rows": rows_of(prefix + "pol2-specialist/laya/train-m0.jsonl"),
+            "validation_rows": rows_of(prefix + "pol2-specialist/laya/validation.jsonl"),
+            "calibration_rows": rows_of(prefix + "pol2-specialist/laya/calibration.jsonl"),
             "score_dev_rows": rows_of(prefix + "pol2-specialist/laya/score-dev.jsonl"),
             "holdout": HOLDOUT_EXCLUSIONS,
             "boundary": boundary_ctx,
             "safe_subset": bool(exclude_unassigned_pool),
+            "public_test": bool(public_test_mode),
+            "interpretation": interpretation,
         }
 
-        write_text(staging / CARD_FILE, render_card(ctx))
+        card_text = render_public_test_card(ctx) if public_test_mode else render_card(ctx)
+        write_text(staging / CARD_FILE, card_text)
         files.append(entry_for(staging, CARD_FILE))
         files.sort(key=lambda item: item["path"])
 

@@ -8,10 +8,11 @@
 - 生成方法：POL2 场景生成、白名单过滤、双模型独立答案、分歧隔离和结构去重
 - 人工审阅：未达到 human expert gold；不得写成专家金标
 
-## HF 托管（2026-11-02，HOLD）
+## HF 托管（2026-11-02，已发布）
 
-- 目标仓库：`NaturalDAO/pol2-score-v2`（dataset，public；当前为空仓，**未上传任何文件**）。
-- 2026-11-02 复核对上游 Release 做边界审计，发现 `UNASSIGNED` 新增单元池与其 blind/holdout 声明不一致；**暂停 HF 上传**，等待上游修正版 Release。
+- 仓库：[`NaturalDAO/pol2-score-v2`](https://huggingface.co/datasets/NaturalDAO/pol2-score-v2)（dataset，public），revision `6f8b6999364be3d70ba5ae1931b74d43f4d86cbe`。
+- 内容：GitHub Release `pol2-score-v2-v1.0.0` 的逐字节镜像（57 文件 / 82.7 MiB）+ 简洁数据卡 + MANIFEST/CHECKSUMS；远程校验与下载回验通过。
+- 口径：`UNASSIGNED` 池中的 160 行（每格式）为**公开 test 划分**（owner 2026-11-02 确认；内部评测曾称 fresh blind，已消费一次）；上游 Release 文档里的 blind 表述早于本次公开口径，以 HF 数据卡为准。
 - 导出/校验工具（纯标准库、确定性、含边界守卫）见 [`../../export_score_v2_hf.py`](../export_score_v2_hf.py)，托管手册见 [HF.md](HF.md)；数据实体不入库，导出目录已 gitignore。
 
 ## 范围

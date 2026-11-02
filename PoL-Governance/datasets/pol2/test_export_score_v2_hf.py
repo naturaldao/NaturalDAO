@@ -426,6 +426,31 @@ class ExportScoreV2HfTest(unittest.TestCase):
         self.assertIn("fresh-blind", stderr)
         self.assertFalse(self.out.exists())
 
+    def test_build_public_test_signature_allows_full_mirror(self):
+        self.make_boundary_release()
+        signature = {"unassigned_entries": 4, "blind_entries": 2,
+                     "blind_cases": 2, "blind_family_count": 1}
+        with mock.patch.object(export, "PUBLIC_TEST_SIGNATURE", signature):
+            code, _stdout, stderr = self.build()
+        self.assertEqual(code, 0, stderr)
+        files = self.files_by_path()
+        self.assertIn("release/data/pol2-specialist/score-v2-new-units/kev.jsonl", files)
+        self.assertIn("release/data/pol2-specialist/score-v2-new-units/laya.jsonl", files)
+        self.assertIn("release/manifests/score-v2-new-units.json", files)
+        self.assertIn("samples/specialist-kev.jsonl", files)
+        manifest = self.manifest()
+        self.assertTrue(manifest["boundary_audit"]["public_test"])
+        self.assertEqual(manifest["boundary_audit"]["interpretation"]["interpretation"],
+                         "public_test_split")
+        self.assertEqual(manifest["boundary_audit"]["counts"]["blind_entries"], 2)
+        self.assertEqual(manifest["excluded_upstream_files"], [])
+        self.assertEqual(manifest["excluded_samples"], [])
+        card = self.card()
+        self.assertIn("数据划分", card)
+        self.assertIn("test（公开）", card)
+        self.assertNotIn("安全子集", card)
+        self.assertNotIn("§10", card)
+
     def test_build_safe_subset_excludes_pool_manifest_and_samples(self):
         self.make_boundary_release()
         flags = ("--exclude-unassigned-pool", "--exclude-blind-samples")
