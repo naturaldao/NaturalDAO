@@ -29,6 +29,6 @@
 
 - Release 无更新：资产 sha256 与 2026-10-27 本地留档一致；`sha256sum -c` 49/49、`validate_public_release.py` PASS、仓库 `manifests/full-release.json` 交叉核对 23/23。
 - 边界口径：`UNASSIGNED` 池（875 行/格式）= 715 行与 train/val/cal/dev 重复 + **160 行公开 test 划分**（owner 2026-11-02 确认；内部评测曾称 fresh blind，已消费一次）。上游 Release 文档的 blind 表述早于本次公开口径，以 HF 数据卡为准，建议写作者后续同步更新。
-- **已上传 HF**：[`NaturalDAO/pol2-score-v2`](https://huggingface.co/datasets/NaturalDAO/pol2-score-v2)（public），revision `6f8b6999364be3d70ba5ae1931b74d43f4d86cbe`；GitHub Release v1.0.0 全量逐字节镜像（57 文件 / 82.7 MiB）+ 简洁数据卡 + MANIFEST/CHECKSUMS；远程校验 57/57、下载回验 57/57 且目录一致。
+- **已上传 HF**：[`NaturalDAO/pol2-score-v2`](https://huggingface.co/datasets/NaturalDAO/pol2-score-v2)（public），revision `6f6447d7b87ffe382210d67d32868fcaabb12238`；GitHub Release v1.0.0 全量逐字节镜像（57 文件 / 82.7 MiB）+ 简洁数据卡 + MANIFEST/CHECKSUMS；远程校验 57/57、下载回验 57/57 且目录一致。
 - 工具与手册：`datasets/pol2/export_score_v2_hf.py`（确定性导出/清单/校验 + 边界守卫；严格/安全子集两模式）+ 单测；`datasets/pol2/score-v2/HF.md`。
 - 后续：写作者可在下次 Release 修订文档口径；无数据变更时 HF 固定 revision 不再更新。

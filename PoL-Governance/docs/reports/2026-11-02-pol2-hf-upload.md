@@ -4,7 +4,7 @@
 
 GitHub Release `pol2-score-v2-v1.0.0`（2026-10-26，未更新）已按原始字节镜像发布到 Hugging Face：
 [`NaturalDAO/pol2-score-v2`](https://huggingface.co/datasets/NaturalDAO/pol2-score-v2)（public dataset），
-**revision `6f8b6999364be3d70ba5ae1931b74d43f4d86cbe`**；远程校验与下载回验通过。
+**revision `6f6447d7b87ffe382210d67d32868fcaabb12238`**；远程校验与下载回验通过。
 
 ## 发布内容
 
@@ -34,3 +34,9 @@ GitHub Release `pol2-score-v2-v1.0.0`（2026-10-26，未更新）已按原始字
 
 1. 写作者可在下次 Release 同步更正 README/AUDIT/RELEASE_REVIEW/HOLDOUT 的 blind 措辞（本数据集以现有 HF 卡为准）；
 2. 无数据/许可变更时固定 revision，不再更新；新增版本按 `HF.md` 流程全量重建并回填 revision。
+## 2026-11-02 更新：数据卡改版（同一数据集）
+
+按 owner 要求，HF 数据卡改为突出**安全对齐**定位与 **PoL2 论文**链接（论文 PDF、论文仓库/研究材料、PoL2 正文），数据格式与划分仅作简要介绍；数据文件未变。
+
+- 新 revision：`6f6447d7b87ffe382210d67d32868fcaabb12238`（仅 README 变化）；
+- 远程校验 57/57 match、下载回验 57/57 且与本地导出一致（同前）。

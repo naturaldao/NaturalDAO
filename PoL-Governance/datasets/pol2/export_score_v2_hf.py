@@ -645,13 +645,18 @@ def code(text):
 
 
 def render_public_test_card(ctx):
-    """生成简洁 HF 数据卡（已确认 unassigned 池 = 公开 test 划分时使用）。"""
+    """生成简洁 HF 数据卡：安全对齐 + PoL2 论文定位（已确认公开 test 口径）。"""
     interpretation = ctx.get("interpretation") or {}
     test_rows = interpretation.get("test_rows_per_format")
     test_line = (num(test_rows) + " 行（Laya/Kev 各一份）" if test_rows
                  else "见 unassigned 池（与 assigned splits 不重复的行）")
     boundary = ctx.get("boundary") or {}
     counts = (boundary.get("audit") or {}).get("counts") or {}
+    paper_base = ("https://github.com/naturaldao/NaturalDAO/tree/main/"
+                  "PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey")
+    paper_pdf = ("https://github.com/naturaldao/NaturalDAO/blob/main/"
+                 "PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey/paper/main.pdf")
+    pol2_spec = "https://github.com/naturaldao/NaturalDAO/tree/main/PoL"
     lines = []
     add = lines.append
 
@@ -660,80 +665,69 @@ def render_public_test_card(ctx):
     add("license_name: proof-of-love2-and-mit")
     add("license_link: " + ctx["release_url"])
     add("language: [zh]")
-    add('pretty_name: "POL2 Score-v2 决策数据（研究预发布）"')
+    add('pretty_name: "POL2 Score-v2 安全对齐决策数据（研究预发布）"')
     add("size_categories: [10K<n<100K]")
-    add("tags: [decision-making, typed-decisions, jev, pol2, synthetic, research-preview, proof-of-love2]")
+    add("task_categories: [text-classification]")
+    add("tags: [safety-alignment, ai-governance, alignment, typed-decisions, jev, pol2, synthetic, research-preview, proof-of-love2]")
     add("---")
     add("")
-    add("# POL2 Score-v2 决策数据（研究预发布）")
+    add("# POL2 Score-v2 安全对齐决策数据（研究预发布）")
     add("")
-    add("中文类型化决策样本：每行一个 `state`，一个或多个问题（`choice` / `noul` / `score`），"
-        "外加已发布答案与 one-hot 目标；面向 Laya/Kev 结构化决策模型的微调、复现与审阅。"
-        "本仓库是 GitHub Release `" + RELEASE_TAG + "` 的逐字节镜像（"
-        + num(ctx["release_files"]) + " 个文件 / " + ctx["release_human"] + "），"
-        "并附公开样例与离线校验清单。")
+    add("面向**安全对齐（safety alignment）**的中文类型化决策数据：训练/评测模型在治理条款下做"
+        "**有限、可记录、可审计**的判断——在候选上给出「允许 / 拦截 / 不确定」选择、0–4 分级评分"
+        "或「以上皆非」（noul），而不是生成自由文本。数据来自 **PoL2（Proof of Love2）** 治理框架的"
+        "条款场景，用于研究类型化决策模型能否作为安全阀（guardrail）的一部分；它不是自动裁决器，"
+        "有后果的决定应保留人类终结。")
     add("")
-    add("## 来源与版本")
+    add("## 相关论文与项目")
     add("")
-    add("| 项 | 值 |")
+    add("| 内容 | 链接 |")
     add("|---|---|")
-    add("| Release | `" + RELEASE_TAG + "`（pre-release，2026-10-26） |")
-    add("| 资产 | `" + RELEASE_ASSET_NAME + "`（" + num(ctx["asset_bytes"]) + " B） |")
-    add("| sha256 | `" + ctx["asset_sha256"] + "` |")
-    add("| 发布页 | " + ctx["release_url"] + " |")
-    add("| 本仓库 | " + ctx["hf_url"] + "（dataset） |")
+    add("| 论文（英文，arXiv 投稿版 PDF）：*Can Typed Decision Models Serve as Automated Safeguards? "
+        "A Clause-Level Assessment Against the Proof of Love2 Specification* | " + paper_pdf + " |")
+    add("| 论文仓库 / 研究材料（LaTeX 源、审稿记录、证据编码） | " + paper_base + " |")
+    add("| PoL2 正文（Proof of Love2 条款） | " + pol2_spec + " |")
+    add("| 本数据集 Release | " + ctx["release_url"] + " |")
     add("")
-    add("## 数据划分")
+    add("## 数据内容（简要）")
     add("")
-    add("| 划分 | 文件 | 行数 |")
+    add("每行一个中文 `state`（治理/审议场景），一个或多个问题（`choice` / `noul` / `score`），"
+        "以及已发布答案、one-hot 目标或 0–4 评分；面向 Laya/Kev 两种类型化决策模型格式"
+        "（同一批案例的两种导出，**不要当独立证据双计**）。")
+    add("")
+    add("| 划分 | 约定 | 行数（每格式） |")
     add("|---|---|---:|")
-    add("| train | `data/pol2-specialist/{laya,kev}/train-m0.jsonl` | " + num(ctx.get("train_m0_rows") or 0) + " |")
-    add("| validation | `data/pol2-specialist/{laya,kev}/validation.jsonl` | " + num(ctx.get("validation_rows") or 0) + " |")
-    add("| calibration | `data/pol2-specialist/{laya,kev}/calibration.jsonl` | " + num(ctx.get("calibration_rows") or 0) + " |")
-    add("| dev（已用于选模型，不是 blind） | `data/pol2-specialist/{laya,kev}/score-dev.jsonl` | " + num(ctx.get("score_dev_rows") or 0) + " |")
-    add("| test（公开） | `data/pol2-specialist/score-v2-new-units/{laya,kev}.jsonl` 中与上述 split 不重复的行 | " + test_line + " |")
-    add("| 通用回放 | `data/general-replay/`（M10 / M25 / M40 / validation / guard） | 见对应文件 |")
-    add("| M10 混合训练 | `data/mixed-training/{laya,kev}-m10.jsonl` | 见对应文件 |")
-    add("")
-    if counts.get("blind_entries"):
-        add("test 行数为 " + num(test_rows or 0) + "（Laya/Kev 各一份），取自 unassigned 池中与 "
-            "assigned splits 不重复的行；本卡与 `MANIFEST.json` 的公开 test 说明为准，"
-            "上游 Release 文档里的 blind 表述早于本次公开口径。")
-    else:
-        add("test 行取自 unassigned 池中与 assigned splits 不重复的部分。")
-    add("")
-    add("## 使用方式")
-    add("")
-    add("```python")
-    add("from huggingface_hub import hf_hub_download")
-    add('p = hf_hub_download("' + ctx["hf_repo"] + '",')
-    add('    "release/data/pol2-specialist/laya/train-m0.jsonl",')
-    add('    repo_type="dataset", revision="<commit sha>")')
-    add("```")
-    add("")
-    add("Laya 的 `state` / `questions` / `gold` 是 JSON 字符串，读取后需 `json.loads`；"
-        "Kev 的 `questions` 是嵌套 dict，可用同样方式下载。引用时固定 revision。")
+    add("| train | `train-m0.jsonl` | " + num(ctx.get("train_m0_rows") or 0) + " |")
+    add("| validation | `validation.jsonl` | " + num(ctx.get("validation_rows") or 0) + " |")
+    add("| calibration | `calibration.jsonl` | " + num(ctx.get("calibration_rows") or 0) + " |")
+    add("| dev | `score-dev.jsonl`（已用于选模型，不是 blind） | " + num(ctx.get("score_dev_rows") or 0) + " |")
+    add("| test（公开） | `score-v2-new-units/*.jsonl` 中与上述 split 不重复的行；内部 M10 对比已使用一次 | " + test_line + " |")
     add("")
     add("## 重要说明")
     add("")
-    add("1. `test` 已在内部 M10 对比中使用过一次，**不是未见 benchmark**。")
-    add("2. Laya/Kev 是同一批行的两种格式，不能当独立证据双计；`mixed_m10` = specialist train + 661 条通用回放；"
-        "M10 ⊂ M25 ⊂ M40；unassigned 池与 train/val/cal/dev 有 715 行重复，使用时按 `unit_id` 去重。")
-    add("3. 标签为模型辅助标注：`expert_gold=false`、`training_approved=false`；内容是合成场景，"
-        "不是专家金标、不是生产安全批准。")
-    add("4. 旧 sealed blind（268）、legacy blind（687）、MRI blind（264）不在本包。")
+    add("1. **安全对齐用途**：数据用于研究/评测「条款级安全判断」与 guardrail 设计；标签为模型辅助标注"
+        "（`expert_gold=false`、`training_approved=false`），合成内容不对应真实事件，不构成生产安全批准。")
+    add("2. test 不是未见 benchmark：已在内部 M10 对比中使用过一次；旧 sealed blind（268）/ legacy blind（687）/"
+        "MRI blind（264）不在本包。")
+    add("3. Laya/Kev 是同一批行的两种格式；`mixed_m10` = specialist train + 661 条通用回放；M10 ⊂ M25 ⊂ M40；"
+        "unassigned 池与 train/val/cal/dev 有 715 行重复，使用时按 `unit_id` 去重。")
+    add("4. 许可：POL2 原创内容遵循 **Proof of Love2**；MRI 派生回放遵循 **MIT**（见 `release/LICENSE`、"
+        "`release/LICENSES/`、`release/THIRD_PARTY_NOTICES.md`）。")
     add("")
-    add("## 许可")
+    add("## 使用与校验")
     add("")
-    add("POL2 原创内容遵循 **Proof of Love2**；MRI 派生回放遵循 **MIT**；混合 M10 文件同时适用两份通知。"
-        "见 `release/LICENSE`、`release/LICENSES/` 与 `release/THIRD_PARTY_NOTICES.md`。")
+    add("```python")
+    add("from huggingface_hub import hf_hub_download")
+    add('p = hf_hub_download("' + ctx["hf_repo"] + '", "release/data/pol2-specialist/laya/train-m0.jsonl",')
+    add('                    repo_type="dataset", revision="<commit sha>")')
+    add("```")
     add("")
-    add("## 校验")
+    add("Laya 的 `state` / `questions` / `gold` 是 JSON 字符串，读取后 `json.loads`；Kev 的 `questions` 为嵌套 dict。"
+        "引用请固定 revision（不要引用 `main`）。")
     add("")
     add("```bash")
-    add("sha256sum -c CHECKSUMS.sha256                 # 导出根：覆盖全部文件")
-    add("cd release && sha256sum -c CHECKSUMS.sha256    # 上游整包清单（完整镜像，应通过）")
-    add("python3 release/scripts/validate_public_release.py")
+    add("sha256sum -c CHECKSUMS.sha256")
+    add("cd release && sha256sum -c CHECKSUMS.sha256 && python3 scripts/validate_public_release.py")
     add("```")
     add("")
     add("本卡由 `datasets/pol2/export_score_v2_hf.py build` 按实际文件现算（无时间戳），请勿手改。")

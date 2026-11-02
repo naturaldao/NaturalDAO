@@ -8,9 +8,17 @@
 - 生成方法：POL2 场景生成、白名单过滤、双模型独立答案、分歧隔离和结构去重
 - 人工审阅：未达到 human expert gold；不得写成专家金标
 
+## 定位
+
+面向**安全对齐（safety alignment）**的中文类型化决策数据：用于训练/评测模型在治理条款下做「允许 / 拦截 / 不确定」等有限、可记录、可审计的判断，是 PoL2（Proof of Love2）安全阀（guardrail）研究的一部分。配套论文与材料：
+
+- 论文 PDF：*Can Typed Decision Models Serve as Automated Safeguards? A Clause-Level Assessment Against the Proof of Love2 Specification* → [main.pdf](https://github.com/naturaldao/NaturalDAO/blob/main/PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey/paper/main.pdf)
+- 论文仓库 / 研究材料：[PoL2-Jev-Typed-Literature-Survey](https://github.com/naturaldao/NaturalDAO/tree/main/PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey)
+- PoL2 正文：[PoL](https://github.com/naturaldao/NaturalDAO/tree/main/PoL)
+
 ## HF 托管（2026-11-02，已发布）
 
-- 仓库：[`NaturalDAO/pol2-score-v2`](https://huggingface.co/datasets/NaturalDAO/pol2-score-v2)（dataset，public），revision `6f8b6999364be3d70ba5ae1931b74d43f4d86cbe`。
+- 仓库：[`NaturalDAO/pol2-score-v2`](https://huggingface.co/datasets/NaturalDAO/pol2-score-v2)（dataset，public），revision `6f6447d7b87ffe382210d67d32868fcaabb12238`。
 - 内容：GitHub Release `pol2-score-v2-v1.0.0` 的逐字节镜像（57 文件 / 82.7 MiB）+ 简洁数据卡 + MANIFEST/CHECKSUMS；远程校验与下载回验通过。
 - 口径：`UNASSIGNED` 池中的 160 行（每格式）为**公开 test 划分**（owner 2026-11-02 确认；内部评测曾称 fresh blind，已消费一次）；上游 Release 文档里的 blind 表述早于本次公开口径，以 HF 数据卡为准。
 - 导出/校验工具（纯标准库、确定性、含边界守卫）见 [`../../export_score_v2_hf.py`](../export_score_v2_hf.py)，托管手册见 [HF.md](HF.md)；数据实体不入库，导出目录已 gitignore。

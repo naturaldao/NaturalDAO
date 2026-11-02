@@ -67,7 +67,7 @@
 |---|---|---|
 | EVAL-02 | 具身推理先导：16 案例 / 8 族文本配对（qwen2.5:7b、llama3.1:8b）；generic/中性/PoL2 三条件长度匹配（中性 vs PoL2 动作净变化 0）；Kev-0.8B + VirtualHome 符号闭环；MuJoCo 单任务 n=1 | 探索性；无统计效能、无相机感知/真机、非 AGIBOT 复现 |
 | EVAL-03 | 完整理论内在化先导：114 个来源条目；love2 单条目严格质量门 **0/6** → 按规则停止训练 | 仅可行性先导，**无内在化结论** |
-| DATA-02 score-v2 | POL2 score-v2 v1.0.0-rc1：Laya/Kev 训练导出（train-M0 各 6,166）+ MRI 回放 M10/M25/M40；完整数据在 GitHub Release；HF 镜像 `NaturalDAO/pol2-score-v2` revision `6f8b699…` | 非专家金标；`UNASSIGNED` 池 160 行为公开 test（已消费一次，非未见 benchmark）；旧 sealed/legacy/MRI blind 不在包内；完整数据不入 Git |
+| DATA-02 score-v2 | POL2 score-v2 v1.0.0-rc1：Laya/Kev 训练导出（train-M0 各 6,166）+ MRI 回放 M10/M25/M40；完整数据在 GitHub Release；HF 镜像 `NaturalDAO/pol2-score-v2` revision `6f6447d…` | 非专家金标；`UNASSIGNED` 池 160 行为公开 test（已消费一次，非未见 benchmark）；旧 sealed/legacy/MRI blind 不在包内；完整数据不入 Git |
 | MODEL-02 Kev-4B | kev-4b-pol2-score-v2-m10（Qwen3.5-4B-Base@1001bb4d + LoRA + pointer head），3 个 seed（17/29/43） | 研究预发布；三 seed blind 平均均 58.71% → **不能宣称平均提升**；seed43 为事后选择的唯一双门版本 |
 
 - 本项目主线（Qwen3-1.7B + 字母 SFT）与协作 Kev-4B pointer-head 线在数据、规模、评测口径上都不同，**禁止混表比较**；
