@@ -8,6 +8,7 @@
 [![License: Proof of Love2](https://img.shields.io/badge/license-Proof%20of%20Love2-lightgrey.svg)](LICENSE)
 [![Meeting](https://img.shields.io/badge/例会-周二%20%7C%20周四%2015%3A00-blue.svg)](https://meeting.tencent.com/dm/z2sdLl6hcJxi)
 [![Paper](https://img.shields.io/badge/paper-Proof%20of%20Love-green.svg)](https://github.com/DAism2019/Proof-of-Love)
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-NaturalDAO-yellow.svg)](https://huggingface.co/NaturalDAO)
 
 [开发规划](#-开发规划) · [基础理论](#-基础理论--foundational-theory) · [相关论文](#-相关论文--papers) · [参与例会](#-例会--weekly-meeting) · [许可证](#️-许可证--license)
 
