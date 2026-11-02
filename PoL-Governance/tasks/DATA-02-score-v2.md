@@ -25,3 +25,9 @@
 1. 后续需要时补 canonical 转换；
 2. 维持研究预发布边界，未经再次评审不得改成生产批准；
 3. 若修改数据包，必须同步更新 Release 资产、SHA-256 和完整清单。
+## 2026-11-02 复核与 HF 托管（HOLD）
+
+- Release 无更新：资产 sha256 与 2026-10-27 本地留档一致；`sha256sum -c` 49/49、`validate_public_release.py` PASS、仓库 `manifests/full-release.json` 交叉核对 23/23。
+- **边界审计发现阻断问题**：`UNASSIGNED` 新增单元池与其 blind/holdout 声明不一致（聚合证据在维护者内部审计记录，不在公开仓库展开）；据此 **HF 上传暂停**（`NaturalDAO/pol2-score-v2` 为空仓，未传任何文件）。
+- 已就绪：`datasets/pol2/export_score_v2_hf.py`（确定性导出/清单/校验 + 边界守卫；严格模式与安全子集模式）+ 单测；托管手册 `datasets/pol2/score-v2/HF.md`。
+- 下一步（维护者/owner）：修正 Release（例如删除 unassigned 池与其索引清单、替换命中盲测的仓库样例、更正 README/AUDIT/REVIEW/HOLDOUT 声明），然后按 HF.md 严格模式上传并固定 revision。

@@ -8,6 +8,12 @@
 - 生成方法：POL2 场景生成、白名单过滤、双模型独立答案、分歧隔离和结构去重
 - 人工审阅：未达到 human expert gold；不得写成专家金标
 
+## HF 托管（2026-11-02，HOLD）
+
+- 目标仓库：`NaturalDAO/pol2-score-v2`（dataset，public；当前为空仓，**未上传任何文件**）。
+- 2026-11-02 复核对上游 Release 做边界审计，发现 `UNASSIGNED` 新增单元池与其 blind/holdout 声明不一致；**暂停 HF 上传**，等待上游修正版 Release。
+- 导出/校验工具（纯标准库、确定性、含边界守卫）见 [`../../export_score_v2_hf.py`](../export_score_v2_hf.py)，托管手册见 [HF.md](HF.md)；数据实体不入库，导出目录已 gitignore。
+
 ## 范围
 
 这是 Laya/Kev score 0–4 微调实验所使用的数据快照，包含：
