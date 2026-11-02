@@ -59,7 +59,7 @@
     "hf_status": "uploaded",
     "hf_org": "NaturalDAO",
     "hf_repo": "https://huggingface.co/datasets/NaturalDAO/pol2-score-v2",
-    "hf_revision": "6f6447d7b87ffe382210d67d32868fcaabb12238",
+    "hf_revision": "2f28833b983f120b269793cebcc6e5bd8edae05d",
     "hf_note": "2026-11-02 上传 GitHub Release v1.0.0 全量镜像（57 文件 / 82.7 MiB；remote + 下载回验通过）。UNASSIGNED 池中的 160 行/格式按 owner 确认作为公开 test 划分（内部评测曾称 fresh blind，已消费一次）；上游 Release 文档的 blind 表述以 HF 数据卡为准。工具：datasets/pol2/export_score_v2_hf.py；手册：datasets/pol2/score-v2/HF.md。"
   }
 ]

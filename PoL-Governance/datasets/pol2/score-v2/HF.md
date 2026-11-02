@@ -1,14 +1,14 @@
 # Hugging Face 托管手册（POL2 score-v2）
 
 **状态：UPLOADED（2026-11-02）。** HF 数据集仓库 [`NaturalDAO/pol2-score-v2`](https://huggingface.co/datasets/NaturalDAO/pol2-score-v2) 已发布，
-revision `6f6447d7b87ffe382210d67d32868fcaabb12238`；远程校验与下载回验通过。
+revision `2f28833b983f120b269793cebcc6e5bd8edae05d`；远程校验与下载回验通过。
 
 本文件是托管方案 + 操作手册（对齐 [datasets/general/HF.md](../../general/HF.md) 的托管规范）。数据实体不入库：仓库只保留本手册、
 数据卡、清单（`manifests/full-release.json`）、样例、导出/校验脚本 [export_score_v2_hf.py](../export_score_v2_hf.py)。
 
 - 数据集版本：`pol2-score-v2` / `v1.0.0-rc1`（GitHub Release `pol2-score-v2-v1.0.0`）
 - HF 仓库：`NaturalDAO/pol2-score-v2`（dataset，public）
-- HF revision：`6f6447d7b87ffe382210d67d32868fcaabb12238`（引用时固定此 sha，不要引用 `main`）
+- HF revision：`2f28833b983f120b269793cebcc6e5bd8edae05d`（引用时固定此 sha，不要引用 `main`）
 - 生成器：`datasets/pol2/export_score_v2_hf.py`（纯标准库、离线、确定性；`build` / `verify` / `stats`）
 - 数据卡：导出目录根 `README.md`（由生成器产出，**不要手改**）
 
@@ -83,8 +83,9 @@ python datasets/pol2/export_score_v2_hf.py verify --dir <tmp>
 |---|---|---|
 | 2026-10-27 | Release 资产本地留档与校验 | `.agent/notes/2026-10-27-pol2-release-archive.md`；当时约定“不复制进仓库、不上传 HF” |
 | 2026-11-02 | 边界复核；owner 确认 160 行为公开 test 划分；导出/校验工具完成 | 全量 57 文件 / 82.7 MiB |
-| 2026-11-02 | **正式上传 HF（public）** | revision `6f6447d7b87ffe382210d67d32868fcaabb12238`；远程 + 下载回验通过 |
+| 2026-11-02 | **正式上传 HF（public）** | revision `2f28833b983f120b269793cebcc6e5bd8edae05d`；远程 + 下载回验通过 |
 | 2026-11-02 | 数据卡改版：突出**安全对齐**定位与 PoL2 论文链接，数据内容简化 | 同一 revision（内容仅 README 变化） |
+| 2026-11-02 | 数据卡开头改为面向无背景读者的通俗说明（安全判断题库类比） | revision `2f28833b983f120b269793cebcc6e5bd8edae05d` |
 
 ## 6. 边界与红线
 
