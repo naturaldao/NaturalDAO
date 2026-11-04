@@ -208,7 +208,7 @@ def summarize(counts: Dict[str, int]) -> Dict[str, Any]:
 def load_token(path: Path, repo_root: Path) -> str:
     resolved = path.expanduser().resolve()
     try:
-        resolved.relative_to(repo_root)
+        resolved.relative_to(repo_root.resolve())
     except ValueError:
         pass
     else:
