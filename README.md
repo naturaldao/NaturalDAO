@@ -10,7 +10,7 @@
 [![Paper](https://img.shields.io/badge/paper-Proof%20of%20Love-green.svg)](https://github.com/DAism2019/Proof-of-Love)
 [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-NaturalDAO-yellow.svg)](https://huggingface.co/NaturalDAO)
 
-[开发规划](#-开发规划) · [基础理论](#-基础理论--foundational-theory) · [相关论文](#-相关论文--papers) · [参与例会](#-例会--weekly-meeting) · [许可证](#️-许可证--license)
+[最近更新](#最近更新--recent-activity) · [开发规划](#-开发规划) · [基础理论](#-基础理论--foundational-theory) · [相关论文](#-相关论文--papers) · [参与例会](#-例会--weekly-meeting) · [许可证](#️-许可证--license)
 
 </div>
 
@@ -29,6 +29,26 @@ It represents the governance and application layer for the Proof-of-Love2 Civili
 自然道是一个建立在「爱2证明」共识之上，并由**区块链**和**人工智能**两大核心技术驱动的超级去中心化自治组织。
 
 它是富爱文明的治理与应用层。它也将是人类讨论已久而无处寻觅的 **ASI**！
+
+---
+
+## 最近更新 · Recent Activity
+
+按主分支提交时间汇总过去 24 小时的更新，最多显示 10 条，时间为 UTC+8。工作流在主分支有新提交时刷新，并每半小时清理过期条目。
+
+<!-- readme-activity:start -->
+
+- 11-04 20:13 [区分任务状态和分支集成状态](https://github.com/naturaldao/NaturalDAO/pull/62) · 涉及 PoL-Governance
+- 11-04 20:12 [按用途整理首页、贡献指南和研究导航](https://github.com/naturaldao/NaturalDAO/pull/61) · 涉及 CONTRIBUTING.md、PoL-Governance、README.md、Research、docs等 6 处
+- 11-04 20:11 [为 PR 添加自动验证和 Wiki 预检](https://github.com/naturaldao/NaturalDAO/pull/60) · 涉及 .github
+- 11-04 20:11 [修复 Steward 的干净检出和安装入口](https://github.com/naturaldao/NaturalDAO/pull/59) · 涉及 POL2-Steward
+- 11-04 18:11 [Add files via upload](https://github.com/naturaldao/NaturalDAO/commit/ff873a4a1ecc288658293c477daa10905d523a7a) · 涉及 Research
+- 11-04 13:17 [DATA-03&#58; restore clean checkout validation](https://github.com/naturaldao/NaturalDAO/pull/57) · 涉及 PoL-Governance
+- 11-04 13:17 [EVAL-01&#58; verify dataset identity before paired comparisons](https://github.com/naturaldao/NaturalDAO/pull/58) · 涉及 PoL-Governance
+
+<!-- readme-activity:end -->
+
+[查看完整提交历史](https://github.com/naturaldao/NaturalDAO/commits/main/) · [查看待合并的 PR](https://github.com/naturaldao/NaturalDAO/pulls)
 
 ---
 

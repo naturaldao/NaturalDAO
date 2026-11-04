@@ -81,12 +81,14 @@ jobs:
         run: python -m pytest -q tests
 
   wiki-preview:
-    name: Wiki 生成预检
+    name: 首页与 Wiki 生成预检
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: 测试首页最近更新
+        run: python3 -m unittest discover -s .github/scripts -p 'test_readme_activity.py'
       - name: 检查理论文档生成
         env:
           WIKI_SOURCE_BRANCH: ${{ github.event.repository.default_branch }}
