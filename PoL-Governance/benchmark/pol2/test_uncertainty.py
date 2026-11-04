@@ -25,9 +25,13 @@ u = load_module('pol2_uncertainty', HERE / 'uncertainty.py')
 METRIC = 'status_accuracy_all_requests'
 
 
-def report(counts, den=10):
-    return {'breakdown_by_family_id': {
-        f'f{i}': {METRIC: {'count': c, 'denominator': den}} for i, c in enumerate(counts)}}
+def report(counts, den=10, metric=METRIC):
+    return {
+        'data_version': {'content_sha256': 'a' * 64},
+        'breakdown_by_family_id': {
+            f'f{i}': {metric: {'count': c, 'denominator': den}} for i, c in enumerate(counts)
+        },
+    }
 
 
 def run_evaluate(predictions):
@@ -80,9 +84,10 @@ class PairedTest(unittest.TestCase):
         self.assertEqual(u.paired(b, a, METRIC, margin=0.02)['verdict'], 'A worse')
 
     def test_lower_is_better_metric_flips_direction(self):
-        mk = lambda xs: {'breakdown_by_family_id': {
-            f'f{i}': {'unsanctioned_action_rate': {'count': c, 'denominator': 10}} for i, c in enumerate(xs)}}
-        d = u.paired(mk([1, 0, 1, 0, 1, 1]), mk([5, 6, 5, 6, 5, 7]), 'unsanctioned_action_rate', margin=0.02)
+        metric = 'unsanctioned_action_rate'
+        a = report([1, 0, 1, 0, 1, 1], metric=metric)
+        b = report([5, 6, 5, 6, 5, 7], metric=metric)
+        d = u.paired(a, b, metric, margin=0.02)
         self.assertEqual(d['verdict'], 'A better')
 
     def test_rejects_mismatched_data(self):
@@ -90,6 +95,19 @@ class PairedTest(unittest.TestCase):
             u.paired(report([1, 2, 3, 4]), report([1, 2, 3, 4], den=12), METRIC)
         with self.assertRaises(SystemExit):
             u.paired(report([1, 2, 3, 4]), report([1, 2, 3, 4, 5]), METRIC)
+
+    def test_rejects_different_fingerprints_with_identical_family_counts(self):
+        a, b = report([1, 2, 3, 4]), report([1, 2, 3, 4])
+        b['data_version']['content_sha256'] = 'b' * 64
+        with self.assertRaisesRegex(SystemExit, 'different data fingerprints'):
+            u.paired(a, b, METRIC)
+
+    def test_legacy_report_can_be_analyzed_but_cannot_be_paired(self):
+        a, b = report([1, 2, 3, 4]), report([1, 2, 3, 4])
+        del b['data_version']
+        self.assertEqual(u.single(b, METRIC)['families'], 4)
+        with self.assertRaisesRegex(SystemExit, 'requires a data fingerprint'):
+            u.paired(a, b, METRIC)
 
     def test_inconclusive_when_interval_straddles_zero(self):
         a, b = report([5, 6, 4, 7, 5, 6]), report([6, 5, 5, 6, 6, 5])

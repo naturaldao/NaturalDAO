@@ -2,6 +2,7 @@
 
 只读 benchmark/pol2/evaluate.py 已有的报告 JSON（用它的 breakdown_by_family_id），
 不改评测器、不需要逐案例数据、不联网、只用标准库。
+成对比较要求两份报告的数据指纹一致；旧报告缺少指纹时，请用同一版案例和标签重新生成。
 
 为什么按族：同一族的案例共享情节和考点，模型在族内的错误相关；独立性的单位是族，不是案例。
 逐案例 Wilson 区间会严重偏窄（见 split_power_sim.py），所以这里用比率估计量的族级稳健标准误 + t 分布。
@@ -89,6 +90,13 @@ def single(report: dict, metric: str) -> dict:
 
 
 def paired(a: dict, b: dict, metric: str, margin: float | None = None) -> dict:
+    hash_a = a.get("data_version", {}).get("content_sha256")
+    hash_b = b.get("data_version", {}).get("content_sha256")
+    if not hash_a or not hash_b:
+        raise SystemExit("paired comparison requires a data fingerprint in both reports; regenerate with evaluate.py")
+    if hash_a != hash_b:
+        raise SystemExit("the two reports have different data fingerprints; compare on the same cases and labels")
+
     ca, cb = family_counts(a, metric), family_counts(b, metric)
     if set(ca) != set(cb):
         raise SystemExit("the two reports cover different families; compare on the same data version")
