@@ -9,7 +9,7 @@ import subprocess
 import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
 START = b"<!-- readme-activity:start -->"
@@ -144,27 +144,44 @@ def markdown_text(text):
     return "".join(f"&#{ord(char)};" if char in MARKDOWN_CHARS else char for char in flat)
 
 
+def core_file(files, title):
+    title = title.casefold()
+
+    def priority(change):
+        status, path = change
+        file = PurePosixPath(path.casefold())
+        mentioned = (file.name in title
+                     or (len(file.stem) >= 4 and file.stem in title)
+                     or (path == "README.md" and "首页" in title))
+        supporting = (file.name.startswith((".", "test_")) or "tests" in file.parts
+                      or file.name.endswith(".test.js"))
+        asset = file.suffix in {".pdf", ".png", ".jpg", ".jpeg", ".svg", ".zip", ".gz"}
+        return status == "D", not mentioned, supporting, asset, file.name == "readme.md"
+
+    return min(files, key=priority)
+
+
 def file_link(repo, commit, status, path):
     revision = commit.parents[0] if status == "D" else commit.oid
-    label = markdown_text(path) + ("（删除前 / Before deletion）" if status == "D" else "")
+    label = markdown_text(PurePosixPath(path).name) + ("（删除前 / Before deletion）" if status == "D" else "")
     return f"[{label}](https://github.com/{repo}/blob/{revision}/{quote(path)})"
 
 
-def preview_items(items, limit, more_label, separator="<br><br>"):
-    visible = separator.join(items[:limit])
+def preview_items(items, limit, more_label):
+    visible = "<br><br>".join(items[:limit])
     if len(items) > limit:
-        remaining = separator.join(items[limit:])
+        remaining = "<br><br>".join(items[limit:])
         visible += f"<details><summary>{more_label} ({len(items) - limit})</summary>{remaining}</details>"
     return visible
 
 
-def file_preview(repo, commit, files):
-    indent = "　　"
-    links = [file_link(repo, commit, status, path) for status, path in files]
-    if not links:
-        return indent + "文件 / Files: 无文件变更 / No changed files"
-    lines = [indent + "文件 / Files: " + links[0], *(indent + link for link in links[1:])]
-    return preview_items(lines, 1, indent + "其他文件 · More files", separator="<br>")
+def file_preview(repo, commit, title, files):
+    if not files:
+        return "　　无文件变更 / No changed files"
+    primary = file_link(repo, commit, *core_file(files, title))
+    if len(files) == 1:
+        return f"　　{primary}"
+    return f"　　{primary} · [详情 / Details](https://github.com/{repo}/commit/{commit.oid})"
 
 
 def render_activity(root, repo, now):
@@ -182,7 +199,7 @@ def render_activity(root, repo, now):
         group.earliest = local_time
         files = changed_files(root, commit)
         label = markdown_text(summary(title, files)) or "无标题提交 / Untitled commit"
-        links = file_preview(repo, commit, files)
+        links = file_preview(repo, commit, title, files)
         group.entries.append(f"<strong>{local_time:%H:%M} · {label}</strong><br>{links}")
 
     rows = []
