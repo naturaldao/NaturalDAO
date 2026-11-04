@@ -329,6 +329,7 @@ def main() -> int:
     ap.add_argument("--branch", default="main", help="主仓库默认分支（用于图片/原文链接）")
     ap.add_argument("--no-footer", action="store_true", help="页面末尾不加“自动同步自…”说明")
     ap.add_argument("--dry-run", action="store_true", help="只报告，不写文件")
+    ap.add_argument("--strict", action="store_true", help="遇到生成警告即退出，不写文件")
     a = ap.parse_args()
 
     main_dir, wiki = Path(a.main).resolve(), Path(a.wiki).resolve()
@@ -348,6 +349,9 @@ def main() -> int:
         desired[f"{d.page}.md"] = f"{MARKER}\n\n{body}"
     desired["Home.md"] = build_home(docs)
     desired["_Sidebar.md"] = build_sidebar(docs)
+
+    if a.strict and WARNINGS:
+        raise SystemExit(f"Wiki 预检失败：发现 {len(WARNINGS)} 条警告")
 
     manifest_path = wiki / MANIFEST
     old = set()
