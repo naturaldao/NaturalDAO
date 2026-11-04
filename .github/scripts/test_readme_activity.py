@@ -75,10 +75,36 @@ class ReadmeActivityTest(unittest.TestCase):
     def test_file_links_pin_added_modified_and_deleted_versions(self):
         commit = activity.Commit("after", ("before",), NOW, "", "")
         files = [("M", "说明 A.md"), ("A", "new.md"), ("D", "old.md"), ("M", "fourth.md")]
-        links = activity.file_links(REPO, commit, files)
+        links = activity.compact_items(
+            (activity.file_link(REPO, commit, status, path) for status, path in files), "个文件")
         self.assertIn(f"/blob/after/%E8%AF%B4%E6%98%8E%20A.md", links)
         self.assertIn(f"[old.md（删除前）](https://github.com/{REPO}/blob/before/old.md)", links)
         self.assertIn(f"<details><summary>另有 1 个文件</summary>[fourth.md](https://github.com/{REPO}/blob/after/fourth.md)", links)
+
+    def test_group_by_account_and_utc8_calendar_day(self):
+        midnight = datetime(2026, 11, 3, 16, tzinfo=timezone.utc)
+        commits = [activity.Commit(oid, ("parent",), when, title, "")
+                   for oid, when, title in (
+                       ("latest", midnight + timedelta(hours=2), "更新说明"),
+                       ("other", midnight + timedelta(hours=1), "其他人的更新"),
+                       ("same", midnight, "新增说明"),
+                       ("previous", midnight - timedelta(minutes=1), "前一天"),
+                       ("unknown1", midnight - timedelta(minutes=2), "未知一"),
+                       ("unknown2", midnight - timedelta(minutes=3), "未知二"))]
+        accounts = dict(latest="Alice", other="bob", same="alice", previous="Alice",
+                        unknown1="", unknown2="")
+        with (patch.object(activity, "recent_commits", return_value=commits),
+              patch.object(activity, "activity_details",
+                           side_effect=lambda commit, repo: (commit.subject, accounts[commit.oid])),
+              patch.object(activity, "changed_files", return_value=[("M", "note.md")])):
+            page, = activity.render_activity(Path("."), REPO, NOW)
+        self.assertIn("| 1 | 11-04 00:00–02:00 | [@Alice]", page)
+        self.assertIn("更新说明<br>新增说明", page)
+        self.assertIn("/blob/latest/note.md", page)
+        self.assertNotIn("/blob/same/note.md", page)
+        self.assertIn("| 3 | 11-03 23:59 | [@Alice]", page)
+        self.assertEqual(page.count("| 未关联账号 |"), 2)
+        self.assertEqual(sum(line.startswith("| ") for line in page.splitlines()), 7)
 
     def test_pagination_limits_rows_and_removes_only_generated_pages(self):
         commits = [activity.Commit(str(i), (), NOW, "更新", "") for i in range(31)]
@@ -90,7 +116,8 @@ class ReadmeActivityTest(unittest.TestCase):
             handwritten = folder / "page-9.md"
             handwritten.write_text("人工文档", encoding="utf-8")
             with (patch.object(activity, "recent_commits", return_value=commits) as history,
-                  patch.object(activity, "activity_details", return_value=("更新", "user")),
+                  patch.object(activity, "activity_details",
+                               side_effect=lambda commit, repo: ("更新", f"user-{commit.oid}")),
                   patch.object(activity, "changed_files", return_value=[("M", "note.md")])):
                 self.assertTrue(activity.update(root, REPO, NOW))
                 for file, count in (("README.md", 15), (activity.PAGE_DIR / "page-2.md", 15),

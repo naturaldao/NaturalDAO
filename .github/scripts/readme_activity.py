@@ -7,7 +7,7 @@ import math
 import re
 import subprocess
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
@@ -37,6 +37,15 @@ class Commit:
     timestamp: datetime
     subject: str
     body: str
+
+
+@dataclass
+class DailyUpdate:
+    latest: datetime
+    earliest: datetime
+    login: str
+    summaries: dict[str, None] = field(default_factory=dict)
+    files: dict[str, str] = field(default_factory=dict)
 
 
 def git(root, *args):
@@ -139,17 +148,19 @@ def markdown_text(text):
     return "".join(f"&#{ord(char)};" if char in MARKDOWN_CHARS else char for char in flat)
 
 
-def file_links(repo, commit, files):
-    links = []
-    for status, path in files:
-        revision = commit.parents[0] if status == "D" else commit.oid
-        label = markdown_text(path) + ("（删除前）" if status == "D" else "")
-        links.append(f"[{label}](https://github.com/{repo}/blob/{revision}/{quote(path)})")
-    visible = "<br>".join(links[:3])
-    if len(links) > 3:
-        remaining = "<br>".join(links[3:])
-        visible += f"<details><summary>另有 {len(links) - 3} 个文件</summary>{remaining}</details>"
-    return visible or "无文件变更"
+def file_link(repo, commit, status, path):
+    revision = commit.parents[0] if status == "D" else commit.oid
+    label = markdown_text(path) + ("（删除前）" if status == "D" else "")
+    return f"[{label}](https://github.com/{repo}/blob/{revision}/{quote(path)})"
+
+
+def compact_items(items, unit):
+    items = list(items)
+    visible = "<br>".join(items[:3])
+    if len(items) > 3:
+        remaining = "<br>".join(items[3:])
+        visible += f"<details><summary>另有 {len(items) - 3} {unit}</summary>{remaining}</details>"
+    return visible
 
 
 def page_navigation(page, total):
@@ -165,14 +176,32 @@ def page_navigation(page, total):
 
 
 def render_activity(root, repo, now):
-    rows = []
-    for index, commit in enumerate(recent_commits(root, now), 1):
+    updates = {}
+    for commit in recent_commits(root, now):
         title, login = activity_details(commit, repo)
-        local_time = commit.timestamp.astimezone(DISPLAY_TZ).strftime("%m-%d %H:%M")
-        updater = updater_link(login)
+        local_time = commit.timestamp.astimezone(DISPLAY_TZ)
+        identity = login.casefold() if LOGIN.fullmatch(login) else commit.oid
+        key = (local_time.date(), identity)
+        group = updates.get(key)
+        if group is None:
+            group = updates[key] = DailyUpdate(local_time, local_time, login)
+        group.earliest = local_time
         files = changed_files(root, commit)
         label = markdown_text(summary(title, files)) or "无标题提交"
-        rows.append(f"| {index} | {local_time} | {updater} | {label} | {file_links(repo, commit, files)} |")
+        group.summaries[label] = None
+        for status, path in files:
+            if path not in group.files:
+                group.files[path] = file_link(repo, commit, status, path)
+
+    rows = []
+    for index, group in enumerate(updates.values(), 1):
+        earliest = group.earliest.strftime("%m-%d %H:%M")
+        time_label = earliest
+        if group.latest.strftime("%H:%M") != group.earliest.strftime("%H:%M"):
+            time_label += group.latest.strftime("–%H:%M")
+        labels = compact_items(group.summaries, "条摘要")
+        links = compact_items(group.files.values(), "个文件") or "无文件变更"
+        rows.append(f"| {index} | {time_label} | {updater_link(group.login)} | {labels} | {links} |")
     if not rows:
         return [EMPTY]
     header = "| 序号 | 时间（UTC+8） | 更新人 | 更新内容 | 变更文件 |\n| ---: | --- | --- | --- | --- |"
