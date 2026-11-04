@@ -1,4 +1,4 @@
-"""用本地 Git 历史和 GitHub 账号刷新首页的过去 72 小时更新。"""
+"""用本地 Git 历史和 GitHub 账号刷新过去一周的更新。"""
 from __future__ import annotations
 
 import argparse
@@ -10,15 +10,19 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 START = b"<!-- readme-activity:start -->"
 END = b"<!-- readme-activity:end -->"
 BOT_EMAIL = "41898282+github-actions[bot]@users.noreply.github.com"
 BOT_SUBJECT = "刷新首页最近更新"
 DISPLAY_TZ = timezone(timedelta(hours=8))
-WINDOW_HOURS = 72
-LIMIT = 10
-EMPTY = f"过去 {WINDOW_HOURS} 小时暂无主分支更新。"
+WINDOW_DAYS = 7
+PAGE_SIZE = 15
+PAGE_DIR = Path("docs/recent-updates")
+PAGE_NAME = re.compile(r"page-[0-9]+\.md")
+GENERATED = "<!-- readme-activity:generated -->"
+EMPTY = "过去 7 天暂无主分支更新。"
 REPO_NAME = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 LOGIN = re.compile(r"([A-Za-z0-9][A-Za-z0-9-]{0,38})(\[bot\])?")
 MERGE_PR = re.compile(r"Merge pull request #([1-9][0-9]*) from \S+")
@@ -43,7 +47,7 @@ def git(root, *args):
 
 
 def recent_commits(root, now):
-    cutoff = now - timedelta(hours=WINDOW_HOURS)
+    cutoff = now - timedelta(days=WINDOW_DAYS)
     history = git(
         root, "log", "--first-parent", f"--since-as-filter=@{math.floor(cutoff.timestamp())}",
         "--encoding=UTF-8", "-z", "--format=%H%x00%P%x00%ct%x00%ae%x00%s%x00%b", "HEAD",
@@ -58,23 +62,22 @@ def recent_commits(root, now):
         if email == BOT_EMAIL and subject == BOT_SUBJECT:
             continue
         commits.append(Commit(oid, tuple(parents.split()), timestamp, subject, body))
-    return sorted(commits, key=lambda commit: commit.timestamp, reverse=True)[:LIMIT]
+    return sorted(commits, key=lambda commit: commit.timestamp, reverse=True)
 
 
-def title_and_url(commit, repo):
-    base = f"https://github.com/{repo}"
+def pull_reference(commit):
     if len(commit.parents) > 1:
         merge = MERGE_PR.fullmatch(commit.subject)
         if merge:
             number = merge[1]
             title = next((line.strip() for line in commit.body.splitlines() if line.strip()), "")
-            return title or f"合并 PR #{number}", f"{base}/pull/{number}"
+            return number, title or f"合并 PR #{number}"
     else:
         squash = SQUASH_PR.fullmatch(commit.subject)
         if squash:
             title, number = squash.groups()
-            return title, f"{base}/pull/{number}"
-    return commit.subject or "无标题提交", f"{base}/commit/{commit.oid}"
+            return number, title
+    return None, commit.subject
 
 
 def github_field(repo, resource, query):
@@ -86,9 +89,8 @@ def github_field(repo, resource, query):
 
 
 def activity_details(commit, repo):
-    title, url = title_and_url(commit, repo)
-    if url.startswith(f"https://github.com/{repo}/pull/"):
-        number = url.rsplit("/", 1)[-1]
+    number, title = pull_reference(commit)
+    if number:
         try:
             pull = json.loads(github_field(repo, f"pulls/{number}",
                                            "{sha: .merge_commit_sha, login: .user.login}"))
@@ -97,19 +99,23 @@ def activity_details(commit, repo):
                 raise
         else:
             if pull["sha"] == commit.oid:
-                return title, pull["login"] or "", f"PR #{number}", url
+                return title, pull["login"] or ""
 
     login = github_field(repo, f"commits/{commit.oid}", ".author.login // empty")
-    url = f"https://github.com/{repo}/commit/{commit.oid}"
-    return commit.subject, login, commit.oid[:7], url
+    return commit.subject, login
 
 
-def summary(root, commit, title):
+def changed_files(root, commit):
+    revisions = [commit.parents[0], commit.oid] if commit.parents else ["--root", commit.oid]
+    changes = git(root, "diff-tree", "--no-commit-id", "--name-status", "--no-renames",
+                  "-r", "-z", *revisions).split("\0")[:-1]
+    return list(zip(changes[::2], changes[1::2]))
+
+
+def summary(title, files):
     if title != "Add files via upload":
         return title
-    revisions = [commit.parents[0], commit.oid] if commit.parents else ["--root", commit.oid]
-    paths = git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", *revisions)
-    files = [path.rsplit("/", 1)[-1] for path in paths.split("\0") if path]
+    files = [path.rsplit("/", 1)[-1] for _, path in files]
     if not files:
         return title
     suffix = f"等 {len(files)} 个文件" if len(files) > 2 else ""
@@ -133,19 +139,50 @@ def markdown_text(text):
     return "".join(f"&#{ord(char)};" if char in MARKDOWN_CHARS else char for char in flat)
 
 
+def file_links(repo, commit, files):
+    links = []
+    for status, path in files:
+        revision = commit.parents[0] if status == "D" else commit.oid
+        label = markdown_text(path) + ("（删除前）" if status == "D" else "")
+        links.append(f"[{label}](https://github.com/{repo}/blob/{revision}/{quote(path)})")
+    visible = "<br>".join(links[:3])
+    if len(links) > 3:
+        remaining = "<br>".join(links[3:])
+        visible += f"<details><summary>另有 {len(links) - 3} 个文件</summary>{remaining}</details>"
+    return visible or "无文件变更"
+
+
+def page_navigation(page, total):
+    links = []
+    if page > 1:
+        previous = "../../README.md#-最近更新--recent-activity" if page == 2 else f"page-{page - 1}.md"
+        links.append(f"[上一页]({previous})")
+    links.append(f"第 {page} / {total} 页")
+    if page < total:
+        following = (PAGE_DIR / "page-2.md").as_posix() if page == 1 else f"page-{page + 1}.md"
+        links.append(f"[下一页]({following})")
+    return " · ".join(links)
+
+
 def render_activity(root, repo, now):
-    commits = recent_commits(root, now)
-    if not commits:
-        return EMPTY
-    lines = ["| 序号 | 时间（UTC+8） | 更新人 | 更新内容 | 链接 |",
-             "| ---: | --- | --- | --- | --- |"]
-    for index, commit in enumerate(commits, 1):
-        title, login, link_label, url = activity_details(commit, repo)
+    rows = []
+    for index, commit in enumerate(recent_commits(root, now), 1):
+        title, login = activity_details(commit, repo)
         local_time = commit.timestamp.astimezone(DISPLAY_TZ).strftime("%m-%d %H:%M")
         updater = updater_link(login)
-        label = markdown_text(summary(root, commit, title)) or "无标题提交"
-        lines.append(f"| {index} | {local_time} | {updater} | {label} | [{link_label}]({url}) |")
-    return "\n".join(lines)
+        files = changed_files(root, commit)
+        label = markdown_text(summary(title, files)) or "无标题提交"
+        rows.append(f"| {index} | {local_time} | {updater} | {label} | {file_links(repo, commit, files)} |")
+    if not rows:
+        return [EMPTY]
+    header = "| 序号 | 时间（UTC+8） | 更新人 | 更新内容 | 变更文件 |\n| ---: | --- | --- | --- | --- |"
+    total = math.ceil(len(rows) / PAGE_SIZE)
+    pages = []
+    for start in range(0, len(rows), PAGE_SIZE):
+        page = start // PAGE_SIZE + 1
+        lines = [header, *rows[start:start + PAGE_SIZE], "", page_navigation(page, total)]
+        pages.append("\n".join(lines))
+    return pages
 
 
 def replace_activity(readme, activity):
@@ -162,11 +199,32 @@ def replace_activity(readme, activity):
 def update(root, repo, now):
     path = root / "README.md"
     original = path.read_bytes()
-    updated = replace_activity(original, render_activity(root, repo, now))
-    if updated == original:
-        return False
-    path.write_bytes(updated)
-    return True
+    pages = render_activity(root, repo, now)
+    updated = replace_activity(original, pages[0])
+    folder = root / PAGE_DIR
+    desired = {folder / f"page-{number}.md":
+               f"{GENERATED}\n\n# 最近更新（第 {number} 页）\n\n{page}\n".encode("utf-8")
+               for number, page in enumerate(pages[1:], 2)}
+    existing = {file: file.read_bytes() for file in folder.glob("page-*.md")
+                if PAGE_NAME.fullmatch(file.name)}
+    for file, content in existing.items():
+        if not content.startswith(GENERATED.encode("utf-8")) and file in desired:
+            raise ValueError(f"分页路径已由其他文档占用：{file.name}")
+
+    changed = updated != original
+    if changed:
+        path.write_bytes(updated)
+    if desired:
+        folder.mkdir(parents=True, exist_ok=True)
+    for file, content in desired.items():
+        if existing.get(file) != content:
+            file.write_bytes(content)
+            changed = True
+    for file in existing.keys() - desired.keys():
+        if existing[file].startswith(GENERATED.encode("utf-8")):
+            file.unlink()
+            changed = True
+    return changed
 
 
 def parse_now(value):
