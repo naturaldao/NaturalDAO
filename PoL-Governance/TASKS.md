@@ -2,6 +2,8 @@
 
 领取方法见 [AGENTS](AGENTS.md)。下表是任务目录，实时领取状态在远端 `pol/*` 分支的任务页；`git fetch origin` 后运行 `python tools/board.py` 查看。分支尚未合并也能协作。认领可能同时发生，发现撞单就通过任务页协商拆分，不把分支当全局锁。
 
+看板的 `status` 来自任务页。`tip_in_baseline` 单独表示分支头提交是否在已拉取的默认分支历史中。找不到基线时返回 `null`。压缩合并或变基会生成新提交，原分支头可能仍显示 `false`，此时通过 PR 核对是否已集成。
+
 | ID | 做什么 | 交付入口 |
 |---|---|---|
 | DATA-01 | 独立试标注与分歧整理 | datasets/；benchmark 标注工具 |
@@ -14,6 +16,7 @@
 | EVAL-03 | 完整 PoL2 理论内在化验证：建立全章节、可失败的挑战评测与训练对照 | PoL-Governance/benchmark/pol2/；Research/Embodied/02-实验设计与审计/PoL2完整理论内在化挑战集生成质量先导.md |
 | EVAL-04 | 按知识类型构建独立评测任务：概念/关系、公理/命题、爱语、明确规则、研究者解释；比较闭卷与理论可见条件 | PoL-Governance/benchmark/pol2/typed_knowledge/；Research/Embodied/02-实验设计与审计/PoL2分类型知识评测先导.md |
 | APP-01 | 插件接入、试运行与端到端验证 | integrations/ |
+| OPS-01 | 协作工具、任务看板与贡献导航维护 | tools/；仓库 README 与贡献指南 |
 | LIT-01 | Jev 类型化决策模型文献综述，对照 PoL2 治理条款 | research/PoL2-Jev-Typed-Literature-Survey/ |
 | GOV-01 | PoL2 × DAO 治理机制实验室：条款落地、模拟、反事实与基线筛查评测 | research/PoL2-DAO-Governance-Lab/ |
 

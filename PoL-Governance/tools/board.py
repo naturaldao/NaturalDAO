@@ -34,14 +34,17 @@ def task_location(ref, remote, module):
     return task, f'{module}/{path}' if module else path
 
 
+def field(text, label):
+    match = re.search(r'^- ' + re.escape(label) + r'：[ \t]*(.*)$', text, re.MULTILINE)
+    return match.group(1).strip() if match else ''
+
+
 def fields(text):
-    def get(label):
-        match = re.search(r'^- ' + re.escape(label) + r'：[ \t]*(.*)$', text, re.MULTILINE)
-        return match.group(1).strip() if match else ''
-    owner, agent, status = get('领取人'), get('Agent'), get('状态')
+    owner, agent, status = (field(text, label) for label in ('领取人', 'Agent', '状态'))
     lines = text.splitlines()
     for i, line in enumerate(lines):
-        if line.strip() == '| 领取人 / Agent | 状态 / 最近进展（Agent 更新） |' and i + 2 < len(lines):
+        header = [cell.strip() for cell in line.strip().strip('|').split('|')]
+        if header == ['领取人 / Agent', '状态 / 最近进展（Agent 更新）'] and i + 2 < len(lines):
             cells = [cell.strip() for cell in lines[i + 2].strip().strip('|').split('|')]
             if len(cells) == 2:
                 identity, status = cells
@@ -50,13 +53,40 @@ def fields(text):
                     agent = ''
             break
     return {'owner': owner.strip(), 'agent': agent.strip(), 'status': status,
-            'updated_at': get('更新时间'), 'next': get('下一步'),
-            'blocker': get('阻塞 / 需要谁帮助')}
+            'updated_at': field(text, '更新时间'), 'next': field(text, '下一步'),
+            'blocker': field(text, '阻塞 / 需要谁帮助')}
 
 
 def git(repo, *args):
     return subprocess.run(['git', '-C', str(repo), *args], capture_output=True,
                           encoding='utf-8', errors='replace', check=True).stdout.strip()
+
+
+def baseline_ref(repo, remote):
+    for name in ('HEAD', 'main'):
+        try:
+            return git(repo, 'rev-parse', '--symbolic-full-name', '--verify',
+                       f'refs/remotes/{remote}/{name}')
+        except subprocess.CalledProcessError:
+            continue
+    return None
+
+
+def task_page(repo, ref, branch, task, path):
+    try:
+        return path, git(repo, 'show', f'{ref}:{path}')
+    except subprocess.CalledProcessError:
+        # 兼容旧任务页的文件名，只接受明确声明当前分支的唯一匹配。
+        directory = path.rsplit('/', 1)[0]
+        candidates = git(repo, '-c', 'core.quotepath=false', 'ls-tree', '-r', '--name-only',
+                         ref, '--', f'{directory}/').splitlines()
+        matches = []
+        for candidate in candidates:
+            if candidate.startswith(f'{directory}/{task}-') and candidate.endswith('.md'):
+                page = git(repo, 'show', f'{ref}:{candidate}')
+                if field(page, '分支').strip('`') == branch:
+                    matches.append((candidate, page))
+        return matches[0] if len(matches) == 1 else (path, None)
 
 
 def main():
@@ -71,8 +101,11 @@ def main():
         repo = Path(git(root, 'rev-parse', '--show-toplevel')).resolve()
         module = root.relative_to(repo).as_posix()
         module = '' if module == '.' else module
-        refs = git(repo, 'for-each-ref', '--format=%(refname:short)',
-                   f'refs/remotes/{args.remote}/pol/').splitlines()
+        prefix = f'refs/remotes/{args.remote}/pol/'
+        refs = git(repo, 'for-each-ref', '--format=%(refname:short)', prefix).splitlines()
+        baseline = baseline_ref(repo, args.remote)
+        integrated = (set(git(repo, 'for-each-ref', '--format=%(refname:short)',
+                              f'--merged={baseline}', prefix).splitlines()) if baseline else None)
         rows = []
         for ref in refs:
             location = task_location(ref, args.remote, module)
@@ -80,13 +113,16 @@ def main():
                 rows.append({'branch': ref, 'status': 'unrecognized_branch_name'})
                 continue
             task, path = location
-            row = {'task': task, 'branch': ref, 'task_file': path}
-            try:
-                row.update(fields(git(repo, 'show', f'{ref}:{path}')))
-            except subprocess.CalledProcessError:
+            branch = ref.removeprefix(f'{args.remote}/')
+            task_file, page = task_page(repo, ref, branch, task, path)
+            row = {'task': task, 'branch': ref, 'task_file': task_file,
+                   'tip_in_baseline': ref in integrated if integrated is not None else None}
+            if page is None:
                 row.update(owner='', status='task_file_missing')
+            else:
+                row.update(fields(page))
             rows.append(row)
-        print(json.dumps({'source': 'locally_fetched_remote_refs',
+        print(json.dumps({'source': 'locally_fetched_remote_refs', 'baseline': baseline,
                           'refresh': f'git fetch {args.remote}', 'tasks': rows},
                          ensure_ascii=False, indent=2))
     except UnicodeEncodeError as error:

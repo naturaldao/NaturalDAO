@@ -5,8 +5,9 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from board import configure_stdio, fields, task_location
+from board import configure_stdio, fields, task_location, task_page
 
 
 class BoardTests(unittest.TestCase):
@@ -39,6 +40,28 @@ class BoardTests(unittest.TestCase):
         self.assertEqual(result['updated_at'], '2026-09-29 12:00 +08:00')
         self.assertEqual(result['next'], '检查分歧')
         self.assertEqual(result['blocker'], 'Bob')
+
+    def test_task_table_allows_spacing_around_cells(self):
+        result = fields('|领取人 / Agent|状态 / 最近进展（Agent 更新）|\n'
+                        '|---|---|\n| Codex / OpenAI Codex | 待集成 |\n')
+        self.assertEqual((result['owner'], result['agent'], result['status']),
+                         ('Codex', 'OpenAI Codex', '待集成'))
+
+    def test_legacy_task_page_requires_a_unique_matching_branch(self):
+        repo = Path('.')
+        branch = 'pol/EVAL-04/codex-typed-knowledge-eval'
+        ref = f'origin/{branch}'
+        expected = 'tasks/EVAL-04-codex-typed-knowledge-eval.md'
+        legacy = 'tasks/EVAL-04-codex-typed-knowledge.md'
+        other = 'tasks/EVAL-04-other.md'
+        legacy_page = f'- 分支：`{branch}`'
+        missing = subprocess.CalledProcessError(128, 'git show')
+        for other_page, expected_result in (
+                ('- 分支：pol/EVAL-04/other', (legacy, legacy_page)),
+                (legacy_page, (expected, None))):
+            with self.subTest(other_page=other_page):
+                with patch('board.git', side_effect=[missing, f'{legacy}\n{other}', legacy_page, other_page]):
+                    self.assertEqual(task_page(repo, ref, branch, 'EVAL-04', expected), expected_result)
 
     def test_empty_table_cells(self):
         result = fields('| 领取人 / Agent | 状态 / 最近进展（Agent 更新） |\n|---|---|\n| | |\n')
