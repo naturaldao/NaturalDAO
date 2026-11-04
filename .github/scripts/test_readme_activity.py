@@ -37,14 +37,14 @@ class ReadmeActivityTest(unittest.TestCase):
             with self.subTest(original=original), self.assertRaisesRegex(ValueError, "标记"):
                 activity.replace_activity(original, "新内容")
 
-    def test_most_recent_ten_are_sorted_by_committer_time(self):
+    def test_commits_are_sorted_without_truncating_the_week(self):
         fields = []
         for minute in [4, 1, 6, 7, 3, 9, 2, 10, 5, 8, 11, 12]:
             timestamp = int((NOW - timedelta(minutes=minute)).timestamp())
             fields.extend([str(minute), "", str(timestamp), "user@example.test", str(minute), ""])
         with patch.object(activity, "git", return_value="\0".join(fields) + "\0") as git:
             rows = activity.recent_commits(Path("."), NOW)
-        self.assertEqual([row.subject for row in rows], [str(i) for i in range(1, 11)])
+        self.assertEqual([row.subject for row in rows], [str(i) for i in range(1, 13)])
         args = git.call_args.args
         self.assertIn("--first-parent", args)
         self.assertEqual(args[-1], "HEAD")
@@ -69,10 +69,41 @@ class ReadmeActivityTest(unittest.TestCase):
         self.assertEqual(activity.updater_link(""), "未关联账号")
 
     def test_generic_upload_title_describes_the_changed_file(self):
-        commit = activity.Commit("a" * 40, ("parent",), NOW, "Add files via upload", "")
-        with patch.object(activity, "git", return_value="Research/实验说明.md\0"):
-            self.assertEqual(activity.summary(Path("."), commit, commit.subject),
-                             "更新文件：实验说明.md")
+        self.assertEqual(activity.summary("Add files via upload", [("A", "Research/实验说明.md")]),
+                         "更新文件：实验说明.md")
+
+    def test_file_links_pin_added_modified_and_deleted_versions(self):
+        commit = activity.Commit("after", ("before",), NOW, "", "")
+        files = [("M", "说明 A.md"), ("A", "new.md"), ("D", "old.md"), ("M", "fourth.md")]
+        links = activity.file_links(REPO, commit, files)
+        self.assertIn(f"/blob/after/%E8%AF%B4%E6%98%8E%20A.md", links)
+        self.assertIn(f"[old.md（删除前）](https://github.com/{REPO}/blob/before/old.md)", links)
+        self.assertIn(f"<details><summary>另有 1 个文件</summary>[fourth.md](https://github.com/{REPO}/blob/after/fourth.md)", links)
+
+    def test_pagination_limits_rows_and_removes_only_generated_pages(self):
+        commits = [activity.Commit(str(i), (), NOW, "更新", "") for i in range(31)]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "README.md").write_bytes(activity.START + b"\n" + activity.END + b"\n")
+            folder = root / activity.PAGE_DIR
+            folder.mkdir(parents=True)
+            handwritten = folder / "page-9.md"
+            handwritten.write_text("人工文档", encoding="utf-8")
+            with (patch.object(activity, "recent_commits", return_value=commits) as history,
+                  patch.object(activity, "activity_details", return_value=("更新", "user")),
+                  patch.object(activity, "changed_files", return_value=[("M", "note.md")])):
+                self.assertTrue(activity.update(root, REPO, NOW))
+                for file, count in (("README.md", 15), (activity.PAGE_DIR / "page-2.md", 15),
+                                    (activity.PAGE_DIR / "page-3.md", 1)):
+                    self.assertEqual(sum(line.startswith("| ") for line in
+                                         (root / file).read_text(encoding="utf-8").splitlines()), count + 2)
+                self.assertIn("[下一页](docs/recent-updates/page-2.md)",
+                              (root / "README.md").read_text(encoding="utf-8"))
+                self.assertIn("[下一页](page-3.md)", (folder / "page-2.md").read_text(encoding="utf-8"))
+                self.assertFalse(activity.update(root, REPO, NOW))
+                history.return_value = commits[:1]
+                self.assertTrue(activity.update(root, REPO, NOW))
+            self.assertEqual(list(folder.glob("*.md")), [handwritten])
 
     def test_pr_number_in_title_requires_matching_merge_commit(self):
         commit = activity.Commit("a" * 40, ("parent",), NOW, "直接提交 (#12)", "")
@@ -80,8 +111,7 @@ class ReadmeActivityTest(unittest.TestCase):
             '{"sha": "different", "login": "unrelated"}', "actual-author",
         ]) as lookup:
             self.assertEqual(activity.activity_details(commit, REPO),
-                             (commit.subject, "actual-author", "a" * 7,
-                              f"https://github.com/{REPO}/commit/{commit.oid}"))
+                             (commit.subject, "actual-author"))
         self.assertEqual([call.args[1] for call in lookup.call_args_list],
                          ["pulls/12", f"commits/{commit.oid}"])
 
@@ -117,9 +147,9 @@ class GitActivityTest(unittest.TestCase):
         return self.run_git("rev-parse", "HEAD")
 
     def test_window_first_parent_pr_titles_and_idempotence(self):
-        cutoff = NOW - timedelta(hours=72)
+        cutoff = NOW - timedelta(days=7)
         self.commit("root.txt", "旧根提交", cutoff - timedelta(days=1))
-        edge = self.commit("edge.txt", "恰好 72 小时", cutoff, author_when=cutoff - timedelta(days=1))
+        edge = self.commit("edge.txt", "恰好 7 天", cutoff, author_when=cutoff - timedelta(days=1))
         self.run_git("switch", "-qc", "feature")
         self.commit("Research/side.txt", "只在功能分支的提交", NOW - timedelta(minutes=25))
         self.run_git("switch", "-q", "main")
@@ -155,18 +185,18 @@ class GitActivityTest(unittest.TestCase):
         self.assertTrue(data.startswith(before))
         self.assertTrue(data.endswith(after))
         text = data.decode("utf-8")
-        self.assertIn("| 序号 | 时间（UTC+8） | 更新人 | 更新内容 | 链接 |", text)
-        self.assertIn(f"| 1 | 11-04 20:00 | [@app&#91;bot&#93;](https://github.com/apps/app) | 正常的机器人提交 | [{bot[:7]}](https://github.com/{REPO}/commit/{bot}) |", text)
-        self.assertIn(f"| [@human](https://github.com/human) | {activity.BOT_SUBJECT} | [{human[:7]}]", text)
-        self.assertIn(f"| [@squash-author](https://github.com/squash-author) | 压缩合并 | [PR #13](https://github.com/{REPO}/pull/13) |", text)
-        self.assertIn(f"| [@pr-author](https://github.com/pr-author) | 合并标题 &#91;示例&#93; | [PR #12](https://github.com/{REPO}/pull/12) |", text)
-        self.assertIn("| 11-01 20:00 | 未关联账号 | 恰好 72 小时 |", text)
+        self.assertIn("| 序号 | 时间（UTC+8） | 更新人 | 更新内容 | 变更文件 |", text)
+        self.assertIn(f"| 1 | 11-04 20:00 | [@app&#91;bot&#93;](https://github.com/apps/app) | 正常的机器人提交 | [other-bot.txt](https://github.com/{REPO}/blob/{bot}/other-bot.txt) |", text)
+        self.assertIn(f"| [@human](https://github.com/human) | {activity.BOT_SUBJECT} | [user.txt]", text)
+        self.assertIn(f"| [@squash-author](https://github.com/squash-author) | 压缩合并 | [&#91;目录&#93;/update.txt](https://github.com/{REPO}/blob/{squash}/", text)
+        self.assertIn(f"| [@pr-author](https://github.com/pr-author) | 合并标题 &#91;示例&#93; | [Research/side.txt](https://github.com/{REPO}/blob/{merge}/Research/side.txt) |", text)
+        self.assertIn("| 10-28 20:00 | 未关联账号 | 恰好 7 天 |", text)
         for excluded in ("generated.txt", "只在功能分支", "正文第二段", "超出窗口", "未来的时间"):
             self.assertNotIn(excluded, text)
         with patch.object(Path, "write_bytes", side_effect=AssertionError("unchanged README rewritten")):
             self.assertFalse(activity.update(self.root, REPO, NOW))
 
-        self.assertTrue(activity.update(self.root, REPO, NOW + timedelta(hours=73)))
+        self.assertTrue(activity.update(self.root, REPO, NOW + timedelta(days=8)))
         self.assertEqual(path.read_bytes(), before + b"\n" + activity.EMPTY.encode("utf-8") + b"\n\n" + after)
 
 
