@@ -158,6 +158,15 @@ def preview_items(items, limit, more_label, separator="<br><br>"):
     return visible
 
 
+def file_preview(repo, commit, files):
+    indent = "　　"
+    links = [file_link(repo, commit, status, path) for status, path in files]
+    if not links:
+        return indent + "文件 / Files: 无文件变更 / No changed files"
+    lines = [indent + "文件 / Files: " + links[0], *(indent + link for link in links[1:])]
+    return preview_items(lines, 1, indent + "其他文件 · More files", separator="<br>")
+
+
 def render_activity(root, repo, now):
     updates = {}
     for commit in recent_commits(root, now):
@@ -173,9 +182,8 @@ def render_activity(root, repo, now):
         group.earliest = local_time
         files = changed_files(root, commit)
         label = markdown_text(summary(title, files)) or "无标题提交 / Untitled commit"
-        links = preview_items([file_link(repo, commit, status, path) for status, path in files],
-                              3, "其他文件 · More files", separator="<br>") or "无文件变更 / No changed files"
-        group.entries.append(f"<strong>{local_time:%H:%M} · {label}</strong><br>文件 / Files: {links}")
+        links = file_preview(repo, commit, files)
+        group.entries.append(f"<strong>{local_time:%H:%M} · {label}</strong><br>{links}")
 
     rows = []
     for index, group in enumerate(updates.values(), 1):

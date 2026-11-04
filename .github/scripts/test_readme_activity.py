@@ -75,12 +75,11 @@ class ReadmeActivityTest(unittest.TestCase):
     def test_file_links_pin_added_modified_and_deleted_versions(self):
         commit = activity.Commit("after", ("before",), NOW, "", "")
         files = [("M", "说明 A.md"), ("A", "new.md"), ("D", "old.md"), ("M", "fourth.md")]
-        links = activity.preview_items(
-            [activity.file_link(REPO, commit, status, path) for status, path in files],
-            3, "其他文件 · More files", separator="<br>")
-        self.assertIn(f"/blob/after/%E8%AF%B4%E6%98%8E%20A.md", links)
-        self.assertIn(f"[old.md（删除前 / Before deletion）](https://github.com/{REPO}/blob/before/old.md)", links)
-        self.assertIn(f"<details><summary>其他文件 · More files (1)</summary>[fourth.md](https://github.com/{REPO}/blob/after/fourth.md)", links)
+        visible, folded = activity.file_preview(REPO, commit, files).split("<details>", 1)
+        self.assertEqual(visible, f"　　文件 / Files: [说明 A.md](https://github.com/{REPO}/blob/after/%E8%AF%B4%E6%98%8E%20A.md)")
+        self.assertTrue(folded.startswith("<summary>　　其他文件 · More files (3)</summary>"))
+        self.assertIn(f"　　[old.md（删除前 / Before deletion）](https://github.com/{REPO}/blob/before/old.md)", folded)
+        self.assertIn(f"　　[fourth.md](https://github.com/{REPO}/blob/after/fourth.md)", folded)
 
     def test_group_by_account_and_utc8_calendar_day(self):
         midnight = datetime(2026, 11, 3, 16, tzinfo=timezone.utc)
@@ -101,9 +100,9 @@ class ReadmeActivityTest(unittest.TestCase):
             page = activity.render_activity(Path("."), REPO, NOW)
         self.assertIn("| 1 | 11-04 00:00–02:00 | [@Alice]", page)
         self.assertNotIn("Other updates", page)
-        self.assertIn("02:00 · 更新说明</strong><br>文件 / Files: "
+        self.assertIn("02:00 · 更新说明</strong><br>　　文件 / Files: "
                       f"[note.md](https://github.com/{REPO}/blob/latest/note.md)", page)
-        self.assertIn("00:00 · 新增说明</strong><br>文件 / Files: "
+        self.assertIn("00:00 · 新增说明</strong><br>　　文件 / Files: "
                       f"[note.md](https://github.com/{REPO}/blob/same/note.md)", page)
         self.assertIn("| 3 | 11-03 23:59 | [@Alice]", page)
         self.assertEqual(page.count("| 未关联账号 / Unlinked account |"), 2)
@@ -219,10 +218,10 @@ class GitActivityTest(unittest.TestCase):
         text = data.decode("utf-8")
         self.assertIn("更新详情<br>Update details |", text)
         self.assertIn("| 1 | 11-04 20:00 | [@app&#91;bot&#93;](https://github.com/apps/app)", text)
-        self.assertIn(f"正常的机器人提交</strong><br>文件 / Files: [other-bot.txt](https://github.com/{REPO}/blob/{bot}/other-bot.txt)", text)
-        self.assertIn(f"{activity.BOT_SUBJECT}</strong><br>文件 / Files: [user.txt]", text)
-        self.assertIn(f"压缩合并</strong><br>文件 / Files: [&#91;目录&#93;/update.txt](https://github.com/{REPO}/blob/{squash}/", text)
-        self.assertIn(f"合并标题 &#91;示例&#93;</strong><br>文件 / Files: [Research/side.txt](https://github.com/{REPO}/blob/{merge}/Research/side.txt)", text)
+        self.assertIn(f"正常的机器人提交</strong><br>　　文件 / Files: [other-bot.txt](https://github.com/{REPO}/blob/{bot}/other-bot.txt)", text)
+        self.assertIn(f"{activity.BOT_SUBJECT}</strong><br>　　文件 / Files: [user.txt]", text)
+        self.assertIn(f"压缩合并</strong><br>　　文件 / Files: [&#91;目录&#93;/update.txt](https://github.com/{REPO}/blob/{squash}/", text)
+        self.assertIn(f"合并标题 &#91;示例&#93;</strong><br>　　文件 / Files: [Research/side.txt](https://github.com/{REPO}/blob/{merge}/Research/side.txt)", text)
         self.assertIn("| 10-28 20:00 | 未关联账号 / Unlinked account | <strong>", text)
         for excluded in ("generated.txt", "只在功能分支", "正文第二段", "超出窗口", "未来的时间"):
             self.assertNotIn(excluded, text)
