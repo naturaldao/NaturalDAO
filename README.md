@@ -34,17 +34,22 @@ It represents the governance and application layer for the Proof-of-Love2 Civili
 
 ## 最近更新 · Recent Activity
 
-按主分支提交时间汇总过去 24 小时的更新，最多显示 10 条，时间为 UTC+8。工作流在主分支有新提交时刷新，并每半小时清理过期条目。
+汇总主分支过去 72 小时的更新，最多显示 10 条。合并记录显示 PR 作者，直接提交显示 GitHub 提交作者。工作流在主分支有新提交时刷新，并每半小时清理过期条目。
 
 <!-- readme-activity:start -->
 
-- 11-04 20:13 [区分任务状态和分支集成状态](https://github.com/naturaldao/NaturalDAO/pull/62) · 涉及 PoL-Governance
-- 11-04 20:12 [按用途整理首页、贡献指南和研究导航](https://github.com/naturaldao/NaturalDAO/pull/61) · 涉及 CONTRIBUTING.md、PoL-Governance、README.md、Research、docs等 6 处
-- 11-04 20:11 [为 PR 添加自动验证和 Wiki 预检](https://github.com/naturaldao/NaturalDAO/pull/60) · 涉及 .github
-- 11-04 20:11 [修复 Steward 的干净检出和安装入口](https://github.com/naturaldao/NaturalDAO/pull/59) · 涉及 POL2-Steward
-- 11-04 18:11 [Add files via upload](https://github.com/naturaldao/NaturalDAO/commit/ff873a4a1ecc288658293c477daa10905d523a7a) · 涉及 Research
-- 11-04 13:17 [DATA-03&#58; restore clean checkout validation](https://github.com/naturaldao/NaturalDAO/pull/57) · 涉及 PoL-Governance
-- 11-04 13:17 [EVAL-01&#58; verify dataset identity before paired comparisons](https://github.com/naturaldao/NaturalDAO/pull/58) · 涉及 PoL-Governance
+| 序号 | 时间（UTC+8） | 更新人 | 更新内容 | 链接 |
+| ---: | --- | --- | --- | --- |
+| 1 | 11-04 20:32 | [@shentonyan](https://github.com/shentonyan) | 在首页展示过去 24 小时的主分支更新 | [PR #63](https://github.com/naturaldao/NaturalDAO/pull/63) |
+| 2 | 11-04 20:13 | [@shentonyan](https://github.com/shentonyan) | 区分任务状态和分支集成状态 | [PR #62](https://github.com/naturaldao/NaturalDAO/pull/62) |
+| 3 | 11-04 20:12 | [@shentonyan](https://github.com/shentonyan) | 按用途整理首页、贡献指南和研究导航 | [PR #61](https://github.com/naturaldao/NaturalDAO/pull/61) |
+| 4 | 11-04 20:11 | [@shentonyan](https://github.com/shentonyan) | 为 PR 添加自动验证和 Wiki 预检 | [PR #60](https://github.com/naturaldao/NaturalDAO/pull/60) |
+| 5 | 11-04 20:11 | [@shentonyan](https://github.com/shentonyan) | 修复 Steward 的干净检出和安装入口 | [PR #59](https://github.com/naturaldao/NaturalDAO/pull/59) |
+| 6 | 11-04 18:11 | [@DDZhous](https://github.com/DDZhous) | 更新文件：Super-agent架构调研.md | [ff873a4](https://github.com/naturaldao/NaturalDAO/commit/ff873a4a1ecc288658293c477daa10905d523a7a) |
+| 7 | 11-04 13:17 | [@shentonyan](https://github.com/shentonyan) | DATA-03&#58; restore clean checkout validation | [PR #57](https://github.com/naturaldao/NaturalDAO/pull/57) |
+| 8 | 11-04 13:17 | [@shentonyan](https://github.com/shentonyan) | EVAL-01&#58; verify dataset identity before paired comparisons | [PR #58](https://github.com/naturaldao/NaturalDAO/pull/58) |
+| 9 | 11-03 17:23 | [@shentonyan](https://github.com/shentonyan) | Add agent memory tax paper to research index | [PR #56](https://github.com/naturaldao/NaturalDAO/pull/56) |
+| 10 | 11-02 15:59 | [@shentonyan](https://github.com/shentonyan) | Add NaturalDAO Hugging Face link to README | [0b5e1da](https://github.com/naturaldao/NaturalDAO/commit/0b5e1daab05aecc90157a638fffb111ca2ce0d26) |
 
 <!-- readme-activity:end -->
 
