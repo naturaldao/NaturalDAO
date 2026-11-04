@@ -9,6 +9,8 @@
 | 具身智能与治理 | [阅读路线与完整索引](Embodied/README.md) | 治理框架、方法审计、策略决策、门控撤权与恢复 |
 | 存储与数据基础设施 | [阅读路线与完整索引](Storage/README.md) | 易读综述、选型、V2 方案、容量复算 |
 | 软件工程与智能体记忆 | [工程设计与论文索引](Engineering/README.md) | PoL Gate 工程设计，以及智能体记忆的净价值研究 |
+| DAO 治理机制 | [PoL2 DAO 治理实验室](../PoL-Governance/research/PoL2-DAO-Governance-Lab/README.md) | 投票、审议、资源分配与申诉的模拟实验及复现方法 |
+| 类型化决策模型 | [PoL2 × Jev 文献综述](../PoL-Governance/research/PoL2-Jev-Typed-Literature-Survey/README.md) | 论文、在线附录、文献编码与构建脚本 |
 
 首次阅读具身方向，建议先看主题页的结论边界，再选择框架、方法或实验主线，无需逐篇阅读全部实验。
 
