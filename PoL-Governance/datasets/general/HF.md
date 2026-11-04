@@ -351,12 +351,12 @@ uv run --no-project --offline python datasets/general/export_hf.py inventory
 | 文件 | 改前 | 改后 |
 |---|---|---|
 | README.md（速览后） | 无托管说明 | 新增一段：数据实体托管 HF、链 [HF.md](HF.md) / [data/MANIFEST.json](data/MANIFEST.json) |
-| README.md §4.4 | [data/jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) | `data/jev-probs.jsonl.gz`（HF 托管，见 HF.md） |
-| README.md §4.4 / §5.4 | [data/target-types.jsonl.gz](data/target-types.jsonl.gz)（2 处） | `data/target-types.jsonl.gz` / “target-types（HF 托管，见 HF.md）” |
-| README.md §5.1 文件表 | [data/splits/train.jsonl](data/splits/train.jsonl)（[.gz](data/splits/train.jsonl.gz)）等 6 条大文件链接 | 文件名 + “HF 公开仓库”标注；另加清单/HF.md 指针与 `zh-supplement-items.jsonl.gz` 行 |
+| README.md §4.4 | `data/jev-probs.jsonl.gz` | `data/jev-probs.jsonl.gz`（HF 托管，见 HF.md） |
+| README.md §4.4 / §5.4 | `data/target-types.jsonl.gz`（2 处） | `data/target-types.jsonl.gz` / “target-types（HF 托管，见 HF.md）” |
+| README.md §5.1 文件表 | `data/splits/train.jsonl`（`data/splits/train.jsonl.gz`）等 6 条大文件链接 | 文件名 + “HF 公开仓库”标注；另加清单/HF.md 指针与 `zh-supplement-items.jsonl.gz` 行 |
 | README.md §5.3 / §6 | 按“仓库内文件”读/复算 | 先按 HF.md 下载解压再读；输入改为“本地 data/（从 HF 恢复）” |
-| TRAINING.md 头部 / §1.1 | [target-types.jsonl.gz](data/target-types.jsonl.gz)（2 处） | `target-types.jsonl.gz` + HF.md |
-| TRAINING.md §8 附 | [jev-probs.jsonl.gz](data/jev-probs.jsonl.gz) | `jev-probs.jsonl.gz`（HF 托管，见 HF.md） |
+| TRAINING.md 头部 / §1.1 | `data/target-types.jsonl.gz`（2 处） | `target-types.jsonl.gz` + HF.md |
+| TRAINING.md §8 附 | `data/jev-probs.jsonl.gz` | `jev-probs.jsonl.gz`（HF 托管，见 HF.md） |
 | TRAINING.md §1.1 / §8 | “入库的 .gz / 干净检出上读得到” | “由 HF 托管；从 HF 下载三个分区 .jsonl.gz 并解压后读得到” |
 | CONTRACT.md §2 | data/items.native.jsonl.gz（已移出版本控制） | data/items.final.jsonl + data/items.native.jsonl（大文件不入库，链 data/MANIFEST.json） |
 | jev-validation.md §8.4 / 附录 | “入库的旁挂件只保留公开面” / “明文被 .gitignore 挡住” | “发布的旁挂件只保留公开面” / “HF 公开仓库托管（见 HF.md）” |
