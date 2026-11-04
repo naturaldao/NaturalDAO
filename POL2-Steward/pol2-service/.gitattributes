@@ -1,0 +1,2 @@
+/*.sh text eol=lf
+/packages/pol2-runtime-*/** text=auto eol=lf
