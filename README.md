@@ -32,6 +32,21 @@ It represents the governance and application layer for the Proof-of-Love2 Civili
 
 ---
 
+## 🗂️ 仓库结构 · Repository Layout
+
+按你要做的事选择入口。 / Choose where to start.
+
+| 我想 · I want to | 入口 · Start here |
+| :--- | :--- |
+| 阅读基础理论 · Read the theory | [中文](PoL/Readme.md) · [English](PoLEn/Readme.md) |
+| 运行治理服务 · Run the governance service | [POL2 Steward](POL2-Steward/README.md)，含安装和 Agent 接入指南 / Setup and Agent integration |
+| 使用数据、运行评测或认领任务 · Use datasets, run evaluations or claim tasks | [PoL-Governance](PoL-Governance/README.md) · [贡献指南 / Contributing](CONTRIBUTING.md) |
+| 查阅研究与复现材料 · Explore research and replication materials | [研究索引 / Research index](Research/README.md) |
+| 查看开发规划 · Read the development plan | [中文](docs/development-plan.zh.md) · [English](docs/development-plan.en.md) |
+| 查找图片和视频 · Find images and videos | [媒体索引 / Media index](media/README.md) |
+
+---
+
 ## 🧩 核心构成 · Architecture
 
 | 层级 | 组件 | Component |
@@ -70,18 +85,6 @@ It represents the governance and application layer for the Proof-of-Love2 Civili
 | :--- | :--- |
 | [爱2证明 version 1.0](PoL/) | 自然道的基础理论（中文） |
 | [Proof of Love2 version 1.0](PoLEn/) | Foundational theory (English) |
-
----
-
-## 🗂️ 仓库结构 · Repository Layout
-
-| 目录 | 内容 |
-| :--- | :--- |
-| `PoL/` · `PoLEn/` | 爱2证明理论文档（中文 / English），自动同步到 Wiki |
-| `PoL-Governance/` | AI 治理层协作：任务、数据、模型、评测 |
-| [Research/](Research/README.md) | 研究导航：[具身智能与治理](Research/Embodied/README.md)、[存储与数据基础设施](Research/Storage/README.md)、[软件工程](Research/Engineering/README.md) |
-| `docs/` | 开发规划及存档文档 |
-| `media/` | 对外宣传物料：图片、视频、文案 |
 
 ---
 

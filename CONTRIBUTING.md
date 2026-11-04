@@ -1,13 +1,15 @@
 # 贡献指南 · Contributing
 
-感谢你愿意参与自然道（NaturalDAO）。本仓库有两类内容，流程不同，请先看你要改的是哪一类。
+感谢你愿意参与自然道（NaturalDAO）。请按改动范围查阅对应的说明和检查步骤。
 
-Thanks for contributing to NaturalDAO. The repository holds two kinds of content with different workflows.
+Thanks for contributing to NaturalDAO. Find the workflow and checks for the area you want to change.
 
 | 你要改的内容 | 位置 | 流程 |
 | :--- | :--- | :--- |
 | 理论文档（爱2证明） | `PoL/`（中文）、`PoLEn/`（English） | 见下文「理论文档」 |
 | AI 治理层协作（数据、评测、模型、任务） | `PoL-Governance/` | 见 [AGENTS.md](PoL-Governance/AGENTS.md) 和 [README](PoL-Governance/README.md) |
+| 治理服务与 Agent 接入 · Runtime and Agent integration | [POL2-Steward/](POL2-Steward/README.md) | 从[服务说明](POL2-Steward/pol2-service/README.md)查找测试和接入步骤 |
+| 研究报告与图件 · Research reports and figures | [Research/](Research/README.md) | 按主题归档并更新索引。可复现实验按其项目说明提交 |
 | 开发规划 | `docs/development-plan.zh.md`（中文）、`docs/development-plan.en.md`（English） | 与理论文档相同 |
 
 ## 理论文档 · Theory documents
