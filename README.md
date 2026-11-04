@@ -32,7 +32,7 @@ It represents the governance and application layer for the Proof-of-Love2 Civili
 
 ---
 
-## 最近更新 · Recent Activity
+## 🪾 最近更新 · Recent Activity
 
 汇总主分支过去 72 小时的更新，最多显示 10 条。合并记录显示 PR 作者，直接提交显示 GitHub 提交作者。工作流在主分支有新提交时刷新，并每半小时清理过期条目。
 
