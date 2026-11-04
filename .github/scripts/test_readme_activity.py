@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import tempfile
@@ -61,7 +62,28 @@ class ReadmeActivityTest(unittest.TestCase):
             "&#91;link&#93;&#40;https&#58;//example.test&#41; &#60;img src=x&#62; "
             "&#64;someone &#96;hi&#96; &#124; &#42;bold&#42;",
         )
-        self.assertEqual(activity.markdown_text("\u202e" + "a" * 200), "a" * 159 + "…")
+        self.assertEqual(activity.markdown_text("\u202e" + "a" * 200), "a" * 87 + "…")
+
+    def test_github_profile_links_and_unknown_accounts(self):
+        self.assertEqual(activity.updater_link("a-user"), "[@a-user](https://github.com/a-user)")
+        self.assertEqual(activity.updater_link(""), "未关联账号")
+
+    def test_generic_upload_title_describes_the_changed_file(self):
+        commit = activity.Commit("a" * 40, ("parent",), NOW, "Add files via upload", "")
+        with patch.object(activity, "git", return_value="Research/实验说明.md\0"):
+            self.assertEqual(activity.summary(Path("."), commit, commit.subject),
+                             "更新文件：实验说明.md")
+
+    def test_pr_number_in_title_requires_matching_merge_commit(self):
+        commit = activity.Commit("a" * 40, ("parent",), NOW, "直接提交 (#12)", "")
+        with patch.object(activity, "github_field", side_effect=[
+            '{"sha": "different", "login": "unrelated"}', "actual-author",
+        ]) as lookup:
+            self.assertEqual(activity.activity_details(commit, REPO),
+                             (commit.subject, "actual-author", "a" * 7,
+                              f"https://github.com/{REPO}/commit/{commit.oid}"))
+        self.assertEqual([call.args[1] for call in lookup.call_args_list],
+                         ["pulls/12", f"commits/{commit.oid}"])
 
 
 class GitActivityTest(unittest.TestCase):
@@ -95,9 +117,9 @@ class GitActivityTest(unittest.TestCase):
         return self.run_git("rev-parse", "HEAD")
 
     def test_window_first_parent_pr_titles_and_idempotence(self):
-        cutoff = NOW - timedelta(hours=24)
+        cutoff = NOW - timedelta(hours=72)
         self.commit("root.txt", "旧根提交", cutoff - timedelta(days=1))
-        self.commit("edge.txt", "恰好 24 小时", cutoff, author_when=cutoff - timedelta(days=1))
+        edge = self.commit("edge.txt", "恰好 72 小时", cutoff, author_when=cutoff - timedelta(days=1))
         self.run_git("switch", "-qc", "feature")
         self.commit("Research/side.txt", "只在功能分支的提交", NOW - timedelta(minutes=25))
         self.run_git("switch", "-q", "main")
@@ -106,13 +128,24 @@ class GitActivityTest(unittest.TestCase):
             "merge", "-q", "--no-ff", "feature", "-m", "Merge pull request #12 from test/feature",
             "-m", "合并标题 [示例]", "-m", "正文第二段", when=NOW - timedelta(minutes=20),
         )
-        self.commit("[目录]/update.txt", "压缩合并 (#13)", NOW - timedelta(minutes=15))
+        merge = self.run_git("rev-parse", "HEAD")
+        squash = self.commit("[目录]/update.txt", "压缩合并 (#13)", NOW - timedelta(minutes=15))
         self.commit("generated.txt", activity.BOT_SUBJECT, NOW - timedelta(minutes=10),
                     email=activity.BOT_EMAIL)
         human = self.commit("user.txt", activity.BOT_SUBJECT, NOW - timedelta(minutes=5))
         bot = self.commit("other-bot.txt", "正常的机器人提交", NOW, email=activity.BOT_EMAIL)
         self.commit("future.txt", "未来的时间", NOW + timedelta(seconds=1))
 
+        accounts = {
+            "pulls/12": json.dumps({"sha": merge, "login": "pr-author"}),
+            "pulls/13": json.dumps({"sha": squash, "login": "squash-author"}),
+            f"commits/{human}": "human",
+            f"commits/{bot}": "app[bot]",
+            f"commits/{edge}": "",
+        }
+        lookup = patch.object(activity, "github_field", side_effect=lambda repo, resource, query: accounts[resource])
+        self.addCleanup(lookup.stop)
+        lookup.start()
         path = self.root / "README.md"
         before = b"# Repo\n\n" + activity.START + b"\n"
         after = activity.END + b"\n\nKeep this.\n"
@@ -122,17 +155,18 @@ class GitActivityTest(unittest.TestCase):
         self.assertTrue(data.startswith(before))
         self.assertTrue(data.endswith(after))
         text = data.decode("utf-8")
-        self.assertIn(f"- 11-04 20:00 [正常的机器人提交](https://github.com/{REPO}/commit/{bot})", text)
-        self.assertIn(f"[{activity.BOT_SUBJECT}](https://github.com/{REPO}/commit/{human})", text)
-        self.assertIn(f"[压缩合并](https://github.com/{REPO}/pull/13) · 涉及 &#91;目录&#93;", text)
-        self.assertIn(f"[合并标题 &#91;示例&#93;](https://github.com/{REPO}/pull/12) · 涉及 Research", text)
-        self.assertIn("- 11-03 20:00 [恰好 24 小时]", text)
+        self.assertIn("| 序号 | 时间（UTC+8） | 更新人 | 更新内容 | 链接 |", text)
+        self.assertIn(f"| 1 | 11-04 20:00 | [@app&#91;bot&#93;](https://github.com/apps/app) | 正常的机器人提交 | [{bot[:7]}](https://github.com/{REPO}/commit/{bot}) |", text)
+        self.assertIn(f"| [@human](https://github.com/human) | {activity.BOT_SUBJECT} | [{human[:7]}]", text)
+        self.assertIn(f"| [@squash-author](https://github.com/squash-author) | 压缩合并 | [PR #13](https://github.com/{REPO}/pull/13) |", text)
+        self.assertIn(f"| [@pr-author](https://github.com/pr-author) | 合并标题 &#91;示例&#93; | [PR #12](https://github.com/{REPO}/pull/12) |", text)
+        self.assertIn("| 11-01 20:00 | 未关联账号 | 恰好 72 小时 |", text)
         for excluded in ("generated.txt", "只在功能分支", "正文第二段", "超出窗口", "未来的时间"):
             self.assertNotIn(excluded, text)
         with patch.object(Path, "write_bytes", side_effect=AssertionError("unchanged README rewritten")):
             self.assertFalse(activity.update(self.root, REPO, NOW))
 
-        self.assertTrue(activity.update(self.root, REPO, NOW + timedelta(hours=48)))
+        self.assertTrue(activity.update(self.root, REPO, NOW + timedelta(hours=73)))
         self.assertEqual(path.read_bytes(), before + b"\n" + activity.EMPTY.encode("utf-8") + b"\n\n" + after)
 
 

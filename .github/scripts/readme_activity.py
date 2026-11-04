@@ -1,7 +1,8 @@
-"""用本地 Git 历史刷新首页的过去 24 小时更新。"""
+"""用本地 Git 历史和 GitHub 账号刷新首页的过去 72 小时更新。"""
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import re
 import subprocess
@@ -15,10 +16,11 @@ END = b"<!-- readme-activity:end -->"
 BOT_EMAIL = "41898282+github-actions[bot]@users.noreply.github.com"
 BOT_SUBJECT = "刷新首页最近更新"
 DISPLAY_TZ = timezone(timedelta(hours=8))
+WINDOW_HOURS = 72
 LIMIT = 10
-AREA_LIMIT = 5
-EMPTY = "过去 24 小时暂无主分支更新。"
+EMPTY = f"过去 {WINDOW_HOURS} 小时暂无主分支更新。"
 REPO_NAME = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+LOGIN = re.compile(r"([A-Za-z0-9][A-Za-z0-9-]{0,38})(\[bot\])?")
 MERGE_PR = re.compile(r"Merge pull request #([1-9][0-9]*) from \S+")
 SQUASH_PR = re.compile(r"(.+) \(#([1-9][0-9]*)\)")
 MARKDOWN_CHARS = frozenset("\\`*_{}[]()<>!&~|@#:")
@@ -41,7 +43,7 @@ def git(root, *args):
 
 
 def recent_commits(root, now):
-    cutoff = now - timedelta(hours=24)
+    cutoff = now - timedelta(hours=WINDOW_HOURS)
     history = git(
         root, "log", "--first-parent", f"--since-as-filter=@{math.floor(cutoff.timestamp())}",
         "--encoding=UTF-8", "-z", "--format=%H%x00%P%x00%ct%x00%ae%x00%s%x00%b", "HEAD",
@@ -75,37 +77,75 @@ def title_and_url(commit, repo):
     return commit.subject or "无标题提交", f"{base}/commit/{commit.oid}"
 
 
-def changed_areas(root, commit):
-    revisions = [commit.parents[0], commit.oid] if commit.parents else ["--root", commit.oid]
-    paths = git(
-        root, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "--no-renames", "--no-ext-diff",
-        *revisions,
+def github_field(repo, resource, query):
+    result = subprocess.run(
+        ["gh", "api", f"repos/{repo}/{resource}", "--jq", query],
+        capture_output=True, check=True, timeout=20,
     )
-    return sorted({path.split("/", 1)[0] for path in paths.split("\0") if path})
+    return result.stdout.decode("utf-8").strip()
+
+
+def activity_details(commit, repo):
+    title, url = title_and_url(commit, repo)
+    if url.startswith(f"https://github.com/{repo}/pull/"):
+        number = url.rsplit("/", 1)[-1]
+        try:
+            pull = json.loads(github_field(repo, f"pulls/{number}",
+                                           "{sha: .merge_commit_sha, login: .user.login}"))
+        except subprocess.CalledProcessError as error:
+            if b"(HTTP 404)" not in error.stderr:
+                raise
+        else:
+            if pull["sha"] == commit.oid:
+                return title, pull["login"] or "", f"PR #{number}", url
+
+    login = github_field(repo, f"commits/{commit.oid}", ".author.login // empty")
+    url = f"https://github.com/{repo}/commit/{commit.oid}"
+    return commit.subject, login, commit.oid[:7], url
+
+
+def summary(root, commit, title):
+    if title != "Add files via upload":
+        return title
+    revisions = [commit.parents[0], commit.oid] if commit.parents else ["--root", commit.oid]
+    paths = git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", *revisions)
+    files = [path.rsplit("/", 1)[-1] for path in paths.split("\0") if path]
+    if not files:
+        return title
+    suffix = f"等 {len(files)} 个文件" if len(files) > 2 else ""
+    return "更新文件：" + "、".join(files[:2]) + suffix
+
+
+def updater_link(login):
+    match = LOGIN.fullmatch(login)
+    if not match:
+        return "未关联账号"
+    username, bot = match.groups()
+    profile = f"apps/{username}" if bot else username
+    return f"[@{markdown_text(login)}](https://github.com/{profile})"
 
 
 def markdown_text(text):
     flat = " ".join(text.split())
     flat = "".join(char for char in flat if unicodedata.category(char) not in ("Cc", "Cf"))
-    if len(flat) > 160:
-        flat = flat[:159] + "…"
+    if len(flat) > 88:
+        flat = flat[:87] + "…"
     return "".join(f"&#{ord(char)};" if char in MARKDOWN_CHARS else char for char in flat)
 
 
 def render_activity(root, repo, now):
-    lines = []
-    for commit in recent_commits(root, now):
-        title, url = title_and_url(commit, repo)
+    commits = recent_commits(root, now)
+    if not commits:
+        return EMPTY
+    lines = ["| 序号 | 时间（UTC+8） | 更新人 | 更新内容 | 链接 |",
+             "| ---: | --- | --- | --- | --- |"]
+    for index, commit in enumerate(commits, 1):
+        title, login, link_label, url = activity_details(commit, repo)
         local_time = commit.timestamp.astimezone(DISPLAY_TZ).strftime("%m-%d %H:%M")
-        areas = changed_areas(root, commit)
-        detail = ""
-        if areas:
-            detail = " · 涉及 " + "、".join(map(markdown_text, areas[:AREA_LIMIT]))
-            if len(areas) > AREA_LIMIT:
-                detail += f"等 {len(areas)} 处"
-        label = markdown_text(title) or "无标题提交"
-        lines.append(f"- {local_time} [{label}]({url}){detail}")
-    return "\n".join(lines) if lines else EMPTY
+        updater = updater_link(login)
+        label = markdown_text(summary(root, commit, title)) or "无标题提交"
+        lines.append(f"| {index} | {local_time} | {updater} | {label} | [{link_label}]({url}) |")
+    return "\n".join(lines)
 
 
 def replace_activity(readme, activity):
@@ -150,7 +190,7 @@ def main(argv=None):
         parser.error("--repo 必须为 owner/repo。")
     try:
         changed = update(Path.cwd(), args.repo, args.now or datetime.now(timezone.utc))
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
         parser.exit(1, f"刷新首页失败：{error}\n")
     print("已刷新首页最近更新。" if changed else "首页最近更新无需刷新。")
 
