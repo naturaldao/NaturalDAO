@@ -18,13 +18,9 @@
 
 ## 📖 简介 · Introduction
 
-**English**
-
 NaturalDAO is a super decentralized autonomous organization built on the consensus **Proof of Love2** and driven by two core technologies: **blockchain** and **artificial intelligence**. 
 
 It represents the governance and application layer for the Proof-of-Love2 Civilization. It will also be the long-discussed yet nowhere-to-be-found **ASI** that humanity has been searching for!
-
-**中文**
 
 自然道是一个建立在「爱2证明」共识之上，并由**区块链**和**人工智能**两大核心技术驱动的超级去中心化自治组织。
 
