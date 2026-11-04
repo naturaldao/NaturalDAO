@@ -19,7 +19,7 @@ BOT_SUBJECT = "刷新首页最近更新"
 DISPLAY_TZ = timezone(timedelta(hours=8))
 WINDOW_DAYS = 7
 ROW_LIMIT = 15
-EMPTY = "过去 7 天暂无主分支更新。"
+EMPTY = "过去 7 天暂无主分支更新。 / No updates to the main branch in the past 7 days."
 REPO_NAME = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 LOGIN = re.compile(r"([A-Za-z0-9][A-Za-z0-9-]{0,38})(\[bot\])?")
 MERGE_PR = re.compile(r"Merge pull request #([1-9][0-9]*) from \S+")
@@ -76,7 +76,7 @@ def pull_reference(commit):
         if merge:
             number = merge[1]
             title = next((line.strip() for line in commit.body.splitlines() if line.strip()), "")
-            return number, title or f"合并 PR #{number}"
+            return number, title or f"合并 PR #{number} / Merge PR #{number}"
     else:
         squash = SQUASH_PR.fullmatch(commit.subject)
         if squash:
@@ -123,14 +123,14 @@ def summary(title, files):
     files = [path.rsplit("/", 1)[-1] for _, path in files]
     if not files:
         return title
-    suffix = f"等 {len(files)} 个文件" if len(files) > 2 else ""
-    return "更新文件：" + "、".join(files[:2]) + suffix
+    suffix = f" …（{len(files)} 个文件 / files）" if len(files) > 2 else ""
+    return "更新文件 / Updated files：" + "、".join(files[:2]) + suffix
 
 
 def updater_link(login):
     match = LOGIN.fullmatch(login)
     if not match:
-        return "未关联账号"
+        return "未关联账号 / Unlinked account"
     username, bot = match.groups()
     profile = f"apps/{username}" if bot else username
     return f"[@{markdown_text(login)}](https://github.com/{profile})"
@@ -146,16 +146,15 @@ def markdown_text(text):
 
 def file_link(repo, commit, status, path):
     revision = commit.parents[0] if status == "D" else commit.oid
-    label = markdown_text(path) + ("（删除前）" if status == "D" else "")
+    label = markdown_text(path) + ("（删除前 / Before deletion）" if status == "D" else "")
     return f"[{label}](https://github.com/{repo}/blob/{revision}/{quote(path)})"
 
 
-def compact_items(items, unit):
-    items = list(items)
-    visible = "<br>".join(items[:3])
-    if len(items) > 3:
-        remaining = "<br>".join(items[3:])
-        visible += f"<details><summary>另有 {len(items) - 3} {unit}</summary>{remaining}</details>"
+def preview_items(items, limit, more_label, separator="<br><br>"):
+    visible = separator.join(items[:limit])
+    if len(items) > limit:
+        remaining = separator.join(items[limit:])
+        visible += f"<details><summary>{more_label} ({len(items) - limit})</summary>{remaining}</details>"
     return visible
 
 
@@ -173,11 +172,10 @@ def render_activity(root, repo, now):
             group = updates[key] = DailyUpdate(local_time, local_time, login)
         group.earliest = local_time
         files = changed_files(root, commit)
-        label = markdown_text(summary(title, files)) or "无标题提交"
-        links = compact_items(
-            (file_link(repo, commit, status, path) for status, path in files), "个文件"
-        ) or "无文件变更"
-        group.entries.append(f"<strong>{local_time:%H:%M} · {label}</strong><br>文件：{links}")
+        label = markdown_text(summary(title, files)) or "无标题提交 / Untitled commit"
+        links = preview_items([file_link(repo, commit, status, path) for status, path in files],
+                              3, "其他文件 · More files", separator="<br>") or "无文件变更 / No changed files"
+        group.entries.append(f"<strong>{local_time:%H:%M} · {label}</strong><br>文件 / Files: {links}")
 
     rows = []
     for index, group in enumerate(updates.values(), 1):
@@ -185,12 +183,12 @@ def render_activity(root, repo, now):
         time_label = earliest
         if group.latest.strftime("%H:%M") != group.earliest.strftime("%H:%M"):
             time_label += group.latest.strftime("–%H:%M")
-        entries = "<br><br>".join(group.entries)
-        details = f"<details><summary>{len(group.entries)} 项更新</summary>{entries}</details>"
+        details = preview_items(group.entries, 2, "其他更新 · Other updates")
         rows.append(f"| {index} | {time_label} | {updater_link(group.login)} | {details} |")
     if not rows:
         return EMPTY
-    header = "| 序号 | 时间（UTC+8） | 更新人 | 更新详情 |\n| ---: | --- | --- | --- |"
+    header = ("| 序号<br>No. | 时间（UTC+8）<br>Time (UTC+8) | 更新人<br>Contributor | "
+              "更新详情<br>Update details |\n| ---: | --- | --- | --- |")
     return "\n".join([header, *rows])
 
 
