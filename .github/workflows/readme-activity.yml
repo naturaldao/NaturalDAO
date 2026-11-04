@@ -30,7 +30,6 @@ jobs:
           sparse-checkout: |
             /README.md
             /.github/scripts/readme_activity.py
-            /docs/recent-updates/
       - name: 生成并发布最近更新
         env:
           GH_TOKEN: ${{ github.token }}
@@ -40,14 +39,10 @@ jobs:
 
           for attempt in 1 2 3; do
             python3 .github/scripts/readme_activity.py --repo "$GITHUB_REPOSITORY"
-            git add -- README.md
-            if [ -d docs/recent-updates ]; then
-              git add -A -- docs/recent-updates
-            fi
-            if git diff --cached --quiet; then
+            if git diff --quiet -- README.md; then
               exit 0
             fi
-            git commit -m '刷新首页最近更新'
+            git commit -m '刷新首页最近更新' -- README.md
             if git push origin HEAD:refs/heads/main; then
               exit 0
             fi
