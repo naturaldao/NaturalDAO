@@ -18,10 +18,7 @@ BOT_EMAIL = "41898282+github-actions[bot]@users.noreply.github.com"
 BOT_SUBJECT = "刷新首页最近更新"
 DISPLAY_TZ = timezone(timedelta(hours=8))
 WINDOW_DAYS = 7
-PAGE_SIZE = 15
-PAGE_DIR = Path("docs/recent-updates")
-PAGE_NAME = re.compile(r"page-[0-9]+\.md")
-GENERATED = "<!-- readme-activity:generated -->"
+ROW_LIMIT = 15
 EMPTY = "过去 7 天暂无主分支更新。"
 REPO_NAME = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 LOGIN = re.compile(r"([A-Za-z0-9][A-Za-z0-9-]{0,38})(\[bot\])?")
@@ -44,8 +41,7 @@ class DailyUpdate:
     latest: datetime
     earliest: datetime
     login: str
-    summaries: dict[str, None] = field(default_factory=dict)
-    files: dict[str, str] = field(default_factory=dict)
+    entries: list[str] = field(default_factory=list)
 
 
 def git(root, *args):
@@ -163,18 +159,6 @@ def compact_items(items, unit):
     return visible
 
 
-def page_navigation(page, total):
-    links = []
-    if page > 1:
-        previous = "../../README.md#-最近更新--recent-activity" if page == 2 else f"page-{page - 1}.md"
-        links.append(f"[上一页]({previous})")
-    links.append(f"第 {page} / {total} 页")
-    if page < total:
-        following = (PAGE_DIR / "page-2.md").as_posix() if page == 1 else f"page-{page + 1}.md"
-        links.append(f"[下一页]({following})")
-    return " · ".join(links)
-
-
 def render_activity(root, repo, now):
     updates = {}
     for commit in recent_commits(root, now):
@@ -184,14 +168,16 @@ def render_activity(root, repo, now):
         key = (local_time.date(), identity)
         group = updates.get(key)
         if group is None:
+            if len(updates) >= ROW_LIMIT:
+                continue
             group = updates[key] = DailyUpdate(local_time, local_time, login)
         group.earliest = local_time
         files = changed_files(root, commit)
         label = markdown_text(summary(title, files)) or "无标题提交"
-        group.summaries[label] = None
-        for status, path in files:
-            if path not in group.files:
-                group.files[path] = file_link(repo, commit, status, path)
+        links = compact_items(
+            (file_link(repo, commit, status, path) for status, path in files), "个文件"
+        ) or "无文件变更"
+        group.entries.append(f"<strong>{local_time:%H:%M} · {label}</strong><br>文件：{links}")
 
     rows = []
     for index, group in enumerate(updates.values(), 1):
@@ -199,19 +185,13 @@ def render_activity(root, repo, now):
         time_label = earliest
         if group.latest.strftime("%H:%M") != group.earliest.strftime("%H:%M"):
             time_label += group.latest.strftime("–%H:%M")
-        labels = compact_items(group.summaries, "条摘要")
-        links = compact_items(group.files.values(), "个文件") or "无文件变更"
-        rows.append(f"| {index} | {time_label} | {updater_link(group.login)} | {labels} | {links} |")
+        entries = "<br><br>".join(group.entries)
+        details = f"<details><summary>{len(group.entries)} 项更新</summary>{entries}</details>"
+        rows.append(f"| {index} | {time_label} | {updater_link(group.login)} | {details} |")
     if not rows:
-        return [EMPTY]
-    header = "| 序号 | 时间（UTC+8） | 更新人 | 更新内容 | 变更文件 |\n| ---: | --- | --- | --- | --- |"
-    total = math.ceil(len(rows) / PAGE_SIZE)
-    pages = []
-    for start in range(0, len(rows), PAGE_SIZE):
-        page = start // PAGE_SIZE + 1
-        lines = [header, *rows[start:start + PAGE_SIZE], "", page_navigation(page, total)]
-        pages.append("\n".join(lines))
-    return pages
+        return EMPTY
+    header = "| 序号 | 时间（UTC+8） | 更新人 | 更新详情 |\n| ---: | --- | --- | --- |"
+    return "\n".join([header, *rows])
 
 
 def replace_activity(readme, activity):
@@ -228,32 +208,11 @@ def replace_activity(readme, activity):
 def update(root, repo, now):
     path = root / "README.md"
     original = path.read_bytes()
-    pages = render_activity(root, repo, now)
-    updated = replace_activity(original, pages[0])
-    folder = root / PAGE_DIR
-    desired = {folder / f"page-{number}.md":
-               f"{GENERATED}\n\n# 最近更新（第 {number} 页）\n\n{page}\n".encode("utf-8")
-               for number, page in enumerate(pages[1:], 2)}
-    existing = {file: file.read_bytes() for file in folder.glob("page-*.md")
-                if PAGE_NAME.fullmatch(file.name)}
-    for file, content in existing.items():
-        if not content.startswith(GENERATED.encode("utf-8")) and file in desired:
-            raise ValueError(f"分页路径已由其他文档占用：{file.name}")
-
-    changed = updated != original
-    if changed:
-        path.write_bytes(updated)
-    if desired:
-        folder.mkdir(parents=True, exist_ok=True)
-    for file, content in desired.items():
-        if existing.get(file) != content:
-            file.write_bytes(content)
-            changed = True
-    for file in existing.keys() - desired.keys():
-        if existing[file].startswith(GENERATED.encode("utf-8")):
-            file.unlink()
-            changed = True
-    return changed
+    updated = replace_activity(original, render_activity(root, repo, now))
+    if updated == original:
+        return False
+    path.write_bytes(updated)
+    return True
 
 
 def parse_now(value):

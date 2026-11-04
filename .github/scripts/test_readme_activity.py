@@ -97,40 +97,36 @@ class ReadmeActivityTest(unittest.TestCase):
               patch.object(activity, "activity_details",
                            side_effect=lambda commit, repo: (commit.subject, accounts[commit.oid])),
               patch.object(activity, "changed_files", return_value=[("M", "note.md")])):
-            page, = activity.render_activity(Path("."), REPO, NOW)
+            page = activity.render_activity(Path("."), REPO, NOW)
         self.assertIn("| 1 | 11-04 00:00–02:00 | [@Alice]", page)
-        self.assertIn("更新说明<br>新增说明", page)
-        self.assertIn("/blob/latest/note.md", page)
-        self.assertNotIn("/blob/same/note.md", page)
+        self.assertIn("<details><summary>2 项更新</summary>", page)
+        self.assertIn("02:00 · 更新说明</strong><br>文件："
+                      f"[note.md](https://github.com/{REPO}/blob/latest/note.md)", page)
+        self.assertIn("00:00 · 新增说明</strong><br>文件："
+                      f"[note.md](https://github.com/{REPO}/blob/same/note.md)", page)
         self.assertIn("| 3 | 11-03 23:59 | [@Alice]", page)
         self.assertEqual(page.count("| 未关联账号 |"), 2)
         self.assertEqual(sum(line.startswith("| ") for line in page.splitlines()), 7)
 
-    def test_pagination_limits_rows_and_removes_only_generated_pages(self):
+    def test_readme_limits_rows_and_keeps_details_collapsed(self):
         commits = [activity.Commit(str(i), (), NOW, "更新", "") for i in range(31)]
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            (root / "README.md").write_bytes(activity.START + b"\n" + activity.END + b"\n")
-            folder = root / activity.PAGE_DIR
-            folder.mkdir(parents=True)
-            handwritten = folder / "page-9.md"
-            handwritten.write_text("人工文档", encoding="utf-8")
+            readme = root / "README.md"
+            readme.write_bytes(activity.START + b"\n" + activity.END + b"\n")
             with (patch.object(activity, "recent_commits", return_value=commits) as history,
                   patch.object(activity, "activity_details",
                                side_effect=lambda commit, repo: ("更新", f"user-{commit.oid}")),
                   patch.object(activity, "changed_files", return_value=[("M", "note.md")])):
                 self.assertTrue(activity.update(root, REPO, NOW))
-                for file, count in (("README.md", 15), (activity.PAGE_DIR / "page-2.md", 15),
-                                    (activity.PAGE_DIR / "page-3.md", 1)):
-                    self.assertEqual(sum(line.startswith("| ") for line in
-                                         (root / file).read_text(encoding="utf-8").splitlines()), count + 2)
-                self.assertIn("[下一页](docs/recent-updates/page-2.md)",
-                              (root / "README.md").read_text(encoding="utf-8"))
-                self.assertIn("[下一页](page-3.md)", (folder / "page-2.md").read_text(encoding="utf-8"))
+                text = readme.read_text(encoding="utf-8")
+                self.assertEqual(sum(line.startswith("| ") for line in text.splitlines()), 17)
+                self.assertEqual(text.count("<details><summary>1 项更新</summary>"), 15)
+                self.assertNotIn("<details open", text)
                 self.assertFalse(activity.update(root, REPO, NOW))
                 history.return_value = commits[:1]
                 self.assertTrue(activity.update(root, REPO, NOW))
-            self.assertEqual(list(folder.glob("*.md")), [handwritten])
+            self.assertEqual(list(root.iterdir()), [readme])
 
     def test_pr_number_in_title_requires_matching_merge_commit(self):
         commit = activity.Commit("a" * 40, ("parent",), NOW, "直接提交 (#12)", "")
@@ -212,12 +208,13 @@ class GitActivityTest(unittest.TestCase):
         self.assertTrue(data.startswith(before))
         self.assertTrue(data.endswith(after))
         text = data.decode("utf-8")
-        self.assertIn("| 序号 | 时间（UTC+8） | 更新人 | 更新内容 | 变更文件 |", text)
-        self.assertIn(f"| 1 | 11-04 20:00 | [@app&#91;bot&#93;](https://github.com/apps/app) | 正常的机器人提交 | [other-bot.txt](https://github.com/{REPO}/blob/{bot}/other-bot.txt) |", text)
-        self.assertIn(f"| [@human](https://github.com/human) | {activity.BOT_SUBJECT} | [user.txt]", text)
-        self.assertIn(f"| [@squash-author](https://github.com/squash-author) | 压缩合并 | [&#91;目录&#93;/update.txt](https://github.com/{REPO}/blob/{squash}/", text)
-        self.assertIn(f"| [@pr-author](https://github.com/pr-author) | 合并标题 &#91;示例&#93; | [Research/side.txt](https://github.com/{REPO}/blob/{merge}/Research/side.txt) |", text)
-        self.assertIn("| 10-28 20:00 | 未关联账号 | 恰好 7 天 |", text)
+        self.assertIn("| 序号 | 时间（UTC+8） | 更新人 | 更新详情 |", text)
+        self.assertIn("| 1 | 11-04 20:00 | [@app&#91;bot&#93;](https://github.com/apps/app)", text)
+        self.assertIn(f"正常的机器人提交</strong><br>文件：[other-bot.txt](https://github.com/{REPO}/blob/{bot}/other-bot.txt)", text)
+        self.assertIn(f"{activity.BOT_SUBJECT}</strong><br>文件：[user.txt]", text)
+        self.assertIn(f"压缩合并</strong><br>文件：[&#91;目录&#93;/update.txt](https://github.com/{REPO}/blob/{squash}/", text)
+        self.assertIn(f"合并标题 &#91;示例&#93;</strong><br>文件：[Research/side.txt](https://github.com/{REPO}/blob/{merge}/Research/side.txt)", text)
+        self.assertIn("| 10-28 20:00 | 未关联账号 | <details>", text)
         for excluded in ("generated.txt", "只在功能分支", "正文第二段", "超出窗口", "未来的时间"):
             self.assertNotIn(excluded, text)
         with patch.object(Path, "write_bytes", side_effect=AssertionError("unchanged README rewritten")):
