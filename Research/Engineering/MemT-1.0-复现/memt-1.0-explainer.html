@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>MemT-1.0 深度讲解：记忆原生基础模型的真实含金量</title>
+<script>
+(function(){try{var s=localStorage.getItem('memt-theme');var d=s?s==='dark':(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+</script>
+<style>
+:root{--p1:#6C5CE7;--p2:#00B894;--grad:linear-gradient(120deg,#6C5CE7 0%,#00B894 100%);
+--bg:#fafbfe;--bg2:#f1f3f9;--card:#ffffff;--fg:#1c1f2b;--fg2:#4f566b;--muted:#868ca0;--line:#e2e5ef;
+--shadow:0 1px 2px rgba(25,25,60,.05),0 8px 28px rgba(25,25,60,.07);
+--A:#00a07f;--B:#d08700;--C:#7a8398;--D:#d64545;--Abg:rgba(0,184,148,.12);--Bbg:rgba(240,165,0,.14);--Cbg:rgba(122,131,152,.14);--Dbg:rgba(214,69,69,.12);
+--read:#00B894;--write:#6C5CE7;--hl:rgba(108,92,231,.10);--band:rgba(225,112,85,.08);--code:#f3f2fb}
+[data-theme=dark]{--bg:#0e1016;--bg2:#141824;--card:#181c29;--fg:#e7e9f1;--fg2:#b2b8ca;--muted:#7d859b;--line:#2a3042;
+--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.35);--A:#2fd3ad;--B:#f2b134;--C:#9aa3b8;--D:#ff6b6b;
+--Abg:rgba(0,184,148,.16);--Bbg:rgba(242,177,52,.15);--Cbg:rgba(154,163,184,.14);--Dbg:rgba(255,107,107,.14);--hl:rgba(140,125,255,.16);--band:rgba(255,140,110,.09);--code:#1f2333}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 system-ui,-apple-system,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
+a{color:var(--p1)}[data-theme=dark] a{color:#a99cff}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Cascadia Mono","Liberation Mono",monospace;font-size:.88em}
+code{background:var(--code);padding:.1em .35em;border-radius:5px}
+.wrap{max-width:1140px;margin:0 auto;padding:0 22px}
+/* nav */
+.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 84%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:14px;height:56px}
+.brand{font-weight:800;letter-spacing:.2px;white-space:nowrap;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.navlinks{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;mask-image:linear-gradient(90deg,#000 92%,transparent)}
+.navlinks::-webkit-scrollbar{display:none}
+.navlinks a{color:var(--fg2);text-decoration:none;font-size:13.5px;padding:6px 10px;border-radius:8px;white-space:nowrap}
+.navlinks a:hover{background:var(--bg2)}
+.navlinks a.active{color:#fff;background:var(--grad)}
+.tbtn{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;white-space:nowrap}
+.tbtn:hover{border-color:var(--p1)}
+/* sections */
+section{padding:76px 0 30px}
+.sec-h{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}
+.sec-n{font:700 13px/1 ui-monospace,Consolas,monospace;color:#fff;background:var(--grad);padding:6px 9px;border-radius:8px;flex:none;transform:translateY(-4px)}
+h2{font-size:30px;line-height:1.3;margin:0;letter-spacing:.3px}
+h3{font-size:20px;margin:34px 0 10px}
+h4{font-size:16px;margin:0 0 6px}
+.lead{color:var(--fg2);font-size:17px;max-width:860px;margin:6px 0 22px}
+p{margin:10px 0}
+.muted{color:var(--muted)}.small{font-size:13.5px}.tiny{font-size:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:20px 22px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}h2{font-size:24px}section{padding:56px 0 20px}}
+.note{border-left:4px solid var(--p1);background:var(--hl);padding:12px 16px;border-radius:0 12px 12px 0;margin:16px 0;color:var(--fg)}
+.note.warn{border-color:var(--D);background:var(--Dbg)}
+.note.ok{border-color:var(--A);background:var(--Abg)}
+.note.amber{border-color:var(--B);background:var(--Bbg)}
+ul.tight{margin:8px 0;padding-left:20px}ul.tight li{margin:4px 0}
+/* hero */
+.hero{padding:70px 0 40px;position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:-40% -10% auto auto;width:720px;height:720px;background:radial-gradient(closest-side,rgba(108,92,231,.22),transparent 70%);pointer-events:none}
+.hero:after{content:"";position:absolute;inset:auto auto -45% -10%;width:640px;height:640px;background:radial-gradient(closest-side,rgba(0,184,148,.18),transparent 70%);pointer-events:none}
+.eyebrow{display:inline-block;font-size:12.5px;letter-spacing:.5px;color:var(--fg2);border:1px solid var(--line);border-radius:999px;padding:4px 12px;background:var(--card)}
+.hero h1{font-size:44px;overflow-wrap:anywhere;line-height:1.2;margin:18px 0 12px;letter-spacing:.3px}
+.hero h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .def{font-size:18.5px;color:var(--fg2);max-width:900px}
+@media (max-width:620px){.hero h1{font-size:31px}.hero .def{font-size:16px}}
+.kpis{margin-top:30px;position:relative;z-index:1}
+.kpi{padding:18px 18px 16px;border-radius:16px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi:before{content:"";position:absolute;left:0;top:0;right:0;height:4px;background:var(--grad)}
+.kpi .v{font-size:32px;font-weight:800;line-height:1.15;letter-spacing:-.5px}
+.kpi .v small{font-size:17px;font-weight:700;color:var(--fg2)}
+.kpi .l{font-weight:650;margin-top:4px}
+.kpi .s{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:6px}
+.badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;position:relative;z-index:1}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;font-weight:650;font-size:14px;border:1px solid}
+.badge i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.b-amber{color:var(--B);border-color:color-mix(in srgb,var(--B) 45%,transparent);background:var(--Bbg)}.b-amber i{background:var(--B)}
+.b-red{color:var(--D);border-color:color-mix(in srgb,var(--D) 45%,transparent);background:var(--Dbg)}.b-red i{background:var(--D)}
+.b-green{color:var(--A);border-color:color-mix(in srgb,var(--A) 45%,transparent);background:var(--Abg)}.b-green i{background:var(--A)}
+.verdict-box{margin-top:22px;position:relative;z-index:1}
+/* tables */
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--bg2);font-weight:650;font-size:13px;white-space:nowrap;position:sticky;top:0}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.me td{background:var(--hl);font-weight:650}
+td.best{color:var(--A);font-weight:700}
+.long{background:var(--band)}
+tr.grp td{background:var(--bg2);font-weight:650;color:var(--fg2);font-size:12.5px;letter-spacing:.3px}
+.neg{color:var(--D);font-weight:650}.pos{color:var(--A);font-weight:650}
+/* chips & filters */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--fg2);padding:6px 13px;border-radius:999px;cursor:pointer;font-size:13.5px;font-weight:600}
+.chip:hover{border-color:var(--p1)}
+.chip.on{background:var(--grad);color:#fff;border-color:transparent}
+.vtag{display:inline-block;min-width:26px;text-align:center;font-weight:800;font-size:12.5px;padding:2px 8px;border-radius:7px}
+.vA{color:var(--A);background:var(--Abg)}.vB{color:var(--B);background:var(--Bbg)}.vC{color:var(--C);background:var(--Cbg)}.vD{color:var(--D);background:var(--Dbg)}
+.sev{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.sH{color:var(--D);background:var(--Dbg)}.sM{color:var(--B);background:var(--Bbg)}.sL{color:var(--C);background:var(--Cbg)}
+.statrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+@media (max-width:620px){.statrow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{border-radius:14px;padding:14px 16px;border:1px solid var(--line);background:var(--card)}
+.stat .n{font-size:30px;font-weight:800;line-height:1.1}
+.stat .t{font-size:13px;color:var(--fg2)}
+.stat.A .n{color:var(--A)}.stat.B .n{color:var(--B)}.stat.C .n{color:var(--C)}.stat.D .n{color:var(--D)}
+.search{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;padding:7px 12px;font-size:14px;min-width:220px}
+/* charts */
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--fg2);font-size:12px;font-family:inherit}
+.chart .axis{stroke:var(--line)}
+.chart .gridl{stroke:var(--line);stroke-dasharray:3 4}
+.legend{display:flex;flex-wrap:wrap;gap:12px 18px;font-size:13px;color:var(--fg2);margin:6px 0 4px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.tip{position:fixed;z-index:80;pointer-events:none;background:var(--card);color:var(--fg);border:1px solid var(--line);box-shadow:var(--shadow);padding:6px 10px;border-radius:8px;font-size:12.5px;opacity:0;transition:opacity .12s;max-width:280px}
+/* architecture */
+.arch-wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){.arch-wrap{grid-template-columns:1fr}}
+#arch svg .hv{cursor:pointer;transition:opacity .2s}
+#arch svg .box{fill:var(--card);stroke:var(--line);stroke-width:1.5}
+#arch svg .frozen{fill:var(--bg2)}
+#arch svg .train{fill:color-mix(in srgb,var(--p1) 10%,var(--card));stroke:var(--p1)}
+#arch svg .stateb{fill:color-mix(in srgb,var(--p2) 10%,var(--card));stroke:var(--p2)}
+#arch svg text{fill:var(--fg);font-size:13px;font-family:inherit}
+#arch svg text.sub{fill:var(--muted);font-size:11px}
+#arch svg .rd{stroke:var(--read);stroke-width:3;fill:none}
+#arch svg .wr{stroke:var(--write);stroke-width:3;fill:none;stroke-dasharray:8 5}
+#arch svg .fl{stroke:var(--muted);stroke-width:1.6;fill:none}
+#arch svg.dim .hv{opacity:.28}
+#arch svg.dim .hv.on{opacity:1}
+#arch svg .hv.on .box,#arch svg .hv.on rect{stroke-width:2.6}
+#archInfo{min-height:150px}
+#archInfo h4{color:var(--p1)}
+.flowanim{animation:dash 1.2s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-26}}
+@media (prefers-reduced-motion:reduce){.flowanim{animation:none}}
+/* timeline */
+.tl{display:grid;grid-template-columns:1.4fr .9fr 1.4fr;gap:0;margin:12px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.tl>div{padding:14px 16px;background:var(--card);position:relative}
+.tl .r{border-top:5px solid var(--read)}.tl .w{border-top:5px solid var(--write);background:color-mix(in srgb,var(--p1) 7%,var(--card))}
+.tl h4{font-size:14.5px}
+@media (max-width:700px){.tl{grid-template-columns:minmax(0,1fr)}}
+/* formula */
+.eqs{display:grid;gap:10px}
+.eq{font-family:"Cambria Math","STIX Two Math","Latin Modern Math","Times New Roman",serif;font-size:19px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px;display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;overflow-x:auto}
+.eq .lbl{font-family:system-ui,"Microsoft YaHei",sans-serif;font-size:12.5px;color:var(--muted)}
+.eq var{font-style:italic}.eq b{font-weight:700}
+.eq .hl{color:var(--p1);font-weight:700}
+.eq .hl2{color:var(--p2);font-weight:700}
+/* flow */
+.flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:14px 0 8px}
+.step{position:relative;padding:18px 16px 16px 16px;background:var(--card);border:1px solid var(--line);margin-right:14px;border-radius:14px}
+.step:after{content:"";position:absolute;right:-14px;top:50%;width:14px;height:2px;background:var(--grad)}
+.step:last-child{margin-right:0}.step:last-child:after{display:none}
+.step .k{font:700 12px ui-monospace,Consolas,monospace;color:var(--p1)}
+.step h4{margin:4px 0 6px;font-size:16px}
+.step .big{font-size:24px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.step ul{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--fg2)}
+@media (max-width:900px){.flow{grid-template-columns:1fr 1fr;gap:14px}.step{margin-right:0}.step:after{display:none}}
+@media (max-width:560px){.flow{grid-template-columns:minmax(0,1fr)}}
+.tokenbar{display:flex;height:34px;border-radius:10px;overflow:hidden;margin:14px 0 6px;font-size:13px;font-weight:650;color:#fff}
+.tokenbar div{display:flex;align-items:center;justify-content:center}
+.hbar{display:grid;grid-template-columns:150px 1fr 60px;gap:10px;align-items:center;font-size:13.5px;margin:6px 0}
+.hbar .t{height:14px;border-radius:7px;background:var(--bg2);position:relative;overflow:hidden}
+.hbar .t span{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#e17055,#d64545);border-radius:7px}
+.hbar .t span.p{left:0;right:auto;background:var(--grad)}
+/* demo */
+.demo{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:820px){.demo{grid-template-columns:minmax(0,1fr)}}
+.demo canvas{border-radius:12px;border:1px solid var(--line);background:var(--bg2);display:block;max-width:100%}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.btn{border:none;border-radius:10px;padding:8px 15px;font-weight:700;cursor:pointer;color:#fff;font-size:14px}
+.btn.w{background:var(--write)}.btn.r{background:var(--read)}.btn.f{background:#e17055}.btn.z{background:var(--C)}
+.btn:disabled{opacity:.5;cursor:default}
+.demolog{font-size:13px;color:var(--fg2);background:var(--bg2);border-radius:10px;padding:10px 12px;min-height:84px}
+.vecrow{display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--muted);margin:4px 0}
+.shi{display:inline-block;background:#e17055;color:#fff;font-size:12px;font-weight:800;padding:2px 8px;border-radius:6px;margin-left:8px;vertical-align:middle}
+/* contradictions */
+.ccard{border-left:5px solid var(--D)}
+.ccard.m{border-left-color:var(--B)}
+.ccard .meta{font-size:12.5px;color:var(--muted)}
+/* experiments */
+.pending{border:2px dashed var(--line);border-radius:16px;padding:26px;text-align:center;color:var(--muted);background:repeating-linear-gradient(45deg,transparent 0 12px,color-mix(in srgb,var(--bg2) 60%,transparent) 12px 24px)}
+.pending .pill{display:inline-block;background:var(--grad);color:#fff;font-weight:700;padding:4px 12px;border-radius:999px;font-size:13px;margin-bottom:8px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--p2);margin-right:6px;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+/* verdict */
+.who{border-top:4px solid var(--p1)}
+.who.g{border-top-color:var(--A)}.who.a{border-top-color:var(--B)}.who.r{border-top-color:var(--D)}
+.rating{font-weight:800;font-size:14px}
+footer{margin-top:60px;padding:40px 0 60px;border-top:1px solid var(--line);background:var(--bg2);font-size:14px;color:var(--fg2)}
+footer h3{margin-top:0}
+footer ul{padding-left:18px}
+.kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;font-size:12px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.55}
+.toTop{position:fixed;right:18px;bottom:18px;z-index:40;border-radius:50%;width:42px;height:42px;border:1px solid var(--line);background:var(--card);color:var(--fg);box-shadow:var(--shadow);cursor:pointer;opacity:0;transition:opacity .2s;font-size:18px}
+.toTop.show{opacity:1}
+@media print{.nav,.toTop,.chips,.btns{display:none}}
+</style>
+</head>
+<body>
+<nav class="nav" aria-label="章节导航">
+ <div class="wrap">
+  <span class="brand">MemT-1.0 讲解</span>
+  <div class="navlinks" id="navlinks">
+   <a href="#hero">概览</a><a href="#problem">01 问题</a><a href="#arch">02 架构</a><a href="#train">03 训练</a><a href="#bench">04 多强</a><a href="#audit">05 核查表</a><a href="#conflict">06 矛盾与公平</a><a href="#security">07 安全许可</a><a href="#exp">08 独立实验</a><a href="#verdict">09 判断</a><a href="#sources">来源</a>
+  </div>
+  <button class="tbtn" id="themeBtn" type="button" aria-label="切换深浅色">◐ 主题</button>
+ </div>
+</nav>
+
+<header class="hero" id="hero">
+ <div class="wrap" style="position:relative;z-index:1">
+  <span class="eyebrow">arXiv:2610.26825 · MemTensor · 2026-10 发布 · 本页核查截至 2026-11-05</span>
+  <h1><span class="g">MemT-1.0</span>：把“历史”写进模型内部的<br>记忆原生基础模型</h1>
+  <p class="def"><b>一句话：</b>MemT-1.0 在<b>冻结</b>的 MoE 骨干（Qwen3.6-35B-A3B / DeepSeek-V4-Flash）里，给选定层并联一个<b>可训练的记忆块</b>。每轮对话结束时，它用 gated delta rule 把这一轮的 token 逐个写进一块<b>固定大小的状态矩阵</b>。之后推理不再读历史原文，只读这块状态（Nano 40 MiB / Flash 1280 MiB）。</p>
+  <div class="grid g4 kpis">
+   <div class="kpi"><div class="v">35.1B <small>/ 288B</small></div><div class="l">总参数（Nano 实测 / Flash）</div><div class="s">Nano 标称 36B，逐张量求和为 35,111,542,048，多报约 2.5%；Flash 为 287,943,175,511，与标称吻合</div></div>
+   <div class="kpi"><div class="v">10M <small>/ 336M</small></div><div class="l">记忆状态元素（每条轨迹）</div><div class="s">10,485,760 / 335,544,320 个元素，FP32 下为 40 MiB / 1280 MiB，<b>不随历史长度增长</b></div></div>
+   <div class="kpi"><div class="v">≈66× <small>口径</small></div><div class="l">128K 历史下的存储缩减</div><div class="s">论文写“≈66×”。我们重算：只算 KV 为 64.0×，KV+GDN(FP32) 为 65.5×，Fig.9 解码值 66.75×。对比的是 BF16 KV 与 FP32 状态，batch=1</div></div>
+   <div class="kpi"><div class="v">11</div><div class="l">记忆基准（Table 2）</div><div class="s">按历史长度分成 &lt;16K、16–32K、32–64K、&gt;64K 四组；另有 6 个通用能力基准和 2 个 SWE-bench</div></div>
+  </div>
+  <div class="badges">
+   <span class="badge b-amber"><i></i>含金量真实，但被高估</span>
+   <span class="badge b-red"><i></i>推理代码不可商用（PolyForm NC）</span>
+   <span class="badge b-red"><i></i>头条贡献 MoS 未随发布交付</span>
+   <span class="badge b-green"><i></i>权重真实 · 记忆参数与论文逐位相等</span>
+   <span class="badge b-amber"><i></i>实测遗忘：~275 token 无关写入后回到随机</span>
+  </div>
+  <div class="note verdict-box"><b>结论先行：</b>我们<b>没有</b>发现伪造权重或伪造实验结构的证据。发现的问题是：<b>可复现性缺口</b>（训练代码、数据、评测脚本都没发）、<b>选择性比较</b>、若干<b>内部矛盾</b>，以及<b>媒体夸大</b>。更准确的定位是：把线性注意力状态做成产品级记忆层的一次高质量<b>工程整合</b>，加上一次认真的规模化尝试；称不上新范式。</div>
+ </div>
+</header>
+
+<main>
+<!-- ============ 01 问题 ============ -->
+<section id="problem"><div class="wrap">
+ <div class="sec-h"><span class="sec-n">01</span><h2>它想解决什么问题</h2></div>
+ <p class="lead">让 LLM “记住”一段很长的历史，今天主要有三条路。三条路各有一笔账算不过来，MemT 想走第四条。</p>
+ <div class="grid g4">
+  <div class="card"><h4>① 全上下文：每次重读全部历史</h4><p class="small">质量最好（Table 2 中 Full Context 平均 65.0–66.3），但 prefill 成本和延迟随历史增长。论文 Fig.8：128K 历史时端到端耗时 30.07 s，256K 时 94.47 s。窗口用完就只能截断（BEAM 被左截断到 256K）。</p></div>
+  <div class="card"><h4>② KV cache 线性增长</h4><p class="small">缓存历史的 KV 可以省掉重算，但显存和存储与 token 数成正比。按 Qwen3.6-35B-A3B 的公开结构推算：<b>60 MiB + 20 KiB × token</b>，128K 时约 2.6 GiB/轨迹，256K 时 5.061 GiB（论文 Fig.3）。</p></div>
+  <div class="card"><h4>③ RAG / 外挂记忆</h4><p class="small">把历史切块存进向量库或记忆系统（MemOS、Mem0…），用时检索。存储小、质量高（MemOS 平均 68.5–68.6，<b>是全表最强</b>），但会漏检，记忆也不在模型“里面”。128K 时 DenseRAG 只占约 25.5 MiB。</p></div>
+  <div class="card"><h4>④ 参数化记忆：写进权重</h4><p class="small">用 LoRA、超网络等把历史写进参数（Temp-LoRA、Doc-to-LoRA…）。问题在于权重更新是<b>全局</b>的：不同用户、不同会话难以隔离，写入要靠训练。Temp-LoRA 在 128K 时端到端耗时 700.8 s。</p></div>
+ </div>
+ <h3>MemT 的赌注：固定大小的“每轨迹状态”</h3>
+ <p>MemT 属于第 ④ 类里的“状态式”分支。记忆参数 φ 离线训练，在线时冻结；每条轨迹（会话）只携带一块独立的状态矩阵 <code>M_t</code>，写入用前向计算，不需要训练。因此 <code>M_t</code> 天然按会话隔离，大小恒定，可以快照、恢复、迁移。代价是容量固定，细节会被压缩。</p>
+ <div class="card">
+  <div class="legend" id="storLegend"></div>
+  <svg id="storChart" class="chart" viewBox="0 0 900 340" role="img" aria-label="每条轨迹的持久存储随历史长度变化"></svg>
+  <p class="small muted" style="margin:6px 0 0">图 1：每条轨迹的持久状态大小随历史长度的变化（对数轴）。数据来自论文 Fig.3/Fig.9 的矢量解码（docs/analysis/03 §2.7）。全上下文曲线逐点符合 60 MiB + 20 KiB×token。<b>注意：</b>DenseRAG 在 ≤约 209K token 时比 MemT 更省（128K 时 ≈25.5 MiB 对 40 MiB）。</p>
+ </div>
+ <div class="tblwrap" style="margin-top:16px"><table>
+  <thead><tr><th>历史长度</th><th class="num">全上下文 e2e (s)</th><th class="num">Nano e2e (s)</th><th class="num">e2e 加速</th><th class="num">TTFT 加速</th><th class="num">全上下文存储 (MiB)</th><th class="num">Nano 存储 (MiB)</th><th class="num">比值</th></tr></thead>
+  <tbody>
+   <tr><td>512</td><td class="num">8.73</td><td class="num">8.86</td><td class="num">0.99×</td><td class="num">0.89×</td><td class="num">71.4</td><td class="num">40</td><td class="num">1.8×</td></tr>
+   <tr><td>8K</td><td class="num">8.70</td><td class="num">8.93</td><td class="num">0.97×</td><td class="num">0.99×</td><td class="num">224</td><td class="num">40</td><td class="num">5.6×</td></tr>
+   <tr><td>32K</td><td class="num">10.81</td><td class="num">10.65</td><td class="num">1.02×</td><td class="num">1.14×</td><td class="num">695</td><td class="num">40</td><td class="num">17.5×</td></tr>
+   <tr><td>64K</td><td class="num">14.83</td><td class="num">12.38</td><td class="num">1.20×</td><td class="num">1.58×</td><td class="num">1320</td><td class="num">40</td><td class="num">33.3×</td></tr>
+   <tr class="me"><td>128K</td><td class="num">30.07</td><td class="num">16.19</td><td class="num">1.86×</td><td class="num">2.44×</td><td class="num">2650</td><td class="num">40</td><td class="num">66.8×</td></tr>
+   <tr><td>256K</td><td class="num">94.47</td><td class="num">23.69</td><td class="num">3.99×</td><td class="num">4.19×</td><td class="num">5170</td><td class="num">40</td><td class="num">130×</td></tr>
+  </tbody></table></div>
+ <p class="small muted">论文条件：HF 推理、2 GPU、batch 1、并发 1。数值是论文自报（图表解码），我们无法在同条件下复跑。32K 以内基本没有加速，收益集中在 64K 以上。</p>
+</div></section>
+
+<!-- ============ 02 架构 ============ -->
+<section id="arch"><div class="wrap">
+ <div class="sec-h"><span class="sec-n">02</span><h2>架构：冻结骨干 + 并联记忆块</h2></div>
+ <p class="lead">在选定的注意力层，记忆注意力与原注意力<b>并行</b>计算，两路输出相加：<code>A = A_ori + A_mem</code>。骨干的 Pre/Post-Attention 和 Attention 都保持不变。鼠标悬停（或点按）图中模块可查看说明。</p>
+ <div class="arch-wrap">
+  <div class="card" style="padding:12px">
+   <svg id="archSvg" class="chart" viewBox="0 0 900 520" role="img" aria-label="MemT 架构图：骨干层与并行记忆块，读写双路径">
+    <defs>
+     <marker id="mR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#00B894"/></marker>
+     <marker id="mW" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6C5CE7"/></marker>
+     <marker id="mF" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#868ca0"/></marker>
+     <pattern id="gridp" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="none" stroke="#00B894" stroke-opacity=".35" stroke-width="1"/></pattern>
+    </defs>
+    <!-- layer container -->
+    <g class="hv" data-k="layer"><rect x="195" y="38" width="420" height="388" rx="18" class="box frozen" stroke-dasharray="6 5"/><text x="210" y="60" class="sub">选定骨干层 l · 冻结</text></g>
+    <!-- flow arrows (gray) -->
+    <path class="fl" d="M405 470 L405 432" marker-end="url(#mF)"/>
+    <path class="fl" d="M405 352 L405 330 L305 330 L305 312" marker-end="url(#mF)"/>
+    <path class="fl" d="M405 330 L505 330 L505 312" marker-end="url(#mF)"/>
+    <path class="fl" d="M305 222 L305 172 L388 172" marker-end="url(#mF)"/>
+    <path class="fl" d="M505 222 L505 172 L422 172" marker-end="url(#mF)"/>
+    <path class="fl" d="M405 156 L405 128" marker-end="url(#mF)"/>
+    <path class="fl" d="M405 76 L405 18" marker-end="url(#mF)"/>
+    <text x="414" y="22" class="sub">→ 下一层</text>
+    <!-- boxes -->
+    <g class="hv" data-k="input"><rect x="290" y="472" width="230" height="40" rx="10" class="box"/><text x="405" y="497" text-anchor="middle">隐状态 H̃（当前步 token）</text></g>
+    <g class="hv" data-k="norm"><rect x="250" y="354" width="310" height="36" rx="10" class="box frozen"/><text x="405" y="377" text-anchor="middle">Pre-Attention Norm（冻结）</text></g>
+    <g class="hv" data-k="attn"><rect x="222" y="224" width="166" height="86" rx="12" class="box frozen"/><text x="305" y="255" text-anchor="middle">原注意力 A_ori</text><text x="305" y="276" text-anchor="middle" class="sub">全注意力 + 当前步 KV</text><text x="305" y="293" text-anchor="middle" class="sub">冻结</text></g>
+    <g class="hv" data-k="mem"><rect x="422" y="224" width="170" height="86" rx="12" class="box train"/><text x="507" y="252" text-anchor="middle" style="font-weight:700">Native Memory Block</text><text x="507" y="272" text-anchor="middle" class="sub">A_mem = 读 M_t + 输出门</text><text x="507" y="291" text-anchor="middle" class="sub">可训练 φ</text></g>
+    <g class="hv" data-k="sum"><circle cx="405" cy="172" r="17" class="box"/><text x="405" y="178" text-anchor="middle" style="font-size:18px">⊕</text><text x="430" y="152" class="sub">A = A_ori + A_mem</text></g>
+    <g class="hv" data-k="ffn"><rect x="250" y="78" width="310" height="48" rx="10" class="box frozen"/><text x="405" y="100" text-anchor="middle">Post-Attention / MoE FFN</text><text x="405" y="117" text-anchor="middle" class="sub">冻结（Nano 256 专家 / 层）</text></g>
+    <!-- right side -->
+    <g class="hv" data-k="write"><rect x="672" y="38" width="205" height="92" rx="12" class="box train"/><text x="774" y="64" text-anchor="middle" style="font-weight:700">轮末写入 · SGDN-2</text><text x="774" y="84" text-anchor="middle" class="sub">M ← (I−UᵀU)·D·M + Uᵀ(ω⊙V)</text><text x="774" y="102" text-anchor="middle" class="sub">逐 token，turn 结束才 commit</text><text x="774" y="119" text-anchor="middle" class="sub">（Triton WY 分块，64 token/块）</text></g>
+    <g class="hv" data-k="state"><rect x="672" y="180" width="205" height="128" rx="12" class="box stateb"/><rect x="684" y="208" width="72" height="72" fill="url(#gridp)" stroke="#00B894" stroke-opacity=".6"/><text x="768" y="214" style="font-weight:700">Local Memory</text><text x="768" y="234" class="sub">形状 H × d_k × d_v</text><text x="768" y="254" class="sub">Nano 16×256×256</text><text x="768" y="272" class="sub">Flash 64×512×512</text><text x="768" y="292" class="sub">每轨迹独立 · FP32</text></g>
+    <g class="hv" data-k="hyper"><rect x="672" y="340" width="205" height="76" rx="12" class="box train"/><text x="774" y="364" text-anchor="middle" style="font-weight:700">Hyper Memory φ</text><text x="774" y="383" text-anchor="middle" class="sub">Q/K/V 投影 · β/ω 门 · 遗忘门 · 输出门</text><text x="774" y="401" text-anchor="middle" class="sub">离线训练，在线固定</text></g>
+    <g class="hv" data-k="replay"><rect x="672" y="448" width="205" height="56" rx="12" class="box"/><text x="774" y="471" text-anchor="middle">轮末回放 S_t = X_t ‖ Y_t</text><text x="774" y="490" text-anchor="middle" class="sub">本轮用户输入 + 模型生成</text></g>
+    <!-- read path -->
+    <g class="hv" data-k="read"><path class="rd flowanim" stroke-dasharray="10 3" d="M672 262 L596 262" marker-end="url(#mR)"/><text x="600" y="252" class="sub" style="fill:#00B894">读 M_t</text></g>
+    <path class="fl" d="M672 380 L640 380 L640 296 L596 296" marker-end="url(#mF)"/><text x="600" y="330" class="sub">Q, 门 G</text>
+    <!-- write path -->
+    <g class="hv" data-k="writepath">
+     <path class="wr flowanim" d="M774 448 L774 420" marker-end="url(#mW)"/>
+     <path class="wr flowanim" d="M877 378 L893 378 L893 84 L881 84" marker-end="url(#mW)"/>
+     <text x="893" y="28" class="sub" text-anchor="end" style="fill:#6C5CE7">K, V, β, ω, λ ↓</text>
+     <path class="wr flowanim" d="M774 130 L774 176" marker-end="url(#mW)"/><text x="782" y="158" class="sub" style="fill:#6C5CE7">M_t → M_t+1</text>
+    </g>
+    <!-- legend -->
+    <g transform="translate(14,40)">
+     <rect x="0" y="0" width="166" height="140" rx="12" class="box"/>
+     <line x1="14" y1="24" x2="50" y2="24" stroke="#00B894" stroke-width="3"/><text x="58" y="28" style="font-size:12px">读路径（生成期）</text>
+     <line x1="14" y1="50" x2="50" y2="50" stroke="#6C5CE7" stroke-width="3" stroke-dasharray="8 5"/><text x="58" y="54" style="font-size:12px">写路径（轮末）</text>
+     <rect x="14" y="68" width="36" height="18" rx="4" class="box frozen"/><text x="58" y="82" style="font-size:12px">冻结骨干</text>
+     <rect x="14" y="94" width="36" height="18" rx="4" class="box train"/><text x="58" y="108" style="font-size:12px">可训练 φ</text>
+     <rect x="14" y="118" width="36" height="14" rx="4" class="box stateb"/><text x="58" y="130" style="font-size:12px">动态状态</text>
+    </g>
+    <text x="16" y="215" class="sub">注入点：</text><text x="16" y="233" class="sub">Nano 在 o_proj 前</text><text x="16" y="251" class="sub">Flash 在 wo_b 前</text>
+    <text x="16" y="290" class="sub">MoS（多专家路由）：</text><text x="16" y="308" class="sub">论文 §2.3 描述，但</text><text x="16" y="326" class="sub" style="fill:#d64545">发布模型 E=1，未交付</text>
+   </svg>
+  </div>
+  <div class="card" id="archInfo"><h4>悬停查看模块说明</h4><p class="small muted">把鼠标移到左图任一模块（手机上点按）。<span style="color:var(--read);font-weight:700">绿色实线</span>是生成时的读路径，<span style="color:var(--write);font-weight:700">紫色虚线</span>是轮末写路径。</p><p class="small">核心思想：骨干完全不动，只在 Nano 的 10 个全注意力层（3, 7, …, 39）、Flash 的 20 层（4, 6, …, 42）各并联一个记忆块。记忆块读的是一块每条轨迹各自持有的矩阵，而不是历史 token。</p></div>
+ </div>
+
+ <h3>Local Memory 与 Hyper Memory</h3>
+ <div class="grid g2">
+  <div class="card"><h4 style="color:var(--p2)">Local Memory（动态状态 M<sub>t</sub>）</h4><ul class="tight small"><li>形状 <code>H_kv × d_k × d_v</code>，每层一块；Nano 10 层 × 16 × 256 × 256 = 10,485,760 元素，Flash 20 × 64 × 512 × 512 = 335,544,320 元素。</li><li>每条新轨迹清零；快照强制 FP32（40 MiB / 1280 MiB），格式 <code>memt-memory-v1</code>，带 identity 哈希校验。</li><li>相对前作 Metis：去掉了 normalization 向量，改为多通道（多头）。</li></ul></div>
+  <div class="card"><h4 style="color:var(--p1)">Hyper Memory（可训练参数 φ）</h4><ul class="tight small"><li>Q/K/V 投影 W̃<sub>Q</sub>, W̃<sub>K</sub>, W̃<sub>V</sub>；erase 门 W<sub>β</sub>、write 门 W<sub>ω</sub>；遗忘门 (W<sub>f</sub>, W<sub>λ</sub>, b<sub>λ</sub>, s)；输出门 (W<sub>g/d</sub>, W<sub>g/u</sub>)。</li><li>Nano 450,931,360 个参数，Flash 3,608,608,000 个。按附录 B 的几何重算，<b>与 Table 6 逐位相等</b>。</li><li>Flash 用低秩分组投影（q 1024 瓶颈、8 组 KV、四个 rank-512 门）。</li></ul></div>
+ </div>
+
+ <h3>读写时序：生成期间只读，轮末才写</h3>
+ <div class="tl">
+  <div class="r"><h4>Turn t · prefill + decode</h4><p class="small">本步的所有 query 都读<b>入口快照 M<sub>t</sub></b>。逐 token 生成时记忆<b>不更新</b>。我们在 HF 代码上实测：prefill 1 次、decode 5 次，全部 <code>commit=False</code>，生成后状态与生成前完全相等。</p></div>
+  <div class="w"><h4>轮末 commit</h4><p class="small">只有生成正常结束（末 token 为 EOS）才提交：把 <code>S_t = X_t‖Y_t</code> 逐 token 写入，得到 M<sub>t+1</sub>。被长度截断的 turn 不写入。</p></div>
+  <div class="r"><h4>Turn t+1</h4><p class="small">读 M<sub>t+1</sub>。所以<b>本轮的新信息要到下一轮才可见</b>。旧轮次的原文不再进 prompt：实测 input_tokens 从 81 降到 39。</p></div>
+ </div>
+ <ul class="tight small muted"><li>system prompt 和 tools <b>永远不写入</b>记忆；思考内容（&lt;think&gt;）会写入。</li><li>用 transformers 标准的 <code>pipeline</code> 或普通 <code>generate</code> 时，记忆分支输出为 0，模型退化成原骨干。必须用远程代码提供的 Session API（<code>create_session / chat(enable_memory=True)</code>）。来源：docs/analysis/05 §2.4–2.5。</li></ul>
+
+ <h3>论文公式（Stable GDN-2，对第 l 层、第 h 通道）</h3>
+ <div class="eqs">
+  <div class="eq"><span><var>K</var> = L2Norm(<var>H̃W̃</var><sub>K</sub>),&nbsp; <var>V</var> = <var>H̃W̃</var><sub>V</sub>,&nbsp; <var>Q</var> = L2Norm(<var>H̃W̃</var><sub>Q</sub>)</span><span class="lbl">投影</span></div>
+  <div class="eq"><span><var>β</var> = σ(<var>H̃W</var><sub>β</sub>),&nbsp; <var>ω</var> = σ(<var>H̃W</var><sub>ω</sub>),&nbsp; <var>λ</var> = −exp(<var>s</var><sub>h</sub>) ⊙ Softplus(<var>F W</var><sub>λ</sub> + <var>b</var><sub>λ</sub>),&nbsp; <var>D</var> = Diag(exp <var>λ</var>)</span><span class="lbl">erase / write / 遗忘门</span></div>
+  <div class="eq"><span><span class="hl"><var>U</var> = √<var>β</var> ⊙ <var>K</var></span></span><span class="lbl">对称化擦除向量（与原 GDN-2 的唯一区别）</span></div>
+  <div class="eq"><span><var>M̃</var><sub>i</sub> = <span class="hl">[ <var>I</var> − <var>U</var><sub>i</sub><sup>⊤</sup><var>U</var><sub>i</sub> ]</span> · <var>D</var><sub>i</sub> · <var>M̃</var><sub>i−1</sub> + <span class="hl"><var>U</var><sub>i</sub><sup>⊤</sup>(<var>ω</var><sub>i</sub> ⊙ <var>V</var><sub>i</sub>)</span>,&nbsp; <var>M̃</var><sub>0</sub> = <var>M</var><sub>t</sub>,&nbsp; <var>M</var><sub>t+1</sub> = <var>M̃</var><sub>L<sub>t</sub></sub></span><span class="lbl">写：擦除 → 衰减 → 外积写入</span></div>
+  <div class="eq"><span><span class="hl2"><var>R</var> = <var>Q</var> · <var>M</var><sub>t</sub> / √<var>d</var><sub>k</sub></span>,&nbsp; <var>A</var><sub>mem</sub> = Concat<sub>h</sub>[ RMSNorm(<var>R</var>) ⊙ SoftCapSiLU(<var>G</var>) ],&nbsp; SoftCapSiLU(<var>x</var>) = <var>τ</var>·tanh(SiLU(<var>x</var>)/<var>τ</var>), <var>τ</var>=2</span><span class="lbl">读 + 输出门</span></div>
+  <div class="eq"><span><var>A</var> = <var>A</var><sub>ori</sub> + <var>A</var><sub>mem</sub></span><span class="lbl">并联注入</span></div>
+ </div>
+ <p class="small muted">我们用 float64 写了一份独立参考实现，与发布代码的 state 相对误差为 3.1e-7。官方 SGLang、HF modeling、社区 llama.cpp 补丁三套实现与论文公式逐项一致。<b>论证缺口：</b>附录 C 的稳定性充分条件要求半衰期 &lt; 4.8 token，但实际初始化的半衰期是 2048–32768 token（Nano）。</p>
+
+ <h3>记忆块演示：delta-rule 写入、读取与衰减 <span class="shi">示意</span></h3>
+ <div class="card">
+  <div class="demo">
+   <div>
+    <canvas id="memCanvas" width="320" height="320" aria-label="16×16 记忆状态矩阵"></canvas>
+    <div class="vecrow"><span style="width:40px">k / q</span><canvas id="kCanvas" width="320" height="20"></canvas></div>
+    <div class="vecrow"><span style="width:40px">v / r</span><canvas id="vCanvas" width="320" height="20"></canvas></div>
+   </div>
+   <div>
+    <p class="small" style="margin-top:0">这是一个<b>纯前端模拟</b>的 16×16 状态（真实 Nano 每层 16 头 × 256×256）。行对应 key 维、列对应 value 维；紫色为负，绿色为正。</p>
+    <div class="btns">
+     <button class="btn w" id="bWrite" type="button">写入一条记忆</button>
+     <button class="btn r" id="bRead" type="button">读取最早一条</button>
+     <button class="btn f" id="bForget" type="button">遗忘（衰减 8 步）</button>
+     <button class="btn z" id="bReset" type="button">清零</button>
+    </div>
+    <label class="small">遗忘门半衰期：<input id="hl" type="range" min="2" max="64" value="16"> <span id="hlv">16</span> 步</label>
+    <div class="demolog" id="demoLog">点击「写入」：随机生成单位向量 k 和值 v，执行 <code>M ← (I−uᵀu)·D·M + uᵀ(ω⊙v)</code>，其中 u = √β·k。左图会先叠加显示外积 uᵀ(ω⊙v)，再过渡到新状态。</div>
+    <p class="tiny muted">观察：写入越多，早期记忆的读出余弦相似度越低（干扰）；半衰期越短，衰减越快。这就是“固定容量、细节保真度下降”的直观版本。参数为示意，不对应真实权重。</p>
+   </div>
+  </div>
+ </div>
+
+ <h3>Nano / Flash 几何（Table 6，已用公开配置与发布代码核实）</h3>
+ <div class="tblwrap"><table>
+  <thead><tr><th>项目</th><th>MemT-1.0-Nano</th><th>MemT-1.0-Flash</th><th>核实</th></tr></thead>
+  <tbody>
+   <tr><td>骨干</td><td>Qwen3.6-35B-A3B（公开版，40 层，其中 10 层全注意力，16Q/2KV，head 256）</td><td>DeepSeek-V4-Flash 284B/A13B（作者另行后训练的 prepared 版）</td><td>非记忆张量名称/形状/dtype 与骨干一致（数值未验）</td></tr>
+   <tr><td>记忆层</td><td>3, 7, …, 39（10 层）</td><td>4, 6, …, 42（20 层）</td><td>代码 ✓</td></tr>
+   <tr><td>记忆头 H<sub>q</sub>/H<sub>kv</sub>，d<sub>k</sub>/d<sub>v</sub></td><td>16/16，256/256</td><td>64/64，512/512</td><td>代码 ✓</td></tr>
+   <tr><td>每层记忆专家数（MoS）</td><td class="neg">1</td><td class="neg">1</td><td>代码 <code>state_shapes=(1,H,d,d)</code>，无路由</td></tr>
+   <tr><td>可训练记忆参数</td><td class="num" style="text-align:left">450,931,360</td><td>3,608,608,000</td><td class="pos">逐位相等</td></tr>
+   <tr><td>状态元素 / FP32 大小</td><td>10,485,760 / 40 MiB</td><td>335,544,320 / 1280 MiB</td><td class="pos">吻合</td></tr>
+   <tr><td>总参数（标称 → 实测）</td><td>36B → <b>35,111,542,048</b>（差额≈基座视觉塔 1.29B）</td><td>288B → 287,943,175,511</td><td>逐张量 header 求和</td></tr>
+   <tr><td>激活参数（标称 → 实测）</td><td>3B → 2.95B（不含记忆）/ 3.40B（含）</td><td>17B → 16.88B（含记忆）</td><td>口径不一致</td></tr>
+   <tr><td>记忆块权重 / 总权重文件</td><td>0.902 GB / 70.25 GB（BF16）</td><td>7.217 GB / 575.97 GB（BF16 解量化）</td><td>HF API</td></tr>
+   <tr><td>遗忘门半衰期初始化</td><td>2048–32768 token</td><td>128–32768 token</td><td>论文 App.B.2</td></tr>
+   <tr><td>记忆注入点</td><td>o_proj 前加法注入</td><td>wo_b 前注入</td><td>代码 ✓</td></tr>
+  </tbody></table></div>
+
+
+  <h3>它和 KDA / 线性注意力是什么关系？</h3>
+  <p class="small">先说结论：<b>MemT 的记忆更新不是新算子，和 KDA（Kimi Linear 的门控线性注意力层）同属 gated delta rule 家族</b>。论文写的是 <b>Gated DeltaNet-2（GDN-2）</b>；社区 llama.cpp 补丁的 commit 原文就是 <code>commit pass on ggml_gated_delta_net (KDA gate, beta = 1)</code>，实现层直接复用 KDA 门控的 kernel。真正的区别在<b>角色与生命周期</b>，不在更新公式。</p>
+  <div class="tblwrap"><table>
+   <thead><tr><th>维度</th><th>KDA（Kimi Linear 的线性注意力层）</th><th>MemT 原生记忆</th></tr></thead>
+   <tbody>
+    <tr><td>角色</td><td>骨干里的 token mixer，与全注意力混合（3:1），替换注意力</td><td>冻结骨干上的<b>并联旁路</b>，加到 full-attention 层输出</td></tr>
+    <tr><td>更新时机</td><td>每个 token 前向中更新</td><td><b>只在轮末 commit</b> 用整轮 token 更新；生成时读快照</td></tr>
+    <tr><td>生命周期</td><td>一次请求/序列内，结束即丢</td><td><b>跨轮/跨请求持久</b>，按会话隔离，可 save/restore/erase</td></tr>
+    <tr><td>训练</td><td>与全模型端到端预训练</td><td>骨干冻结，只训记忆参数（Nano 451M=1.3%），full-context 教师蒸馏</td></tr>
+    <tr><td>读出</td><td>q·S 进残差流</td><td>R=Q·M/√d → RMSNorm → SoftCapSiLU 门控 → 加回注意力输出</td></tr>
+    <tr><td>状态</td><td>每层 H·d<sub>k</sub>·d<sub>v</sub>，per-sequence</td><td>每会话 10.5M 元素（40 MiB）/ 336M（1280 MiB）</td></tr>
+    <tr><td>衰减</td><td>预训练学得的门</td><td>decay bias 显式初始化：Nano 半衰期 [2048, 32768] token；Flash [128, 32768]</td></tr>
+   </tbody></table></div>
+  <div class="grid g2" style="margin-top:12px">
+   <div class="card"><h4 style="color:var(--B)">MemT 相对 KDA 的真优势</h4><ul class="tight small">
+    <li><b>部署形态</b>：跨会话持久、事务式 commit/read、快照、会话隔离、即插即用（冻结骨干）。KDA 的状态不跨请求。</li>
+    <li><b>数值稳定</b>：SGDN-2 的对称化 erase 让 (I−UᵀU) 非扩张（谱范数 ≤1；我们复现 1.1512 vs 上界 2/√3=1.1547），因此能用 2k–32k 的长半衰期；朴素 GDN-2 在半衰期 &gt;6.2 token 时就指数爆炸（fp32 388 token 内溢出）。</li>
+   </ul></div>
+   <div class="card"><h4 style="color:var(--D)">没有优势的地方</h4><ul class="tight small">
+    <li><b>记忆容量/保真度</b>：同权重实测 N50≈10 条高熵事实；20 条事实写 ~275 token 无关文本就回到随机；同权重 full-context 90–100%、RAG 100%。</li>
+    <li>KDA 是端到端训练的主干组件，能与全注意力混合；MemT 是冻结骨干上的旁路，读出余量小（近 tie 会翻转）。<b>优势是“持久”，不是“记得多”。</b></li>
+   </ul></div>
+  </div>
+
+  <h3>术语：Metis、MoS、KDA</h3>
+  <div class="grid g3">
+   <div class="card"><h4 style="color:var(--p2)">Metis（前作）</h4><p class="small">MemTensor 2026-07 的记忆基础模型（arXiv:2607.26760）：“dynamic local memory + trainable hyper memory”，写入时做 token selection 与 key normalization。MemT-1.0 保留 local/hyper 两层，<b>去掉 token selection 与 key normalization</b>，改为 GDN-2 的 token 级更新 + 多通道。</p><p class="tiny muted">审计发现：附录 E.2 把 Metis 的架构当成 MemT-Nano 的训练细节来写；Fig.15 中 Metis 的 pass³ 在 4 个 agentic 设定里都高于 MemT（前作反超，被放在附录）。</p></div>
+   <div class="card"><h4 style="color:var(--p1)">MoS（Mixture-of-Storage）</h4><p class="small">论文提出的容量扩展机制：把一个记忆块扩成 <b>E 个 expert</b>（状态 E×H<sub>kv</sub>×d<sub>k</sub>×d<sub>v</sub>），两个稠密 router 共享可训练地址矩阵 C：α<sub>u</sub> 决定读权重，α<sub>s</sub> 缩放写入的 β/ω（λ 不缩放）。</p><p class="tiny muted">但发布模型都是 <b>E=1</b>（Table 6 原文 “Both use one memory block per selected layer (E=1)”），发布物里<b>没有任何</b> router/address/expert 张量——头条贡献没有交付；论文自己的 E=2→4 实验也只涨 0.4–2.7 平均分。</p></div>
+   <div class="card"><h4 style="color:var(--A)">KDA（Kimi Delta Attention）</h4><p class="small">Kimi Linear 的线性注意力层：门控 delta rule + 逐通道对角衰减 + 分块并行；与 MemT 使用的 GDN-2 更新同族。MemT 把同族状态做成<b>跨会话持久、可快照、旁路注入</b>的记忆层，而 KDA 是主干内的 token mixer——这是“记忆层”与“注意力层”的区别。</p><p class="tiny muted">社区补丁的 kernel 就是 gated_delta_net（KDA gate, beta=1），实现层证据见 docs/data/public/llamacpp_memt_patch.patch:9。</p></div>
+  </div>
+
+</div></section>
+
+<!-- ============ 03 训练 ============ -->
+<section id="train"><div class="wrap">
+ <div class="sec-h"><span class="sec-n">03</span><h2>训练：主干冻结，只训记忆参数</h2></div>
+ <p class="lead">全程<b>骨干冻结</b>，只优化 φ（Nano 451M / Flash 3.61B）。teacher 是看得到全部历史原文的冻结骨干，student 只看到当前输入和 M<sub>t</sub>。这是一种 <b>off-policy 蒸馏</b>：让“只靠记忆”的模型模仿“看得到全文”的模型。</p>
+ <div class="tokenbar" aria-label="34B token 构成"><div style="flex:20;background:#6C5CE7">CPT 20B token</div><div style="flex:14;background:#00B894">后训练 14B token</div></div>
+ <p class="tiny muted" style="margin-top:0">34B = 20B + 14B（文内算术自洽）。backbone preparation 的 2.4B token 和 agentic 阶段的 42,403 个样本不在这 34B 之内。数据没有公开。</p>
+ <div class="flow">
+  <div class="step"><div class="k">STEP 0 · 仅 Flash</div><h4>Backbone preparation</h4><div class="big">2.4B tok</div><ul><li>先对 DeepSeek-V4-Flash 做后训练：126.5K 条轨迹，其中 1.1B token 计损失</li><li>通用 / agentic coding / agentic working 三条线</li><li>5 轮、50 多次训练才定下配方</li><li>自称 6 个监控基准平均 +6.3（<b>无法验证</b>）</li><li>完成后冻结，同时用作宿主和 teacher</li></ul></div>
+  <div class="step"><div class="k">STEP 1</div><h4>CPT 持续预训练</h4><div class="big">20B tok</div><ul><li>通用长文本，切成连续的 2K token 段</li><li>段与段之间只通过记忆传递信息</li><li>只用 CE 损失</li><li>Nano 跑 1 个 epoch；Flash 是否做了 CPT <b>未说明</b></li></ul></div>
+  <div class="step"><div class="k">STEP 2</div><h4>后训练（蒸馏）</h4><div class="big">14B tok</div><ul><li>三类数据：memory-native 语言建模；存储/利用监督（摘要、续写、压缩）；记忆任务数据（部分基于 MemOS 内部匿名数据）</li><li>历史按时间顺序写入记忆，只对回复 token 计损失</li><li>Top-K=64 截断的前向 KL，T<sub>d</sub>=1</li></ul></div>
+  <div class="step"><div class="k">STEP 3 · Nano</div><h4>Agentic 经验内化</h4><div class="big">42,403 样本</div><ul><li>从 41,057 条成功轨迹归纳出 1,040 条“经验”</li><li>用反事实断点续跑构造样本</li><li>只训练 hyper memory，用 KD Full-Suffix 监督</li><li>配置在 Verified 的 100 题子集上挑选（见第 06 节）</li></ul></div>
+ </div>
+ <div class="grid g2" style="margin-top:18px">
+  <div class="card"><h4>超参（论文 §3.6）</h4><ul class="tight small"><li><b>Nano</b>：global batch 64 pack × ≤64K token；AdamW；lr 1e-4（WSD 调度），最后 1000 步余弦衰减到 5e-6。</li><li><b>Flash</b>：batch 192 pack，峰值 lr 8e-5，warmup 100 步，“planned cosine decay”。没写 CPT，也没写训练步数。</li><li>基础设施：Megatron-Core/Bridge 逐层执行；写入用 chunked WY，读取用“步快照”读者。</li></ul><div class="note warn small" style="margin-bottom:0"><b>不可复现：</b>仓库只有约 1.2 万行推理代码。没有训练代码、数据、评测脚本、测试和 CI。</div></div>
+  <div class="card"><h4>消融（Table 4，Nano，ΔAVG）</h4>
+   <div class="hbar"><span>w/o PT（去掉后训练）</span><div class="t"><span style="width:100%"></span></div><b class="neg">−10.7</b></div>
+   <div class="hbar"><span>w/ TL（turn 级更新）</span><div class="t"><span style="width:56%"></span></div><b class="neg">−6.0</b></div>
+   <div class="hbar"><span>w/o CPT</span><div class="t"><span style="width:19.6%"></span></div><b class="neg">−2.1</b></div>
+   <div class="hbar"><span>w/ BE（双向编码）</span><div class="t"><span style="width:14%"></span></div><b class="neg">−1.5</b></div>
+   <div class="hbar"><span>w/ GDN-2（去稳定化）</span><div class="t"><span style="width:4.7%"></span></div><b class="neg">−0.5</b></div>
+   <div class="hbar"><span>w/ GDN</span><div class="t"><span style="width:2.8%"></span></div><b class="neg">−0.3</b></div>
+   <p class="small muted" style="margin-bottom:0">后训练（+10.7）和 token 级更新（+6.0）的贡献方向清楚、量级大，可信。去掉稳定化只掉 0.5 分（单 seed，在噪声内），所以“防止发散”缺少实证。</p></div>
+ </div>
+</div></section>
+
+<!-- ============ 04 多强 ============ -->
+<section id="bench"><div class="wrap">
+ <div class="sec-h"><span class="sec-n">04</span><h2>它到底多强</h2></div>
+ <p class="lead">在<b>参数化记忆</b>方法里，Flash 和 Nano 确实分列第一、第二。但放到全部方法里看，<b>文本记忆系统和全上下文都明显更强</b>：MemOS 68.5–68.6，全上下文 65.0–66.3，MemT-Flash 50.6，MemT-Nano 47.0。历史越长，差距越大。</p>
+ <div class="grid g4">
+  <div class="kpi"><div class="v pos">+12.5 / +8.9</div><div class="l">Flash / Nano 对最强参数基线</div><div class="s">最强参数基线是 Temp-LoRA（38.1）。算术成立，但对手多为 4–8B 小模型</div></div>
+  <div class="kpi"><div class="v neg">−6.7 / −9.5</div><div class="l">对同骨干的 DenseRAG</div><div class="s">连最简单的 top-10 段检索都不如。摘要说 “competitive with retrieval-augmented” 属夸大</div></div>
+  <div class="kpi"><div class="v neg">−18.0 / −21.5</div><div class="l">对最强文本系统 MemOS</div><div class="s">在 LongMemEval-S 上落后 46.0 / 49.4 分</div></div>
+  <div class="kpi"><div class="v">77.8% / 70.9%</div><div class="l">相对全上下文 teacher 的恢复率</div><div class="s">Flash / Nano 的 AVG ÷ 同骨干 Full Context。<b>这是全文最有信息量的数字</b></div></div>
+ </div>
+ <h3>图 2：Table 2 分组条形图</h3>
+ <div class="chips" id="benchMode" role="tablist">
+  <button class="chip on" data-m="flash" type="button">Flash 视角（DS 骨干）</button>
+  <button class="chip" data-m="nano" type="button">Nano 视角（Qwen 骨干）</button>
+  <button class="chip" data-m="all" type="button">全部 21 个方法（AVG 排序）</button>
+ </div>
+ <div class="card">
+  <div class="legend" id="benchLegend"></div>
+  <svg id="benchChart" class="chart" viewBox="0 0 1000 430" role="img" aria-label="11 个记忆基准分组条形图"></svg>
+  <p class="small muted" id="benchCap" style="margin:4px 0 0"></p>
+ </div>
+ <div class="note amber small"><b>&gt;64K 组的巨大差距：</b>在 LongMemEval-S（LME）、MemoryAgentBench（MAB）、BEAM-1M 这三个历史最长的基准上，MemT 与文本系统的差距最大：Flash 对 DS 最佳文本系统分别差 46.0 / 18.6 / 35.6 分，Nano 对 QW 最佳分别差 49.4 / 20.4 / 35.5 分。这正是“固定容量状态”最吃亏的地方。全上下文在 BEAM 上被截断到 256K，所以只有 43.7–44.7 分。</div>
+
+ <h3>Table 2 完整表格（11 个记忆基准 + AVG）</h3>
+ <p class="small muted">缩写：MB = MemBench，IM = ImplicitMemBench，PM = PersonaMem，PSB = PS-Bench（100×(1−ASR)），LCM = LoCoMo，PMS = PerMemSafe，MMR = Memora，MO = MemOps，LME = LongMemEval-S，MAB = MemoryAgentBench，BEAM = BEAM-1M。DS = DeepSeek-V4-Flash，QW = Qwen3.6-35B-A3B。<span style="background:var(--band);padding:0 6px;border-radius:4px">橙底</span>为 &gt;64K 组，绿色为每列全表最高值。</p>
+ <div class="tblwrap" id="t2wrap"></div>
+ <p class="small muted">全部数值都是论文自报。评测代码未公开，LLM judge 用 gpt-4.1-mini 加作者自家框架 OmniMemEval 的 prompt，我们<b>无法复跑</b>。MemoryLLM 的 MB（22.7）和 ICAE 的 PM（17.8）都低于 4 选 1 的随机水平 25，提示基线配置或解析可能有问题。</p>
+
+ <h3>Table 3：通用能力（相对“噪声设定”骨干的差值）</h3>
+ <div class="tblwrap"><table>
+  <thead><tr><th>行</th><th class="num">MMLU-Pro</th><th class="num">GPQA-D</th><th class="num">IFEval</th><th class="num">LongBench v2</th><th class="num">BCB-Hard</th><th class="num">LCB-v6</th><th class="num">AVG</th></tr></thead>
+  <tbody>
+   <tr class="grp"><td colspan="8">Flash（相对 DS 噪声设定）</td></tr>
+   <tr><td>DS-V4-Flash 噪声设定</td><td class="num">83.8</td><td class="num">89.6</td><td class="num">93.0</td><td class="num">64.2</td><td class="num">32.4</td><td class="num">89.2</td><td class="num">75.4</td></tr>
+   <tr class="me"><td>MemT-1.0-Flash Δ</td><td class="num neg">−1.8</td><td class="num neg">−0.6</td><td class="num pos">+0.9</td><td class="num pos">+0.2</td><td class="num pos">+2.0</td><td class="num neg">−0.7</td><td class="num">0.0</td></tr>
+   <tr><td><i>Flash 相对干净骨干（推算）</i></td><td class="num neg">−3.7</td><td class="num neg">−2.2</td><td class="num pos">+0.4</td><td class="num pos">+1.4</td><td class="num neg">−1.4</td><td class="num pos">+1.0</td><td class="num neg">−0.75</td></tr>
+   <tr class="grp"><td colspan="8">Nano（相对 QW 噪声设定）</td></tr>
+   <tr><td>Qwen3.6-35B-A3B 噪声设定</td><td class="num">84.4</td><td class="num">80.1</td><td class="num">89.3</td><td class="num">55.7</td><td class="num">25.7</td><td class="num">88.1</td><td class="num">70.5</td></tr>
+   <tr class="me"><td>MemT-1.0-Nano Δ</td><td class="num neg">−1.6</td><td class="num neg">−1.5</td><td class="num pos">+3.3</td><td class="num neg">−2.0</td><td class="num pos">+2.0</td><td class="num neg" style="font-size:16px">−5.8</td><td class="num neg">−0.93</td></tr>
+   <tr><td><i>Nano 相对干净骨干（推算）</i></td><td class="num neg">−1.8</td><td class="num neg">−5.3</td><td class="num pos">+2.0</td><td class="num neg">−3.6</td><td class="num pos">+0.7</td><td class="num neg">−5.7</td><td class="num neg">−2.28</td></tr>
+  </tbody></table></div>
+ <ul class="tight small muted">
+  <li>“噪声”只有不到 2K token、一次写入，远小于记忆评测中 64K–1M 的历史。骨干的噪声放在上下文里，MemT 的噪声写进记忆，所以这个差值比较的是两种干扰方式，<b>没有测“挂上记忆模块本身”的代价</b>。</li>
+  <li>表中骨干分数与官方公开值不一致：Qwen 的 LCB-v6 为 88.0，官方 80.4（+7.6）；DS 的 GPQA 为 91.2，官方 High 为 87.4（+3.8）。LCB 用的是 cumulative release_v6（1,055 题，含大量旧题），污染风险高。单次评测，没有方差。</li>
+ </ul>
+
+ <h3>Agentic coding（Table 5 / Fig.15，每题 3 次运行）</h3>
+ <div class="tblwrap"><table>
+  <thead><tr><th>基准 · 注入时机</th><th class="num">Qwen 无经验</th><th class="num">文本经验</th><th class="num">MemT-Nano</th><th class="num">Metis（附录 Fig.15）</th><th>指标</th></tr></thead>
+  <tbody>
+   <tr><td>Verified · Before</td><td class="num">54.0</td><td class="num">61.6 (top-3)</td><td class="num"><b>61.6</b></td><td class="num neg">62.4</td><td>pass^3</td></tr>
+   <tr><td>Verified · Harness-Triggered</td><td class="num">54.0</td><td class="num">61.8 (top-1)</td><td class="num"><b>62.8</b>（+8.8）</td><td class="num neg">65.0</td><td>pass^3</td></tr>
+   <tr><td>Multilingual · Before</td><td class="num">45.33</td><td class="num">56.33 (rank-1)</td><td class="num"><b>53.67</b></td><td class="num neg">55.67</td><td>pass^3</td></tr>
+   <tr><td>Multilingual · Harness-Triggered</td><td class="num">45.33</td><td class="num">53.67 (rank-1)</td><td class="num"><b>55.33</b></td><td class="num neg">55.67</td><td>pass^3</td></tr>
+   <tr><td>平均成功率增益（4 个设定）</td><td colspan="5">相对无经验 +2.9 至 +3.7pp。粗估 SE：平均成功率 ≥1.7pp，pass^3 约 3.2–4.1pp。MemT 与文本经验的差值（−1.33 至 +0.60）都在噪声内。</td></tr>
+  </tbody></table></div>
+ <p class="small muted">结论：经验写进原生记忆，效果大致与把经验放进上下文<b>持平</b>，没有超越。前作 Metis 的 pass^3 在 4 个设定里<b>全部更高</b>，而主表 Table 5 省略了 Metis。</p>
+</div></section>
+
+<!-- ============ 05 核查表 ============ -->
+<section id="audit"><div class="wrap">
+ <div class="sec-h"><span class="sec-n">05</span><h2>核查表：哪些宣称站得住</h2></div>
+ <p class="lead">我们从论文、发布物和媒体中整理出 55 条量化声明，这里挑出最重要的 25 条。每条都附上我们自己的证据和出处，可以按结论筛选。</p>
+ <div class="statrow" id="auditStats"></div>
+ <p class="small muted">结论定义：<span class="vtag vA">A</span> 已证实（公开证据可复核）；<span class="vtag vB">B</span> 口径问题（数字本身成立，但需要加限定条件，或比较对象有偏）；<span class="vtag vC">C</span> 无法验证（数据、代码或评测未公开）；<span class="vtag vD">D</span> 冲突/夸大（与公开证据冲突、文内自相矛盾或失实）。<br>完整清单 <code>docs/data/claims/claims.json</code> 共 55 条，原始分级为 A 9 / B 30 / C 10 / D 6。原清单中 B 的定义是“文内可核、但无外部证据”，本表按读者视角重新归类，所以计数不同。</p>
+ <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+  <div class="chips" id="auditFilter" style="margin:8px 0">
+   <button class="chip on" data-v="all" type="button">全部</button>
+   <button class="chip" data-v="A" type="button">A 已证实</button>
+   <button class="chip" data-v="B" type="button">B 口径问题</button>
+   <button class="chip" data-v="C" type="button">C 无法验证</button>
+   <button class="chip" data-v="D" type="button">D 冲突/夸大</button>
+  </div>
+  <input class="search" id="auditSearch" type="search" placeholder="搜索声明，如 66×、MoS、RAG…" aria-label="搜索声明">
+ </div>
+ <div class="tblwrap"><table id="auditTable">
+  <thead><tr><th>#</th><th style="min-width:220px">声明</th><th>出处</th><th style="min-width:280px">我们的证据</th><th>结论</th><th>置信度</th></tr></thead>
+  <tbody></tbody></table></div>
+ <p class="small muted" id="auditCount"></p>
+</div></section>
+
+<!-- ============ 06 矛盾与公平性 ============ -->
+<section id="conflict"><div class="wrap">
+ <div class="sec-h"><span class="sec-n">06</span><h2>内部矛盾与公平性</h2></div>
+ <p class="lead">我们在论文内部找到 12 处矛盾，这里列出最严重的 6 处。它们是方法学硬伤的候选，<b>不是</b>数据造假的直接证据。</p>
+ <div class="grid g2">
+  <div class="card ccard"><span class="sev sH">高</span> <h4 style="display:inline">① 头条贡献 MoS 并未交付</h4><p class="small">摘要和引言把 Mixture-of-Storage 列为核心贡献。可是附录 B 写明两个发布模型都是 <b>E=1</b>，权重里没有路由或地址张量，代码里也没有实现。MoS 的唯一证据是 Fig.7（2 vs 4 专家，只训了 400 步 CPT），其中最佳点 AVG 44.68，<b>仍低于</b> E=1 主模型的 47.0。</p><p class="meta">p1、p5、p9 对照 p35–36（Table 6）；推理代码与 HF 权重</p></div>
+  <div class="card ccard"><span class="sev sH">高</span> <h4 style="display:inline">② 附录 E.2 写的是 Metis 的架构</h4><p class="small">正文说 agentic 训练从 MemT-Nano 初始化（16 头×256²×10 层，450.9M 参数）。被正文引用的附录 E.2.1 却描述了 Metis 的结构：top-p token selector、512×512 状态加 key normalizer、<b>104,962,580</b> 个可训练参数。如果这不是笔误，§7 关于 MemT 的结论就不成立。</p><p class="meta">p28 对照 p56、p59–60</p></div>
+  <div class="card ccard"><span class="sev sH">高</span> <h4 style="display:inline">③ 摘要与正文、表格冲突</h4><p class="small">摘要称与检索增强方法 “remain competitive”。正文 p19 却写文本记忆系统 “substantially higher”，Table 2 也显示 DenseRAG 高 6.7 / 9.5 分，MemOS 高 18.0 / 21.5 分。</p><p class="meta">p1 对照 p19–20</p></div>
+  <div class="card ccard m"><span class="sev sM">中</span> <h4 style="display:inline">④ 主 checkpoint 身份不明</h4><p class="small">§5.3 的 CPT 起点 AVG 是 36.65，Table 4 的 w/o PT 是 36.29；§5.3 的终点 46.80，Table 2 的 Nano 是 46.98。§3.6 写“1 个 CPT epoch + 后训练”，§5.3 又写后训练跑了 2 个 epoch。主模型是否按测试分数挑选，论文没有说明。</p><p class="meta">p17 对照 p20、p22、p14</p></div>
+  <div class="card ccard m"><span class="sev sM">中</span> <h4 style="display:inline">⑤ 文本基线骨干与 MemT-Flash 不同</h4><p class="small">文本记忆基线的 “DS” 是公开的 V4-Flash-0731（Fig.1 图注），而 MemT-Flash 的骨干和 teacher 是作者另行后训练的版本（自称 +6.3）。Table 3 中 DS 的 GPQA 91.2 高于官方 87.4，暗示这一行也是 prepared 版本，但论文没有注明。“同骨干比较”因此不成立。</p><p class="meta">p1、p7、p11 对照 p20–21</p></div>
+  <div class="card ccard m"><span class="sev sM">中</span> <h4 style="display:inline">⑥ “大幅升级 Metis” 缺证据</h4><p class="small">记忆主表 Table 2 没有放 Metis。唯一的正面对比在附录 Fig.15：Metis 的 pass^3 在 4 个设定中<b>全部</b>高于 MemT-Nano，Multilingual 的平均成功率也是 2 个设定都更高。</p><p class="meta">p5 对照 p59–60</p></div>
+ </div>
+
+ <h3>公平性：MemT 赢的是谁？</h3>
+ <div class="grid g2">
+  <div class="card"><h4>参数记忆基线：7 个里有 6 个是 4–8B，且截断历史</h4>
+   <div id="baseBars"></div>
+   <p class="small muted" style="margin-bottom:0">在 &gt;16K 的组里，这几个基线其实看不到大部分历史。表中没有任何 ≥35B 的参数记忆基线，没有作者前作 Metis，也没有“无记忆”下限。LiveMem-RL 的一作也是本文的核心作者。</p></div>
+  <div class="card"><h4>唯一同骨干的 Temp-LoRA 被 Fig.1 隐去</h4>
+   <p class="small">Temp-LoRA 是唯一与 Nano 同骨干（Qwen3.6-35B-A3B）的参数记忆基线，由作者自行配置（rank-64，每 1,024-token chunk 训 2 epoch）。它在 3 个基准上胜过 Nano 或 Flash：</p>
+   <div class="tblwrap"><table><thead><tr><th>基准</th><th class="num">Temp-LoRA</th><th class="num">Nano</th><th class="num">Flash</th></tr></thead><tbody>
+    <tr><td>PSB</td><td class="num best">98.0</td><td class="num">95.7</td><td class="num">97.5</td></tr>
+    <tr><td>PM</td><td class="num best">57.4</td><td class="num">52.3</td><td class="num">61.6</td></tr>
+    <tr><td>MO</td><td class="num best">52.5</td><td class="num">49.9</td><td class="num">64.1</td></tr></tbody></table></div>
+   <p class="small">但 Fig.1 的“代表性基准”图只保留了 4–8B 的弱基线，<b>删掉了 Temp-LoRA</b>，属于选择性呈现。</p></div>
+ </div>
+ <div class="grid g3" style="margin-top:16px">
+  <div class="card"><h4>SWE-bench：在测试子集上调参</h4><p class="small">agentic 的训练配置（CE vs KD、Full-Suffix-Max2）是在 SWE-bench Verified <b>测试集的 100 题子集</b>上按成功率挑出来的，这 100 题又计入了最终的 500 题结果。作者在附录里披露了这一点，但正文结论没有加限定。而且被挑选的是 Metis 的配置，之后沿用到 MemT。</p></div>
+  <div class="card"><h4>泄漏风险：无法排除</h4><p class="small">后训练数据含“记忆任务数据”，部分基于 MemOS 内部数据，没有说明来源，也没有去污染说明。MemOps（基准）、MemOS（系统）、OmniMemEval（judge 框架）都出自同一团队，MemoryAgentBench 又内含 LongMemEval 的来源。消融和 scaling 的 checkpoint 直接在这 11 个测试基准上评测。<b>我们无法证实泄漏，但也无法排除。</b></p></div>
+  <div class="card"><h4>66× 的比较对象很窄</h4><p class="small">前提是 batch=1、单轨迹、BF16 KV、历史已准备好、不含权重、workspace 和当前步 KV。如果状态改用 BF16 存，比值是 131×；KV 改 FP8 则约 33.5×。512 token 时只有 1.8×。128K 时 DenseRAG（约 25.5 MiB）比 MemT 更省，两者在约 209K token 处交叉。</p></div>
+ </div>
+</div></section>
+
+<!-- ============ 07 安全与许可 ============ -->
+<section id="security"><div class="wrap">
+ <div class="sec-h"><span class="sec-n">07</span><h2>安全与许可</h2></div>
+ <p class="lead">推理代码本身比较干净：没有 eval/exec/pickle/torch.load/subprocess，快照路径也做了加固。但服务端和客户端各有坑，许可还是三方分裂的。</p>
+ <div class="statrow">
+  <div class="stat D"><div class="n">2</div><div class="t">高危</div></div>
+  <div class="stat B"><div class="n">9</div><div class="t">中危</div></div>
+  <div class="stat C"><div class="n">9</div><div class="t">低危</div></div>
+  <div class="stat A"><div class="n">20</div><div class="t">发现总数（repo/inference）</div></div>
+ </div>
+ <div class="chips" id="secFilter"><button class="chip on" data-s="all" type="button">全部</button><button class="chip" data-s="高" type="button">高</button><button class="chip" data-s="中" type="button">中</button><button class="chip" data-s="低" type="button">低</button></div>
+ <div class="tblwrap"><table id="secTable"><thead><tr><th>ID</th><th>级别</th><th style="min-width:240px">问题</th><th style="min-width:240px">影响</th><th>状态</th></tr></thead><tbody></tbody></table></div>
+ <p class="small muted">来源：docs/analysis/01-repo-audit.md §3（附代码行号）。正面证据：没有 eval/exec/pickle/torch.load/subprocess；快照路径用正则校验、检查符号链接、原子替换；记忆状态槽位有上限；工具库本身不执行工具。</p>
+
+ <h3>许可三方对照</h3>
+ <div class="grid g3">
+  <div class="card" style="border-top:4px solid var(--D)"><h4>代码（GitHub）</h4><div class="rating neg">PolyForm Noncommercial 1.0.0</div><ul class="tight small"><li>根 LICENSE 与 inference/LICENSE 逐行相同</li><li>vendored FLA 为 MIT</li><li>学术复现：允许</li><li>改码公开发布：有条件允许（接收者仍须非商业）</li><li>商业使用、商业竞品评测：<b>不允许</b></li></ul></div>
+  <div class="card" style="border-top:4px solid var(--B)"><h4>论文（tech_report）</h4><div class="rating" style="color:var(--B)">CC BY-NC-SA 4.0</div><ul class="tight small"><li>只适用于论文文字和图表</li><li>非商业、署名、相同方式共享</li><li>引用论文中的数字本身不受软件许可约束</li></ul></div>
+  <div class="card" style="border-top:4px solid var(--A)"><h4>权重（HuggingFace）</h4><div class="rating pos">Nano apache-2.0 · Flash mit</div><ul class="tight small"><li>依据 HF metadata 的 license 字段</li><li>与代码的 NC 许可<b>不一致</b>，需要官方澄清</li><li>按权重许可，商用微调或部署权重也许可行；但配套推理代码不可商用</li></ul></div>
+ </div>
+ <div class="note warn small"><b>许可悖论：</b>权重可以商用，加载和推理它的官方代码却不能商用。商业团队要么自己重写推理栈（HF 的 <code>modeling_memt.py</code> 也来自作者，许可同样需要确认），要么取得作者的商业授权。以上是工程解读，不是法律意见。</div>
+
+ <h3>trust_remote_code 的信任成本</h3>
+ <div class="grid g2">
+  <div class="card"><h4>加载 HF 版本时你在信任什么</h4><ul class="tight small">
+   <li><b>仓库里的 Python 代码，每次加载都会执行</b>。Nano 约 1.1k 行；Flash 约 1.9k 行，而且<b>只加载 tokenizer 也会执行</b>整份 modeling 和 <code>encoding_dsv4.py</code>。</li>
+   <li><b>加载那一刻的仓库版本</b>：README 示例没有钉 revision，以后推送的任何代码都会在下次加载时执行（供应链风险，中）。</li>
+   <li>transformers 必须是 5.12.1，依赖其私有接口。</li>
+   <li>我们挂 PEP 578 audit hook 实测：remote 模块直接触发的事件只有 5 次 import，网络和进程事件为 0。</li>
+   <li>风险评级：<b>Nano 低</b>，<b>Flash 低–中</b>。前提是钉住 revision，并在本地读过代码。</li>
+  </ul></div>
+  <div class="card"><h4>建议的加载方式</h4>
+<pre>REV = "30fe0b22422c4cc4c87475f98db5c8baa5c1a902"  # 已审读版本
+model = AutoModelForCausalLM.from_pretrained(
+    "MemTensor/MemT-1.0-Nano", revision=REV, code_revision=REV,
+    trust_remote_code=True, dtype=torch.bfloat16)
+tok = AutoTokenizer.from_pretrained(
+    "MemTensor/MemT-1.0-Nano", revision=REV)  # Nano 的 tokenizer 不需要远程代码</pre>
+   <p class="small muted" style="margin-bottom:0">或者先下载 snapshot，diff 审读后从本地目录加载，并设 <code>HF_HUB_OFFLINE=1</code>。SGLang 路径不执行 checkpoint 里的模型代码（强制 <code>trust_remote_code=False</code>），但 Flash 客户端会执行 checkpoint 目录中的 <code>encoding_dsv4.py</code>（H-2）。另外，HF 的 <code>save_state</code> 在 Windows 上必然失败（两处缺陷串联）。</p></div>
+ </div>
+</div></section>
+
+<!-- ============ 08 独立实验 ============ -->
+<section id="exp"><div class="wrap">
+ <div class="sec-h"><span class="sec-n">08</span><h2>我们的独立实验</h2></div>
+ <p class="lead">本机没有能跑官方 BF16 推理的 GPU（Nano 需要 2×GPU 和 70GB 权重，本机只有 Tesla T10 16GB），训练所需的代码和数据也没有公开。所以我们选了四条<b>能独立检验</b>的路线。下面先介绍方法，再给结果。</p>
+ <div class="grid g2">
+  <div class="card"><h4>① 官方代码 tiny-config 跨实现一致性</h4><p class="small">用 HF 远程代码搭一个微型 config（hidden 128，2 层 [GDN, full-attn]，4 头，head_dim 32），在 CPU 上真实走 <code>trust_remote_code</code> 加载。逐项对拍：论文公式的 float64 参考实现、HF 实现、SGLang 实现的数学语义。同时验证读写时序、零状态等价、持久化格式和 identity 校验。</p><p class="tiny muted">前期已完成，详见 docs/analysis/05：state 相对误差 3.1e-7；生成期 6 次记忆调用全部只读；零状态与无状态的 logits 差为 0.0。</p></div>
+  <div class="card"><h4>② 社区 GGUF Q4 + CPU：真实权重黑盒实验</h4><p class="small">用社区的 MemT-1.0-Nano Q4_K_M GGUF（21.6GB）和 llama.cpp MemT 补丁，在 WSL（46GB RAM）里纯 CPU 推理。计划测量：事实容量（准确率 vs 事实数 N）、干扰/遗忘（准确率 vs 干扰段数 M）、长历史针、快照持久化、效率（memory 模式 vs full-context）。用固定模板加关键词匹配判分。</p><p class="tiny muted">这是 Q4 量化、CPU、社区补丁下的黑盒行为，<b>不等于</b>官方 BF16 数值。</p></div>
+  <div class="card"><h4>③ Mini-MemT：迷你 scaling 实验</h4><p class="small">在 CPU 上实现一个与论文一致的迷你 Native Memory Block（4 层，d=128，GDN-2 更新 + 读路径 + 输出门），在合成的“多轮事实注入 + 后续查询”任务上，控制状态规模（d<sub>k</sub>、头数、层数）、历史长度、条目数和干扰数。尝试拟合准确率与 log(状态元素数) 的关系；最终没有拿到可外推的幂律，因此不与 Nano(10M) / Flash(336M) 做外推对照。</p><p class="tiny muted">论文本身没有拟合任何幂律，这是对 Fig.6/Fig.7 的独立补充。</p></div>
+  <div class="card"><h4>④ llama.cpp 补丁审计</h4><p class="small">逐行核对社区补丁的更新公式与论文是否一致：u = k·√sigmoid(b)，v = ω⊙V，g = softplus，beta=1 的 delta rule。确认它能作为真实权重黑盒实验的载体，并检查转换出的 GGUF 能否通过 sanity demo。</p><p class="tiny muted">前期结论：更新公式与论文一致（docs/reports/phase1-repro-audit.md §3）。</p></div>
+ </div>
+ <h3>结果</h3>
+ <div id="expResults"></div>
+ <p class="small muted">结果区的数据来自页面内的 <code>window.MEMT_EXPERIMENTS</code> 对象。数据未填入时显示“实验进行中”，<b>不展示任何未经实验产生的数字</b>。</p>
+</div></section>
+
+<!-- ============ 09 判断 ============ -->
+<section id="verdict"><div class="wrap">
+ <div class="sec-h"><span class="sec-n">09</span><h2>判断与跟进建议</h2></div>
+ <p class="lead">一句话：<b>真东西，但被包装得比实际更大。</b>这是一次认真的、可审计的规模化工程，不是记忆的新范式。</p>
+ <div class="grid g2">
+  <div class="card"><h4 style="color:var(--A)">含金量在哪（站得住的）</h4><ul class="tight small">
+   <li><b>权重与架构是真的</b>：记忆参数和状态大小与论文<b>逐位相等</b>；三套实现与公式一致（相对误差 3e-7）。</li>
+   <li><b>长历史的存储和延迟优势是结构性的</b>：状态固定为 40 MiB / 1280 MiB，TTFT 平坦（约 104–112 ms），128K 以上端到端加速 1.86–3.99×。这是机制决定的，可以外推。</li>
+   <li><b>不读原文也能恢复 71–78% 的全上下文质量</b>，这是全文最有信息量的结果。</li>
+   <li><b>消融清晰</b>：后训练 +10.7，token 级更新 +6.0。</li>
+   <li><b>工程质量高</b>：槽位池、事务式 commit/publish、快照身份校验、Triton/WY 分块核、SGLang 深度集成。</li>
+  </ul></div>
+  <div class="card"><h4 style="color:var(--D)">被高估的（要打折的）</h4><ul class="tight small">
+   <li>“超过参数记忆基线”：对手多为 4–8B、截断历史的模型。</li>
+   <li>“与 RAG 相当”：实际落后 6.7–21.5 分，在 LME 和 BEAM 上落后 35–49 分。</li>
+   <li>MoS 作为头条贡献，没有在发布模型中出现。</li>
+   <li>“通用能力基本保持”：依赖很轻的噪声设定。相对干净骨干，Nano 的 GPQA 和 LCB 各掉 5 分以上。</li>
+   <li>agentic 提升约 3pp，在噪声内；配置在测试集上挑选。</li>
+   <li>媒体说法：“KV 完全去除”“显存 5.06GB→40MB”“首个开源记忆原生”都失实。</li>
+  </ul></div>
+ </div>
+ <h3>工程整合 vs 科学新意</h3>
+ <div class="tblwrap"><table><thead><tr><th>维度</th><th>工程整合（主要价值）</th><th>科学新意（有限）</th></tr></thead><tbody>
+  <tr><td>机制</td><td>把 gated delta rule / 线性注意力状态做成可快照、可迁移、按会话隔离的产品级记忆层</td><td>SGDN-2 的对称化擦除（√β⊙k）推导正确，但改动很小；稳定性证明的适用条件与实际配置不匹配</td></tr>
+  <tr><td>规模</td><td>首次在 35B / 284B 的冻结 MoE 骨干上，用 34B token 做记忆蒸馏</td><td>没有拟合 scaling law；容量维度只有 2 个点</td></tr>
+  <tr><td>系统</td><td>SGLang 集成、事务式 commit、Triton WY 核、快照 identity</td><td>—</td></tr>
+  <tr><td>与 KDA 家族</td><td>把同族的 gated delta rule 状态做成跨会话持久、可快照、旁路注入的记忆层</td><td>更新算子与 GDN-2/KDA 同族，不是新算子；优势在部署形态，不在记忆容量</td></tr>
+  <tr><td>与前作</td><td>相对 Metis：多通道、token 级更新、去掉 token selection</td><td>Metis 已经提出 local/hyper 两层结构；附录中 Metis 的 agentic 表现更好</td></tr>
+ </tbody></table></div>
+ <h3>值得持续跟进吗？（分人群）</h3>
+ <div class="grid g3">
+  <div class="card who g"><h4>研究者</h4><div class="rating pos">值得跟进 ★★★★</div><p class="small">这是目前公开的最大规模“冻结骨干 + 状态式记忆”基线，权重真实，推理代码可以审计。适合用来做：同预算下 MoS（E=1 vs E&gt;1）的对照、去污染后的重评测、同规模参数记忆基线、native 记忆与 RAG 的混合。注意 NC 许可只覆盖学术用途。</p></div>
+  <div class="card who a"><h4>产品团队</h4><div class="rating" style="color:var(--B)">观望 / 小规模试点 ★★½</div><p class="small">文本记忆系统目前仍领先 18–21 分。只有在<b>长会话存储和 TTFT 敏感</b>、或<b>不想保存历史原文</b>的场景，才值得试点，并且建议与 RAG 混合使用。上线前要补鉴权，钉住 revision，并评估 Flash 的 1280 MiB/会话 状态成本。</p></div>
+  <div class="card who r"><h4>商业公司</h4><div class="rating neg">暂不投入 ★½</div><p class="small">推理代码采用 PolyForm 非商业许可，需要作者授权；权重许可与代码许可冲突，有待澄清。控制面没有鉴权（H-1），训练无法复现，无法自行迭代。建议等许可澄清，或有第三方复现之后再评估。</p></div>
+ </div>
+ <h3>跟进触发条件（出现任一项就值得重新评估）</h3>
+ <div class="grid g2">
+  <ul class="tight small card" style="padding-left:36px;margin:0">
+   <li><b>MoS 权重或代码发布</b>，并给出 E=1 vs E&gt;1 的同预算对照</li>
+   <li><b>训练代码、评测脚本或逐样本输出开源</b>，Table 2 可复跑</li>
+   <li><b>第三方独立复现</b> Table 2 中的任意一组（尤其是 &gt;64K 组）</li>
+   <li>论文修订，澄清附录 E.2（Metis vs MemT）、主 checkpoint 身份和去污染</li>
+  </ul>
+  <ul class="tight small card" style="padding-left:36px;margin:0">
+   <li><b>许可澄清</b>或推出商业授权（权重 apache/mit 与代码 NC 的冲突）</li>
+   <li><b>MemT-2.0 正式发布</b>（PR #4/#7 中出现了未公开的 MemT-2.0-35B-A3B 检查点和 B300 数据，来源无法判定）</li>
+   <li>出现 native 记忆 + RAG 的混合方案，在长证据任务上超过纯 RAG</li>
+   <li>我们的 Q4 CPU 实验显示真实权重的容量或遗忘曲线明显好于（或差于）预期</li>
+  </ul>
+ </div>
+</div></section>
+</main>
+
+<footer id="sources"><div class="wrap">
+ <h3>来源</h3>
+ <div class="grid g2">
+  <div><h4>一手来源</h4><ul class="small">
+   <li>论文：<a href="https://arxiv.org/abs/2610.26825" rel="noopener">arXiv:2610.26825</a>，<i>MemT-1.0: Towards Memory-Native Evolution</i>（v2，2026-10-20，66 页）</li>
+   <li>权重：<a href="https://huggingface.co/MemTensor/MemT-1.0-Nano" rel="noopener">HF MemTensor/MemT-1.0-Nano</a>（rev 30fe0b22…）· <a href="https://huggingface.co/MemTensor/MemT-1.0-Flash" rel="noopener">HF MemTensor/MemT-1.0-Flash</a>（rev a707cf84…）</li>
+   <li>代码：<a href="https://github.com/MemTensor/MemT-1.0" rel="noopener">GitHub MemTensor/MemT-1.0</a></li>
+   <li>前作：<a href="https://arxiv.org/abs/2607.26760" rel="noopener">Metis，arXiv:2607.26760</a></li>
+   <li>HF 下载计数口径：<a href="https://huggingface.co/docs/hub/models-download-stats" rel="noopener">models-download-stats</a>（按请求计数，不去重）</li>
+  </ul></div>
+  <div><h4>我们的审计文档（工作区相对路径）</h4><ul class="small">
+   <li>docs/reports/phase1-repro-audit.md：综合结论</li>
+   <li>docs/analysis/01-repo-audit.md：安全、许可、架构（20 项发现）</li>
+   <li>docs/analysis/02-hf-forensics.md：权重账本</li>
+   <li>docs/analysis/03-paper-claims.md：55 条声明、12 条矛盾、泄漏、scaling</li>
+   <li>docs/analysis/05-hf-code-audit.md：HF 代码、CPU tiny 实验</li>
+   <li>docs/analysis/06-public-claims.md：媒体与社区核验</li>
+    <li>docs/analysis/10-kda-metis-mos-forgetting.md：KDA 对比、遗忘曲线、Metis/MoS</li>
+   <li>docs/data/claims/claims.json · tables/*.csv · docs/data/hf/*</li>
+  </ul></div>
+ </div>
+ <p class="small"><b>日期：</b>报告基线 2026-11-03；页面数据更新 2026-11-05（Asia/Shanghai）。<b>免责声明：</b>本页所有论文数字均引自 arXiv:2610.26825 及我们的审计文档（审计文档为复现工作区内部底稿，未随本页发布），“无法验证”的地方已标注。我们自己的实验是 <b>CPU 上 Q4 量化的社区 GGUF 黑盒实验</b>和迷你模型实验，<b>不代表官方数值</b>，也不应与论文表格直接比较。许可相关内容是工程解读，不构成法律意见。本页单文件离线运行，不加载任何外部资源。</p>
+</div></footer>
+<button class="toTop" id="toTop" type="button" aria-label="回到顶部">↑</button>
+<div class="tip" id="tip"></div>
+<script>
+/* =====================================================================
+   独立实验数据入口（由 Lead 填写真实数据；保持 null 时页面显示「实验进行中」）
+   结构示例（所有字段可选）：
+   window.MEMT_EXPERIMENTS = {
+     updated: "2026-11-xx",
+     hardware: "Ryzen 7 5700X / WSL 46GB / CPU only",
+     model: "MemT-1.0-Nano Q4_K_M GGUF + llama.cpp MemT 补丁",
+     summary: ["一句话发现 1", "一句话发现 2"],
+     cards: [{label: "指标名", value: "数值", note: "说明"}],
+     charts: [{title: "图 3：准确率 vs 事实数 N", xLabel: "N", yLabel: "准确率", xLog: false, yLog: false,
+               yMin: 0, yMax: 1, series: [{name: "memory", points: [[10, 0.9], [30, 0.8]], dashed: false}], note: "说明"}],
+     tables: [{title: "表名", columns: ["列1", "列2"], rows: [["a", "b"]], note: "说明"}],
+     pending: ["仍在进行的实验名"]
+   };
+   ===================================================================== */
+window.MEMT_EXPERIMENTS = {
+  updated: "2026-11-05 11:20（Asia/Shanghai）",
+  hardware: "Ryzen 7 5700X（8C/16T）+ WSL2 Ubuntu 46GB RAM + 纯 CPU",
+  model: "MemT-1.0-Nano Q4_K_M GGUF（社区 brishen）+ llama.cpp memt-native-memory 补丁；记忆权重 Q8_0",
+  summary: [
+    "发布权重的记忆机制在本机被真实复现：服务器日志 n_state=10,485,760 与论文 Table 6 一致；官方 README 的『小猫』示例、无记忆/空记忆不泄漏对照全部通过。",
+    "高熵事实（4 位随机编码）4 选 1 容量（多 seed/多次汇总）：N=10 约 52%（21/40）、N=20 约 30%、N=40 约 24%、N=60 约 28%、N=120 约 23%，随机水平 25% —— N50≈10 条，有效容量只有『十几个』量级，而不是 10M 状态元素给人的直觉。",
+    "同一模型、同一事实，改用 free-form 精确生成：N=10 记忆 0/10（答案常见『前 1-2 位正确 + 后续乱码』），full-context 4/5。读出保真度、而不是『存不存得下』，是当前短板。",
+    "干扰/遗忘：20 条事实的 MC 准确率在写入 0/10/30 段无关笔记后为 45% → 20% → 15%；仅 10 段无关笔记（原始协议为 10 段 × 40 词，页内记作 ~400 token；连续曲线为每批 ~275 token，口径不同）的后续写入就能让召回跌到随机以下。",
+    "应用场景：程序性经验（状态报告必须带 [STATUS-OK]/[END]）经原生记忆跨 10 轮后仍 3/3 生效，与 full-context 打平、无记忆 0/3；复合偏好（只讲中文+3 条 bullet）记忆 2/3、full-context 3/3。",
+    "同权重三条件（N=10）：原生记忆 40%、无记忆 floor 15%、full-context 100% → 机制恢复率仅约 29%（论文没有报告的『无记忆地板』对照）。",
+    "优化 A/B/C：同一任务上仅原生记忆 30%、RAG top-1/3 均 100%、混合 100% —— 原文可得时检索严格更优，原生记忆的独特价值在『推理不接触原文』；写入分批不影响召回，重复写入中性（多 seed 40.0% vs 38.3%）；状态存储减半应选 FP16（20MiB、读出误差 0.33%）而非 BF16（2.74%）。",
+    "遗忘曲线（真实权重）：N=20 高熵事实，写入 0→275→…→2200 token 无关文本，MC 准确率 40% → 20–30% → 25%（随机）；第一批 ~275 token 就断崖到随机，此后贴地。不写新内容时状态不变、时间不影响记忆。",
+    "遗忘机制：门控衰减半衰期 2048–32768 token 只能解释 2–9% 的损失，主因是 delta-rule 覆写/交叉干扰 + 读出余量小（近 tie 翻转）。mini-MemT 干净曲线：τ≈180/238/488 token（S=4K/16K/64K），bias 半衰期三档都 ≈140 —— 增大记忆块主要减少干扰，不改变指数衰减斜率。",
+    "持久化：语义事实 3 条 MC 3/3 → erase 后 2/3 → restore 后 3/3；save 写出 41,943,056 字节（≈40 MiB，与论文 Table 6 一致）。",
+    "Scaling 尝试：mini-MemT 从不可学习修到可学习（v2），v3/v4 扩大 key 空间后热启动下 N≤64 不饱和、v4 N50≈100-140；CPU 预算内无法得到干净幂律，真实模型 N50≈10 与 mini N50≈10² 的差距指向训练/保真度而非状态尺寸。",
+    "端到端优化验证：把 llama.cpp 补丁的持久状态改为 FP16 后，工作状态 80→40 MiB/会话、小猫示例与召回不变、延迟持平（服务端会话存储仍 F32，未真正减半）。",
+    "效率：CPU Q4 热态约 5-6 token/s 预填、2-3 token/s 生成；每会话固定 40 MiB FP32 状态（不随历史增长）。"
+  ],
+  cards: [
+    {label: "MC 容量 N=10", value: "52%", note: "汇总 40 题；随机 25%"},
+    {label: "MC 容量 N=20", value: "30%", note: "6/20（30%）与 4/20+8/20（12/40=30%）一致"},
+    {label: "MC 容量 N=40", value: "24%", note: "接近随机"},
+    {label: "容量 N50", value: "≈10 条", note: "状态 40 MiB；读出保真度是瓶颈"},
+    {label: "真实遗忘", value: "~275 token", note: "无关写入后回到随机（N=20）"},
+    {label: "mini 遗忘 τ", value: "180→488", note: "S=4K→64K；decay 半衰期不变"}
+  ],
+  charts: [
+    {title: "图 3：真实权重容量曲线（高熵编码，4 选 1）", xLabel: "写入事实数 N", yLabel: "准确率",
+     xLog: false, yLog: false, yMin: 0, yMax: 1,
+     series: [
+       {name: "原生记忆（多轮汇总；N=30 为单次，见注）", points: [[10, 0.525], [20, 0.30], [30, 0.40], [40, 0.238], [60, 0.283], [120, 0.233]]},
+       {name: "随机水平", points: [[10, 0.25], [120, 0.25]], dashed: true},
+     ],
+     note: "同一 GGUF、同一提示词模板；每个 N 独立会话。N=10 为多轮汇总（21/40）；N=30 为单次运行（95% CI 约 22%–61%，弱证据）；N=20/40/60/120 多为单次或混合运行，仅看趋势。单次结果波动大（例如 N=10 曾测到 70%，复跑 40%），原因是记忆读出 logit 差异小、近 tie 会翻转；无记忆时模型有位置偏置（常选 B），本实验随机化选项位置。CPU Q4 黑盒，不代表官方 BF16 数值。"},
+    {title: "图 4：真实权重遗忘曲线（N=20，写入 M 段无关笔记）", xLabel: "累计写入的无关 token 数", yLabel: "准确率",
+     xLog: false, yLog: false, yMin: 0, yMax: 1,
+     series: [
+       {name: "原生记忆（固定题目与选项）", points: [[0, 0.40], [275, 0.20], [550, 0.30], [825, 0.30], [1100, 0.30], [1375, 0.25], [1650, 0.20], [1925, 0.25], [2200, 0.25]]},
+       {name: "随机水平（4 选 1）", points: [[0, 0.25], [2200, 0.25]], dashed: true}
+     ],
+     note: "N=20 高熵编码事实，MC 4 选 1；每段笔记约 275 token（5 篇 × ~55 token）。断崖+地板：第一批 ~275 token 写入后就回到随机附近，之后贴地；若不写新内容，状态不变、不会发生时间衰减。基线本身只有 30–40%，可遗忘余量小，单点噪声大。"},
+    {title: "图 5：Mini-MemT 遗忘曲线 vs 状态规模（256 key/64 value，N=16 目标）", xLabel: "累计写入的无关键 token", yLabel: "原始 16 条事实的召回率",
+     xLog: false, yLog: false, yMin: 0, yMax: 1,
+     series: [
+       {name: "S=4,096（dk=32）τ≈180", points: [[0,0.924],[24,0.879],[48,0.807],[72,0.713],[96,0.653],[120,0.561],[144,0.473],[168,0.378],[192,0.328],[216,0.265],[240,0.22],[264,0.192],[288,0.152]]},
+       {name: "S=16,384（dk=64）τ≈238", points: [[0,0.86],[24,0.81],[48,0.758],[72,0.688],[96,0.639],[120,0.576],[144,0.512],[168,0.462],[192,0.407],[216,0.345],[240,0.314],[264,0.27],[288,0.233]]},
+       {name: "S=65,536（dk=128）τ≈488", points: [[0,0.592],[24,0.565],[48,0.547],[72,0.527],[96,0.521],[120,0.491],[144,0.475],[168,0.451],[192,0.425],[216,0.396],[240,0.368],[264,0.33],[288,0.307]]},
+       {name: "随机水平（1/64）", points: [[0,0.0156],[288,0.0156]], dashed: true}
+     ],
+     note: "每 chunk 写入 8 条（24 token）新事实后查询原始 16 条；拟合 acc(t)=floor+(a0−floor)e^(−t/τ)。三档学到的 bias 半衰期几乎相同（≈136–151），但有效 τ 随状态增大（180→238→488）——增大记忆块减少交叉干扰，不改变纯衰减斜率。dk=128 起点偏低是训练步数/热启动混杂，τ 只作方向性证据。"}
+  ],
+  tables: [
+    {title: "真实权重实验汇总（CPU / Q4）", columns: ["实验", "条件", "结果", "备注"],
+     rows: [
+       ["小猫示例（官方 README）", "2 文档 + 自然语言问", "正确召回 name/age/food", "与官方示例一致"],
+       ["无泄漏对照", "无记忆 / 空记忆", "正确拒答", "记忆按 memory_id 隔离"],
+       ["MC 语义题", "3 条事实、4 选项", "3/3", "题面接近训练分布"],
+       ["MC 编码容量（汇总）", "N=10", "52.5%（21/40）", "多次运行汇总；单次 40%-70%"],
+       ["MC 编码容量（汇总）", "N=20", "≈30%（12/40）", "剔除并发污染样本后"],
+       ["MC 编码容量（汇总）", "N=40", "23.8%（19/80）", "两 seed"],
+       ["MC 编码容量（汇总）", "N=60", "28.3%（17/60）", "floor 50%（n=10，噪声大）"],
+       ["MC 编码容量（汇总）", "N=120", "23.3%（28/120）", "floor 0%（n=10）"],
+       ["free-form 编码", "N=10，记忆", "0/10", "前缀对、后续乱码"],
+       ["free-form 编码", "N=5，full-context", "4/5", "同模型、同 prompt"],
+       ["干扰/遗忘 A2", "20 条事实 + M 段无关笔记", "M=0: 45% / M=10: 20% / M=30: 15%", "10 段无关笔记（原始协议 10 段 × 40 词，页内记作 ~400 token）后跌到随机以下；连续曲线为每批 ~275 token，协议不同"],
+        ["真实遗忘曲线（N=20，MC）", "写入 0/275/…/2200 token 无关文本", "40% → 20–30% → ~25%（随机）", "断崖+地板；~275 token 后基本贴地"],
+        ["Mini 遗忘 vs 状态规模", "N=16 目标 + 12 批新事实，S=4K/16K/64K", "τ≈180 / 238 / 488 token；bias 半衰期 ~140 三档一致", "增大状态减少干扰、不改变指数衰减斜率"],
+       ["测量协议发现", "同 prompt 两次采样", "A 与 B（近 tie 翻转）", "说明读出 logit 差异小、单次 MC 方差大"],
+       ["持久化", "语义 3 条：写入 / erase / restore", "3/3 → 2/3 → 3/3", "快照 41,943,056 B ≈ 40 MiB"],
+       ["Mini-MemT v2 可学习性", "8 key × 8 value 单 token，4000 步", "memory 100% / no-memory 12.5%（N≤8）", "状态清零/换 episode/key 偏移消融均回落到 chance，确认按 key 取 value"],
+       ["Mini-MemT v3 容量 vs 状态", "64 key × 64 value，N 到 64", "热启动 S≥4K：N≤64 无饱和；随机初始化：S 越大 N=4 学得越快（2%→80%）", "N50 删失，仍无幂律；需扩大 key 词表"],
+       ["同权重三条件（N=10）", "记忆 / 无记忆 / full-context，2 seeds", "40% / 15% / 100%", "机制恢复率 ≈29%（论文未报告的无记忆地板）"],
+       ["优化 A：检索对照", "20 条事实，MC 4 选 1", "记忆 30% · RAG 100% · 混合 100%", "原文可得时检索更优；混合不增益"],
+       ["优化 B：写入调度", "20 条事实，不同 batch/重复", "一次/10 批/2 批均 40%；重复两遍多 seed 40.0% vs 38.3%", "分批不影响召回；重复写入中性（此前 15% 为噪声）"],
+       ["优化 C：状态精度", "官方记忆块权重，T=2048 写入", "FP16 20MiB 误差 0.33%；BF16 20MiB 误差 2.74%", "要省一半存储请用 FP16，不要 BF16"],
+       ["优化 D：FP16 端到端（llama.cpp 补丁）", "同权重 A/B，2 seeds × 2 个 N", "工作状态 80→40 MiB/会话；召回 20/60 vs 25/60（噪声内）；延迟持平", "服务端会话存储/快照仍 F32，未减半"],
+       ["Mini-MemT v4 容量", "256 key，N 到 256，热启动", "N50 ≈ 106-124（S=4K/16K/64K）", "表面随 S 下降，但被词表重映射与步数混杂污染，不能当 scaling 律"],
+       ["应用场景 C1 程序性经验", "写规则 + 10 条无关笔记后做 3 个新任务", "记忆 3/3 · 无记忆 0/3 · full-context 3/3", "低熵行为规则可跨轮保留并生效"],
+       ["应用场景 C2 复合偏好", "只讲中文 + 恰好 3 条 bullet", "记忆 2/3 · 无记忆 1/3 · full-context 3/3", "复合约束保真度不足"]
+     ],
+     note: "计分：MC=字母精确匹配；free-form=编码子串匹配。数据：work/exp/real/results/*.json。"}
+  ],
+  pending: ["把 memt_store/快照也改为 FP16 以真正减半每会话存储", "C2 长间隔复核", "KDA 同任务定量对照（需 GPU）；正式 benchmark 复测（CPU 不可行）"]
+};
+window.MEMT_EXPERIMENTS = window.MEMT_EXPERIMENTS || null;
+</script>
+<script>
+(function(){
+"use strict";
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var SVGNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent, text){
+  var e = document.createElementNS(SVGNS, tag);
+  if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function h(tag, attrs, parent, text){
+  var e = document.createElement(tag);
+  if (attrs) for (var k in attrs){ if (k === "cls") e.className = attrs[k]; else e.setAttribute(k, attrs[k]); }
+  if (text != null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function clear(n){ while (n.firstChild) n.removeChild(n.firstChild); }
+function isDark(){ return document.documentElement.getAttribute("data-theme") === "dark"; }
+
+/* ---------------- theme ---------------- */
+var themeBtn = $("#themeBtn");
+function setTheme(t, persist){
+  document.documentElement.setAttribute("data-theme", t);
+  themeBtn.textContent = t === "dark" ? "☀ 浅色" : "☾ 深色";
+  if (persist) { try { localStorage.setItem("memt-theme", t); } catch(e){} }
+  if (window.__memtRedraw) window.__memtRedraw();
+}
+setTheme(isDark() ? "dark" : "light", false);
+themeBtn.addEventListener("click", function(){ setTheme(isDark() ? "light" : "dark", true); });
+if (window.matchMedia) {
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  var onSys = function(e){ var s = null; try { s = localStorage.getItem("memt-theme"); } catch(x){} if (!s) setTheme(e.matches ? "dark" : "light", false); };
+  if (mq.addEventListener) mq.addEventListener("change", onSys); else if (mq.addListener) mq.addListener(onSys);
+}
+
+/* ---------------- tooltip ---------------- */
+var tip = $("#tip");
+function showTip(ev, txt){ tip.textContent = txt; tip.style.opacity = 1; var x = ev.clientX + 14, y = ev.clientY + 14; if (x + 290 > window.innerWidth) x = ev.clientX - 290; tip.style.left = x + "px"; tip.style.top = y + "px"; }
+function hideTip(){ tip.style.opacity = 0; }
+function bindTip(node, txt){ node.addEventListener("mousemove", function(e){ showTip(e, txt); }); node.addEventListener("mouseleave", hideTip); }
+
+/* ---------------- scroll spy & to-top ---------------- */
+var links = $$("#navlinks a");
+var map = {}; links.forEach(function(a){ map[a.getAttribute("href").slice(1)] = a; });
+if ("IntersectionObserver" in window) {
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (en.isIntersecting) {
+        links.forEach(function(a){ a.classList.remove("active"); });
+        var a = map[en.target.id];
+        if (a) { a.classList.add("active"); var nl = $("#navlinks"); var off = a.offsetLeft - nl.clientWidth / 2 + a.clientWidth / 2; nl.scrollTo ? nl.scrollTo({left: off, behavior: "smooth"}) : (nl.scrollLeft = off); }
+      }
+    });
+  }, {rootMargin: "-40% 0px -55% 0px"});
+  Object.keys(map).forEach(function(id){ var s = document.getElementById(id); if (s) io.observe(s); });
+}
+var toTop = $("#toTop");
+window.addEventListener("scroll", function(){ toTop.classList.toggle("show", window.scrollY > 900); }, {passive: true});
+toTop.addEventListener("click", function(){ window.scrollTo({top: 0, behavior: "smooth"}); });
+
+/* ---------------- generic line chart ---------------- */
+function lineChart(svg, cfg){
+  clear(svg);
+  var W = cfg.width || 900, H = cfg.height || 340;
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  var m = {l: 64, r: 22, t: 18, b: 46};
+  var all = [];
+  cfg.series.forEach(function(s){ (s.points || []).forEach(function(p){ all.push(p); }); });
+  if (!all.length) return;
+  var xs = all.map(function(p){ return +p[0]; }), ys = all.map(function(p){ return +p[1]; });
+  var x0 = cfg.xMin != null ? cfg.xMin : Math.min.apply(null, xs), x1 = cfg.xMax != null ? cfg.xMax : Math.max.apply(null, xs);
+  var y0 = cfg.yMin != null ? cfg.yMin : Math.min(0, Math.min.apply(null, ys)), y1 = cfg.yMax != null ? cfg.yMax : Math.max.apply(null, ys) * 1.08;
+  if (x1 === x0) x1 = x0 + 1; if (y1 === y0) y1 = y0 + 1;
+  var tx = cfg.xLog ? function(v){ return Math.log10(v); } : function(v){ return v; };
+  var ty = cfg.yLog ? function(v){ return Math.log10(Math.max(v, 1e-9)); } : function(v){ return v; };
+  var X = function(v){ return m.l + (tx(v) - tx(x0)) / (tx(x1) - tx(x0)) * (W - m.l - m.r); };
+  var Y = function(v){ return H - m.b - (ty(v) - ty(y0)) / (ty(y1) - ty(y0)) * (H - m.t - m.b); };
+  // grid
+  var yt = cfg.yTicks || (cfg.yLog ? logTicks(y0, y1) : linTicks(y0, y1, 5));
+  yt.forEach(function(v){ el("line", {x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), "class": "gridl"}, svg); el("text", {x: m.l - 8, y: Y(v) + 4, "text-anchor": "end"}, svg, fmt(v)); });
+  var xt = cfg.xTicks || (cfg.xLog ? logTicks(x0, x1) : linTicks(x0, x1, 6));
+  xt.forEach(function(v){ var lab = cfg.xFmt ? cfg.xFmt(v) : fmt(v); el("line", {x1: X(v), x2: X(v), y1: H - m.b, y2: H - m.b + 5, "class": "axis"}, svg); el("text", {x: X(v), y: H - m.b + 19, "text-anchor": "middle"}, svg, lab); });
+  el("line", {x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, "class": "axis"}, svg);
+  el("line", {x1: m.l, x2: m.l, y1: m.t, y2: H - m.b, "class": "axis"}, svg);
+  if (cfg.xLabel) el("text", {x: (m.l + W - m.r) / 2, y: H - 6, "text-anchor": "middle"}, svg, cfg.xLabel);
+  if (cfg.yLabel) el("text", {x: 14, y: (m.t + H - m.b) / 2, "text-anchor": "middle", transform: "rotate(-90 14 " + ((m.t + H - m.b) / 2) + ")"}, svg, cfg.yLabel);
+  if (cfg.pre) cfg.pre(svg, X, Y, m, W, H);
+  cfg.series.forEach(function(s, i){
+    var col = s.color || PALETTE[i % PALETTE.length];
+    var pts = (s.points || []).slice().sort(function(a, b){ return a[0] - b[0]; });
+    if (!pts.length) return;
+    var d = pts.map(function(p, j){ return (j ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1); }).join(" ");
+    el("path", {d: d, fill: "none", stroke: col, "stroke-width": s.width || 2.6, "stroke-dasharray": s.dashed ? "7 5" : "none", "stroke-linejoin": "round"}, svg);
+    if (s.markers !== false) pts.forEach(function(p){ var c = el("circle", {cx: X(p[0]), cy: Y(p[1]), r: 4, fill: col, stroke: "var(--card)", "stroke-width": 1.5}, svg); bindTip(c, (s.name || "") + "：" + (cfg.xFmt ? cfg.xFmt(p[0]) : fmt(p[0])) + " → " + fmt(p[1]) + (cfg.yUnit || "")); });
+  });
+  if (cfg.post) cfg.post(svg, X, Y, m, W, H);
+}
+function linTicks(a, b, n){ var step = niceStep((b - a) / n), out = [], v = Math.ceil(a / step) * step; for (; v <= b + 1e-9; v += step) out.push(+v.toFixed(10)); return out; }
+function niceStep(s){ var p = Math.pow(10, Math.floor(Math.log10(s))), f = s / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
+function logTicks(a, b){ var out = []; for (var e = Math.floor(Math.log10(a)); e <= Math.ceil(Math.log10(b)); e++){ var v = Math.pow(10, e); if (v >= a * 0.999 && v <= b * 1.001) out.push(v); } return out; }
+function fmt(v){ if (typeof v !== "number") return String(v); var a = Math.abs(v); if (a >= 1e6) return (v / 1e6).toFixed(a >= 1e7 ? 0 : 1) + "M"; if (a >= 1e4) return (v / 1e3).toFixed(0) + "K"; if (a >= 100) return v.toFixed(0); if (a >= 1) return (+v.toFixed(2)).toString(); if (a === 0) return "0"; return (+v.toPrecision(2)).toString(); }
+var PALETTE = ["#6C5CE7", "#00B894", "#0984e3", "#e1a100", "#e17055", "#a29bfe", "#636e72", "#fd79a8"];
+function legend(node, items){ clear(node); items.forEach(function(it){ var s = h("span", null, node); var i = h("i", null, s); i.style.background = it.color; if (it.dashed) i.style.background = "repeating-linear-gradient(90deg," + it.color + " 0 4px,transparent 4px 7px)"; s.appendChild(document.createTextNode(it.name)); }); }
+
+/* ---------------- 图1 storage ---------------- */
+function tokFmt(v){ if (v >= 1048576) return (v / 1048576) + "M"; if (v >= 1024) return (v / 1024) + "K"; return String(v); }
+function drawStorage(){
+  var series = [
+    {name: "全上下文 KV+GDN（Qwen3.6 骨干）", color: "#e17055", points: [[512, 71.4], [8192, 224], [32768, 695], [65536, 1320], [131072, 2650], [262144, 5170]]},
+    {name: "Temp-LoRA（恒定）", color: "#8a90a2", dashed: true, markers: false, points: [[512, 172.5], [1048576, 172.5]]},
+    {name: "MemT-Nano 状态（恒定 40 MiB）", color: "#6C5CE7", width: 3.4, markers: false, points: [[512, 40], [1048576, 40]]},
+    {name: "DenseRAG 记录", color: "#00B894", points: [[512, 0.12], [8192, 1.79], [32768, 6.83], [65536, 12.9], [131072, 25.5], [262144, 49.3], [1048576, 196]]}
+  ];
+  legend($("#storLegend"), series);
+  lineChart($("#storChart"), {series: series, xLog: true, yLog: true, xMin: 512, xMax: 1048576, yMin: 0.1, yMax: 10000,
+    xTicks: [512, 8192, 32768, 131072, 262144, 1048576], xFmt: tokFmt, xLabel: "历史长度（token，对数轴）", yLabel: "MiB / 轨迹（对数轴）", yUnit: " MiB",
+    post: function(svg, X, Y){
+      el("line", {x1: X(208763), x2: X(208763), y1: Y(0.1), y2: Y(10000), stroke: "#00B894", "stroke-dasharray": "4 4", "stroke-width": 1.4}, svg);
+      el("text", {x: X(208763) + 6, y: Y(4), fill: "#00B894"}, svg, "≈209K：DenseRAG 超过 40 MiB");
+      el("text", {x: X(131072) - 8, y: Y(2650) - 12, "text-anchor": "end", style: "font-weight:700"}, svg, "128K：2650 / 40 ≈ 66×");
+    }});
+}
+
+/* ---------------- Table 2 data ---------------- */
+var BENCH = ["MB", "IM", "PM", "PSB", "LCM", "PMS", "MMR", "MO", "LME", "MAB", "BEAM"];
+var GROUPS = [["<16K", 0, 1], ["16–32K", 2, 4], ["32–64K", 5, 7], [">64K", 8, 10]];
+var T2 = [
+ ["MemOS","DS",[78.4,68.2,67.1,92.9,85.7,45.9,55.5,77.0,83.2,27.8,72.6],68.6,"txt","DS-V4-Flash(0731)；top-20"],
+ ["MemOS","QW",[79.9,61.1,67.6,97.3,83.4,54.7,52.6,82.6,80.8,21.8,71.3],68.5,"txt","Qwen3.6-35B-A3B；top-20"],
+ ["Mem0","DS",[75.8,45.9,67.2,89.4,79.0,66.0,47.5,75.7,72.6,30.3,71.4],65.5,"txt","top-20"],
+ ["Mem0","QW",[78.5,60.4,63.2,97.3,80.9,54.9,41.4,79.4,78.9,20.6,70.3],66.0,"txt","top-20"],
+ ["OpenViking","DS",[75.7,41.4,65.4,95.4,79.1,53.2,53.4,77.3,75.0,28.2,71.9],65.1,"txt","top-20"],
+ ["OpenViking","QW",[76.8,53.0,61.6,95.9,72.9,53.7,51.5,81.7,82.0,23.2,67.3],65.4,"txt","top-20"],
+ ["Graphiti","DS",[49.6,39.4,53.7,89.0,66.7,30.8,26.2,51.1,57.0,19.9,60.4],49.4,"txt","top-20 facts"],
+ ["Graphiti","QW",[61.9,34.9,49.8,96.5,50.6,24.5,23.0,47.4,38.1,15.5,60.6],45.7,"txt","top-20 facts"],
+ ["Full Context","DS",[83.2,58.0,65.2,97.4,79.9,32.3,51.7,88.7,77.8,36.0,44.7],65.0,"full","左截断到 256K"],
+ ["Full Context","QW",[84.3,53.6,65.2,98.7,83.8,44.8,49.8,92.4,76.8,35.9,43.7],66.3,"full","左截断到 256K"],
+ ["DenseRAG","DS",[69.3,55.0,59.4,89.1,58.3,55.5,31.4,68.5,69.4,30.5,43.7],57.3,"rag","top-10 段"],
+ ["DenseRAG","QW",[67.1,52.2,60.3,97.7,61.1,45.2,31.3,70.6,70.8,28.2,37.1],56.5,"rag","top-10 段"],
+ ["MemT-1.0-Flash","-",[73.5,49.2,61.6,97.5,65.1,33.5,20.5,64.1,37.2,17.4,37.0],50.6,"memt","prepared DS-V4-Flash + 3.61B 记忆参数，E=1"],
+ ["MemT-1.0-Nano","-",[71.8,43.1,52.3,95.7,57.5,38.7,23.9,49.9,32.6,15.5,35.8],47.0,"memt","Qwen3.6-35B-A3B + 0.45B 记忆参数，E=1"],
+ ["Temp-LoRA","-",[44.3,32.0,57.4,98.0,25.1,35.7,16.2,52.5,13.4,12.0,32.3],38.1,"same","Qwen3.6-35B-A3B；rank-64，每 1,024-token chunk 训 2 epoch（作者自配）"],
+ ["Doc-to-LoRA","-",[57.2,42.4,34.0,70.2,24.5,16.5,15.3,36.0,14.6,3.54,26.0],30.9,"pub","Qwen3-4B；只保留最后 3 个 chunk adapter"],
+ ["SHINE","-",[40.7,20.2,39.9,63.3,26.7,4.40,16.7,39.6,13.8,6.15,9.58],25.6,"pub","Qwen3-8B；只看最后 2,380 token"],
+ ["δ-mem","-",[37.5,29.9,46.9,90.8,20.3,20.1,17.9,40.9,14.8,7.13,17.0],31.2,"pub","Qwen3-4B，rank-8 TSW，逐 token 全历史"],
+ ["LiveMem-RL","-",[35.7,23.3,46.0,82.0,24.4,10.5,16.4,39.8,14.6,7.27,27.1],29.7,"pub","Qwen3-4B；MAB 上保留最近 257K（一作为本文核心作者）"],
+ ["MemoryLLM","-",[22.7,17.8,41.1,37.4,46.6,3.33,16.3,46.8,15.6,6.26,24.0],25.3,"pub","MemoryLLM-8B-Chat；MAB 只完成 1,993 题"],
+ ["ICAE","-",[31.9,24.5,17.8,70.4,22.4,2.80,11.4,40.4,11.0,7.35,11.7],22.9,"pub","Mistral-7B；FIFO 4 段，与原设定不同"]
+];
+var CAT = {txt: ["文本记忆 / 检索系统", "#00B894"], full: ["全上下文", "#0984e3"], rag: ["检索 RAG", "#e1a100"], memt: ["参数记忆 · MemT（本文）", "#6C5CE7"], same: ["参数记忆 · 同骨干（作者自配）", "#a29bfe"], pub: ["参数记忆 · 公开权重 4–8B", "#9aa0ad"]};
+function f1(v){ return Math.round(v * 10) === v * 10 ? v.toFixed(1) : String(v); }
+function row(name, tag){ for (var i = 0; i < T2.length; i++) if (T2[i][0] === name && T2[i][1] === tag) return T2[i]; return null; }
+function label(r){ return r[1] === "-" ? r[0] : r[0] + " (" + r[1] + ")"; }
+
+var benchMode = "flash";
+function drawBench(){
+  var svg = $("#benchChart"); clear(svg);
+  var cap = $("#benchCap");
+  if (benchMode === "all") { drawAll(svg); cap.textContent = "全部 21 个方法按 AVG 排序（Table 2）。颜色表示类别。MemT 的两个模型排在文本系统、全上下文和 DenseRAG 之后，在参数记忆组内第一、第二。"; return; }
+  var tag = benchMode === "flash" ? "DS" : "QW";
+  var me = benchMode === "flash" ? "MemT-1.0-Flash" : "MemT-1.0-Nano";
+  var S = [
+    {r: row(me, "-"), color: "#6C5CE7"},
+    {r: row("Full Context", tag), color: "#0984e3"},
+    {r: row("MemOS", tag), color: "#00B894"},
+    {r: row("DenseRAG", tag), color: "#e1a100"},
+    {r: row("Temp-LoRA", "-"), color: "#a29bfe"}
+  ];
+  legend($("#benchLegend"), S.map(function(s){ return {name: label(s.r) + "  AVG " + f1(s.r[3]), color: s.color}; }));
+  var W = 1000, H = 430, m = {l: 40, r: 8, t: 26, b: 64};
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  var cols = BENCH.concat(["AVG"]);
+  var gw = (W - m.l - m.r) / cols.length;
+  var Y = function(v){ return H - m.b - v / 100 * (H - m.t - m.b); };
+  // band for >64K
+  el("rect", {x: m.l + gw * 8, y: m.t - 18, width: gw * 3, height: H - m.b - m.t + 18, fill: "var(--band)", rx: 8}, svg);
+  el("text", {x: m.l + gw * 9.5, y: m.t - 4, "text-anchor": "middle", style: "font-weight:700;fill:#e17055"}, svg, ">64K：差距最大");
+  [0, 20, 40, 60, 80, 100].forEach(function(v){ el("line", {x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), "class": "gridl"}, svg); el("text", {x: m.l - 6, y: Y(v) + 4, "text-anchor": "end"}, svg, v); });
+  var bw = gw * 0.8 / S.length;
+  cols.forEach(function(c, gi){
+    var gx = m.l + gw * gi + gw * 0.1;
+    S.forEach(function(s, si){
+      var v = c === "AVG" ? s.r[3] : s.r[2][gi];
+      var rect = el("rect", {x: gx + si * bw, y: Y(v), width: Math.max(bw - 1.5, 1), height: Y(0) - Y(v), fill: s.color, rx: 2}, svg);
+      bindTip(rect, label(s.r) + " · " + c + "：" + f1(v));
+    });
+    el("text", {x: m.l + gw * gi + gw / 2, y: H - m.b + 18, "text-anchor": "middle", style: c === "AVG" ? "font-weight:800" : (gi >= 8 ? "font-weight:700;fill:#e17055" : "")}, svg, c);
+  });
+  GROUPS.forEach(function(g){
+    var x1 = m.l + gw * g[1] + 4, x2 = m.l + gw * (g[2] + 1) - 4;
+    el("line", {x1: x1, x2: x2, y1: H - m.b + 30, y2: H - m.b + 30, stroke: "var(--muted)"}, svg);
+    el("text", {x: (x1 + x2) / 2, y: H - m.b + 48, "text-anchor": "middle"}, svg, g[0]);
+  });
+  var full = row("Full Context", tag), memt = row(me, "-");
+  cap.textContent = (benchMode === "flash" ? "Flash" : "Nano") + " 视角：同骨干（" + (tag === "DS" ? "DeepSeek-V4-Flash" : "Qwen3.6-35B-A3B") + "）的文本基线对比。AVG：" + me + " " + f1(memt[3]) + "，Full Context " + f1(full[3]) + "，相对全上下文恢复率 " + (memt[3] / full[3] * 100).toFixed(1) + "%（按表中一位小数计算）。" + (tag === "DS" ? "注意：DS 文本基线跑在公开版 0731 上，而 MemT-Flash 的骨干是作者另行后训练的版本。" : "");
+}
+function drawAll(svg){
+  var rows = T2.slice().sort(function(a, b){ return b[3] - a[3]; });
+  var W = 1000, rh = 19, m = {l: 210, r: 60, t: 10, b: 30};
+  var H = m.t + rows.length * rh + m.b;
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  var X = function(v){ return m.l + v / 80 * (W - m.l - m.r); };
+  [0, 20, 40, 60, 80].forEach(function(v){ el("line", {x1: X(v), x2: X(v), y1: m.t, y2: H - m.b, "class": "gridl"}, svg); el("text", {x: X(v), y: H - 10, "text-anchor": "middle"}, svg, v); });
+  rows.forEach(function(r, i){
+    var y = m.t + i * rh;
+    var c = CAT[r[4]][1];
+    el("text", {x: m.l - 8, y: y + 13, "text-anchor": "end", style: r[4] === "memt" ? "font-weight:800;fill:var(--fg)" : ""}, svg, label(r));
+    var rect = el("rect", {x: X(0), y: y + 3, width: X(r[3]) - X(0), height: rh - 6, fill: c, rx: 3}, svg);
+    bindTip(rect, label(r) + "：AVG " + f1(r[3]) + " · " + CAT[r[4]][0] + " · " + r[5]);
+    el("text", {x: X(r[3]) + 6, y: y + 13, style: r[4] === "memt" ? "font-weight:800;fill:var(--fg)" : ""}, svg, f1(r[3]));
+  });
+  legend($("#benchLegend"), Object.keys(CAT).map(function(k){ return {name: CAT[k][0], color: CAT[k][1]}; }));
+}
+$$("#benchMode .chip").forEach(function(b){ b.addEventListener("click", function(){ $$("#benchMode .chip").forEach(function(x){ x.classList.remove("on"); }); b.classList.add("on"); benchMode = b.getAttribute("data-m"); drawBench(); }); });
+
+function buildT2Table(){
+  var wrap = $("#t2wrap"); clear(wrap);
+  var tbl = h("table", null, wrap);
+  var thead = h("thead", null, tbl);
+  var tr0 = h("tr", null, thead);
+  h("th", {colspan: "2"}, tr0, "");
+  GROUPS.forEach(function(g){ var th = h("th", {colspan: String(g[2] - g[1] + 1), style: "text-align:center"}, tr0, g[0]); if (g[0] === ">64K") th.className = "long"; });
+  h("th", null, tr0, "");
+  var tr = h("tr", null, thead);
+  h("th", null, tr, "方法"); h("th", null, tr, "骨干 / 历史处理");
+  BENCH.forEach(function(b, i){ var th = h("th", {cls: "num" + (i >= 8 ? " long" : "")}, tr, b); });
+  h("th", {cls: "num"}, tr, "AVG");
+  var best = BENCH.map(function(_, i){ return Math.max.apply(null, T2.map(function(r){ return r[2][i]; })); });
+  var bestAvg = Math.max.apply(null, T2.map(function(r){ return r[3]; }));
+  var tb = h("tbody", null, tbl);
+  var lastCat = null;
+  T2.forEach(function(r){
+    if (r[4] !== lastCat) { var g = h("tr", {cls: "grp"}, tb); var td = h("td", {colspan: "14"}, g, CAT[r[4]][0]); td.style.borderLeft = "4px solid " + CAT[r[4]][1]; lastCat = r[4]; }
+    var t = h("tr", r[4] === "memt" ? {cls: "me"} : null, tb);
+    h("td", {style: "white-space:nowrap"}, t, label(r));
+    h("td", {cls: "small", style: "min-width:200px;color:var(--fg2)"}, t, r[5]);
+    r[2].forEach(function(v, i){ var c = "num" + (i >= 8 ? " long" : "") + (v === best[i] ? " best" : ""); h("td", {cls: c}, t, f1(v)); });
+    h("td", {cls: "num" + (r[3] === bestAvg ? " best" : ""), style: "font-weight:700"}, t, f1(r[3]));
+  });
+}
+
+/* ---------------- 核查表 ---------------- */
+var CLAIMS = [
+ ["MemT-1.0-Flash 总参数 288B", "摘要 p1；README", "逐个 safetensors 头求和为 287,943,175,511；与 DeepSeek-V4-Flash 去掉 MTP 后按 dtype 类的元素数完全相等（02）", "A", "高"],
+ ["可训练记忆参数 450,931,360 / 3,608,608,000", "Table 6 p36", "按附录 B 几何加公开骨干维度重算，逐位相等；HF 中 memt_block 张量求和一致（02、03 C27）", "A", "高"],
+ ["每轨迹动态状态 10M / 336M 元素，FP32 下 40 MiB / 1280 MiB", "摘要；Table 6", "10×16×256² 与 20×64×512² 精确；快照强制 FP32；HF 实测快照文件 = 张量字节 + 约 200 B 头（05）", "A", "高"],
+ ["token 级 Stable GDN-2 更新（U = √β⊙K）", "§2.2.2 p8", "发布代码固定 stable_gdn2 与 sqrt_erase=True；我们的 float64 独立实现与发布代码 state 相对误差 3.1e-7；llama.cpp 补丁公式一致（03 C10、05）", "A", "高"],
+ ["Nano 骨干为公开的 Qwen3.6-35B-A3B", "§2.1 p7", "693 个非记忆张量的名称、形状、dtype 与公开 Qwen3.6-35B-A3B 完全一致（数值未逐一比对）（02）", "A", "中"],
+ ["Nano 总参数 36B", "标题、摘要、README", "实测 35,111,542,048（35.11B），多报约 2.5%；差额约等于基座视觉塔 1.29B，而发布权重不含视觉塔（02）", "B", "高"],
+ ["激活参数 Nano 3B / Flash 17B", "摘要；README", "Flash 的 16.88B 把 3.61B 记忆参数算进了激活量；Nano 含记忆是 3.40B，不含是 2.95B。两个模型口径不一致（02；03 矛盾 #8）", "B", "高"],
+ ["128K 历史下持久存储降低 ≈66×", "摘要；p24；README", "只算 KV 为 64.0×，KV+GDN(FP32) 为 65.5×，Fig.9 解码为 66.75×。前提是 BF16 KV 对 FP32 状态、batch=1、不含权重和当前步 KV。状态改 BF16 则为 131×，KV 改 FP8 则约 33.5×", "B", "高"],
+ ["端到端加速：128K 1.86×，256K 3.99×", "p23；Fig.8", "图解码与文中锚点一致（30.07 s / 16.19 s）。条件：HF、双卡、batch 1、含历史准备。32K 以内没有加速。我们无法复跑", "B", "中"],
+ ["在参数记忆方法中分列第一、第二（50.6 / 47.0，领先 12.5 / 8.9）", "p19；Table 2", "11 列均值复算吻合。但 7 个基线中 6 个是 4–8B 且截断历史；同骨干的 Temp-LoRA 在 PSB/PM/MO 上胜出；没有 Metis，也没有同规模基线（03 C11/C12）", "B", "高"],
+ ["通用能力基本保持（Flash 0.0，Nano 约 −1）", "摘要；Table 3 p21", "相对噪声设定成立。相对干净骨干：Flash −0.75，Nano −2.28（GPQA −5.3，LCB −5.7）。噪声只有不到 2K token、一次写入", "B", "高"],
+ ["Agentic：pass^3 提升 7.6 / 8.3 个百分点", "§7.1 p26；Table 5", "Before 设定下算术成立；pass^3 粗估 SE 约 3.2 / 4.1pp，未做显著性检验；同设定下 Metis 更高", "B", "中"],
+ ["原生记忆保持并略超文本经验", "§7.4 p28–29", "“相当”成立；“超过”的差值只有 0.46–0.60pp，远小于 SE（≥1.7pp）。ML-Before 设定下文本经验更好（64.22 vs 62.89）", "B", "中"],
+ ["11 个记忆基准的全部分数（Table 2）", "Table 2 p20；App.D", "评测代码和逐样本输出都未公开；judge 是 gpt-4.1-mini 加作者自家的 OmniMemEval；“标注从不暴露给模型”同样无法核查（03 C38）", "C", "高"],
+ ["34B token 两阶段训练（20B CPT + 14B 后训练）", "§3.2 p11", "20+14=34 自洽；数据、配比、去污染、训练代码都未公开；Flash 是否做了 CPT 未说明（03 C03/C42）", "C", "高"],
+ ["训练数据与评测之间无泄漏（隐含）", "§3.2 p11–12", "记忆任务数据部分基于 MemOS 内部数据，没有来源和去污染说明；MemOps、MemOS、OmniMemEval 都出自同一团队；风险中–高（03 §5）", "C", "中"],
+ ["scaling 研究可为构建更强记忆模型提供指导", "p5；§5", "论文没有拟合任何幂律，也没报 R²。我们补拟合：AVG ≈ 44.99 + 1.58·ln(epoch)，R²=0.84（n=8，单次运行），外推不可信；容量维度只有 E=2/4 两个点", "C", "高"],
+ ["Mixture-of-Storage 扩展记忆容量（头条贡献）", "摘要；§2.3 p9–10", "发布模型 E=1；权重里没有路由或地址张量；代码没有实现；Fig.7 最佳点 44.68 仍低于 E=1 主模型的 47.0（02、03 C08）", "D", "高"],
+ ["与检索增强方法“保持竞争力”", "摘要 p1", "DenseRAG 高 6.7 / 9.5 分，MemOS 高 18.0 / 21.5 分；与正文 p19 的自述（文本系统 substantially higher）矛盾（03 C13）", "D", "高"],
+ ["Table 3 中的骨干分数", "Table 3 p21", "Qwen LCB-v6 88.0，官方 80.4（+7.6）；DS GPQA 91.2，官方 High 87.4（+3.8）；LCB 用的是 cumulative split（03 C19/C52）", "D", "中"],
+ ["相对 Metis 是“substantial upgrades”", "§1 p5", "记忆主表没有 Metis；附录 Fig.15 中 Metis 的 pass^3 在 4 个设定里全部更高（03 C32）", "D", "高"],
+ ["agentic 实验基于 MemT-Nano（附录 E.2 训练细节）", "p28 对照 p56", "附录描述的是 Metis 架构：104,962,580 个参数、512×512 状态加 key normalizer、top-p selector，与 MemT-Nano 的 450.9M 冲突（03 C33）", "D", "高"],
+ ["SWE-bench Verified 500 题结果", "p29；p58–60", "训练配置在其中 100 题的子集上挑选，且这 100 题计入了最终 500 题，属于测试集调参（03 C34）", "D", "高"],
+ ["（媒体）“KV 缓存完全去除”“256K 显存 5.06GB→40MB”", "X 帖与媒体转载，10-21 前后", "当前步 KV 仍在使用；5.06 GiB 是 256K 全上下文的逻辑状态量，不是显存（06 C09/C10）", "D", "高"],
+ ["（媒体）“首个开源记忆原生大模型”", "36 氪、C114 等，10-19 / 10-28", "同团队的 Metis（arXiv 2026-07-29；GitHub 2026-07-16 公开）已自称 first prototype of memory foundation models（06 C05）", "D", "高"]
+];
+var VN = {A: "已证实", B: "口径问题", C: "无法验证", D: "冲突/夸大"};
+var auditF = "all", auditQ = "";
+function drawAudit(){
+  var stats = $("#auditStats"); clear(stats);
+  ["A", "B", "C", "D"].forEach(function(v){ var n = CLAIMS.filter(function(c){ return c[3] === v; }).length; var d = h("div", {cls: "stat " + v}, stats); h("div", {cls: "n"}, d, String(n)); h("div", {cls: "t"}, d, v + " · " + VN[v] + "（本表 " + CLAIMS.length + " 条）"); });
+  var tb = $("#auditTable tbody"); clear(tb);
+  var shown = 0;
+  CLAIMS.forEach(function(c, i){
+    if (auditF !== "all" && c[3] !== auditF) return;
+    if (auditQ && (c[0] + c[1] + c[2]).toLowerCase().indexOf(auditQ) < 0) return;
+    shown++;
+    var tr = h("tr", null, tb);
+    h("td", {cls: "num muted"}, tr, String(i + 1));
+    h("td", {style: "font-weight:600"}, tr, c[0]);
+    h("td", {cls: "small", style: "white-space:nowrap;color:var(--fg2)"}, tr, c[1]);
+    h("td", {cls: "small"}, tr, c[2]);
+    var td = h("td", {style: "white-space:nowrap"}, tr); h("span", {cls: "vtag v" + c[3]}, td, c[3]); td.appendChild(document.createTextNode(" " + VN[c[3]]));
+    h("td", {style: "white-space:nowrap"}, tr, c[4]);
+  });
+  $("#auditCount").textContent = "显示 " + shown + " / " + CLAIMS.length + " 条。置信度指我们对“结论”本身的把握程度，不是对论文的评分。";
+}
+$$("#auditFilter .chip").forEach(function(b){ b.addEventListener("click", function(){ $$("#auditFilter .chip").forEach(function(x){ x.classList.remove("on"); }); b.classList.add("on"); auditF = b.getAttribute("data-v"); drawAudit(); }); });
+$("#auditSearch").addEventListener("input", function(e){ auditQ = e.target.value.trim().toLowerCase(); drawAudit(); });
+
+/* ---------------- 安全表 ---------------- */
+var SEC = [
+ ["H-1", "高", "控制面 /memt/control 无鉴权；SGLang --api-key 是否覆盖它未知", "若对外暴露，任何网络客户端都能执行 create / acquire / query / export / import / reset / close", "待验证"],
+ ["H-2", "高", "Flash 客户端默认执行 checkpoint 目录中的 encoding_dsv4.py（条件性）", "加载来源不可信的 Flash 目录，即在本机执行任意代码，不需要调用 chat()", "已确认"],
+ ["M-1", "中", "会话能力无鉴权，会话名由客户端指定", "猜到自定义会话名即可 acquire 后 query，间接提取他人记忆；或用 export overwrite 覆盖同名快照", "已确认"],
+ ["M-2", "中", "容量型 DoS；租约最长 3600 s", "无鉴权占满会话（Nano 6×dp，Flash 48），合法的 create/commit 返回 429/409", "已确认"],
+ ["M-3", "中", "请求体无上限，整体读入内存", "发送超大 POST 可耗尽进程内存（MemT 层已确认，SGLang/uvicorn 层未验证）", "已确认"],
+ ["M-4", "中", "快照目录无配额、无清理", "反复 save_state 可填满磁盘（单个快照 40 MiB / 1.3 GB）", "已确认"],
+ ["M-5", "中", "监听地址可被额外参数覆盖，校验不禁止 host", "运维者加上 --host 0.0.0.0 即对外暴露控制面，叠加 H-1、M-1、M-2", "已确认"],
+ ["M-6", "中", "快照无完整性保护；identity 可公开计算", "有状态目录写权限的人可以构造任意有限 FP32 记忆并导入（记忆投毒）", "已确认"],
+ ["M-7", "中", "Flash 没有显式禁用 PyTorch .bin 回退加载", "若目录只含 .bin（pickle），可能走 torch.load", "待验证"],
+ ["M-8", "中", "中间件只用黑名单阻断 SGLang 管理路由", "未被阻断的原生路由可能破坏 retain_kv 会话的 KV 一致性", "待验证"],
+ ["M-9", "中", "tool-call 参数校验弱（设计）", "库本身不执行工具；但被记忆或文档间接注入的输出可能触发调用方的危险工具", "已确认"],
+ ["L-1", "低", "明文 HTTP 传输 Bearer；urllib 跟随重定向", "非回环地址会明文传输 key", "待验证"],
+ ["L-2", "低", "无鉴权端点泄露配置指纹与版本", "信息侦察（config_sha256、sglang_version 等）", "已确认"],
+ ["L-3", "低", "epoch 可选，陈旧会话检测可被省略", "与文档措辞（“Send it”）略有差异", "已确认"],
+ ["L-4", "低", "控制面异常映射与穿透", "磁盘满等 OSError 被映射为 409，语义误导", "部分确认"],
+ ["L-5", "低", "JSON 解析异常处理不完整", "深度嵌套 JSON 触发的 RecursionError 会走框架的 500 路径", "已确认"],
+ ["L-6", "低", "查询的 max_new_tokens 在 MemT 侧无上限", "上限依赖 SGLang", "已确认"],
+ ["L-7", "低", "快照保存在 Windows 上预计不可用", "官方只支持 Linux，影响有限（HF 版在 Windows 上已实测失败）", "待验证"],
+ ["L-8", "低", "供应链与质量：没有锁文件和哈希，没有测试", "依赖审计与复现困难", "已确认"],
+ ["L-9", "低", "运行时编译与缓存的信任边界", "Triton/Inductor 缓存目录的权限在外部，未验证", "部分确认"]
+];
+var secF = "all";
+function drawSec(){
+  var tb = $("#secTable tbody"); clear(tb);
+  SEC.forEach(function(s){
+    if (secF !== "all" && s[1] !== secF) return;
+    var tr = h("tr", null, tb);
+    h("td", {cls: "mono", style: "white-space:nowrap"}, tr, s[0]);
+    var td = h("td", null, tr); h("span", {cls: "sev " + (s[1] === "高" ? "sH" : s[1] === "中" ? "sM" : "sL")}, td, s[1]);
+    h("td", {cls: "small", style: "font-weight:600"}, tr, s[2]);
+    h("td", {cls: "small"}, tr, s[3]);
+    h("td", {cls: "small", style: "white-space:nowrap"}, tr, s[4]);
+  });
+}
+$$("#secFilter .chip").forEach(function(b){ b.addEventListener("click", function(){ $$("#secFilter .chip").forEach(function(x){ x.classList.remove("on"); }); b.classList.add("on"); secF = b.getAttribute("data-s"); drawSec(); }); });
+
+/* ---------------- 基线规模 ---------------- */
+function drawBase(){
+  var B = [
+    ["MemT-1.0-Flash", 288, "prepared DS-V4-Flash（284B）+ 3.61B 记忆", "#6C5CE7"],
+    ["MemT-1.0-Nano", 35.1, "Qwen3.6-35B-A3B + 0.45B 记忆", "#6C5CE7"],
+    ["Temp-LoRA", 35, "同骨干；rank-64（作者自配）", "#a29bfe"],
+    ["SHINE", 8, "只看最后 2,380 token", "#9aa0ad"],
+    ["MemoryLLM", 8, "MAB 只完成 1,993 题", "#9aa0ad"],
+    ["ICAE", 7, "FIFO 4 段，与原设定不同", "#9aa0ad"],
+    ["Doc-to-LoRA", 4, "只保留最后 3 个 chunk adapter", "#9aa0ad"],
+    ["δ-mem", 4, "rank-8 TSW", "#9aa0ad"],
+    ["LiveMem-RL", 4, "MAB 上保留最近 257K", "#9aa0ad"]
+  ];
+  var box = $("#baseBars"); clear(box);
+  B.forEach(function(b){
+    var r = h("div", {cls: "hbar", style: "grid-template-columns:118px 1fr 52px"}, box);
+    h("span", {style: b[0].indexOf("MemT") === 0 ? "font-weight:800" : ""}, r, b[0]);
+    var t = h("div", {cls: "t", title: b[2]}, r);
+    var s = h("span", {cls: "p"}, t); s.style.width = (Math.log10(b[1]) / Math.log10(300) * 100).toFixed(1) + "%"; s.style.background = b[3];
+    h("b", {cls: "small"}, r, b[1] + "B");
+    var n = h("div", {cls: "tiny muted", style: "grid-column:2/4;margin-top:-6px"}, r, b[2]);
+  });
+  h("p", {cls: "tiny muted"}, box, "条长按对数刻度表示骨干总参数（B）。");
+}
+
+/* ---------------- architecture hover ---------------- */
+var ARCH = {
+  layer: ["选定的骨干层", "Nano 在 10 个全注意力层（3, 7, …, 39）挂记忆，Flash 在 20 层（4, 6, …, 42）。骨干的 Pre/Post-Attention 和 Attention 全部冻结，参数不变。"],
+  input: ["隐状态 H̃", "当前步 token 的隐状态。生成期间它同时进入原注意力和记忆块。轮末回放 S_t 时，它被 hyper 投影成 K、V、β、ω、λ，用于写入。"],
+  norm: ["Pre-Attention Norm（冻结）", "骨干原有的归一化，不做修改。"],
+  attn: ["原注意力 A_ori（冻结）", "骨干原来的注意力。注意：活跃请求仍然需要<b>当前步的 KV cache</b>，只是不再随历史增长。所以“KV 完全去除”的说法失实。"],
+  mem: ["Native Memory Block（可训练）", "读：R = Q·M_t/√d_k，Q = L2Norm(H̃W̃_Q)；输出 A_mem = Concat_h[RMSNorm(R) ⊙ SoftCapSiLU(G)]，τ=2。与原注意力并行，加法注入（Nano 在 o_proj 前，Flash 在 wo_b 前）。"],
+  sum: ["并联相加 A = A_ori + A_mem", "记忆输出直接加到原注意力输出上。我们用 HF 实测：若不传 memory_state（标准 pipeline/generate），记忆分支输出为 0，模型退化成原骨干。"],
+  ffn: ["Post-Attention / MoE FFN（冻结）", "Nano 的 MoE 有 40 层、每层 256 个专家，占总参数的 91.75%。全部冻结。"],
+  write: ["轮末写入：Stable GDN-2", "M̃_i = (I − U_iᵀU_i)·D_i·M̃_(i−1) + U_iᵀ(ω_i⊙V_i)，其中 U = √β⊙K。逐 token 执行，SGLang 用 64-token 的 WY 分块 Triton 核，HF 用 fp32 Python 循环。只有生成正常结束（EOS）才 commit。"],
+  state: ["Local Memory 状态 M_t", "每层一块 H×d_k×d_v 的矩阵：Nano 16×256×256，Flash 64×512×512。每条轨迹独立，新轨迹清零。快照为 FP32，Nano 40 MiB，Flash 1280 MiB，格式 memt-memory-v1，带 identity 哈希。"],
+  hyper: ["Hyper Memory 参数 φ", "Q/K/V 投影、erase 门 β、write 门 ω、遗忘门 λ = −exp(s)⊙Softplus(·)、输出门。离线训练、在线固定：Nano 450,931,360 个，Flash 3,608,608,000 个。"],
+  replay: ["轮末回放 S_t = X_t‖Y_t", "写入的是“只渲染本条 user 消息 + 生成的原始 token（含 EOS）”。system prompt 和 tools 永远不写入；思考内容会写入。因截断而未结束的 turn 不提交。"],
+  read: ["读路径（生成期）", "同一步内所有 query 读同一个入口快照 M_t。生成期间状态只读，实测 6 次记忆调用全部 commit=False。"],
+  writepath: ["写路径（轮末）", "S_t 经 hyper 投影产生 K、V、β、ω、λ，写进 M_t 得到 M_(t+1)。所以本轮内容到下一轮才可见。"]
+};
+var archSvg = $("#archSvg"), archInfo = $("#archInfo");
+$$("#archSvg .hv").forEach(function(g){
+  var k = g.getAttribute("data-k");
+  var on = function(){
+    archSvg.classList.add("dim");
+    $$("#archSvg .hv").forEach(function(x){ x.classList.toggle("on", x.getAttribute("data-k") === k || (k === "mem" && x.getAttribute("data-k") === "read") || (k === "state" && (x.getAttribute("data-k") === "read" || x.getAttribute("data-k") === "writepath")) || (k === "write" && x.getAttribute("data-k") === "writepath")); });
+    var d = ARCH[k]; if (d) { archInfo.innerHTML = "<h4></h4><p class='small'></p>"; archInfo.querySelector("h4").textContent = d[0]; archInfo.querySelector("p").innerHTML = d[1]; }
+  };
+  g.addEventListener("mouseenter", on); g.addEventListener("click", on);
+  g.addEventListener("mouseleave", function(){ archSvg.classList.remove("dim"); $$("#archSvg .hv").forEach(function(x){ x.classList.remove("on"); }); });
+});
+
+/* ---------------- 记忆演示（示意） ---------------- */
+var D = 16, M = zeros(), mems = [], busy = false;
+function zeros(){ var a = []; for (var i = 0; i < D; i++){ a.push(new Array(D).fill(0)); } return a; }
+function copyM(A){ return A.map(function(r){ return r.slice(); }); }
+function randn(){ var u = 1 - Math.random(), v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function unit(){ var k = [], s = 0; for (var i = 0; i < D; i++){ k.push(randn()); s += k[i] * k[i]; } s = Math.sqrt(s); return k.map(function(x){ return x / s; }); }
+function colorOf(x){
+  var t = Math.max(-1, Math.min(1, x));
+  var base = isDark() ? [24, 28, 41] : [241, 243, 249];
+  var c = t >= 0 ? [0, 184, 148] : [108, 92, 231];
+  var a = Math.pow(Math.abs(t), 0.7);
+  return "rgb(" + Math.round(base[0] + (c[0] - base[0]) * a) + "," + Math.round(base[1] + (c[1] - base[1]) * a) + "," + Math.round(base[2] + (c[2] - base[2]) * a) + ")";
+}
+var mc = $("#memCanvas"), kc = $("#kCanvas"), vc = $("#vCanvas");
+function drawMat(A, label){
+  var ctx = mc.getContext("2d"), s = mc.width / D;
+  ctx.clearRect(0, 0, mc.width, mc.height);
+  for (var i = 0; i < D; i++) for (var j = 0; j < D; j++){ ctx.fillStyle = colorOf(A[i][j]); ctx.fillRect(j * s + 0.5, i * s + 0.5, s - 1, s - 1); }
+  if (label){ ctx.font = "bold 13px system-ui, sans-serif"; ctx.fillStyle = isDark() ? "rgba(14,16,22,.82)" : "rgba(255,255,255,.85)"; var w = ctx.measureText(label).width + 14; ctx.fillRect(6, 6, w, 22); ctx.fillStyle = isDark() ? "#e7e9f1" : "#1c1f2b"; ctx.fillText(label, 13, 22); }
+}
+function drawVec(cv, v, scale){
+  var ctx = cv.getContext("2d"), s = cv.width / D;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  for (var i = 0; i < D; i++){ ctx.fillStyle = colorOf(v ? v[i] * (scale || 1) : 0); ctx.fillRect(i * s + 0.5, 0, s - 1, cv.height); }
+}
+function halfLife(){ return +$("#hl").value; }
+function gamma(){ return Math.pow(0.5, 1 / halfLife()); }
+function animate(from, to, ms, label, done){
+  var t0 = null;
+  function fr(ts){ if (!t0) t0 = ts; var p = Math.min(1, (ts - t0) / ms), e = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; var A = zeros(); for (var i = 0; i < D; i++) for (var j = 0; j < D; j++) A[i][j] = from[i][j] + (to[i][j] - from[i][j]) * e; drawMat(A, label); if (p < 1) requestAnimationFrame(fr); else if (done) done(); }
+  requestAnimationFrame(fr);
+}
+function setBusy(b){ busy = b; ["#bWrite", "#bRead", "#bForget", "#bReset"].forEach(function(id){ $(id).disabled = b; }); }
+var log = $("#demoLog");
+function logHTML(s){ log.innerHTML = s; }
+$("#hl").addEventListener("input", function(){ $("#hlv").textContent = halfLife(); });
+$("#bWrite").addEventListener("click", function(){
+  if (busy) return; setBusy(true);
+  var k = unit(), v = []; for (var i = 0; i < D; i++) v.push(Math.max(-1, Math.min(1, randn() * 0.6)));
+  var beta = 0.9, omega = 0.95, g = gamma(), sb = Math.sqrt(beta);
+  var u = k.map(function(x){ return x * sb; });
+  var O = zeros(); for (var i2 = 0; i2 < D; i2++) for (var j = 0; j < D; j++) O[i2][j] = u[i2] * omega * v[j];
+  var DM = M.map(function(r){ return r.map(function(x){ return x * g; }); });
+  var N = zeros();
+  for (var a = 0; a < D; a++) for (var j2 = 0; j2 < D; j2++){ var s = DM[a][j2], uu = 0; for (var b = 0; b < D; b++) uu += u[b] * DM[b][j2]; N[a][j2] = s - u[a] * uu + O[a][j2]; }
+  drawVec(kc, k, 2.2); drawVec(vc, v, 1);
+  mems.push({k: k, v: v.map(function(x){ return x * omega; })});
+  var before = copyM(M);
+  drawMat(O, "① 外积 uᵀ(ω⊙v)");
+  setTimeout(function(){ animate(before, N, 650, "② 擦除 + 衰减 + 写入", function(){ M = N; drawMat(M, "M（已写入 " + mems.length + " 条）"); setBusy(false); }); }, 650);
+  logHTML("<b>写入第 " + mems.length + " 条</b>：β=0.9，ω=0.95，每步衰减 γ=" + g.toFixed(3) + "（半衰期 " + halfLife() + " 步）。先把旧状态乘以 γ，再沿 u 方向擦除旧内容 <code>(I−uᵀu)</code>，最后加上外积 <code>uᵀ(ω⊙v)</code>。k 是随机单位向量，各条之间不正交，所以会互相干扰。");
+});
+$("#bRead").addEventListener("click", function(){
+  if (busy) return;
+  if (!mems.length){ logHTML("记忆为空：先点「写入」。读出 <code>r = q·M</code> 会是全 0。"); drawVec(vc, null); return; }
+  var q = mems[0].k, target = mems[0].v, r = [];
+  for (var j = 0; j < D; j++){ var s = 0; for (var i = 0; i < D; i++) s += q[i] * M[i][j]; r.push(s); }
+  var dot = 0, n1 = 0, n2 = 0; for (var t = 0; t < D; t++){ dot += r[t] * target[t]; n1 += r[t] * r[t]; n2 += target[t] * target[t]; }
+  var cos = n1 > 0 ? dot / Math.sqrt(n1 * n2) : 0, ratio = Math.sqrt(n1 / n2);
+  drawVec(kc, q, 2.2); drawVec(vc, r, 1); drawMat(M, "读：r = q·M（只读，不改 M）");
+  logHTML("<b>读取第 1 条</b>（用它的 key 作 query）：读出 r 与原写入值 ω⊙v 的<b>余弦相似度 " + cos.toFixed(3) + "</b>，幅度比 " + ratio.toFixed(2) + "。共写入 " + mems.length + " 条。写得越多、衰减越久，这两个数越低。真实模型读出后还要经过 RMSNorm 和输出门，生成期间 M 保持不变。");
+});
+$("#bForget").addEventListener("click", function(){
+  if (busy) return; setBusy(true);
+  var g8 = Math.pow(gamma(), 8), before = copyM(M), N = M.map(function(r){ return r.map(function(x){ return x * g8; }); });
+  animate(before, N, 900, "遗忘：M ← γ⁸·M", function(){ M = N; drawMat(M, "M（衰减后）"); setBusy(false); });
+  logHTML("<b>遗忘 8 步</b>：没有新写入时，遗忘门让状态按 γ⁸ = " + g8.toFixed(3) + " 整体衰减。真实模型的衰减是逐通道的 <code>D = Diag(exp λ)</code>，初始化半衰期为 2048–32768 token（Nano），比这里慢得多。");
+});
+$("#bReset").addEventListener("click", function(){ if (busy) return; M = zeros(); mems = []; drawMat(M, "M = 0（新轨迹清零）"); drawVec(kc, null); drawVec(vc, null); logHTML("已清零：每条新轨迹的 Local Memory 从 0 开始。"); });
+
+/* ---------------- 实验结果 ---------------- */
+function renderExperiments(){
+  var box = $("#expResults"); clear(box);
+  var X = window.MEMT_EXPERIMENTS;
+  if (!X){
+    var g = h("div", {cls: "grid g2"}, box);
+    [["图 3 · 真实权重事实容量", "准确率 vs 写入事实数 N（N ∈ {10, 30, 60, 100, 200}），对照无记忆与 full-context。"],
+     ["真实权重干扰与遗忘", "先写入 20 条事实，再写入 M 段无关干扰（M ∈ {0, 1, 3, 10, 30}），测量准确率。"],
+     ["图 4 · Mini-MemT scaling", "准确率 vs log(状态元素数)；尝试拟合，最终未得到可外推的幂律（不外推到 10M / 336M）。"],
+     ["持久化与效率", "快照 save/restore 的一致性、快照大小、memory 模式与 full-context 的吞吐和内存对比（只看方向）。"]
+    ].forEach(function(it){ var c = h("div", {cls: "pending"}, g); h("div", {cls: "pill"}, c, "实验进行中"); var t = h("h4", {style: "color:var(--fg)"}, c); h("span", {cls: "dot"}, t); t.appendChild(document.createTextNode(it[0])); h("p", {cls: "small"}, c, it[1]); h("p", {cls: "tiny"}, c, "数据产出后由页面内的 window.MEMT_EXPERIMENTS 渲染；在此之前不展示任何数字。"); });
+    return;
+  }
+  var head = h("div", {cls: "note amber small"}, box);
+  var b = h("b", null, head, "我们的实验（非官方）："); head.appendChild(document.createTextNode([X.model, X.hardware, X.updated ? "更新于 " + X.updated : ""].filter(Boolean).join(" · ") + "。CPU / Q4 量化 / 社区补丁下的黑盒结果，不代表官方 BF16 数值，不应与论文表格直接比较。"));
+  if (X.summary && X.summary.length){ var ul = h("ul", {cls: "tight"}, h("div", {cls: "card", style: "margin-bottom:16px"}, box)); X.summary.forEach(function(s){ h("li", null, ul, String(s)); }); }
+  if (X.cards && X.cards.length){ var gc = h("div", {cls: "grid g4", style: "margin-bottom:16px"}, box); X.cards.forEach(function(c){ var k = h("div", {cls: "kpi"}, gc); h("div", {cls: "v", style: "font-size:26px"}, k, String(c.value)); h("div", {cls: "l"}, k, String(c.label || "")); if (c.note) h("div", {cls: "s"}, k, String(c.note)); }); }
+  (X.charts || []).forEach(function(c){
+    var card = h("div", {cls: "card", style: "margin-bottom:16px"}, box);
+    h("h4", null, card, String(c.title || ""));
+    var lg = h("div", {cls: "legend"}, card);
+    var svg = document.createElementNS(SVGNS, "svg"); svg.setAttribute("class", "chart"); card.appendChild(svg);
+    var ser = (c.series || []).map(function(s, i){ return {name: s.name, points: s.points || [], dashed: !!s.dashed, color: s.color || PALETTE[i % PALETTE.length]}; });
+    legend(lg, ser);
+    lineChart(svg, {series: ser, xLog: !!c.xLog, yLog: !!c.yLog, yMin: c.yMin, yMax: c.yMax, xMin: c.xMin, xMax: c.xMax, xLabel: c.xLabel, yLabel: c.yLabel, height: 320});
+    if (c.note) h("p", {cls: "small muted"}, card, String(c.note));
+  });
+  (X.tables || []).forEach(function(t){
+    h("h4", {style: "margin-top:12px"}, box, String(t.title || ""));
+    var w = h("div", {cls: "tblwrap"}, box), tb = h("table", null, w), tr = h("tr", null, h("thead", null, tb));
+    (t.columns || []).forEach(function(c){ h("th", null, tr, String(c)); });
+    var body = h("tbody", null, tb);
+    (t.rows || []).forEach(function(r){ var rr = h("tr", null, body); r.forEach(function(v){ h("td", {cls: typeof v === "number" ? "num" : ""}, rr, String(v)); }); });
+    if (t.note) h("p", {cls: "small muted"}, box, String(t.note));
+  });
+  if (X.pending && X.pending.length){ var p = h("div", {cls: "pending", style: "margin-top:12px"}, box); h("div", {cls: "pill"}, p, "仍在进行"); h("p", {cls: "small"}, p, X.pending.join(" · ")); }
+}
+window.renderMemtExperiments = renderExperiments;
+
+/* ---------------- init ---------------- */
+function redraw(){ drawStorage(); drawBench(); drawMat(M, mems.length ? "M（已写入 " + mems.length + " 条）" : "M = 0（新轨迹清零）"); drawVec(kc, null); drawVec(vc, null); }
+window.__memtRedraw = function(){ drawMat(M, null); drawVec(kc, null); drawVec(vc, null); };
+buildT2Table(); drawAudit(); drawSec(); drawBase(); renderExperiments(); redraw();
+})();
+</script>
+</body>
+</html>
