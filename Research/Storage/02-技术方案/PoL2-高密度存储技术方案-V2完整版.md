@@ -316,7 +316,7 @@ $$
 
 ```text
 python Research/Storage/03-复算与支撑/capacity_model.py --scenarios Research/Storage/03-复算与支撑/scenarios.json --json-out Research/Storage/03-复算与支撑/capacity_results.json --markdown-out Research/Storage/03-复算与支撑/容量情景结果.md
-python -m unittest discover -s Research/PoL2存储V2支撑 -p test_capacity_model.py -v
+python -m unittest discover -s Research/Storage/03-复算与支撑 -p test_capacity_model.py -v
 ```
 
 未覆盖的视频等大对象、模型权重、网络/WAL、EC 修复流量与暂存、数据库页/TOAST/索引膨胀、分片倾斜、隔离备份历史、训练物化必须另建账。$D_{temp}$ 仅支持此处向量及 ANN 双代字节估算，不代表全系统恢复空间充足。常驻内存还有路由、目录、bitmap、缓存和引擎实现开销，不能把磁盘索引宣称为零内存。若每个 token 全量建图，$f$ 与 $m$ 的放大很快超过原件；反过来，真实视频流也会使原件主导。

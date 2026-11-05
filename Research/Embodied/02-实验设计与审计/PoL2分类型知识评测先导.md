@@ -4,7 +4,7 @@
 
 **状态：** 公开探索性基线；不是确认性检验
 
-PoL-Governance 结果区也提供了[标准结果卡、运行配置与汇总预测文件](../../PoL-Governance/results/EVAL-04-qwen25-llama31-typed-knowledge-20261026/result-card.zh-CN.md)；本页保留完整研究设计、结果解释和证据限制。
+PoL-Governance 结果区也提供了[标准结果卡、运行配置与汇总预测文件](../../../PoL-Governance/results/EVAL-04-qwen25-llama31-typed-knowledge-20261026/result-card.zh-CN.md)；本页保留完整研究设计、结果解释和证据限制。
 
 **任务：** EVAL-04，PoL2 理论知识的类型化评测
 
@@ -54,7 +54,7 @@ PoL-Governance 结果区也提供了[标准结果卡、运行配置与汇总预�
 
 来源锚点多选题另报告集合指标：命题归属题上 Qwen 闭卷/摘录 precision 与 recall 均为 0.556；Llama 分别为闭卷 0.088/0.889、摘录 0.333/1.000。研究者解释出处题上，Qwen 闭卷 0.560/0.538、摘录 0.800/0.769；Llama 闭卷 0.722/0.500、摘录 0.778/0.538。较高 recall 可能伴随过多来源预测，所以不能只看 recall；精确匹配要求选对完整来源集合。
 
-![按任务拆分的闭卷与原文摘录准确率](../../PoL-Governance/benchmark/pol2/typed_knowledge/runs-20261026-v1.3/typed_knowledge_results.png)
+![按任务拆分的闭卷与原文摘录准确率](../../../PoL-Governance/benchmark/pol2/typed_knowledge/runs-20261026-v1.3/typed_knowledge_results.png)
 
 **图 1.** 七种任务的精确匹配率。圆点为闭卷，方块为原文摘录条件；连线只连接同一模型在两种条件下的结果。每个面板标注样本数。规则任务的标签依据进一步分层见下表；不计算跨任务综合分。
 
@@ -77,10 +77,10 @@ PoL-Governance 结果区也提供了[标准结果卡、运行配置与汇总预�
 
 ## 可复核文件
 
-- 数据集、生成器、推理脚本、评分脚本与逐批原始结构化响应：[`PoL-Governance/benchmark/pol2/typed_knowledge/`](../../PoL-Governance/benchmark/pol2/typed_knowledge/)
-- 汇总分数：[`summary.json`](../../PoL-Governance/benchmark/pol2/typed_knowledge/runs-20261026-v1.3/summary.json)
-- 作图脚本：[`plot_typed_eval.py`](../../PoL-Governance/benchmark/pol2/typed_knowledge/plot_typed_eval.py)
-- 标签依据与哈希：[`manifest.json`](../../PoL-Governance/benchmark/pol2/typed_knowledge/data-v1.3/manifest.json)
+- 数据集、生成器、推理脚本、评分脚本与逐批原始结构化响应：[`PoL-Governance/benchmark/pol2/typed_knowledge/`](../../../PoL-Governance/benchmark/pol2/typed_knowledge/)
+- 汇总分数：[`summary.json`](../../../PoL-Governance/benchmark/pol2/typed_knowledge/runs-20261026-v1.3/summary.json)
+- 作图脚本：[`plot_typed_eval.py`](../../../PoL-Governance/benchmark/pol2/typed_knowledge/plot_typed_eval.py)
+- 标签依据与哈希：[`manifest.json`](../../../PoL-Governance/benchmark/pol2/typed_knowledge/data-v1.3/manifest.json)
 
 ## 参考
 
