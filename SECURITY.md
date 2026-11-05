@@ -36,3 +36,5 @@
 ---
 
 **English summary.** This policy covers the current `main` branch. Report leaked credentials, accidentally committed private hold-out sets or private data, script or workflow vulnerabilities, and evaluation-integrity breaches privately, via GitHub's private vulnerability reporting on the Security tab (needs to be enabled by a maintainer). A direct contact address is still to be added. If something was committed by mistake: stop spreading it, tell a maintainer, remember that deleting the latest file does not remove Git history, and revoke any credential first. No response-time commitment is made at present.
+
+## This is a test
