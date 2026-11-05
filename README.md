@@ -2,7 +2,7 @@
 
 # 🌿 NaturalDAO · 自然道
 
-**Governance and application layer of the Proof-of-Love2 Civilization**
+**Governance and application layer of the Proof-of-Love2 Civilization123**
 **富爱文明的治理与应用层**
 
 [![License: Proof of Love2](https://img.shields.io/badge/license-Proof%20of%20Love2-lightgrey.svg)](LICENSE)
