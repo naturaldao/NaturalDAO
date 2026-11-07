@@ -7,9 +7,9 @@ Thanks for contributing to NaturalDAO. Find the workflow and checks for the area
 | 你要改的内容 | 位置 | 流程 |
 | :--- | :--- | :--- |
 | 理论文档（爱2证明） | `PoL/`（中文）、`PoLEn/`（English） | 见下文「理论文档」 |
-| AI 治理层协作（数据、评测、模型、任务） | `PoL-Governance/` | 见 [AGENTS.md](PoL-Governance/AGENTS.md) 和 [README](PoL-Governance/README.md) |
-| 治理服务与 Agent 接入 · Runtime and Agent integration | [POL2-Steward/](POL2-Steward/README.md) | 从[服务说明](POL2-Steward/pol2-service/README.md)查找测试和接入步骤 |
-| 研究报告与图件 · Research reports and figures | [Research/](Research/README.md) | 按主题归档并更新索引。可复现实验按其项目说明提交 |
+| AI 治理层协作（数据、评测、模型、任务） | `PoL-Governance/` | 见 [AGENTS.md](https://github.com/naturaldao/NaturalDAO-2nd/blob/main/PoL-Governance/AGENTS.md) 和 [README](https://github.com/naturaldao/NaturalDAO-2nd/blob/main/PoL-Governance/README.md) |
+| 治理服务与 Agent 接入 · Runtime and Agent integration | [POL2-Steward/](https://github.com/naturaldao/NaturalDAO-2nd/blob/main/POL2-Steward/README.md) | 从[服务说明](https://github.com/naturaldao/NaturalDAO-2nd/blob/main/POL2-Steward/pol2-service/README.md)查找测试和接入步骤 |
+| 研究报告与图件 · Research reports and figures | [Research/](https://github.com/naturaldao/NaturalDAO-2nd/blob/main/Research/README.md) | 按主题归档并更新索引。可复现实验按其项目说明提交 |
 | 开发规划 | `docs/development-plan.zh.md`（中文）、`docs/development-plan.en.md`（English） | 与理论文档相同 |
 
 ## 理论文档 · Theory documents
@@ -20,12 +20,12 @@ Thanks for contributing to NaturalDAO. Find the workflow and checks for the area
 4. **不要直接改 Wiki**：Wiki 由 `.github/workflows/sync-wiki.yml` 从 `PoL/`、`PoLEn/` 同步，请改仓库里的文件。
 5. **小步提交**：一个 PR 讲一件事，提交信息写清改了什么、为什么。
 
-## PoL-Governance
+## 在副仓协作 · Work in NaturalDAO-2nd
 
-任务领取、分支命名（`pol/<任务ID>/<短名>`）、任务页、数据边界和交付检查都写在 [PoL-Governance/AGENTS.md](PoL-Governance/AGENTS.md)，以那里为准。两条最重要的：
+治理评测、Steward 和研究改动请提交到 [NaturalDAO-2nd](https://github.com/naturaldao/NaturalDAO-2nd)。任务领取、分支命名（`pol/<任务ID>/<短名>`）、任务页、数据边界和交付检查都写在 [PoL-Governance/AGENTS.md](https://github.com/naturaldao/NaturalDAO-2nd/blob/main/PoL-Governance/AGENTS.md)，以那里为准。两条最重要的：
 
 - **私有保留集、凭据、私有真实对话不进入任何公开分支、fork、PR、日志或截图。** 误提交时立即停止传播并通知维护者；删除最新文件不能清除 Git 历史，含凭据时还需撤销凭据。
-- 交付前在 `PoL-Governance/` 目录运行 `uv run --no-project --offline python tools/check.py`，并检查 `git diff --cached`。
+- 交付前在副仓的 `PoL-Governance/` 目录运行 `uv run --no-project --offline python tools/check.py`，并检查 `git diff --cached`。
 
 ## 许可与署名 · License and credit
 
@@ -43,4 +43,4 @@ Thanks for contributing to NaturalDAO. Find the workflow and checks for the area
 
 ---
 
-**English summary.** Work from the latest `main` on a branch (trusted members push branches here; others fork). Keep `PoL/` and `PoLEn/` in step or say in the PR which side is pending. Credit the source of any text, axiom, definition or data you reuse. Edit the repository files, not the Wiki, which is synced from them. For `PoL-Governance/`, follow its `AGENTS.md`; never commit private hold-out sets, credentials or private conversations. The current repository license declaration is Proof of Love2. Earlier releases under CC0 or another license retain their existing grants; third-party materials keep their own licenses. Disclose AI assistance in the PR.
+**English summary.** Work from the latest `main` on a branch (trusted members push branches here; others fork). Keep `PoL/` and `PoLEn/` in step or say in the PR which side is pending. Credit the source of any text, axiom, definition or data you reuse. Edit the repository files, not the Wiki, which is synced from them. Open PRs for governance, Steward, and research in [NaturalDAO-2nd](https://github.com/naturaldao/NaturalDAO-2nd) and follow its [agent guide](https://github.com/naturaldao/NaturalDAO-2nd/blob/main/PoL-Governance/AGENTS.md); never commit private hold-out sets, credentials or private conversations. The current repository license declaration is Proof of Love2. Earlier releases under CC0 or another license retain their existing grants; third-party materials keep their own licenses. Disclose AI assistance in the PR.

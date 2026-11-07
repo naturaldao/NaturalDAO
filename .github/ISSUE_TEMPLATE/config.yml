@@ -3,3 +3,6 @@ contact_links:
   - name: 安全问题 / Security issue
     url: https://github.com/naturaldao/NaturalDAO/security/policy
     about: 凭据泄露、误提交的私有数据等，请按安全政策私下报告，不要公开发 Issue。
+  - name: 治理、Steward 与研究 / Governance, Steward, and research
+    url: https://github.com/naturaldao/NaturalDAO-2nd/issues/new/choose
+    about: 在对应仓库提交问题。 Open issues in the corresponding repository.
