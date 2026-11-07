@@ -2,7 +2,7 @@
 
 ## 适用范围 · Scope
 
-适用于本仓库默认分支 `main` 的当前内容，包括理论文档、`PoL-Governance/` 下的数据、评测与训练脚本，以及 `.github/` 中的工作流。
+适用于本仓库默认分支 `main` 的当前内容，包括理论文档、开发规划和工作流。治理评测、训练脚本与 Steward 服务的问题请参阅 [NaturalDAO-2nd 的安全政策](https://github.com/naturaldao/NaturalDAO-2nd/blob/main/SECURITY.md)。
 
 ## 请私下报告的问题 · Please report privately
 
@@ -22,7 +22,7 @@
 
 ## 误提交后的处理 · If something was committed by mistake
 
-按 [PoL-Governance/AGENTS.md](PoL-Governance/AGENTS.md) 的约定处理：
+发现误提交后请按以下步骤处理：
 
 1. 立即停止传播（不要继续推送、转发、截图）。
 2. 通知维护者。
@@ -35,6 +35,4 @@
 
 ---
 
-**English summary.** This policy covers the current `main` branch. Report leaked credentials, accidentally committed private hold-out sets or private data, script or workflow vulnerabilities, and evaluation-integrity breaches privately, via GitHub's private vulnerability reporting on the Security tab (needs to be enabled by a maintainer). A direct contact address is still to be added. If something was committed by mistake: stop spreading it, tell a maintainer, remember that deleting the latest file does not remove Git history, and revoke any credential first. No response-time commitment is made at present.
-
-## This is a test
+**English summary.** This policy covers the theory, plans, and workflows on `main`. For governance evaluation, training code, and Steward, see the [NaturalDAO-2nd security policy](https://github.com/naturaldao/NaturalDAO-2nd/blob/main/SECURITY.md). Report leaked credentials, accidentally committed private hold-out sets or private data, script or workflow vulnerabilities, and evaluation-integrity breaches privately, via GitHub's private vulnerability reporting on the Security tab (needs to be enabled by a maintainer). A direct contact address is still to be added. If something was committed by mistake: stop spreading it, tell a maintainer, remember that deleting the latest file does not remove Git history, and revoke any credential first. No response-time commitment is made at present.
